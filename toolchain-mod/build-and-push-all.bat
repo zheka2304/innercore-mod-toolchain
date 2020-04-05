@@ -1,0 +1,3 @@
+@echo off
+cd toolchain/python
+python task.py clearOutput buildScripts buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo pushEverything launchHorizon
