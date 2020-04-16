@@ -1,8 +1,0 @@
-{
-    "java.dependency.packagePresentation": "flat",
-    "java.dependency.syncWithFolderExplorer": true,
-    "files.exclude": {
-        ".settings/**": true,
-        ".vscode/**": true
-    }
-}

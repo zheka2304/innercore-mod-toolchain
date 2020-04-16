@@ -68,6 +68,7 @@ Unpack *java.zip* archive to the root of mod source. You will get the following 
    │     └─ manifest
    └─ .classpath
 ```
+
 In the example above, a sample java module is already created. To add a new one, create a directory in *java* folder and add it to 
 *.classpath* file as a new entry:
 
