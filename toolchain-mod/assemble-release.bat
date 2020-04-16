@@ -1,4 +1,0 @@
-@echo off
-cd toolchain/python
-python task.py clearOutput buildScripts buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
-pause
