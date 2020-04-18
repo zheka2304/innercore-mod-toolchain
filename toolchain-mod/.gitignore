@@ -1,0 +1,6 @@
+toolchain/build
+toolchain/ndk
+output
+mod.icmod
+.idea
+**/__pycache__

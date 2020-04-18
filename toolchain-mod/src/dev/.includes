@@ -1,0 +1,3 @@
+# use this to include all files (only for order-independent builds)
+
+**/*.js

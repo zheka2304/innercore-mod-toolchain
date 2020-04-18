@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+      "target": "ES5",
+      "lib": [
+        "ES6"
+      ],
+      "allowJs": true,
+      "outDir": "../output/source"
+    },
+    "exclude": [
+      "**/node_modules/*"
+    ],
+    "include": [
+      "**/*.js"
+    ],
+    "files": [
+      "../toolchain/jslibs/core-engine.d.ts"
+    ]
+}
