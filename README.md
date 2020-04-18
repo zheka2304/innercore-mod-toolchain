@@ -84,8 +84,8 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 
 ## Working with Android Debug Bridge
 
-Android Debug Bridge allows this toolchain to push mod files to the remote device via usb cable. You can specify push path in the **make.pushTo** propery in you *make.json*
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via usb cable. You can specify push path in the **make.pushTo** propery in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed. 
 
-## Building a release version of the mod
+## Building and Publishing a Release Version of the Mod
 
-To build a release version of 
+To build a release version of the mod, run **Assemble Mod for Release** task. An *.icmod* archive is being generated and is ready for upload. Go to https://icmods.mineprogramming.org and upload a new mod or update an existing one.
