@@ -45,7 +45,7 @@ All the documentation is available at https://docs.mineprogramming.org
 
 Some of the old (but mostly still applicable) information can be found at https://wiki.mineprogramming.org
 
-To update your local typescript header files (used for hints in Javascript files), go to https://, download everything from *toolchain/jslibs* and unpack to your local *toolchain/jslibs* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
+To update your local typescript header files (used for hints in Javascript files), go to https://github.com/zheka2304/innercore-mod-toolchain, download everything from *toolchain/jslibs* and unpack to your local *toolchain/jslibs* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
 
 ## Adding Java directories
 
