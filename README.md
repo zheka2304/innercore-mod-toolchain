@@ -10,7 +10,10 @@ To work properly this toolchain requires:
  - Valid Android NDK installation (for native modding). Preferred version is r16b
  - Java Development Kit 1.8 or higher (for Java modding) 
 
-It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. 
+It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
+ - TSLint (Microsoft)
+ - C/C++ (Microsoft)
+ - Java Extension Pack (Microsoft)
 
 ## Importing existing project
 
