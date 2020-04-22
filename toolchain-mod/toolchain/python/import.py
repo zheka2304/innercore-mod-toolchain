@@ -210,7 +210,7 @@ def cleanup_if_required(directory):
         "toolchain.zip"
     ]
     for f in to_remove:
-        path = os.path.join(directory, to_remove)
+        path = os.path.join(directory, f)
         if(os.path.exists(path)):
             os.remove(path)
 
