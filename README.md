@@ -12,6 +12,15 @@ To work properly this toolchain requires:
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. 
 
+## Importing existing project
+
+To create a project from an existing Inner Core mod, use the script *toolchain-setup.py*. It should be placed in the mod directory and run using python:
+```
+python .\toolchain-setup.py
+```
+
+You can optionally pass old project directory as the first parameter of the script. This script will create required project structure and optionally set up the project for native and/or java development.
+
 ## Installing Android NDK
 
 To install Android NDK of any version on you computer, you should first download it from the archive: https://developer.android.com/ndk/downloads/older_releases. Preferred version is **16b**. Unpack the archive to *%appdata%/../Local/Android* (on Windows) or to */home/Android* (on Linux). When you open the directory "*Android/android-ndk-r16b*", you should see a list of directories. Run the build to see if everything is OK.
@@ -27,7 +36,7 @@ To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task
 Here's a description of some of the key properties you can specify in your *make.json*:
  - **global&#46;info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
  - **global&#46;api** specifies what JavaScript API is used in the mod by default
- - **make** contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change theese settings
+ - **make** contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change these settings
  - **resources** specifies what resources should be included in the output mod. There are currently four resource types available:  
    - *resource_directory* contains textures to use in Minecraft
    - *gui* contains all the gui textures
@@ -49,7 +58,7 @@ All the documentation is available at https://docs.mineprogramming.org
 
 Some of the old (but mostly still applicable) information can be found at https://wiki.mineprogramming.org
 
-To update your local typescript header files (used for hints in Javascript files), go to https://github.com/zheka2304/innercore-mod-toolchain, download everything from *toolchain/jslibs* and unpack to your local *toolchain/jslibs* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
+To update your local typescript header files (used for hints in JavaScript files), go to https://github.com/zheka2304/innercore-mod-toolchain, download everything from *toolchain/jslibs* and unpack to your local *toolchain/jslibs* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
 
 ## Adding Java directories
 
@@ -88,7 +97,7 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 
 ## Working with Android Debug Bridge
 
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via usb cable. You can specify push path in the **make.pushTo** propery in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed. 
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in the **make.pushTo** property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed. 
 
 ## Building and Publishing a Release Version of the Mod
 
