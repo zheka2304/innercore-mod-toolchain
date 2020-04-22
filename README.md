@@ -10,11 +10,15 @@ To work properly this toolchain requires:
  - Valid Android NDK installation (for native modding). Preferred version is r16b
  - Java Development Kit 1.8 or higher (for Java modding) 
 
-It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizeable and this toolchain contains all required settings and files to set up the environment. 
+It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. 
+
+## Installing Android NDK
+
+To install Android NDK of any version on you computer, you should first download it from the archive: https://developer.android.com/ndk/downloads/older_releases. Preferred version is **16b**. Unpack the archive to *%appdata%/../Local/Android* (on Windows) or to */home/Android* (on Linux). When you open the directory "*Android/android-ndk-r16b*", you should see a list of directories. Run the build to see if everything is OK.
 
 ## First Build
 
-To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task. This task performs the required setup and builds the whole project. If your project contains native code, local NDK installation will be created. This can take ssome time.
+To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task. This task performs the required setup and builds the whole project. If your project contains native code, local NDK installation will be created. This can take some time.
 
 ## make.json
 
@@ -22,14 +26,14 @@ To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task
 
 Here's a description of some of the key properties you can specify in your *make.json*:
  - **global&#46;info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
- - **global&#46;api** specifies what Javascript API is used in the mod by default
+ - **global&#46;api** specifies what JavaScript API is used in the mod by default
  - **make** contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change theese settings
  - **resources** specifies what resources should be included in the output mod. There are currently four resource types available:  
    - *resource_directory* contains textures to use in Minecraft
    - *gui* contains all the gui textures
    - *minecraft_resource_pack* contains vanilla resource packs to be used with the mod
-   - *minecraft_behavior_pack* contains vanilla behaviour packs to be used with the mod
- - **sources** specifies what javascript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently three types of sources: 
+   - *minecraft_behavior_pack* contains vanilla behavior packs to be used with the mod
+ - **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently three types of sources: 
    - *main* contains main mod logic
    - *launcher* contains mod launching logics
    - *preloader* is run before resources injection. This is useful to generate resources programmatically before Minecraft loads them
