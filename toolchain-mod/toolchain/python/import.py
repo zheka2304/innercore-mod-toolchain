@@ -201,10 +201,22 @@ def init_java_and_native(make_file, directory):
 
 
 def cleanup_if_required(directory):
-    return
+    res = input("Do you want to clean up the project? [Y/n]: ")
+    if res.lower() == 'n':
+        return
+
+    to_remove = [
+        "toolchain-setup.py",
+        "toolchain.zip"
+    ]
+    for f in to_remove:
+        path = os.path.join(directory, to_remove)
+        if(os.path.exists(path)):
+            os.remove(path)
 
 
 
+print("running project import script")
 
 
 destination = sys.argv[1]
@@ -219,13 +231,16 @@ with open(make_path, "r", encoding="utf-8") as make_file:
     make_obj = json.loads(make_file.read())
 
 make_obj["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/" + os.path.dirname(source)
+print("importing mod.info")
 import_mod_info(make_obj, source)
+print("importing build.config")
 import_build_config(make_obj, source, destination)
+print("copying additional files and directories")
 copy_additionals(source, destination)
+print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
-print(make_obj)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
     make_file.write(json.dumps(make_obj, indent=" " * 4))
