@@ -5,7 +5,7 @@
 **Inner Core for Horizon toolchain** is a toolchain that can be used to efficiently develop and build mods from your PC. 
 
 To work properly this toolchain requires:
- - Python 3.7 or higher
+ - Python 3.6 or higher
  - ADB binaries in your PATH
  - Valid Android NDK installation (for native modding). Preferred version is r16b
  - Java Development Kit 1.8 or higher (for Java modding) 
