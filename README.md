@@ -5,10 +5,10 @@
 **Inner Core for Horizon toolchain** is a toolchain that can be used to efficiently develop and build mods from your PC. 
 
 To work properly this toolchain requires:
- - Python 3.6 or higher
- - ADB binaries in your PATH
- - Valid Android NDK installation (for native modding). Preferred version is r16b
- - Java Development Kit 1.8 or higher (for Java modding) 
+ - [Python](https://www.python.org/) 3.6 or higher
+ - [ADB binaries](https://developer.android.com/studio/releases/platform-tools) in your PATH
+ - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding). Preferred version is r16b
+ - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding) 
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
  - TSLint (Microsoft)
