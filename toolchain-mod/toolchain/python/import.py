@@ -207,6 +207,7 @@ def cleanup_if_required(directory):
 
     to_remove = [
         "toolchain-setup.py",
+        "toolchain-import.py",
         "toolchain.zip"
     ]
     for f in to_remove:

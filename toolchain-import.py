@@ -19,6 +19,33 @@ def copytree(src, dst, symlinks=False, ignore=None):
         else:
             shutil.copy2(s, d)
 
+def backup_project(directory):
+    print("backing up project to project.back")
+    backup_path = os.path.join(directory, "project.back")
+    if os.path.exists(backup_path):
+        print("project.back already exists, skipping")
+        return
+
+    files = os.listdir(directory)
+
+    os.makedirs(backup_path)
+
+    for f in files:
+        exceptions = [
+            ".git", 
+            "toolchain-setup.py",
+            "toolchain.zip"
+        ]
+        if f in exceptions: continue
+        entry = os.path.join(directory, f)
+
+        if(os.path.isfile(entry)):
+            shutil.copyfile(entry, os.path.join(backup_path, f))
+            os.remove(entry)
+
+        elif(os.path.isdir(entry)):
+            shutil.copytree(entry, os.path.join(backup_path, f))
+            shutil.rmtree(entry)
 
 def download_and_extract_toolchain(directory):
     import urllib.request
@@ -47,14 +74,16 @@ def download_and_extract_toolchain(directory):
             print("an error occured while extracting toolchain archive, please, retry the operation")
             os.remove(archive)
             exit()
+    
+    
 
-
+    
 if(len(sys.argv) > 1):
     directory = sys.argv[1]
-    os.makedirs(directory)
 else: 
     directory = '.'
 
+backup_project(directory)
 download_and_extract_toolchain(directory)
-setup_script = os.path.join(directory, "toolchain", "python", "setup.py")
-call("python " + setup_script + " " + directory + " " + os.path.join(directory, "project.back"))
+import_script = os.path.join(directory, "toolchain", "python", "import.py")
+call("python " + import_script + " " + directory + " " + os.path.join(directory, "project.back"))
