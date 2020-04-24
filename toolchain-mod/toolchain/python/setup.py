@@ -17,6 +17,9 @@ def setup_mod_info(make_file):
     version = input("Enter project version [1.0]: ")
     description = input("Enter project description: ")
 
+    if version == "":
+        version = "1.0"
+
     make_file["global"]["info"] = {
         "name": name,
         "author": author,
@@ -103,9 +106,12 @@ def init_directories(directory):
     libs_dir = os.path.join("src", "lib")
     clear_directory(libs_dir)
     os.makedirs(libs_dir)
+    os.makedirs(os.path.join(directory, "src", "preloader"))
+    os.makedirs(os.path.join(assets_dir, "resource_packs"))
+    os.makedirs(os.path.join(assets_dir, "behavior_packs"))
     with(open(os.path.join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
         file.write("")
-        
+
 
 
 
