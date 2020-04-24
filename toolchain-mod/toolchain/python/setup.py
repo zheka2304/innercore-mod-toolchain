@@ -144,4 +144,4 @@ cleanup_if_required(destination)
 with open(make_path, "w", encoding="utf-8") as make_file:
     make_file.write(json.dumps(make_obj, indent=" " * 4))
 
-print("project successfully imported, please, delete project.back after triple checking that everything is OK")
+print("project successfully set up")
