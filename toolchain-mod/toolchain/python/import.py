@@ -231,7 +231,12 @@ if not (os.path.exists(make_path) and os.path.exists(source)):
 with open(make_path, "r", encoding="utf-8") as make_file:
     make_obj = json.loads(make_file.read())
 
-make_obj["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/" + os.path.dirname(source)
+if(source == '.'):
+    dirname = os.path.basename(os.getcwd())
+else:
+    dirname = os.path.basename(source)
+
+make_obj["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/" + dirname
 print("importing mod.info")
 import_mod_info(make_obj, source)
 print("importing build.config")

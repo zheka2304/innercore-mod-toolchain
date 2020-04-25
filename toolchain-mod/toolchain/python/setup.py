@@ -127,9 +127,9 @@ with open(make_path, "r", encoding="utf-8") as make_file:
     make_obj = json.loads(make_file.read())
 
 if destination == '.':
-    dirname = os.path.dirname(os.getcwd())
+    dirname = os.path.basename(os.getcwd())
 else: 
-    dirname = os.path.dirname(destination)
+    dirname = os.path.basename(destination)
 
 make_obj["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/" + dirname
 print("initializing mod.info")
