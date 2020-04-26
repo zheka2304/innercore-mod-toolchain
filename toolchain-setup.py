@@ -65,8 +65,6 @@ else:
     directory = '.'
 
 download_and_extract_toolchain(directory)
-setup_script = os.path.join(directory, "toolchain", "python", "setup.py")
 
-
-
+setup_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "toolchain", "python", "setup.py")
 call(get_python() + " " + setup_script + " " + directory + " " + os.path.join(directory, "project.back"))

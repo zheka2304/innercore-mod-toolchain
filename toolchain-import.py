@@ -94,5 +94,6 @@ else:
 
 backup_project(directory)
 download_and_extract_toolchain(directory)
-import_script = os.path.join(directory, "toolchain", "python", "import.py")
+
+import_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "toolchain", "python", "import.py")
 call(get_python() + " " + import_script + " " + directory + " " + os.path.join(directory, "project.back"))
