@@ -5,6 +5,15 @@ import sys
 
 from distutils.dir_util import copy_tree
 from subprocess import call
+import platform
+
+
+def get_python():
+    if platform.system() == "Windows":
+        return "python"
+    else:
+        return "python3"
+        
 
 def copytree(src, dst, symlinks=False, ignore=None):
     if not os.path.exists(src) or os.path.isfile(src):
@@ -86,4 +95,4 @@ else:
 backup_project(directory)
 download_and_extract_toolchain(directory)
 import_script = os.path.join(directory, "toolchain", "python", "import.py")
-call("python " + import_script + " " + directory + " " + os.path.join(directory, "project.back"))
+call(get_python() + " " + import_script + " " + directory + " " + os.path.join(directory, "project.back"))
