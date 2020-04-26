@@ -103,7 +103,7 @@ def init_directories(directory):
     os.makedirs(os.path.join(assets_dir, "gui"))
     os.makedirs(os.path.join(assets_dir, "res", "items-opaque"))
     os.makedirs(os.path.join(assets_dir, "res", "terran-atlas"))
-    libs_dir = os.path.join("src", "lib")
+    libs_dir = os.path.join(directory, "src", "lib")
     clear_directory(libs_dir)
     os.makedirs(libs_dir)
     os.makedirs(os.path.join(directory, "src", "preloader"))
