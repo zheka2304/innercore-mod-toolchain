@@ -14,12 +14,26 @@ It is also highly recommended you install Visual Studio Code code editor. This e
  - TSLint (Microsoft)
  - C/C++ (Microsoft)
  - Java Extension Pack (Microsoft)
+ 
+You can find detailed explanation about how to set up all the requirements in this video:
+[![Inner Core/Horizon Mods Development | Setting up the Environment](https://img.youtube.com/vi/ofwKkRYh97k/0.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
+
+## Creating a new project
+
+To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python:
+```
+python .\toolchain-setup.py project_folder
+```
+
+The script will create a new project and set it up for native and/or java development. See detailed explanations in the video:
+[![Inner Core/Horizon Mods Development | Creating and Importing Projects](https://img.youtube.com/vi/ykAVJoxKTKc/0.jpg)](https://www.youtube.com/watch?v=ykAVJoxKTKc)
+
 
 ## Importing existing project
 
-To create a project from an existing Inner Core mod, use the script *toolchain-setup.py*. It should be placed in the mod directory and run using python:
+To create a project from an existing Inner Core mod, use the script *toolchain-import.py*. It should be placed in the mod directory and run using python:
 ```
-python .\toolchain-setup.py
+python .\toolchain-import.py
 ```
 
 You can optionally pass old project directory as the first parameter of the script. This script will create required project structure and optionally set up the project for native and/or java development.
