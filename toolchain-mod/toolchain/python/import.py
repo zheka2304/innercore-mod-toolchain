@@ -59,16 +59,18 @@ def import_build_config(make_file, source, destination):
 
         # import assets
         for res_dir in config.get_filtered_list("resources", "resourceType", ("resource", "gui")):
-            if(res_dir["resourceType"] == "resource"):
+            if res_dir["resourceType"] == "resource":
                 res_dir["resourceType"] = "resource_directory"
-            path = res_dir["path"].strip('/')
+            path_stripped = res_dir["path"].strip('/')
+            path_parts = path_stripped.split('/')
+            path = os.path.join(*path_parts)
             copy_directory(os.path.join(source, path), os.path.join(assets_dir, path), True)
             resources.append({
-                "path": "src/assets/" + path,
+                "path": "src/assets/" + path_stripped,
                 "type": res_dir["resourceType"]
             })
 
-            root_files.append(path)
+            root_files.append(path_parts[0])
 
         make_file["resources"] = resources
 
@@ -78,9 +80,10 @@ def import_build_config(make_file, source, destination):
         clear_directory(os.path.join(destination, "src", "dev"))
         os.makedirs(libs_dir)
         old_libs = config.get_value("defaultConfig.libraryDir", "lib").strip('/')
-        old_libs_dir = os.path.join(source, old_libs)
+        old_libs_parts = old_libs.split('/')
+        old_libs_dir = os.path.join(source, *old_libs_parts)
         if os.path.isdir(old_libs_dir):
-            root_files.append(old_libs)
+            root_files.append(old_libs_parts[0])
             copy_directory(old_libs_dir, libs_dir)
         
 
@@ -110,20 +113,22 @@ def import_build_config(make_file, source, destination):
                 "language": "javascript"
             }
 
-            root_files.append(source_dir["path"])
+            source_parts = source_dir["path"].split('/')
+            root_files.append(source_parts[0])
 
             build_dirs = config.get_filtered_list("buildDirs", "targetSource", (source_dir["path"]))
             if(len(build_dirs) > 0):
                 old_build_path = build_dirs[0]["dir"].strip("/")
+                old_path_parts = old_build_path.split('/')
                 sourceObj["source"] = "src/" + old_build_path
                 sourceObj["target"] = source_dir["path"]
-                root_files.append(old_build_path)
+                root_files.append(old_path_parts[0])
 
-                copy_directory(os.path.join(source, old_build_path), os.path.join(src_dir, old_build_path), True)
+                copy_directory(os.path.join(source, *old_path_parts), os.path.join(src_dir, *old_path_parts), True)
                  
             else:
                 sourceObj["source"] = "src/" + source_dir["path"]
-                copy_file(os.path.join(source, source_dir["path"]), os.path.join(src_dir, source_dir["path"]))
+                copy_file(os.path.join(source, *source_parts), os.path.join(src_dir, *source_parts))
 
             sources.append(sourceObj)
 
