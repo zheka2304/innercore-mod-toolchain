@@ -114,6 +114,13 @@ def init_directories(directory):
 
 
 
+def init_adb(make_file, dirname):
+    pack_name = input("Enter your pack directory name [Inner_Core]: ")
+    if pack_name == "":
+        pack_name = "Inner_Core"
+
+    make_file["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name + "/innercore/mods/" + dirname
+
 
 print("running project setup script")
 
@@ -131,7 +138,8 @@ if destination == '.':
 else: 
     dirname = os.path.basename(destination)
 
-make_obj["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/" + dirname
+
+init_adb(make_obj, dirname)
 print("initializing mod.info")
 setup_mod_info(make_obj)
 print("initializing required directories")
