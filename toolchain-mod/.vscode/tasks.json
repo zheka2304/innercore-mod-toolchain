@@ -75,6 +75,30 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Connect to ADB",
+            "type": "shell",
+            "options": {
+                "cwd": ".\\toolchain\\python"
+            },
+            "command": "python task.py connectToADB",
+            "args": [
+                "${input:ip}:5555"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "ip",
+            "description": "IP:",
+            "default": "192.168.43.1",
+            "type": "promptString"
         }
     ]
 }

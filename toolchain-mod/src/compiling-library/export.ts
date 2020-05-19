@@ -1,0 +1,1 @@
+EXPORT("CompilingLibrary", CompilingLibrary);

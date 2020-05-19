@@ -6,10 +6,8 @@
 			"author": "Unknown",
 			"icon": "src/icon.png"
 		},
-
 		"api": "CoreEngine"
 	},
-
 	"make": {
 		"debugAbi": "armeabi-v7a",
 		"abis": [
@@ -25,7 +23,6 @@
 		"pushTo": "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/sample_mod",
 		"ndkPath": null
 	},
-
 	"resources": [
 		{
 			"path": "src/assets/res",
@@ -44,13 +41,17 @@
 			"type": "minecraft_behavior_pack"
 		}
 	],
-
 	"sources": [
 		{
 			"source": "src/dev",
-			"target": "main.js", 
+			"target": "main.js",
 			"type": "main",
-			"language": "javascript"
+			"language": "typescript"
+		},
+		{
+			"source": "src/compiling-library",
+			"type": "library",
+			"language": "typescript"
 		},
 		{
 			"source": "src/launcher.js",
@@ -58,7 +59,7 @@
 			"language": "javascript"
 		},
 		{
-			"source": "src/lib/*", 
+			"source": "src/lib/*",
 			"type": "library",
 			"language": "javascript"
 		},
@@ -68,7 +69,6 @@
 			"language": "javascript"
 		}
 	],
-
 	"compile": [
 		{
 			"source": "src/native/*",
@@ -79,7 +79,6 @@
 			"type": "java"
 		}
 	],
-
 	"additional": [
 		{
 			"source": "src/assets/root/*",

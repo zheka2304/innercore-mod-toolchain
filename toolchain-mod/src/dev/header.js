@@ -8,5 +8,11 @@ alert("Received value from native : " + SampleNativeModule.hello(2, 1));
 
 // test sample library 
 
-IMPORT("SamleModLibrary")
+IMPORT("SampleModLibrary")
 SampleLibraryModule.test();
+
+
+// test compiling library 
+
+IMPORT("CompilingLibrary")
+CompilingLibrary.TestClass.someMethod();
