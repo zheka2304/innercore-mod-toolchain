@@ -2,5 +2,6 @@ toolchain/build
 toolchain/ndk
 output
 mod.icmod
+tsconfig.json
 .idea
 **/__pycache__
