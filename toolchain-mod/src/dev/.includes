@@ -1,3 +1,5 @@
 # use this to include all files (only for order-independent builds)
 
+# nocheck
+
 **/*.js

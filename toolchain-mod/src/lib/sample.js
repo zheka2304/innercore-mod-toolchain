@@ -1,14 +1,14 @@
 LIBRARY({
-	name: "SamleModLibrary",
+	name: "SampleModLibrary",
 	version: 1,
 	shared: true,
 	api: "CoreEngine"
 });
 
 var SampleLibraryModule = {
-	test: function() {
+	test: function () {
 		alert("hello from sample library");
 	}
 };
 
-EXPORT("SampleLibraryModule", SampleLibraryModule)
+EXPORT("SampleLibraryModule", SampleLibraryModule);
