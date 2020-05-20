@@ -6,7 +6,7 @@
 
 To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
- - [ADB binaries](https://developer.android.com/studio/releases/platform-tools) in your PATH
+ - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding)
  - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding). Preferred version is r16b
  - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding) 
 
@@ -59,11 +59,14 @@ Here's a description of some of the key properties you can specify in your *make
    - *gui* contains all the gui textures
    - *minecraft_resource_pack* contains vanilla resource packs to be used with the mod
    - *minecraft_behavior_pack* contains vanilla behavior packs to be used with the mod
- - **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently three types of sources: 
+ - **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently four types of sources: 
    - *main* contains main mod logic
    - *launcher* contains mod launching logics
    - *preloader* is run before resources injection. This is useful to generate resources programmatically before Minecraft loads them
    - *lib* contains reusable mod libraries
+ - There are also two supported languages:
+   - *javascript* is used for pure javascript project using ES5 language standart. These folders are not compiled and are just built 'as is'.
+   - *typescript* is used for typescript language and ESNext version of Javascript. These folders are built using typescript compiler.
  - **compile** specifies all the source code that should be compiled. This toolchain currently supports two compilation types:
    - *native* is used to compile C/C++ sources. Note that Android NDK is required to run this type of compilation
    - *java* is used to compile Java sources. Note that you have to install JDK of version 1.8 or higher to run this type of compilation
