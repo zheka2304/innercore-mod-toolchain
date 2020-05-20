@@ -1631,6 +1631,12 @@ declare function getMCPEVersion():
  * @param arg 
  */
 declare function alert(arg: string): any;
+
+
+declare function LIBRARY(description: object): void;
+
+
+declare function EXPORT(name: string, lib: any): void;
 /**
  * Defines some useful methods for debugging
  */
@@ -1742,7 +1748,7 @@ interface ItemInstance {
      * Item extra data. Contains some additional item data such as enchants, 
      * custom item name or some additional properties
      */
-    extra?: number|ItemExtra
+    extra?: ItemExtra
 }
 
 /**
@@ -2107,7 +2113,7 @@ declare namespace Entity {
     /** 
      * @deprecated No longer supported
      */
-    function putExtra(ent: number, name: string, extra?: number|ItemExtra): void;
+    function putExtra(ent: number, name: string, extra?: ItemExtra): void;
 
     /**
      * @deprecated No longer supported
@@ -2525,7 +2531,7 @@ declare namespace Entity {
      * @param data item data
      * @param extra item extra
      */
-    function setArmorSlot(ent: number, slot: number, id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setArmorSlot(ent: number, slot: number, id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * @param bool1 parameter is no longer supported and should not be used
@@ -2541,7 +2547,7 @@ declare namespace Entity {
      * @param data item data
      * @param extra item extra
      */
-    function setCarriedItem(ent: number, id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setCarriedItem(ent: number, id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * Gets item from specified drop entity
@@ -2556,7 +2562,7 @@ declare namespace Entity {
      * @param data item data
      * @param extra item extra
      */
-    function setDroppedItem(ent: number, id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setDroppedItem(ent: number, id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * @deprecated No longer supported
@@ -4221,7 +4227,7 @@ declare namespace Player {
      * @param boolean if set to false, function drops items that could not be 
      * added to player's inventory, destroys them otherwise
      */
-    function addItemToInventory(id: number, count: number, data: number, extra?: number|ItemExtra, preventDrop?: boolean): void;
+    function addItemToInventory(id: number, count: number, data: number, extra?: ItemExtra, preventDrop?: boolean): void;
 
     /**
      * @param handleEnchant No longer supported and should not be passed
@@ -4237,7 +4243,7 @@ declare namespace Player {
      * @param data item data
      * @param extra item extra
      */
-    function setCarriedItem(id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setCarriedItem(id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * Decreases carried item count by specified number
@@ -4260,7 +4266,7 @@ declare namespace Player {
      * @param data item data
      * @param extra item extra
      */
-    function setInventorySlot(slot: number, id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setInventorySlot(slot: number, id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * @param slot armor slot id, should be one of the [[Native.ArmorType]] 
@@ -4278,7 +4284,7 @@ declare namespace Player {
      * @param data item data
      * @param extra item extra
      */
-    function setArmorSlot(slot: number, id: number, count: number, data: number, extra?: number|ItemExtra): void;
+    function setArmorSlot(slot: number, id: number, count: number, data: number, extra?: ItemExtra): void;
 
     /**
      * @returns currently selected inventory slot, from 0 to 8
@@ -9146,7 +9152,7 @@ declare namespace World {
      * id
      * @returns created drop entity id
      */
-    function drop(x: number, y: number, z: number, id: number, count: number, data: number, extra?: number|ItemExtra): number;
+    function drop(x: number, y: number, z: number, id: number, count: number, data: number, extra?: ItemExtra): number;
 
     /**
      * Creates an explosion on the sepcified coordinates
@@ -9200,7 +9206,7 @@ declare namespace World {
     /**
      * Plays standart Minecraft sound on the specified coordinates
      * @param name sound name
-     * @param volume sound volume from 0 to 100
+     * @param volume sound volume from 0 to 1
      * @param pitch sound pitch, from 0 to 1, 0.5 is default value
      */
     function playSound(x: number, y: number, z: number, name: string, volume: number, pitch: number): void;
@@ -9208,7 +9214,7 @@ declare namespace World {
     /**
      * Plays standart Minecraft sound from the specified entity
      * @param name sound name
-     * @param volume sound volume from 0 to 100
+     * @param volume sound volume from 0 to 1
      * @param pitch sound pitch, from 0 to 1, 0.5 is default value
      */
     function playSoundAtEntity(entity: number, name: string, volume: number, pitch: number): void;
