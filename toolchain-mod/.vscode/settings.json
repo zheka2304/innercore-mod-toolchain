@@ -8,8 +8,6 @@
         ".project": true,
         ".classpath": true,
         ".idea/**": true,
-        "toolchain/**": true,
-        "**/tsconfig.json": true,
-        "output/**": true
+        "**/tsconfig.json": true
     }
 }
