@@ -49,11 +49,6 @@
 			"language": "typescript"
 		},
 		{
-			"source": "src/compiling-library",
-			"type": "library",
-			"language": "typescript"
-		},
-		{
 			"source": "src/launcher.js",
 			"type": "launcher",
 			"language": "javascript"
