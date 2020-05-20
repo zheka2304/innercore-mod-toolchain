@@ -58,7 +58,7 @@ def init_java_and_native(make_file, directory):
 
 def ensure_typescript():
     print("Updating typescript version")
-    os.call("npm install -g typescript")
+    os.system("npm install -g typescript")
 
 
 def get_language():
