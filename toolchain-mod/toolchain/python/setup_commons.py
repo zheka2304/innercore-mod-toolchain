@@ -56,6 +56,11 @@ def init_java_and_native(make_file, directory):
                 os.remove(sample_java_archive)
 
 
+def ensure_typescript():
+    print("Updating typescript version")
+    os.call("npm install -g typescript")
+
+
 def get_language():
     if get_language.language == "":
         res = input("Do you want to enable Typescript and ES6+ support (requires node.js to build project)? [Y/n]")
@@ -63,6 +68,8 @@ def get_language():
             get_language.language = "javascript"
         else:
             get_language.language = "typescript"
+            ensure_typescript()
+
     return get_language.language
 get_language.language = ""
 
