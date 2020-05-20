@@ -11,7 +11,7 @@ from base_config import BaseConfig
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
 
-from setup_commons import init_java_and_native, cleanup_if_required, init_adb
+from setup_commons import init_java_and_native, get_language, cleanup_if_required, init_adb
 
 root_files = []
 
@@ -109,10 +109,15 @@ def import_build_config(make_file, source, destination):
         for source_dir in config.get_filtered_list("compile", "sourceType", ("mod", "launcher")):
             if source_dir["sourceType"] == "mod": 
                 source_dir["sourceType"] = "main"
+                language = get_language()
+            else: 
+                language = "javascript"
+
+            
             
             sourceObj = {
                 "type": source_dir["sourceType"],
-                "language": "javascript"
+                "language": language
             }
 
             source_parts = source_dir["path"].split('/')

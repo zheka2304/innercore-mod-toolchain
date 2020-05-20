@@ -55,6 +55,16 @@ def init_java_and_native(make_file, directory):
             if(os.path.isfile(sample_java_archive)):
                 os.remove(sample_java_archive)
 
+get_language.language = ""
+def get_language():
+    if get_language.language == "":
+        res = input("Do you want to enable Typescript and ES6+ support (requires node.js to build project)? [Y/n]")
+        if res.lower() == "n": 
+            get_language.language = "javascript"
+        else:
+            get_language.language = "javascript"
+    return get_language.language
+
 
 def cleanup_if_required(directory):
     res = input("Do you want to clean up the project? [Y/n]: ")

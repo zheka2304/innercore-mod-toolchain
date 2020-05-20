@@ -9,7 +9,7 @@ from base_config import BaseConfig
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
 
-from setup_commons import init_java_and_native, cleanup_if_required, init_adb
+from setup_commons import init_java_and_native, get_language, cleanup_if_required, init_adb
 
 
 
@@ -30,7 +30,7 @@ def setup_mod_info(make_file):
     }
 
 
-def init_directories(directory):
+def init_directories(make_file, directory):
     assets_dir = os.path.join(directory, "src", "assets")
     clear_directory(assets_dir)
     os.makedirs(os.path.join(assets_dir, "gui"))
@@ -44,6 +44,7 @@ def init_directories(directory):
     os.makedirs(os.path.join(assets_dir, "behavior_packs"))
     with(open(os.path.join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
         file.write("")
+    make_file["sources"][0]["language"] = get_language()
 
 
 
@@ -68,7 +69,7 @@ init_adb(make_obj, dirname)
 print("initializing mod.info")
 setup_mod_info(make_obj)
 print("initializing required directories")
-init_directories(destination)
+init_directories(make_obj, destination)
 print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
