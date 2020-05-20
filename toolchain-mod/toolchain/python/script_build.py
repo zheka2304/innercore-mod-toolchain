@@ -32,7 +32,9 @@ def build_source(source_path, target_path):
             f"{source_path}/**/*", recursive=True)]
     else:
         # if there isn't .includes but there is tsconfig.json
-        build_tsconfig(tsconfig_path)
+        result = build_tsconfig(tsconfig_path)
+        if result != 0:
+            return 1
         with open(tsconfig_path) as tsconfig:
             config = json.load(tsconfig)
             library_path = normpath(
@@ -44,7 +46,7 @@ def build_source(source_path, target_path):
             if(isfile(declaration_path)):
                 copy_file(declaration_path, join(make_config.get_path(
                     "toolchain/build/typescript-headers"), basename(declaration_path)))
-        return
+        return 0
 
     # decode params
     params["checkJs"] = not params.pop("nocheck")
@@ -77,18 +79,19 @@ def build_source(source_path, target_path):
     with open(tsconfig_path, "w") as tsconfig:
         json.dump(template, tsconfig, indent="\t")
 
-    build_tsconfig(tsconfig_path)
+    return build_tsconfig(tsconfig_path)
 
 
 def build_script(source_path, target_path):
     if (isfile(source_path)):
         copy_file(source_path, target_path)
+        return 0
     else:
-        build_source(source_path, target_path)
+        return build_source(source_path, target_path)
 
 
 def build_tsconfig(tsconfig_path):
-    os.system(f'tsc -p "{tsconfig_path}"')
+    return os.system(f'tsc -p "{tsconfig_path}"')
 
 
 def read_params_from_includes(source_path):
@@ -180,12 +183,14 @@ def build_all_scripts():
 
             print_info(
                 f"building {_language} {_type} from {_source} {'to ' + _target if _target is not None else '' }")
-            tsconfig_path = build_script(source_path, mod_structure.new_build_target(
+            result = build_script(source_path, mod_structure.new_build_target(
                 target_type,
                 target_path,
                 source_type=_type,
                 declare=declare
             ))
+            if result != 0:
+                overall_result = 1
             mod_structure.update_build_config_list("compile")
 
     return overall_result
