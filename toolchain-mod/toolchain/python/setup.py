@@ -13,11 +13,14 @@ from setup_commons import init_java_and_native, get_language, cleanup_if_require
 
 
 
-def setup_mod_info(make_file):
-    name = input("Enter project name: ")
+def setup_mod_info(make_file, default_name):
+    name = input("Enter project name [" + default_name + "]: ")
     author = input("Enter author name: ")
     version = input("Enter project version [1.0]: ")
     description = input("Enter project description: ")
+
+    if name == "":
+        name = default_name
 
     if version == "":
         version = "1.0"
@@ -67,7 +70,7 @@ else:
 
 init_adb(make_obj, dirname)
 print("initializing mod.info")
-setup_mod_info(make_obj)
+setup_mod_info(make_obj, dirname)
 print("initializing required directories")
 init_directories(make_obj, destination)
 print("initializing java and native modules")
