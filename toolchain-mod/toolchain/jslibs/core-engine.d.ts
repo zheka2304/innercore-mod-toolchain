@@ -1482,68 +1482,6 @@ declare namespace IDData {
 }
 declare namespace BlockRenderer {}
 declare namespace ICRender {}
-declare namespace LiquidRegistry {
-    var liquidStorageSaverId: number;
-    namespace liquids {
-        namespace water {
-            var key: string;
-            var name: string;
-            namespace uiTextures {}
-            namespace uiCache {}
-            namespace modelTextures {}
-
-            function addUITexture(name: any): any;
-
-            function addModelTexture(name: any): any;
-        }
-        namespace lava {
-            var key: string;
-            var name: string;
-            namespace uiTextures {}
-            namespace uiCache {}
-            namespace modelTextures {}
-
-            function addUITexture(name: any): any;
-
-            function addModelTexture(name: any): any;
-        }
-        namespace milk {
-            var key: string;
-            var name: string;
-            namespace uiTextures {}
-            namespace uiCache {}
-            namespace modelTextures {}
-
-            function addUITexture(name: any): any;
-
-            function addModelTexture(name: any): any;
-        }
-    }
-
-    function registerLiquid(key: number, name: any, uiTextures: any, modelTextures: any): any;
-
-    function getLiquidData(key: number): any;
-
-    function isExists(key: number): any;
-
-    function getLiquidName(key: number): any;
-
-    function getLiquidUITexture(key: number, width: any, height: any): any;
-
-    function getLiquidUIBitmap(key: number, width: any, height: any): any;
-    namespace FullByEmpty {}
-    namespace EmptyByFull {}
-
-    function registerItem(liquid: any, empty: number, full: any): any;
-
-    function getEmptyItem(id: number, data: number): any;
-
-    function getItemLiquid(id: number, data: number): any;
-
-    function getFullItem(id: number, data: number, liquid: any): any;
-
-    function Storage(tileEntity: number): any;
-}
 declare function ItemExtraData(): any;
 declare function RenderMesh(): any;
 /**
@@ -3568,6 +3506,34 @@ declare namespace Item {
         meta?: number
     }
 
+}
+declare namespace LiquidRegistry {
+    var liquidStorageSaverId: number;
+    namespace liquids {}
+
+    function registerLiquid(key: string, name: string, uiTextures: string[], modelTextures?: string[]): void;
+
+    function getLiquidData(key: string): any;
+
+    function isExists(key: string): boolean;
+
+    function getLiquidName(key: string): string;
+
+    function getLiquidUITexture(key: string, width: number, height: number): string;
+
+    function getLiquidUIBitmap(key: string, width: number, height: number): android.graphics.Bitmap;
+    namespace FullByEmpty {}
+    namespace EmptyByFull {}
+
+    function registerItem(liquid: string, empty: {id: number, data: number}, full: {id: number, data: number}): void;
+
+    function getEmptyItem(id: number, data: number): {id: number, data: number, liquid: string};
+
+    function getItemLiquid(id: number, data: number): string;
+
+    function getFullItem(id: number, data: number, liquid: string): {id: number, data: number};
+
+    function Storage(tileEntity: TileEntity): any;
 }
 /**
  * Module used to log messages to Inner Core log and android log
