@@ -23,6 +23,12 @@ def copy_file(src, dst):
     shutil.copy(src, dst)
 
 
+def move_file(src, dst):
+    import shutil
+    ensure_file_dir(dst)
+    shutil.move(src, dst)
+
+
 def copy_directory(src, dst, clear_dst=False):
     ensure_directory(dst)
     if clear_dst:
@@ -40,7 +46,8 @@ def get_all_files(directory, extensions=()):
             else:
                 for extension in extensions:
                     if len(file) >= len(extension) and file[-len(extension):] == extension:
-                        all_files.append(os.path.abspath(os.path.join(root, file)))
+                        all_files.append(os.path.abspath(
+                            os.path.join(root, file)))
                         break
     return all_files
 
@@ -56,4 +63,6 @@ def relative_path(directory, file):
             raise RuntimeError("file and directory are the same")
         return file
     else:
-        raise RuntimeError("file is not in a directory: file=" + file + " dir=" + directory)
+        raise RuntimeError(
+            "file is not in a directory: file=" + file + " dir=" + directory)
+
