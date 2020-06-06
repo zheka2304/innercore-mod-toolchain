@@ -1,10 +1,10 @@
-import sys
 import os
 import os.path
+import sys
 import time
 
+from fancy_output import *
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
-
 
 make_config = None
 registered_tasks = {}
@@ -23,6 +23,7 @@ def lock_task(name, silent=True):
     path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
     ensure_file_dir(path)
     await_message = False
+
     if os.path.exists(path):
         while True:
             try:
@@ -71,14 +72,16 @@ def task(name, lock=None):
             for lock_name in lock:
                 lock_task(lock_name, silent=False)
             os.system('color')
-            print('\033[1m' + '\033[92m' + f"> executing task:{name}" + '\033[0m')
+            print_ok(f"> executing task: {name}")
             task_result = func(*args, **kwargs)
             unlock_task(name)
             for lock_name in lock:
                 unlock_task(lock_name)
             return task_result
+
         registered_tasks[name] = caller
         return caller
+
     return decorator
 
 
@@ -87,7 +90,8 @@ def task_compile_native_debug():
     abi = get_make_config().get_value("make.debugAbi", None)
     if abi is None:
         abi = "armeabi-v7a"
-        print(f"WARNING: no make.debugAbi value in config, using {abi} as default")
+        print_warn(
+            f"WARNING: no make.debugAbi value in config, using {abi} as default")
     from native.native_build import compile_all_using_make_config
     return compile_all_using_make_config([abi])
 
@@ -147,14 +151,14 @@ def task_build_scripts():
         if "source" in additional_dir and "targetDir" in additional_dir:
             for additional_path in get_make_config().get_paths(additional_dir["source"]):
                 if not os.path.exists(additional_path):
-                    print("non existing additional path: " + additional_path)
+                    print_err("non existing additional path: " + additional_path)
                     overall_result = 1
                     break
                 target = get_make_config().get_path(os.path.join(
-                        "output",
-                        additional_dir["targetDir"],
-                        os.path.basename(additional_path)
-                    ))
+                    "output",
+                    additional_dir["targetDir"],
+                    os.path.basename(additional_path)
+                ))
                 if os.path.isdir(additional_path):
                     copy_directory(additional_path, target)
                 else:
@@ -165,8 +169,8 @@ def task_build_scripts():
 
 @task("pushEverything", lock=["push"])
 def task_push_everything():
-    import push
-    return push.push(get_make_config().get_path("output"), ".", src_relative=False)
+    from push import push
+    return push(get_make_config().get_path("output"))
 
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
@@ -206,8 +210,36 @@ def task_build_package():
 
 @task("launchHorizon")
 def task_launch_horizon():
-    import subprocess
-    subprocess.call(["adb", "shell", "monkey", "-p", "com.zheka.horizon", "-c", "android.intent.category.LAUNCHER", "1"])
+    from subprocess import call
+    with open(os.devnull, "w") as f:
+        call([make_config.get_adb(), "shell", "touch", "/storage/emulated/0/games/horizon/.flag_auto_launch"], stdout=f, stderr=f)
+        call([make_config.get_adb(), "shell", "monkey", "-p", "com.zheka.horizon", "-c", "android.intent.category.LAUNCHER", "1"], stdout=f, stderr=f)
+    return 0
+
+
+@task("connectToADB")
+def task_connect_to_adb():
+    import re
+
+    ip = None
+    pattern = re.compile("\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}:\d{4}")
+    for arg in sys.argv:
+        test = pattern.match(arg)
+        if test:
+            ip = arg
+
+    if ip is None:
+        print_err("incorrect IP-address")
+        return 1
+
+    print(f"connecting to {ip}")
+
+    result = 0
+    from subprocess import call
+    with open(os.devnull, "w") as f:
+        call([make_config.get_adb(), "disconnect"], stdout=f, stderr=f)
+        call([make_config.get_adb(), "tcpip", "5555"], stdout=f, stderr=f)
+        call([make_config.get_adb(), "connect", ip])
     return 0
 
 
@@ -216,20 +248,27 @@ def task_cleanup():
     config = get_make_config()
     clear_directory(config.get_path("toolchain/build/gcc"))
     clear_directory(config.get_path("toolchain/build/gradle"))
-    import java.java_build
-    java.java_build.cleanup_gradle_scripts()
+    clear_directory(config.get_path("toolchain/build/typescript-headers"))
+    clear_directory(config.get_path("toolchain/build/typescript"))
+
+#     FIXME
+#     import java.java_build
+#     java.java_build.cleanup_gradle_scripts()
     return 0
 
 
 def error(message, code=-1):
     sys.stderr.write(message + "\n")
     unlock_all_tasks()
-    input("Press enter to continue...")
+#    input("Press enter to continue...")
     exit(code)
 
 
 if __name__ == '__main__':
     if len(sys.argv[1:]) > 0:
+        import os
+        os.system("cls")
+
         for task_name in sys.argv[1:]:
             if task_name in registered_tasks:
                 try:
@@ -239,12 +278,12 @@ if __name__ == '__main__':
                 except BaseException as err:
                     if isinstance(err, SystemExit):
                         raise err
+
                     import traceback
                     traceback.print_exc()
                     error(f"task {task_name} failed with above error")
-            else:
-                error(f"no such task: {task_name}")
+#            else:
+#                error(f"no such task: {task_name}")
     else:
         error("no tasks to execute")
     unlock_all_tasks()
-
