@@ -3,6 +3,10 @@ import os.path
 import subprocess
 
 from make_config import make_config
+import glob
+
+# /dev/null
+ignore = open(os.devnull, 'w')
 
 
 def get_push_pack_directory():
@@ -20,17 +24,23 @@ def get_push_pack_directory():
 
 
 def stop_horizon():
-    subprocess.call(["adb", "shell", "am", "force-stop", "com.zheka.horizon"])
+    return subprocess.call([make_config.get_adb(), "shell", "am", "force-stop", "com.zheka.horizon"])
 
 
-def push(src, relative_directory, src_relative=False, cleanup=False):
+def push(src, cleanup=False):
     dst = get_push_pack_directory()
     if dst is None:
         return -1
-    stop_horizon()
-    dst = os.path.join(dst, relative_directory)
+    result = stop_horizon()
+
+    if result != 0:
+        from fancy_output import print_err
+        print_err("no devices/emulators found")
+        print_err("connect to ADB first")
+        return result
+
     if cleanup:
-        result = subprocess.call(["adb", "shell", "rm", "-r", dst])
+        result = subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst])
         if result != 0:
             print(f"failed to cleanup directory {dst} with code {result}")
             return result
@@ -38,12 +48,11 @@ def push(src, relative_directory, src_relative=False, cleanup=False):
     if dst[0] != "/":
         dst = "/" + dst
 
-    src_push = (os.path.join(src, relative_directory) if src_relative else src).replace("\\", "/")
-    if src_push[-1] != "/":
-        src_push += "/"
-    src_push += "."
-    cmd = ["adb", "push", src_push, dst]
-    result = subprocess.call(cmd)
+    src_push = src.replace("\\", "/")
+
+    subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst], stderr=ignore, stdout=ignore)
+    result = subprocess.call([make_config.get_adb(), "push", src_push, dst])
+
     if result != 0:
         print(f"failed to push to directory {dst} with code {result}")
     return result
@@ -56,24 +65,7 @@ def make_locks(*locks):
     stop_horizon()
     for lock in locks:
         lock = os.path.join(dst, lock).replace("\\", "/")
-        result = subprocess.call(["adb", "shell", "touch", lock])
+        result = subprocess.call([make_config.get_adb(), "shell", "touch", lock])
         if result != 0:
             return result
     return 0
-
-
-def push_set_of_paths(path_set, relative_directory, src_relative=False, cleanup=False):
-    push_result = 0
-    for path in path_set:
-        for directory in make_config.get_paths(path):
-            if os.path.isdir(directory):
-                push_result = push(directory, relative_directory, src_relative=src_relative, cleanup=cleanup)
-                cleanup = False
-                if push_result != 0:
-                    print("failed to push directory", directory)
-                    break
-            else:
-                print("failed to locate directory", path)
-                push_result = -1
-                break
-    return push_result
