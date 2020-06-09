@@ -49,6 +49,7 @@ temp_directory = make_config.get_path("toolchain/build/typescript")
 
 
 class Includes:
+
     def __init__(self, directory):
         self.file = join(directory, ".includes")
         self.directory = directory
@@ -107,12 +108,11 @@ class Includes:
 
     @staticmethod
     def create_from_tsconfig(directory):
-        includes = Includes(directory)
         with open(join(directory, "tsconfig.json")) as tsconfig:
             config = json.load(tsconfig)
 
-            includes.params = config["compilerOptions"]
-            includes.files = config["include"]
+            params = config["compilerOptions"]
+            files = config["include"]
 
             if "target" in params:
                 del params["target"]
@@ -121,6 +121,9 @@ class Includes:
             if "outFile" in params:
                 del params["outFile"]
 
+        includes = Includes(directory)
+        includes.files = files
+        includes.params = params
         includes.create()
 
         return includes
@@ -142,13 +145,15 @@ class Includes:
     def build(self, target_path):
         temp_path = declarations_name = join(temp_directory, basename(target_path))
 
+        result = 0
         self.create_tsconfig(temp_path)
         if self.is_source_changed(temp_path):
             print(f"building {basename(target_path)}")
-            self.build_source(temp_path)
+            result = self.build_source(temp_path)
         else:
             print(f"{basename(target_path)} is not changed")
         copy_file(temp_path, target_path)
+        return result
 
     def get_tsconfig(self):
         return join(self.directory, "tsconfig.json")
