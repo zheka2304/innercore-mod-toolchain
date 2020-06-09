@@ -14,7 +14,8 @@ def get_push_pack_directory():
     if directory is None:
         return None
     if "games/horizon/packs" not in directory:
-        ans = input(f"push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing (type Y or yes to proceed): ")
+        ans = input(
+            f"push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing (type Y or yes to proceed): ")
         if ans.lower() in ["yes", "y"]:
             return directory
         else:
@@ -39,19 +40,24 @@ def push(src, cleanup=False):
         print_err("connect to ADB first")
         return result
 
-    if cleanup:
-        result = subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst])
-        if result != 0:
-            print(f"failed to cleanup directory {dst} with code {result}")
-            return result
+#   if cleanup:
+#       result = subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst])
+#       if result != 0:
+#           print(f"failed to cleanup directory {dst} with code {result}")
+#           return result
     dst = dst.replace("\\", "/")
     if dst[0] != "/":
         dst = "/" + dst
 
     src_push = src.replace("\\", "/")
+#   if src_push[-1] != "/":
+#       src_push += "/"
+#   src_push += "."
 
-    subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst], stderr=ignore, stdout=ignore)
-    result = subprocess.call([make_config.get_adb(), "push", src_push, dst])
+    subprocess.call([make_config.get_adb(), "shell", "rm",
+                     "-r", dst], stderr=ignore, stdout=ignore)
+    result = subprocess.call([make_config.get_adb(), "push", src_push,
+                              dst])
 
     if result != 0:
         print(f"failed to push to directory {dst} with code {result}")
@@ -65,7 +71,8 @@ def make_locks(*locks):
     stop_horizon()
     for lock in locks:
         lock = os.path.join(dst, lock).replace("\\", "/")
-        result = subprocess.call([make_config.get_adb(), "shell", "touch", lock])
+        result = subprocess.call(
+            [make_config.get_adb(), "shell", "touch", lock])
         if result != 0:
             return result
     return 0
