@@ -34,7 +34,8 @@ def lock_task(name, silent=True):
                 if not await_message:
                     await_message = True
                     if not silent:
-                        sys.stdout.write(f"task {name} is locked by another process, waiting for it to unlock.")
+                        sys.stdout.write(
+                            f"task {name} is locked by another process, waiting for it to unlock.")
                     if name in locked_tasks:
                         error("ERROR: dead lock detected", code=-2)
                 if not silent:
@@ -134,13 +135,15 @@ def task_build_scripts():
     import json
     config = get_make_config()
     with open(config.get_path("output/mod.info"), "w") as info_file:
-        info = dict(config.get_value("global.info", fallback={"name": "No was provided"}))
+        info = dict(config.get_value("global.info",
+                                     fallback={"name": "No was provided"}))
         if "icon" in info:
             del info["icon"]
         info_file.write(json.dumps(info, indent=" " * 4))
     icon_path = config.get_value("global.info.icon")
     if icon_path is not None:
-        copy_file(config.get_path(icon_path), config.get_path("output/mod_icon.png"))
+        copy_file(config.get_path(icon_path),
+                  config.get_path("output/mod_icon.png"))
     return 0
 
 
@@ -151,7 +154,8 @@ def task_build_scripts():
         if "source" in additional_dir and "targetDir" in additional_dir:
             for additional_path in get_make_config().get_paths(additional_dir["source"]):
                 if not os.path.exists(additional_path):
-                    print_err("non existing additional path: " + additional_path)
+                    print_err("non existing additional path: " +
+                              additional_path)
                     overall_result = 1
                     break
                 target = get_make_config().get_path(os.path.join(
@@ -212,8 +216,10 @@ def task_build_package():
 def task_launch_horizon():
     from subprocess import call
     with open(os.devnull, "w") as f:
-        call([make_config.get_adb(), "shell", "touch", "/storage/emulated/0/games/horizon/.flag_auto_launch"], stdout=f, stderr=f)
-        call([make_config.get_adb(), "shell", "monkey", "-p", "com.zheka.horizon", "-c", "android.intent.category.LAUNCHER", "1"], stdout=f, stderr=f)
+        call([make_config.get_adb(), "shell", "touch",
+              "/storage/emulated/0/games/horizon/.flag_auto_launch"], stdout=f, stderr=f)
+        call([make_config.get_adb(), "shell", "monkey", "-p", "com.zheka.horizon",
+              "-c", "android.intent.category.LAUNCHER", "1"], stdout=f, stderr=f)
     return 0
 
 
@@ -251,7 +257,7 @@ def task_cleanup():
     clear_directory(config.get_path("toolchain/build/typescript-headers"))
     clear_directory(config.get_path("toolchain/build/typescript"))
 
-#     FIXME
+#                               not working
 #     import java.java_build
 #     java.java_build.cleanup_gradle_scripts()
     return 0
