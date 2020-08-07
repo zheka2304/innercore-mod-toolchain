@@ -157,7 +157,7 @@ def copy_additionals(source, destination):
         if(os.path.isfile(src)):
             copy_file(src, os.path.join(dest, f))
         elif(os.path.isdir(src)):
-            copy_file(src, os.path.join(dest, f))
+            copy_directory(src, os.path.join(dest, f))
 
 
 print("running project import script")
