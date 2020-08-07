@@ -7,141 +7,40 @@ import json
 from fancy_output import *
 from make_config import make_config
 from mod_structure import mod_structure
-from utils import ensure_file_dir, clear_directory, copy_file, copy_directory
+from utils import ensure_file_dir, clear_directory, copy_file, copy_directory, move_file
 from os.path import *
-
-
-COMPILER_OPTIONS = {
-    "strict": False,
-    "nocheck": False,
-    "declarations": False,
-    "decorators": True,
-    "skipLibCheck": True
-}
+from includes import *
 
 
 def build_source(source_path, target_path):
-    tsconfig_path = join(source_path, "tsconfig.json")
-
-    if isfile(join(source_path, ".includes")):
-        params = read_params_from_includes(source_path)
-        files = read_files_from_includes(source_path)
-    elif not isfile(tsconfig_path):
-        params = COMPILER_OPTIONS.copy()
-        files = [file for file in glob.glob(
-            f"{source_path}/**/*", recursive=True)]
-    else:
-        # if there isn't .includes but there is tsconfig.json
-        result = build_tsconfig(tsconfig_path)
-        if result != 0:
-            return 1
-        with open(tsconfig_path) as tsconfig:
-            config = json.load(tsconfig)
-            library_path = normpath(
-                join(source_path, config["compilerOptions"]["outFile"]))
-
-            copy_file(library_path, target_path)
-            declaration_path = f"{splitext(library_path)[0]}.d.ts"
-
-            if(isfile(declaration_path)):
-                copy_file(declaration_path, join(make_config.get_path(
-                    "toolchain/build/typescript-headers"), basename(declaration_path)))
-        return 0
-
-    # decode params
-    params["checkJs"] = not params.pop("nocheck")
-    params["declaration"] = params.pop("declarations")
-    params["experimentalDecorators"] = params.pop("decorators")
-
-    # actually there is two directories with *.d.ts files: toolchain/jslibs (for default headers) & toolchain/build/typescript-headers (for additional libraries)
-    headers = glob.glob(relpath(make_config.get_path(
-        "toolchain/**/*.d.ts"), source_path), recursive=True)
-
-    template = {
-        "compilerOptions": {
-            "target": "ES5",
-            "lib": ["ESNext"],
-            "allowJs": True,
-            "downlevelIteration": True,
-            "outFile": target_path
-        },
-        "exclude": [
-            "**/node_modules/*",
-            "dom"
-        ],
-        "include": files,
-        "files": headers
-    }
-
-    for key, value in params.items():
-        template["compilerOptions"][key] = value
-
-    with open(tsconfig_path, "w") as tsconfig:
-        json.dump(template, tsconfig, indent="\t")
-
-    return build_tsconfig(tsconfig_path)
-
-
-def build_script(source_path, target_path):
-    if (isfile(source_path)):
-        copy_file(source_path, target_path)
-        return 0
-    else:
-        return build_source(source_path, target_path)
-
-
-def build_tsconfig(tsconfig_path):
-    return os.system(f'tsc -p "{tsconfig_path}"')
-
-
-def read_params_from_includes(source_path):
-    includes_path = join(source_path, ".includes")
-    params = COMPILER_OPTIONS.copy()
-
-    with open(includes_path, encoding="utf-8") as includes:
-        for line in includes:
-            line = line.strip()
-
-            if line.startswith("#"):
-                line = line[1:].strip()
-                if line in params:
-                    params[line] = True
-
-    return params
-
-
-def read_files_from_includes(source_path):
-    includes_path = join(source_path, ".includes")
-    with open(includes_path, encoding="utf-8") as includes:
-        files = []
-        for line in includes:
-            line = line.strip()
-
-            if len(line) == 0 or line.startswith("#") or line.startswith("//"):
-                continue
-
-            if line.endswith("/."):
-                search_path = join(
-                    source_path, line[:-2], ".") + "/**/*"
-            else:
-                search_path = join(source_path, line)
-            for file in glob.glob(search_path, recursive=True):
-                file = normpath(file)
-                if file not in files:
-                    files.append(relpath(
-                        file, source_path).replace("\\", "/"))
-    return files
+    includes = Includes.invalidate(source_path)
+    return includes.build(target_path)
 
 
 def build_all_scripts():
     overall_result = 0
 
-    # FIXME: декларации создаются после компиляции мода, следовательно не указываются в tsconfig.json у мода
-    # clear_directory(make_config.get_path("toolchain/build/typescript-headers"))
-
+    tsconfig_list = {}
     mod_structure.cleanup_build_target("script_source")
     mod_structure.cleanup_build_target("script_library")
-    for item in make_config.get_value("sources", fallback=[]):
+
+    from functools import cmp_to_key
+
+    def libraries_first(a, b):
+        la = a["type"] == "library"
+        lb = b["type"] == "library"
+
+        if la == lb:
+            return 0
+        elif la:
+            return -1
+        else:
+            return 1
+
+    sources = make_config.get_value("sources", fallback=[])
+    sources = sorted(sources, key=cmp_to_key(libraries_first))
+
+    for item in sources:
         _source = item["source"]
         _target = item["target"] if "target" in item else None
         _type = item["type"]
@@ -176,22 +75,22 @@ def build_all_scripts():
 
             try:
                 dot_index = target_path.rindex(".")
-                target_path = target_path[:dot_index] + \
-                    "{}" + target_path[dot_index:]
+                target_path = target_path[:dot_index] + "{}" + target_path[dot_index:]
             except ValueError:
                 target_path += "{}"
 
-            print_info(
-                f"building {_language} {_type} from {_source} {'to ' + _target if _target is not None else '' }")
-            result = build_script(source_path, mod_structure.new_build_target(
+            destination_path = mod_structure.new_build_target(
                 target_type,
                 target_path,
                 source_type=_type,
                 declare=declare
-            ))
-            if result != 0:
-                overall_result = 1
+            )
             mod_structure.update_build_config_list("compile")
+
+            if (isfile(source_path)):
+                copy_file(source_path, destination_path)
+            else:
+                overall_result += build_source(source_path, destination_path)
 
     return overall_result
 
@@ -220,8 +119,7 @@ def build_all_resources():
                       resource_type, file=sys.stderr)
                 overall_result = 1
                 continue
-            resource_name = resource["target"] if "target" in resource else basename(
-                source_path)
+            resource_name = resource["target"] if "target" in resource else basename(source_path)
             resource_name += "{}"
 
             if resource_type in ("resource_directory", "gui"):
@@ -244,7 +142,6 @@ def build_all_resources():
                 )
             clear_directory(target)
             copy_directory(source_path, target)
-
     mod_structure.update_build_config_list("resources")
     return overall_result
 

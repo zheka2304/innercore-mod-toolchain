@@ -56,6 +56,7 @@ def push(src, cleanup=False):
 
     subprocess.call([make_config.get_adb(), "shell", "rm",
                      "-r", dst], stderr=ignore, stdout=ignore)
+
     files = [file[len(src_push) + 1:].replace("\\", "/")
              for file in glob.glob(f"{src_push}/**/*", recursive=True)]
     file_count = len(files)
@@ -77,6 +78,7 @@ def push(src, cleanup=False):
 
         if file == files[-1]:
             print()
+
 
     if result != 0:
         print(f"failed to push to directory {dst} with code {result}")

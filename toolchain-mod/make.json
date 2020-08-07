@@ -4,6 +4,7 @@
 			"name": "Sample Mod",
 			"description": "This is sample description",
 			"author": "Unknown",
+			"version": "1.0",
 			"icon": "src/icon.png"
 		},
 		"api": "CoreEngine"

@@ -255,8 +255,11 @@ def task_cleanup():
     clear_directory(config.get_path("toolchain/build/gcc"))
     clear_directory(config.get_path("toolchain/build/gradle"))
     clear_directory(config.get_path("toolchain/build/typescript-headers"))
-    import java.java_build
-    java.java_build.cleanup_gradle_scripts()
+    clear_directory(config.get_path("toolchain/build/typescript"))
+
+#                               not working
+#     import java.java_build
+#     java.java_build.cleanup_gradle_scripts()
     return 0
 
 
