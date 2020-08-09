@@ -142,7 +142,7 @@ def build_all_resources():
                 )
             clear_directory(target)
             copy_directory(source_path, target)
-    mod_structure.update_build_config_list("resources")
+    mod_structure.update_build_config_list("resources", {"type": "resourceType"})
     return overall_result
 
 

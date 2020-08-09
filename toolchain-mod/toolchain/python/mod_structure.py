@@ -65,7 +65,7 @@ class ModStructure:
     def get_target_directories(self, *names, filter_unchanged=False):
         return list(map(lambda name: BUILD_TARGETS[name].directory, filter(lambda name: name in self.targets and len(self.targets[name]) > 0, names) if filter_unchanged else names))
 
-    def create_build_config_list(self, list_name, default_overrides=None):
+    def create_build_config_list(self, list_name, default_overrides=None, property_name_overrides=None):
         result = []
         for target_name, target_type in BUILD_TARGETS.items():
             if target_type.list_property == list_name and target_name in self.targets:
@@ -75,6 +75,12 @@ class ModStructure:
                     if default_overrides is not None and "declare_default" in target:
                         for key, value in target["declare_default"].items():
                             default_overrides[key] = value
+                    if property_name_overrides is not None: 
+                        for item in result:
+                            for key in property_name_overrides:
+                                if key in item:
+                                    item[property_name_overrides[key]] = item.pop(key)
+
         return result
 
     def read_or_create_build_config(self):
@@ -109,9 +115,9 @@ class ModStructure:
         default_config["buildType"] = "develop"
         self.write_build_config()
 
-    def update_build_config_list(self, list_name):
+    def update_build_config_list(self, list_name, property_name_overrides=None):
         self.setup_default_config()
-        self.build_config[list_name] = self.create_build_config_list(list_name, default_overrides=self.build_config["defaultConfig"])
+        self.build_config[list_name] = self.create_build_config_list(list_name, default_overrides=self.build_config["defaultConfig"], property_name_overrides=property_name_overrides)
         self.write_build_config()
 
 
