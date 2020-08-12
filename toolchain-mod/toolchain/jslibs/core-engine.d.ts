@@ -1163,39 +1163,6 @@ declare namespace Config {
         public toString(): string;
     }
 }
-declare namespace TileEntity {
-    namespace tileEntityPrototypes {}
-    namespace tileEntityList {}
-
-    function resetEngine(): any;
-
-    function registerPrototype(blockID: any, customPrototype: any): any;
-
-    function getPrototype(blockID: any): any;
-
-    function isTileEntityBlock(blockID: any): any;
-
-    function createTileEntityForPrototype(Prototype: any, addToUpdate: any): any;
-
-    function addTileEntity(x: number, y: number, z: number): any;
-
-    function addUpdatableAsTileEntity(updatable: any): any;
-
-    function getTileEntity(x: number, y: number, z: number): any;
-
-    function destroyTileEntity(tileEntity: number): any;
-
-    function destroyTileEntityAtCoords(x: number, y: number, z: number): any;
-
-    function isTileEntityLoaded(tileEntity: number): any;
-
-    function checkTileEntityForIndex(index: number): any;
-
-    function CheckTileEntities(): any;
-
-    function DeployDestroyChecker(tileEntity: number): any;
-}
-
 declare namespace MobRegistry {
     namespace customEntities {}
     namespace loadedEntities {}
@@ -1232,32 +1199,7 @@ declare namespace MobSpawnRegistry {
     function onChunkGenerated(x: number, z: number): any;
 }
 
-declare class GameObject {
-	constructor(name: any, Prototype: any)
-}
 
-declare namespace GameObjectRegistry {
-    namespace gameObjectTypes {}
-    namespace activeGameObjects {}
-
-    function genUniqueName(name: any): any;
-
-    function registerClass(gameObjectClass: any): any;
-
-    function deployGameObject(gameobject: any): any;
-
-    function addGameObject(gameobject: any): any;
-
-    function removeGameObject(gameobject: any): any;
-
-    function resetEngine(): any;
-
-    function getAllByType(type: any, clone: any): any;
-
-    function callForType(): any;
-
-    function callForTypeSafe(): any;
-}
 declare class Texture {}
 declare function EntityModel(parentModel: any): any;
 declare function EntityModelWatcher(entity: number, model: any): any;
@@ -1929,6 +1871,9 @@ declare namespace Dimensions {
         getMainMaterial(): TerrainMaterial;
     }
 
+    /**
+     * Class representing material that is used to generate terrain layer
+     */
     interface TerrainMaterial {
 
         setBase(id: number, data: number): TerrainMaterial; 
@@ -1942,12 +1887,27 @@ declare namespace Dimensions {
         setDiffuse(value: number): TerrainMaterial;
     }
 
+    /**
+     * Class representing noise conversion function. Used to define "dencity" of
+     * the landscape at a given height. Values between nodes are interpolated 
+     * linearly
+     */
     class NoiseConversion {
         constructor();
 
+        /**
+         * Adds a new node to the noise conversion function
+         * @param x value from 0 to 1 representing the height of the block in the
+         * terrain layer
+         * @param y landscape dencity at a given height, generally can be between 
+         * -0.5 and 0.5. Values between nodes are interpolated linearly
+         */
         addNode(x: number, y: number): NoiseConversion;
     }
 
+    /**
+     * Class representing multi-layer noise generator
+     */
     class NoiseGenerator {
         constructor();
 
@@ -1956,6 +1916,9 @@ declare namespace Dimensions {
         setConversion(conversion: NoiseConversion): NoiseGenerator;
     }
 
+    /**
+     * Class representing single noise layer
+     */
     class NoiseLayer {
         constructor();
 
@@ -1964,6 +1927,10 @@ declare namespace Dimensions {
         setConversion(conversion: NoiseConversion): NoiseLayer;
     }
 
+    /**
+     * Class representig noise octave. Each noise layer consists of multiple 
+     * noise octaves of different scale and weight
+     */
     class NoiseOctave {
         constructor(type?: number|string);
 
@@ -3321,6 +3288,88 @@ declare namespace Game {
      * @returns string containing current Core Engine version
      */
     function getEngineVersion(): string;
+}
+/**
+ * Class used to create and manipulate game objects. Game objects are [[Updatable]]s 
+ * that are being saved between game launches
+ */
+declare class GameObject {
+    /**
+     * Constructs a new [[GameObject]] with given params
+     * @param type unique name for the game object type. Use package-like names to 
+     * ensure your game object name is unique
+     * @param prototype 
+     */
+    constructor(type: string, prototype: GameObjectPrototype);
+
+    /**
+     * Original value passed to [[GameObject.constructor]]
+     */
+    readonly originalName: string;
+    
+    /**
+     * Creates a new game object with specified params and registers it for saving
+     * and as an [[Updatable]]
+     * @param args any arguments that are passed to [[GameObjectPrototype.init]]
+     * function
+     * @returns instantiated game object
+     */
+    deploy(...args: any): GameObject;
+
+    /**
+     * Destroys current game object
+     */
+    destroy(): void;
+
+    /**
+     * True if current GameObject was deployed, false otherwise
+     */
+    readonly isInstance: boolean;
+}
+
+interface GameObjectPrototype extends Updatable {
+    /**
+     * Function that is called when a new instance of [[GameObject]] is created,
+     * the engine passes all the arguments of [[GameObject.deploy]] function to 
+     * this function
+     */
+    init?: (...args: any) => void,
+    /**
+     * Function that is called when a [[GameObject]] is loaded
+     */
+    loaded?: () => void,
+
+    /**
+     * Any other user-defined methods and properties
+     */
+    [key: string]: any
+}
+
+declare namespace GameObjectRegistry {
+    /**
+     * Gets an array of [[GameObject]]s of specified type. 
+     * @param type unique [[GameObject]] type to get all the instances of
+     * @param clone if true, a new array is created to ensure the original engine's 
+     * data safety
+     */
+    function getAllByType(type: string, clone: boolean): GameObject[];
+
+    /**
+     * Calls function of the [[GameObject]] of specified type with specified 
+     * parameters
+     * @param type unique [[GameObject]] type to get all the instances of
+     * @param func function name as defined in [[GameObjectPrototype]] passed to
+     * [[GameObject.constructor]]
+     * @param params parameters to be passed to the function
+     */
+    function callForType(type: string, func: string, ...params: any): any;
+
+    /**
+     * Same as [[GameObjectRegistry.callForType]], though a new array is created
+     * before calling functions on the game objects to ensure the riginal engine's 
+     * data safety
+     */
+    function callForTypeSafe(type: string, func: string, ...params: any): any;
 }
 /**
  * Module used to simplify generation tasks in mods logic
@@ -5885,6 +5934,135 @@ declare namespace Threading {
     function getThread(name: string): java.lang.Thread;
 }
 /**
+ * TileEntity is a powerful mechanism that allows for creation of interactive blocks
+ * such as chests, furnaces, etc.
+ */
+declare namespace TileEntity {
+    /**
+     * Registers block as a TileEntity
+     * @param blockID numeric block id to be used as [[TileEntity]]
+     * @param customPrototype a set of parameters defining the [[TileEntity]]'s
+     * behavior
+     */
+    function registerPrototype(blockID: number, customPrototype: TileEntityPrototype): void;
+
+    /**
+     * @returns [[TileEntity]]'s prototype by its numeric block id
+     */
+    function getPrototype(blockID: number): TileEntityPrototype;
+
+    /**
+     * @param blockID numeric block id
+     * @returns true if the specified numeric block id is a [[TileEntity]]
+     * block id, false otherwise
+     */
+    function isTileEntityBlock(blockID: number): boolean;
+
+    /**
+     * @returns a [[TileEntity]] on the specified coordinates or null if the block on the
+     * coordinates is not a [[TileEntity]] 
+     */
+    function getTileEntity(x: number, y: number, z: number): TileEntity|null;
+
+    /**
+     * Checks whether the [[TileEntity]] is in the loaded chunk or not
+     * @param tileEntity to be verified
+     * @returns true if the chunk with TileEntity and some of the surrounging 
+     * chunks are loaded, false otherwise. The following chunks are verified:
+     *  + +
+     *   #
+     *  + +
+     * Where "#"" is the chunk containing the current TileEntity and "+" are
+     * the chunks that are also verified
+     */
+    function isTileEntityLoaded(tileEntity: TileEntity): boolean;
+}
+
+
+declare interface TileEntity {
+    readonly x: number,
+    readonly y: number,
+    readonly z: number,
+    readonly dimension: number
+    data: {[key: string]: any},
+    container: UI.Container,
+    liquidStorage: any,
+    selfDestroy: () => void;
+}
+
+
+declare interface TileEntityPrototype {
+    /**
+     * Default data values, will be initially added to [[TileEntity.data]] field
+     */
+    defaultValues?: {[key: string]: any},
+
+    /**
+     * Called when a [[TileEntity]] is created
+     */
+    created?: () => void,
+
+    /**
+     * Called when a [[TileEntity]] is initialised in the world
+     */
+    init?: () => void,
+
+    /**
+     * Called every tick and should be used for all the updates of the [[TileEntity]]
+     */
+    tick?: () => void,
+
+    /**
+     * Called when player uses some item on a [[TileEntity]]
+     * @returns true if the event is handled and should not be propagated to
+     * the next handlers. E.g. return true if you don't want the user interface 
+     * to be opened
+     */
+    click?: (id: number, count: number, data: number) => boolean|void,
+
+    /**
+     * Occurs when a block of the [[TileEntity]] is being destroyed. See
+     * [[Callback.DestroyBlockFunction]] for details
+     */
+    destroyBlock?: (block: Tile, player: number) => void,
+
+    /**
+     * Occurs when the [[TileEntity]] should handle redstone signal. See 
+     * [[Callback.RedstoneSignalFunction]] for details
+     */
+    redstone?: (params: {power: number, signal: number, onLoad: boolean}) => void,
+    
+    /**
+     * Occurs when a projectile entity hits the [[TileEntity]]. See
+     * [[Callback.ProjectileHitFunction]] for details
+     */
+    projectileHit?: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void,
+    
+    /**
+     * Occurs when the [[TileEntity]] is being destroyed
+     * @returns true to prevent 
+     * [[TileEntity]] object from destroying (but if the block was destroyed, returning 
+     * true from this function doesn't replace the missing block with a new one)
+     */
+    destroy?: () => boolean|void;
+
+    /**
+     * Called to get the [[UI.IWindow]] object for the current [[TileEntity]]. The 
+     * window is then opened within [[TileEntity.container]] when the player clicks it
+     */
+    getGuiScreen?: () => UI.IWindow;
+
+    /**
+     * Called when more liquid is required
+     */
+    requireMoreLiquid?: (liquid: string, amount: number) => void;
+
+    /**
+     * Any other user-defined methods and properties
+     */
+    [key: string]: any
+}
+/**
  * Module used to manage block and tools material and create tools with all
  * required properties
  */
@@ -8343,13 +8521,18 @@ interface Updatable {
     /**
      * Called every tick
      */
-    update(): () => void,
+    update: () => void,
 
     /**
      * Once true, the object will be removed from updatables list and will no 
      * longer receive update calls
      */
     remove?: boolean
+
+    /**
+     * Any other user-defined methods and properties
+     */
+    [key: string]: any
 }
 
 /**
