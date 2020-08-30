@@ -81,7 +81,7 @@ class Includes:
             return
 
         elif line.startswith("!"):
-            line = line[1:].trim()
+            line = line[1:].strip()
             search_path = (join(self.directory, line[:-2], ".") + "/**/*") if line.endswith("/.") else join(self.directory, line)
             for file in glob.glob(search_path, recursive=True):
                 file = normpath(file)
