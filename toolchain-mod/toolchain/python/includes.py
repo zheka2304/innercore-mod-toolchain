@@ -237,7 +237,9 @@ class Includes:
         return result
 
     def get_flag_path(self, temp_path):
-        flag_path = f"{splitext(temp_path)[0]}.{len(self.include)}.flag"
+        directory = dirname(temp_path)
+        filename = splitext(basename(temp_path))[0]
+        flag_path = f"{directory}/.{filename}.{len(self.include)}.flag"
         return flag_path
 
     def remove_flags(self, temp_path):
