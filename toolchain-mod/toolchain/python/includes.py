@@ -167,16 +167,19 @@ class Includes:
         else:
             print(f"{basename(target_path)} is not changed")
         copy_file(temp_path, target_path)
+
         return result
 
     def get_tsconfig(self):
         return join(self.directory, "tsconfig.json")
 
     def is_source_changed(self, temp_path):
-        if not isfile(temp_path):
+        flag_path = self.get_flag_path(temp_path)
+
+        if not isfile(flag_path):
             return True
 
-        last_build_time = getmtime(temp_path)
+        last_build_time = getmtime(flag_path)
         for file in self.include:
             time = getmtime(join(self.directory, file))
             if time > last_build_time:
@@ -224,8 +227,26 @@ class Includes:
     def build_source(self, temp_path):
         result = os.system(f'tsc -p "{self.get_tsconfig()}" --noEmitOnError')
 
+        self.remove_flags(temp_path)
+        self.place_flag(temp_path)
+
         declaration_path = f"{splitext(temp_path)[0]}.d.ts"
         if(isfile(declaration_path)):
             move_file(declaration_path, join(make_config.get_path("toolchain/build/typescript-headers"), basename(declaration_path)))
 
         return result
+
+    def get_flag_path(self, temp_path):
+        flag_path = f"{splitext(temp_path)[0]}.{len(self.include)}.flag"
+        return flag_path
+
+    def remove_flags(self, temp_path):
+        path = dirname(splitext(temp_path)[0])
+        filename = splitext(basename(temp_path))[0]
+        flags = [flag for flag in glob.glob(f"{path}\\*") if flag.endswith(".flag") and filename in flag]
+
+        for flag in flags:
+            os.remove(flag)
+
+    def place_flag(self, temp_path):
+        open(self.get_flag_path(temp_path), 'a').close()
