@@ -1,6 +1,306 @@
 /// <reference path="./android.d.ts"/>
 
 /**
+ * Module used to manage custom entities added via add-ons
+ */
+declare namespace AddonEntityRegistry {
+    /**
+     * Spawns an entity defined via add-on on the specified coordinates
+     * @param nameID entity name id, as defined from add-on
+     */
+    function spawn(x: number, y: number, z: number, nameID: string): number;
+
+    /**
+     * Returns add-on entity information by entity id
+     * @param entity 
+     */
+    function getEntityData(entity: number): AddonEntity;
+
+
+    interface AddonEntity {
+        /**
+         * Entity unique id
+         */
+        readonly id: number,
+
+        /**
+         * Add-on defined entity name id
+         */
+        readonly type: string,
+
+        /**
+         * Executes command with the entity
+         * @param command command to be executed
+         * @returns error message or null if the command was run successfully 
+         */
+        exec(command: string): string | null;
+
+        /**
+         * Executes command with the entity on the specified coordinates
+         * @param command command to be executed
+         * @returns error message or null if the command was run successfully 
+         */
+        execAt(command: string, x: number, y: number, z: number): string | null;
+    }
+}
+/**
+ * Animations are used to display some 3d models in the world without use of 
+ * entities
+ */
+declare namespace Animation {
+    /**
+     * Base animations are used to display arbitrary model in the world
+     */
+    class Base {
+        /**
+         * Constructs a new Base animation on the specified coordinates
+         */
+        constructor(x: number, y: number, z: number);
+
+        /**
+         * Changes the animation's position
+         */
+        setPos(x: number, y: number, z: number): void;
+
+        /**
+         * @param enabled if true, animation position will be interpolated 
+         * between tick calls
+         */
+        setInterpolationEnabled(enabled: boolean): void;
+
+        /**
+         * @deprecated use [[setBlockLightPos]] and related methods instead
+         */
+        setIgnoreBlocklight(ignore: boolean): void;
+
+        /**
+         * Sets specified coordinates as light measuring position for the 
+         * animation. In other words, animation lightning will be calculated 
+         * as if animation was at the specified coordinates
+         */
+        setBlockLightPos(x: number, y: number, z: number): void;
+
+        /**
+         * Resets light measuring position for the animation (to its coordinates)
+         */
+        resetBlockLightPos(): void;
+
+        /**
+         * Sets light measuring position to always match day/night lightning, 
+         * even when the animation is not directly illuminated
+         */
+        setSkylightMode(): void;
+
+        /**
+         * Sets light measuring to match the animation coordinated
+         */
+        setBlocklightMode(): void;
+
+        /**
+         * Makes the animation ignore light at all
+         */
+        setIgnoreLightMode(): void;
+
+        /**
+         * @returns [[Render.Transform]] object for current animation's render
+         */
+        transform(): Render.Transform;
+
+        /**
+         * @returns [[Render.ShaderUniformSet]] object for current animation's 
+         * render
+         */
+        getShaderUniforms(): Render.ShaderUniformSet;
+
+        /**
+         * Creates a set of transformations for the current animation
+         * @param transformations 
+         * @param noClear 
+         */
+        newTransform(transformations: {
+            /**
+             * Transformation function name, one of [[Render.Transform]] class member 
+             * functions names
+             */
+            name: string, 
+            /**
+             * Transformation function parameters, see [[Render.Transform]] functions
+             * for details
+             */
+            params: any[]
+        } [], noClear: boolean): void;
+
+        /**
+         * Creates render if it was not previously created and applies all the 
+         * parameters from animation description
+         */
+        createRenderIfNeeded(): void;
+
+        /**
+         * Refreshes the animation
+         */
+        updateRender(): void;
+
+        /**
+         * Loads animation in the world
+         */
+        load(): void;
+
+        /**
+         * Loads animation in the world registring it as an [[Updatable]]
+         * @param func function to be used as [[Updatable.update]] function
+         */
+        loadCustom(func: () => void): void;
+
+        /**
+         * @deprecated always returns 0
+         */
+        getAge(): void;
+
+        /**
+         * Refreshes the animation
+         */
+        refresh(): void;
+
+        /**
+         * Describes animation parameters for the future use. Call [[load]] or 
+         * [[loadCustom]] to actually launch the animation
+         * @param description an object containing all the required data about 
+         * animation
+         */
+        describe(description: {
+            /**
+             * [[RenderMesh]] object to be displayed with animation
+             */
+            mesh?: RenderMesh,
+            /**
+             * [[Render]] object to be displayed with animation
+             */
+            render?: Render,
+            /**
+             * Name of the texture to be used as render's skin
+             */
+            skin?: string,
+            /**
+             * Animation scale, default is 1
+             */
+            scale?: number,
+            /**
+             * Animation material, can be used to apply custom materials to the 
+             * animation
+             */
+            material?: string
+        }): void;
+
+        /**
+         * @deprecated
+         */
+        getRenderAPI(base: any): any;
+
+        /**
+         * Destroys animation and releases all the resources
+         */
+        destroy(): void;
+    }
+
+    /**
+     * Item animations are used to display items or blocks models in the world
+     */
+    class Item extends Base{
+        /**
+         * Constructs a new Item animation on the specified coordinates
+         */
+        constructor(x: number, y: number, z: number);
+
+        /**
+         * Describes item to be used for the animation
+         * @param item item parameters object
+         */
+        describeItem(item: {
+            /**
+             * Item id
+             */
+            id: number,
+    
+            /**
+             * Item count, will be transform to display an appropriate animation
+             */
+            count?: number,
+    
+            /**
+             * Item data
+             */
+            data?: number,
+    
+            /**
+             * Item extra
+             */
+            extra?: number,
+    
+            /**
+             * Whether the item should be in glint state or not
+             */
+            glint?: boolean,
+    
+            /**
+             * Item/block size, default is 0.5
+             */
+            size?: number,
+    
+            /**
+             * If true, the position of the item will not be randomized
+             */
+            notRandomize?: boolean,
+    
+            /**
+             * If string "x" is passed, the item is rotated 90 along x axis, if
+             * "z" is passed, the item is rotated 90 along z axis, otherwise the
+             * item is rotated according to the rotation array along all the three 
+             * axes
+             */
+            rotation?: string|[number, number, number],
+    
+            /**
+             * Skin name to be used for the render. If no skin is passed, default 
+             * item skin is used
+             */
+            skin?: string,
+            
+        }): void;
+
+        /**
+         * Same as [[Item.describeItem]]
+         * @deprecated consider using [[Item.describeItem]] instead
+         */
+        describeItemDefault(item: any): void;
+
+        /**
+         * @deprecated use [[Item.describeItem]] instead
+         */
+        describeItemAlternative(item: any, offset: any): void;
+
+        /**
+         * Resets all the transformations made via [[Item.transform]] calls
+         */
+        resetTransform(): void;
+
+        /**
+         * Specifies item rotation along the three axes
+         */
+        setItemRotation(x: number, y: number, z: number): void;
+
+        /**
+         * Specifies item size, default value is 0.5
+         */
+        setItemSize(size: number): void;
+
+        /**
+         * Specifies item size and rotation via single function call
+         */
+        setItemSizeAndRotation(size: number, x: number, y: number, z: number): void;
+    }
+}
+/**
  * Module used to manage armor's behavior
  */
 declare namespace Armor {
@@ -517,6 +817,253 @@ declare namespace Block {
     }
 }
 /**
+ * Module used to create blocks with any custom model
+ */
+declare namespace BlockRenderer {
+    /**
+     * Class representing model used by [[BlockRenderer]]
+     */
+    class Model {
+        /**
+         * Creates a new empty model
+         */
+        constructor();
+
+        /**
+         * Constructs new model using specified [[RenderMesh]]
+         */
+        constructor(mesh: RenderMesh);
+
+        /**
+         * 
+         * @param descr 
+         */
+        constructor(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, descr: ModelTextureSet);
+
+        constructor(descr: ModelTextureSet);
+
+        /**
+         * Constructs new block model with single box inside specified block shape. 
+         * The width of the full blockis 1x1x1 units.
+         * @param texName block texture name to be used with the model
+         * @param texId block texture meta to be used with the model
+         */
+        constructor(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, texName: string, texId: number);
+
+        /**
+         * Constructs new block model with single box of the normal block size.
+         * @param texName block texture name to be used with the model
+         * @param texId block texture meta to be used with the model
+         */
+        constructor(texName: string, texId: number);
+
+        /**
+         * Constructs new block model with single box inside specified block shape. 
+         * The width of the full blockis 1x1x1 units. Uses block id and data to
+         * determine texture
+         * @param id sample block id
+         * @param data sample block data
+         */
+        constructor(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, id: number, data: number);
+
+        /**
+         * Constructs new block model with single box of the normal block size.
+         * The width of the full blockis 1x1x1 units. Uses block id and data to
+         * determine texture
+         * @param id 
+         * @param data 
+         */
+        constructor(id: number, data: number);
+
+        /**
+         * Adds new box to the model using specified block's textures
+         */
+        addBox(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, id: number, data: number): void;
+
+        /**
+         * Adds new box to the model using specified textures for the six sides
+         * of the box
+         */
+        addBox(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, descr: ModelTextureSet): void;
+        
+        /**
+         * Adds new box to the model using specified block texture name and id
+         */
+        addBox(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, texName: string, texId: number): void;
+
+        /**
+         * Adds new block with specified block's textures
+         */
+        addBox(id: number, data?: number): void;
+
+        /**
+         * Adds new [[RenderMesh]] to the model
+         */
+        addMesh(mesh: RenderMesh): void;
+    }
+
+    /**
+     * Type used to describe a new model for [[BlockRenderer]]
+     */
+    type ModelTextureSet =
+        [string, number][];
+
+    /**
+     * Creates a new empty block model
+     * @returns empty block model
+     */
+    function createModel(): BlockRenderer.Model;
+
+    /**
+     * Constructs new block model of specified simple block shape with specified 
+     * textures
+     * @param descr texture set used for the box
+     */
+    function createTexturedBox(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, descr: ModelTextureSet): BlockRenderer.Model;
+
+    /**
+     * Constructs new block model of specified simple block of the normal block
+     * size shape with specified textures
+     * @param descr texture set used for the box
+     */
+    function createTexturedBlock(descr: ModelTextureSet): BlockRenderer.Model;
+
+    /**
+     * Adds "CustomBlockTessellation" callback function for specified block id 
+     * @param id block id
+     * @param callback function to be called when the event occurs
+     */
+    function addRenderCallback(id: number, callback: Callback.CustomBlockTessellationFunction): void;
+
+    /**
+     * Forces block renders to be rebuilt immediately
+     * @param mode if 0 is passed, only the specified block gets rebuilt, if 
+     * 1 is passed, all the blocks along y axes are rebuilt
+     */
+    function forceRenderRebuild(x: number, y: number, z: number, mode: number): void;
+
+    /**
+     * Specifies custom collision shape for the block
+     * @param id block id
+     * @param data block data
+     * @param shape [[ICRender.CollisionShape]] object to be used as collision shape
+     * for the specified block
+     */
+    function setCustomCollisionShape(id: number, data: number, shape: ICRender.CollisionShape): void;
+
+    /**
+     * Specifies custom collision shape for the block
+     * @param id block id
+     * @param data block data or -1 to map all the data values
+     * @param shape [[ICRender.CollisionShape]] object to be used as raycast shape
+     * for the specified block
+     */
+    function setCustomRaycastShape(id: number, data: number, shape: ICRender.CollisionShape): void;
+
+    /**
+     * Enables custom rendering for the specified block
+     * @param id block id
+     * @param data block data or -1 to map all the data values
+     */
+    function enableCustomRender(id: number, data: number): void;
+
+    /**
+     * Disables custom rendering for the specified block
+     * @param id block id
+     * @param data block data or -1 to map all the data values
+     */
+    function disableCustomRender(id: number, data: number): void;
+
+    /**
+     * Sets static ICRender model as block render shape
+     * @param id block id
+     * @param data block data or -1 to map all the data values
+     * @param icRender [[ICRender.Model]] object to be used as static block shape
+     */
+    function setStaticICRender(id: number, data: number, icRender: ICRender.Model): void;
+
+    /**
+     * Enables block mapping for the specified block
+     * @param id block id
+     * @param data block data or -1 to map all the data values
+     * @param icRender default model for the block
+     */
+    function enableCoordMapping(id: number, data: number, icRender: ICRender.Model): void;
+
+    /**
+     * Changes shape of the block on the specified coordinates
+     * @param icRender [[ICRender.Model]] object to be displayed at the coordinates
+     * @param preventRebuild if false or not specified, rebuild is performed immediately 
+     */
+    function mapAtCoords(x: number, y: number, z: number, icRender: ICRender.Model, preventRebuild?: boolean): void;
+
+    /**
+     * Resets shape of the block to default on the specified coordinates
+     * @param preventRebuild if false or not specified, rebuild is performed immediately 
+     */
+    function unmapAtCoords(x: number, y: number, z: number, preventRebuild?: boolean): void;
+
+    /**
+     * Object used to manipulate rendered block during 
+     * [[Callback.CustomBlockTessellationFunction]] calls
+     */
+    interface RenderAPI {
+        /**
+         * Renders box at the specified coordinates of the specified size
+         * @param id id of the block to be used as texture source
+         * @param data data of the block to be used as texture source
+         */
+        renderBoxId(x: number, y: number, z: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, id: number, data: number): void;
+
+        /**
+         * Renders box at current block coordinates of the specified size
+         * @param id id of the block to be used as texture source
+         * @param data data of the block to be used as texture source
+         */
+        renderBoxIdHere(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, id: number, data: number): void;
+
+        /**
+         * Renders box at the specified coordinates of the specified size
+         * @param texName block texture name
+         * @param texId block texture id
+         */
+        renderBoxTexture(x: number, y: number, z: number, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, texName: string, texId: number): void;
+
+        /**
+         * Renders box at current block coordinates of the specified size
+         * @param texName block texture name
+         * @param texId block texture id
+         */
+        renderBoxTextureHere(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, id: number, data: number): void;
+
+        /**
+         * Renders full block at specified coordinates
+         * @param blockId id of the block to be used as texture source
+         * @param blockData data of the block to be used as texture source
+         */
+        renderBlock(x: number, y: number, z: number, blockId: number, blockData: number): void;
+
+        /**
+         * Renders full block at current block coordinates
+         * @param blockId id of the block to be used as texture source
+         * @param blockData data of the block to be used as texture source
+         */
+        renderBlockHere(blockId: number, blockData: number): void;
+
+        /**
+         * Renders block model at the specified coordinates
+         * @param model block model to be rendered at the specified coordinates
+         */
+        renderModel(x: number, y: number, z: number, model: BlockRenderer.Model): void;
+
+        /**
+         * Renders block model at current block coordinates
+         * @param model block model to be rendered at current block coordinates
+         */
+        renderModelHere(model: BlockRenderer.Model): void;
+    }
+}
+/**
  * Module used to handle callbacks. See {@page Callbacks} for details about the 
  * callback mechanism and the list of pre-defined callbacks
  */
@@ -868,11 +1415,12 @@ declare namespace Callback {
     /**
      * Function used in "ItemIconOverride" callback
      * @param item information about item that is used in override function
+     * @param isModUi whether icon override is working in mod ui or in vanilla one
      * @returns void if used in callback, [[Item.TextureData]] if used in item 
      * override function to return texture that will be used for the item
      */
     interface ItemIconOverrideFunction {
-        (item: ItemInstance): void|Item.TextureData
+        (item: ItemInstance, isModUi: boolean): void|Item.TextureData
     }
 
 
@@ -950,8 +1498,8 @@ declare namespace Callback {
      * process. Already seeded by appropriate values
      * @param dimensionId current dimension's numeric id
      * @param chunkSeed chunk-specific seed to use in chunk random generation
-     * @param chunkSeed world-specific seed to use in chunk generation's
-     * @param dimensionSeed dimension-specific seed to use in chunk generation's
+     * @param chunkSeed world-specific seed to use in chunk generation
+     * @param dimensionSeed dimension-specific seed to use in chunk generation
      */
     interface GenerateChunkFunction {
         (chunkX: number, chunkZ: number, random: java.util.Random, 
@@ -965,6 +1513,17 @@ declare namespace Callback {
      */
     interface SavesFunction {
         (globalScope: object): void
+    }
+
+    /**
+     * Function used in "CustomBlockTessellation" callback
+     * @param api object used to manipulate block rendering process
+     * @param coords rendering block coordinates
+     * @param block block information
+     * @param b unused Boolean parameter
+     */
+    interface CustomBlockTessellationFunction {
+        (api: BlockRenderer.RenderAPI, coords: Vector, block: Tile, b: boolean): void
     }
 
 
@@ -1199,27 +1758,9 @@ declare namespace MobSpawnRegistry {
     function onChunkGenerated(x: number, z: number): any;
 }
 
-
-declare class Texture {}
-declare function EntityModel(parentModel: any): any;
 declare function EntityModelWatcher(entity: number, model: any): any;
 declare function EntityAIWatcher(customPrototype: any): any;
 
-declare namespace Animation {
-    function base(x: number, y: number, z: number): any;
-
-    function Base(x: number, y: number, z: number): any;
-
-    function item(x: number, y: number, z: number): any;
-
-    function Item(x: number, y: number, z: number): any;
-}
-declare namespace BlockRenderer {
-    class Model {
-
-    }
-}
-declare function ItemExtraData(): any;
 
 /**
  * Empty function used to verify Rhino functionality. Should not be called by 
@@ -1534,9 +2075,16 @@ declare namespace Debug {
     /**
      * Writes several comma-separated values to the chat as a general debug 
      * message, serializing javascript objects if possible
-     * @param args message to be displayed
+     * @param args messages to be displayed
      */
     function m(...args: any[]): void;
+
+    /**
+     * Writes several values in JSON format to the copyable alert window text view,
+     * serializing javascript objects if possible
+     * @param args messages to be displayed
+     */
+    function big(...args: any[]): void;
 
     /**
      * Diaplays an AlertDialog with given title and bitmap
@@ -1640,10 +2188,6 @@ interface Weather {
  * Class representing TileEntity in the worls
  */
 declare class TileEntity {
-
-}
-
-declare class NativeTileEntity {
 
 }
 
@@ -1932,6 +2476,24 @@ declare namespace Dimensions {
      * noise octaves of different scale and weight
      */
     class NoiseOctave {
+        /**
+         * Creates a new noise octave of specified type
+         * @param type numeric type constant or one of the following strings:
+         * **"perlin"** (0) is a general-purpose noise generator. Used to generate 
+         * noise of completely random nature
+         * **"gray"** (1) 
+         * **"chess"** (2) 
+         * The following sine noises are used to generate sinusoidal noise. 
+         * Generally they should be used with some noise octaves of other types to avoid 
+         * too mathematical landscapes
+         * **"sine_x"** (10) 
+         * **"sine_y"** (11) 
+         * **"sine_z"** (12) 
+         * **"sine_xy"** (13) 
+         * **"sine_yz"** (14) 
+         * **"sine_xz"** (15) 
+         * **"sine_xyz"** (16)
+         */
         constructor(type?: number|string);
 
         setTranslate(x: number, y: number, z: number): NoiseOctave;
@@ -2072,6 +2634,10 @@ declare namespace Dimensions {
     }
 
     interface NoiseOctaveParams {
+        /**
+         * Noise octave type, **"perlin"** is default one. See [[NoiseOctave.constructor]]
+         * for details
+         */
         type?: number|string,
         scale?: Vec3Data,
         weight?: number,
@@ -2179,6 +2745,27 @@ declare namespace Entity {
     function getType(ent: number): number;
 
     /**
+     * @returns string type for entities defined via add-ons or numeric type for
+     * all the other entities 
+     */
+    function getTypeUniversal(ent: number): number | string;
+
+    /**
+     * @returns string type for entities defined via add-ons, otherwise null
+     */
+    function getTypeAddon(ent: number): string | null;
+
+    /**
+     * @returns compound tag for the specified entity
+     */
+    function getCompoundTag(ent: number): NBT.CompoundTag;
+
+    /**
+     * Sets compound tag for the specified entity
+     */
+    function setCompoundTag(ent: number, tag: NBT.CompoundTag): void;
+
+    /**
      * Sets hitbox to the entity. Hitboxes define entities collisions
      * @param w hitbox width and length
      * @param h hitbox height
@@ -2252,7 +2839,8 @@ declare namespace Entity {
     function setSkin(ent: number, skin: string): void;
 
     /**
-     * Sets mob skin, uses [[Texture]] object to support animations
+     * Sets mob skin, uses [[Texture]] object
+     * @deprecated use [[Entity.setSkin]] instead
      * @param texture 
      */
     function setTexture(ent: number, texture: Texture): void;
@@ -3075,6 +3663,9 @@ declare namespace EntityAI {
      */
     const PanicWatcher: EntityAIClass;
 }
+declare class EntityModel {
+
+}
 /**
  * Module that provides methods to work with android file system
  */
@@ -3460,8 +4051,20 @@ declare namespace GenerationUtils {
      * @param noStoneCheck if true, no check for stone is performed so the ore 
      * may be generated in the air. Use this to debug ore generation in the 
      * superflat worlds
+     * @param seed random generation seed
      */
-    function generateOre(x: number, y: number, z: number, id: number, data: number, amount: number, noStoneCheck: boolean): void;
+    function generateOre(x: number, y: number, z: number, id: number, data: number, amount: number, noStoneCheck: boolean, seed?: number): void;
+
+    /**
+     * Generates ore with custom whitelist/blacklist, see [[GenerationUtils.generateOre]]
+     * for details
+     * @param mode if true, specified block ids are used as whitelist for generation
+     * (only the ids from the list can be replaced with ores), if false - specified 
+     * block ids are used as a blacklist (only the ids from the list canNOT be 
+     * replaced with ores)
+     * @param listOfIds array of block ids to be used as whitelist or blacklist
+     */
+    function generateOreCustom(x: number, y: number, z: number, id: number, data: number, amount: number, mode: boolean, listOfIds: number[], seed?: number): void;
 
     /**
      * Retrieves perlin noise value at the specified coordinates
@@ -3474,25 +4077,232 @@ declare namespace GenerationUtils {
      */
     function getPerlinNoise(x: number, y: number, z: number, seed?: number, scale?: number, numOctaves?: number): number;
 }
+/**
+ * Class used to define block models that depend on surrounding blocks. Some 
+ * examples of such blocks are wires, pipes, block structure parts, etc.
+ */
 declare namespace ICRender {
+	/**
+	 * Used to specify that the block should be present to satisfy condition
+	 */
+	const MODE_INCLUDE = 0;
+
+	/**
+	 * Used to specify that the block should be abscent to satisfy condition
+	 */
+	const MODE_EXCLUDE = 1;
+
+	/**
+	 * @param name group name
+	 * @returns block group by its name, if no group with specified name exist,
+	 * this function creates a new one
+	 */
 	function getGroup(name: string): ICRender.Group;
 
+	/**
+	 * Creates a new group with a unique name
+	 */
+	function getUnnamedGroup(): ICRender.Group;
+
+	/**
+	 * Groups (of blocks) are used to determine some render conditions. E.g. 
+	 * if a block exists on some relative coordinates, display some part of the 
+	 * model
+	 */
+	interface Group {
+		/**
+		 * @returns group's name
+		 */
+		getName(): string,
+
+		/**
+		 * Adds a block to the group
+		 * @param id block id
+		 * @param data block data or -1 to use with all registered data values
+		 */
+		add(id: number, data: number): void
+	}
+
 	class Model {
-		addEntry(model: BlockRenderer.Model);
+		/**
+		 * Constructs a base model that will be displayed 
+		 * @param model optional model to be added wihtout additional conditions
+		 */
+		constructor(model?: BlockRenderer.Model);
+
+		/**
+		 * Adds block model as an entry to the [[ICRender]]. You can then call 
+		 * [[RenderEntry.asCondition]] to specify when to display the entry
+		 * @returns created [[RenderEntry]] object
+		 */
+		addEntry(model?: BlockRenderer.Model): RenderEntry;
+
+		/**
+		 * Adds render mesh as an entry to the [[ICRender]]. You can then call 
+		 * [[RenderEntry.asCondition]] to specify when to display the entry
+		 * @returns created [[RenderEntry]] object
+		 */
+		addEntry(mesh?: RenderMesh): RenderEntry;
 	}
 
-	class Group {
-		add(id: number, data: number);
+	/**
+	 * Object representing render entry with its displaying condition
+	 */
+	interface RenderEntry {
+		/**
+		 * @returns [[Model]] object this entry belongs to
+		 */
+		getParent(): Model;
+
+		/**
+		 * Sets [[BLOCK]] condition with specified parameters. Uses coordinates 
+		 * that are relative to current block's ones
+		 * @param group group name or object
+		 * @param mode one of the [[MODE_INCLUDE]] and [[MODE_EXCLUDE]] constants
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		asCondition(x: number, y: number, z: number, group: Group|string, mode: number): RenderEntry;
+
+		/**
+		 * Sets [[BLOCK]] condition with specified parameters. Uses coordinates 
+		 * that are relative to current block's ones. Creates a new anonymous
+		 * group with single block
+		 * @param id condition block id
+		 * @param data condition block data
+		 * @param mode one of the [[MODE_INCLUDE]] and [[MODE_EXCLUDE]] constants
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		asCondition(x: number, y: number, z: number, id: number, data: number, mode: number): RenderEntry;
+
+		/**
+		 * Sets condition to be used for current entry
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		setCondition(condition: CONDITION): RenderEntry;
+
+		/**
+		 * Sets block model used for the entry, specifying its coordinates
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		setModel(x: number, y: number, z: number, model: BlockRenderer.Model): RenderEntry;
+
+		/**
+		 * Sets block model used for the entry
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		setModel(model: BlockRenderer.Model): RenderEntry;
+
+		/**
+		 * Sets render mesh to be used for the entry
+		 * @returns reference to itself to be used in sequential calls
+		 */
+		setMesh(mesh: RenderMesh): RenderEntry;
 	}
 
+	/**
+	 * Class representing custom collision shapes used for block
+	 */
 	class CollisionShape {
-
+		/**
+		 * Adds new entry to the collision shape. You can then call 
+		 * [[CollisionEntry.setCondition]] to specify when to display the entry
+		 */
+		addEntry(): CollisionEntry;
 	}
 
-	function RANDOM(need: number, max: number, seed: number): any;
-	function OR(condition1: any, condition2: any): any;
-	function AND(condition1: any, condition2: any): any;
-	function BLOCK(x: number, y: number, z: number, group: ICRender.Group, exclude: boolean): any;
+	/**
+	 * Object representing collision shape entry with its displaying condition
+	 */
+	interface CollisionEntry {
+		/**
+		 * Adds new collision box to collision entry
+		 */
+		addBox(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): CollisionEntry;
+
+		/**
+		 * Sets condition, all the boxes of the entry work only if the condition is true
+		 */
+		setCondition(condition: CONDITION): CollisionEntry;
+	}
+
+	/**
+	 * Common superclass for all condition classes
+	 */
+	abstract class CONDITION { }
+
+	/**
+	 * Condition depending on blocks on the relative coordinates
+	 */
+	class BLOCK implements CONDITION {
+		/**
+		 * Constructs new [[BLOCK]] condition
+		 * @param group blocks group to check the condition for
+		 * @param exclude if true, the blocks from the group make the condition 
+		 * evaluate as false, as true otherwise
+		 */
+		constructor(x: number, y: number, z: number, group: ICRender.Group, exclude: boolean);
+	}
+
+	/**
+	 * Condition depending on random value
+	 */
+	class RANDOM implements CONDITION {
+		/**
+		 * Constructs new [[RANDOM]] condition
+		 * @param value value that a generated random integer number should be for the 
+		 * condition to evaluate as true
+		 * @param max maximum value for the generator
+		 * @param seed seed to be used for random numbers generation
+		 */
+		constructor(value: number, max: number, seed?: number);
+
+		/**
+		 * Constructs new [[RANDOM]] condition with default seed and 0 as 
+		 * desired random value
+		 * @param max maximum value for the generator
+		 */
+		constructor(max: number);
+
+		/**
+		 * Forces engine to treat blocks along some axis in same way if enabled
+		 * parameter value is false
+		 * @param axis 0 fpr x, 1 for y, 2 for z axis
+		 */
+		setAxisEnabled(axis: number, enabled: boolean): RANDOM;
+	}
+
+	/**
+	 * Condition inverting some other condition
+	 */
+	class NOT implements CONDITION {
+		/**
+		 * Constructs new [[NOT]] condition
+		 * @param condition condition to be inverted
+		 */
+		constructor(condition: CONDITION);
+	}
+
+	/**
+	 * Condition that evaluates to true if one the two conditions evaluates to 
+	 * true 
+	 */
+	class OR implements CONDITION {
+		/**
+		 * Constructs new [[OR]] condition
+		 */
+		constructor(condition1: CONDITION, condition2: CONDITION);
+	}
+	
+	/**
+	 * Condition that evaluates to true only if both of the specified conditions 
+	 * evaluate to true 
+	 */
+	class AND implements CONDITION {
+		/**
+		 * Constructs new [[AND]] condition
+		 */
+		constructor(condition1: CONDITION, condition2: CONDITION);
+	}
 }
 /**
  * Module used to manage item and block ids. Items and blocks have the same 
@@ -3905,37 +4715,191 @@ declare namespace Item {
 
 }
 /**
- * Class representing item extra data
+ * Class representing item extra data. Used to store additional information 
+ * about item other then just item id and data
  */
 declare class ItemExtraData {
-	constructor(extraData?: ItemExtraData)
+	/**
+	 * Creates an empty [[ItemExtraData]] instance
+	 */
+	constructor();
 
-	getCustomName(): string
-	setCustomName(name: string): void
+	/**
+	 * creates a copy of current [[ItemExtraData]] instance with the same contents
+	 */
+	constructor(extraData?: ItemExtraData);
+
+	/**
+	 * @returns item's custom name
+	 */
+	getCustomName(): string;
+
+	/**
+	 * Sets item's custom name
+	 */
+	setCustomName(name: string): void;
 	
-	isEnchanted(): boolean
-	addEnchant(id: number, level: number): void
-	getEnchantLevel(id: number): number
-	removeEnchant(id: number): void
-	removeAllEnchants(): void
-	getEnchantCount(): number
-	getEnchants(): { [key: number]: number }
+	/**
+	 * @returns true if the item is enchanted, false otherwise
+	 */
+	isEnchanted(): boolean;
+
+	/**
+	 * Adds a new enchantment to the item
+	 * @param id enchantment id, one of the [[Native.Enchantment]] constants
+	 * @param level enchantment level, generally between 1 and 5
+	 */
+	addEnchant(id: number, level: number): void;
+
+	/**
+	 * @param id enchantment id, one of the [[Native.Enchantment]] constants
+	 * @returns level of the specified enchantment
+	 */
+	getEnchantLevel(id: number): number;
+
+	/**
+	 * Removes enchantments by its id
+	 * @param id enchantment id, one of the [[Native.Enchantment]] constants
+	 */
+	removeEnchant(id: number): void;
+
+	/**
+	 * Removes all the enchantments of the item
+	 */
+	removeAllEnchants(): void;
+
+	/**
+	 * @returns amount of enchantments applied to the item
+	 */
+	getEnchantCount(): number;
+
+	/**
+	 * @returns all the enchantments of the item in the readable format
+	 */
+	getEnchants(): { [key: number]: number };
+
+	/**
+	 * @param id enchantment id, one of the [[Native.Enchantment]] constants
+	 * @param level enchantment level, generally between 1 and 5
+	 * @returns enchantment name by its id and level
+	 */
 	getEnchantName(id: number, level: number): string
+
+	/**
+	 * @returns all enchantments names separated by line breaks
+	 */
 	getAllEnchantNames(): string
 
-	putInt(name: string, value: number): ItemExtraData
-	putLong(name: string, value: number): ItemExtraData
-	putFloat(name: string, value: number): ItemExtraData
-	putString(name: string, value: string): ItemExtraData
-	putBoolean(name: string, value: boolean): ItemExtraData
-	getInt(name: string, fallback?: number): number
-	getLong(name: string, fallback?: number): number
-	getFloat(name: string, fallback?: number): number
-	getString(name: string, fallback?: string): string
-	getBoolean(name: string, fallback?: boolean): boolean
-	removeCustomData(): void
-	copy(): ItemExtraData
-	isEmpty(): boolean
+	/**
+	 * Puts some custom integer parameter to the extra data of the item
+	 * @param name parameter name
+	 * @param value parameter value
+     * @returns reference to itself to be used in sequential calls
+	 */
+	putInt(name: string, value: number): ItemExtraData;
+	
+	/**
+	 * Puts some custom long integer parameter to the extra data of the item
+	 * @param name parameter name
+	 * @param value parameter value
+     * @returns reference to itself to be used in sequential calls
+	 */
+	putLong(name: string, value: number): ItemExtraData;
+
+	/**
+	 * Puts some custom number parameter to the extra data of the item
+	 * @param name parameter name
+	 * @param value parameter value
+     * @returns reference to itself to be used in sequential calls
+	 */
+	putFloat(name: string, value: number): ItemExtraData;
+
+	/**
+	 * Puts some custom string parameter to the extra data of the item
+	 * @param name parameter name
+	 * @param value parameter value
+     * @returns reference to itself to be used in sequential calls
+	 */
+	putString(name: string, value: string): ItemExtraData;
+
+	/**
+	 * Puts some custom boolean parameter to the extra data of the item
+	 * @param name parameter name
+	 * @param value parameter value
+     * @returns reference to itself to be used in sequential calls
+	 */
+	putBoolean(name: string, value: boolean): ItemExtraData;
+
+	/**
+	 * @param name parameter name
+	 * @param fallback default value to be returned if item extra data doesn't 
+	 * contain a parameter with specified name
+	 * @returns custom integer parameter value if extra data of the item contains
+	 * one, fallback value otherwise
+	 */
+	getInt(name: string, fallback?: number): number;
+
+	/**
+	 * @param name parameter name
+	 * @param fallback default value to be returned if item extra data doesn't 
+	 * contain a parameter with specified name
+	 * @returns custom long integer parameter value if extra data of the item contains
+	 * one, fallback value otherwise
+	 */
+	getLong(name: string, fallback?: number): number;
+	
+	/**
+	 * @param name parameter name
+	 * @param fallback default value to be returned if item extra data doesn't 
+	 * contain a parameter with specified name
+	 * @returns custom float parameter value if extra data of the item contains
+	 * one, fallback value otherwise
+	 */
+	getFloat(name: string, fallback?: number): number;
+	
+	/**
+	 * @param name parameter name
+	 * @param fallback default value to be returned if item extra data doesn't 
+	 * contain a parameter with specified name
+	 * @returns custom string parameter value if extra data of the item contains
+	 * one, fallback value otherwise
+	 */
+	getString(name: string, fallback?: string): string;
+	
+	/**
+	 * @param name parameter name
+	 * @param fallback default value to be returned if item extra data doesn't 
+	 * contain a parameter with specified name
+	 * @returns custom boolean parameter value if extra data of the item contains
+	 * one, fallback value otherwise
+	 */
+	getBoolean(name: string, fallback?: boolean): boolean;
+
+	/**
+	 * Removes all custom parameters from item extra data
+	 */
+	removeCustomData(): void;
+
+	/**
+	 * Creates a copy of current [[ItemExtraData]] object
+	 * @returns a created copy of the data
+	 */
+	copy(): ItemExtraData;
+	
+	/**
+	 * @returns true, if item extra exists and is not empty
+	 */
+	isEmpty(): boolean;
+
+    /**
+     * @returns compound tag for the specified item
+     */
+    getCompoundTag(ent: number): NBT.CompoundTag;
+
+    /**
+     * Sets compound tag for the specified item
+     */
+    setCompoundTag(ent: number, tag: NBT.CompoundTag): void;
 }
 
 /**
@@ -4683,6 +5647,413 @@ declare namespace Native {
         ATTACK_MOBS = "attackmobs",
         OPERATOR_COMMANDS = "op",
         TELEPORT = "teleport"
+    }
+
+    enum TileEntityType {
+        NONE = -1,
+        BEACON = 21,
+        BREWING_STAND = 8,
+        CAULDRON = 16,
+        CHEST = 0,
+        DISPENSER = 13,
+        FURNACE = 1,
+        HOPPER = 2,
+        JUKEBOX = 33,
+        LECTERN = 37
+    }
+
+    enum NbtDataType {
+        END_TAG = 0,
+        BYTE = 1,
+        SHORT = 2,
+        INT = 3,
+        INT64 = 4,
+        FLOAT = 5,
+        DOUBLE = 6,
+        BYTE_ARRAY = 7,
+        STRING = 8,
+        LIST = 9,
+        COMPOUND = 10,
+        INT_ARRAY = 11
+    }
+}
+/**
+ * Interface providing access to native tile entities - chests, hoppers, furnaces,
+ * smelters, etc. See full lists of supported native tile entities in the 
+ * [[Native.TileEntityType]] enum
+ */
+declare interface NativeTileEntity {
+    /**
+     * @returns native tile entity type constant, one of the [[Native.TileEntityType]]
+     * constants
+     */
+    getType(): number,
+
+    /**
+     * @returns slots count for the specified native tile entity
+     */
+    getSize(): number,
+
+    /**
+     * @param slot slot number
+     * @returns item instance in the specified slot of item TE
+     */
+    getSlot(slot: number): ItemInstance,
+
+    /**
+     * Sets the contents of a native tile entity's slot
+     * @param slot slot number
+     * @param id item id
+     * @param count item count
+     * @param data item data
+     * @param extra item extra data
+     */
+    setSlot(slot: number, id: number, count: number, data: number, extra?: ItemExtraData): void;
+
+    /**
+     * Sets the contents of a native tile entity's slot
+     * @param slot slot number
+     * @param item item information
+     */
+    setSlot(slot: number, item: ItemInstance): void;
+
+    /**
+     * @returns compound tag associated with specified native tile entity
+     */
+    getCompoundTag(): NBT.CompoundTag;
+
+    /**
+     * Sets compound tag for the specified tile entity
+     */
+    setCompoundTag(tag: NBT.CompoundTag): void;
+}
+/**
+ * NBT (Named Binary Tag) is a tag based binary format designed to carry large 
+ * amounts of binary data with smaller amounts of additional data. You can get
+ * or set nbt tags of [[Entity]] (entities), [[NativeTileEntity]] 
+ * (native tile entities, such as chests or beacons) and [[ItemExtraData]] 
+ * (items). To get more information about these data structures, 
+ * see [this page](http://web.archive.org/web/20110723210920/http://www.minecraft.net/docs/NBT.txt)
+ */
+declare namespace NBT {
+    /**
+     * List tags represent NBT map-like data structure (key-value pairs). Its values may
+     * be of any type, so check the type before calling the appropriate getter
+     */
+    class CompoundTag {
+        /**
+         * Creates a new compound tag
+         */
+        constructor();
+
+        /**
+         * Creates a copy of specified compound tag
+         */
+        constructor(tag: CompoundTag); 
+
+        /**
+         * Converts compound tag to JavaScript object for easier reading
+         * @returns valid JavaScript representation of compound tag
+         */
+        toScriptable(): {[key: string]: any};
+
+        /**
+         * @returns Java-array containing all the keys of the compound tag
+         */
+        getAllKeys(): native.Array<string>;
+
+        /**
+         * @returns true if specified key exists in compound tag
+         */
+        contains(key: string): boolean;
+
+        /**
+         * @param key key to verify for the type
+         * @param type tag type to verify for, one of the [[Native.TagType]] constants
+         * @returns true if specified key exists in compound tag and its value is
+         * of specified type
+         */
+        containsValueOfType(key: string, type: number): boolean;
+
+        /**
+         * @returns value type for the specified key. One of the [[Native.TagType]] 
+         * constants
+         */
+        getValueType(key: string): number;
+
+        /**
+         * @returns NBT tag of byte type by its key
+         */
+        getByte(key: string): number;
+
+        /**
+         * @returns NBT tag of short type by its key
+         */
+        getShort(key: string): number;
+
+        /**
+         * @returns NBT tag of 32-bit integer type by its key
+         */
+        getInt(key: string): number;
+
+        /**
+         * @returns NBT tag of 64-bit integer type by its key
+         */
+        getInt64(key: string): number;
+
+        /**
+         * @returns NBT tag of float type by its key
+         */
+        getFloat(key: string): number;
+
+        /**
+         * @returns NBT tag of double type by its key
+         */
+        getDouble(key: string): number;
+
+        /**
+         * @returns NBT tag of string type by its key
+         */
+        getString(key: string): string;
+
+        /**
+         * @returns NBT tag of compound type by its key. Note that a copy of 
+         * existing compound tag is created so you cannot edit it directly. Use 
+         * setCompoundTag method to apply changes or use 
+         * [[CompoundTag.getCompoundTagNoClone]] to edit it directly
+         */
+        getCompoundTag(key: string): NBT.CompoundTag;
+
+        /**
+         * @returns directly editable NBT tag of byte type by its key. Don't save
+         * reference for future usage since they get destroyed when the parent 
+         * object is destroyed
+         */
+        getCompoundTagNoClone(key: string): NBT.CompoundTag;
+
+        /**
+         * @returns NBT tag of list type by its key. Note that a copy of 
+         * existing list tag is created so you cannot edit it directly. Use 
+         * setCompoundTag method to apply changes or use 
+         * [[CompoundTag.getListTagNoClone]] to edit it directly
+         */
+        getListTag(key: string): NBT.ListTag;
+
+        /**
+         * @returns directly editable NBT tag of byte type by its key. Don't save
+         * reference for future usage since they get destroyed when the parent 
+         * object is destroyed
+         */
+        getListTagNoClone(key: string): NBT.ListTag;
+
+        /**
+         * Puts value of byte type into compound tag
+         */
+        putByte(key: string, value: number): void;
+
+        /**
+         * Puts value of short type into compound tag
+         */
+        putShort(key: string, value: number): void;
+
+        /**
+         * Puts value of 32-bit integer type into compound tag
+         */
+        putInt(key: string, value: number): void;
+
+        /**
+         * Puts value of 64-bit integer type into compound tag
+         */
+        putInt64(key: string, value: number): void;
+
+        /**
+         * Puts value of float type into compound tag
+         */
+        putFloat(key: string, value: number): void;
+
+        /**
+         * Puts value of double type into compound tag
+         */
+        putDouble(key: string, value: number): void;
+
+        /**
+         * Puts value of string type into compound tag
+         */
+        putString(key: string, value: number): void;
+
+        /**
+         * Puts value of compound type into compound tag
+         */
+        putCompoundTag(key: string, value: number): void;
+
+        /**
+         * Puts value of list type into compound tag
+         */
+        putListTag(key: string, value: number): void;
+
+        /**
+         * Removes tag by its key
+         */
+        remove(key: string): void;
+
+        /**
+         * Removes all the tags from the compound tags
+         */
+        clear(): void;
+    }
+
+
+    /**
+     * List tags represent NBT array-like indexed data structure. Its values may
+     * be of any type, so check the type before calling the appropriate getter
+     */
+    class ListTag {
+        /**
+         * Creates a new list tag
+         */
+        constructor();
+
+        /**
+         * Creates a copy of specified list tag
+         */
+        constructor(tag: CompoundTag); 
+
+        /**
+         * Converts list tag to JavaScript object for easier reading
+         * @returns valid JavaScript representation of list tag
+         */
+        toScriptable(): any[];
+
+        /**
+         * @returns count of the tags in the list tag
+         */
+        length(): number;
+
+        /**
+         * @returns value type for the specified index. One of the [[Native.TagType]] 
+         * constants
+         */
+        getValueType(index: number): number;
+
+        /**
+         * @returns NBT tag of byte type by its index
+         */
+        getByte(index: number): number;
+
+        /**
+         * @returns NBT tag of short type by its index
+         */
+        getShort(index: number): number;
+
+        /**
+         * @returns NBT tag of 32-bit integer type by its index
+         */
+        getInt(index: number): number;
+
+        /**
+         * @returns NBT tag of 64-bit integer type by its index
+         */
+        getInt64(index: number): number;
+
+        /**
+         * @returns NBT tag of float type by its index
+         */
+        getFloat(index: number): number;
+
+        /**
+         * @returns NBT tag of double type by its index
+         */
+        getDouble(index: number): number;
+
+        /**
+         * @returns NBT tag of string type by its index
+         */
+        getString(index: number): string;
+
+        /**
+         * @returns NBT tag of compound type by its index. Note that a copy of 
+         * existing compound tag is created so you cannot edit it directly. Use 
+         * setCompoundTag method to apply changes or use 
+         * [[CompoundTag.getCompoundTagNoClone]] to edit it directly
+         */
+        getCompoundTag(index: number): NBT.CompoundTag;
+
+        /**
+         * @returns directly editable NBT tag of byte type by its index. Don't save
+         * reference for future usage since they get destroyed when the parent 
+         * object is destroyed
+         */
+        getCompoundTagNoClone(index: number): NBT.CompoundTag;
+
+        /**
+         * @returns NBT tag of list type by its index. Note that a copy of 
+         * existing list tag is created so you cannot edit it directly. Use 
+         * setCompoundTag method to apply changes or use 
+         * [[CompoundTag.getListTagNoClone]] to edit it directly
+         */
+        getListTag(index: number): NBT.ListTag;
+
+        /**
+         * @returns directly editable NBT tag of byte type by its index. Don't save
+         * reference for future usage since they get destroyed when the parent 
+         * object is destroyed
+         */
+        getListTagNoClone(index: number): NBT.ListTag;
+
+        /**
+         * Puts value of byte type into list tag
+         */
+        putByte(index: number, value: number): void;
+
+        /**
+         * Puts value of short type into list tag
+         */
+        putShort(index: number, value: number): void;
+
+        /**
+         * Puts value of 32-bit integer type into list tag
+         */
+        putInt(index: number, value: number): void;
+
+        /**
+         * Puts value of 64-bit integer type into list tag
+         */
+        putInt64(index: number, value: number): void;
+
+        /**
+         * Puts value of float type into list tag
+         */
+        putFloat(index: number, value: number): void;
+
+        /**
+         * Puts value of double type into list tag
+         */
+        putDouble(index: number, value: number): void;
+
+        /**
+         * Puts value of string type into list tag
+         */
+        putString(index: number, value: number): void;
+
+        /**
+         * Puts value of compound type into list tag
+         */
+        putCompoundTag(index: number, value: number): void;
+
+        /**
+         * Puts value of list type into list tag
+         */
+        putListTag(index: number, value: number): void;
+
+        /**
+         * Removes tag by its index
+         */
+        remove(index: number): void;
+
+        /**
+         * Removes all the tags from the compound tags
+         */
+        clear(): void;
     }
 }
 declare namespace Particles {
@@ -5685,68 +7056,52 @@ declare namespace Recipes {
 }
 
 
-/** 
- * An interface of the object that is used as [[Render.constructor]] parameter 
- * */
-interface RenderParameters {
-    /** Name of the cached Render object to be used */
-    name?: string;
-    /** Item ID for Item Sprite render type */
-    item?: number;
-    /** Relative path to the texture used by render */
-    skin?: string;
-    /** Render scale multiplier */
-    scale?: number;
-    /** If set to true, a humanoid render is constructed, empty otherwise */
-    raw?: boolean;
-}
-
-/** An interface of the object that is used as [[Render.addPart]] parameter*/
-interface PartParameters {
-
-}
-
-interface PartObject {
-
-}
-
 /**
  * Class that is used to give mobs, animations and blocks custom shape.
  */
 declare class Render {
     /**
      * Creates a new Render instance with specified parameters
-     * @param {RenderParameters | number | string} parameters specifies all the 
+     * @param parameters specifies all the 
      * properties of the object. If it is a number, vanilla render id is used,
      * if it is a string, used as [[RenderParameters.name]] name property
      */
-    constructor(parameters?: RenderParameters | string | number);
+    constructor(parameters?: Render.RenderParameters | string | number);
 
     /** 
-     * Returns render id that can be used to set render to the mob, animation 
-     * or block.
+     * @deprecated use [[getId]] instead
      */
     getID(): number;
+
     /**
-     * Same as [[getId]]
+     * @returns render id that can be used to set render to the mob, animation 
+     * or block
      */
     getId(): number;
+
     /**
-     * Same as [[getId]]
+     * @deprecated use [[getId]] instead
      */
     getRenderType(): number;
 
-    /** Returns render's model that defines its visual shape. */
-    getModel(): Model;
+    /** 
+     * @returns render's model that defines its visual shape. 
+     */
+    getModel(): Render.Model;
+
+    /**
+     * @returns [[Render.Transform]] object used to manipulate current render
+     */
+    transform(): Render.Transform;
 
     /** 
-     * Returns a part of the render by its full name. By default, there are six 
+     * @returns a part of the render by its full name. By default, there are six 
      * parts available to the user. However, you can create your own parts that 
      * suit your needs and get them by their names.
      * @param partName full name of the part separated by "."
      * @returns part of the render with specified full name
      */
-    getPart(partName: string): ModelPart;
+    getPart(partName: string): Render.ModelPart;
 
     /**
      * Adds a part to the render by its full name. The part should be descendent 
@@ -5755,14 +7110,14 @@ declare class Render {
      * @param partParams specifies all the parameters of the part
      * @returns newly created part
      */
-    addPart(partName: string, partParams?: PartParameters): ModelPart;
+    addPart(partName: string, partParams?: Render.PartParameters): Render.ModelPart;
 
     /**
      * Sets all the properties of the part by its full name. 
      * @param partName full name of the part separated by "."
      * @param partParams specifies all the parameters of the part
      */
-    setPartParams(partName: string, partParams?: PartParameters): never;
+    setPartParams(partName: string, partParams?: Render.PartParameters): void;
 
     /**
      * Sets the content and all properties of the part by its full name.
@@ -5770,16 +7125,281 @@ declare class Render {
      * @param data array of part data objects to be applied to the part
      * @param params specifies all the parameters of the part
      */
-    setPart(name: string, data: PartObject[], params: PartParameters): never;
+    setPart(name: string, data: Render.PartElement[], params: Render.PartParameters): void;
+
+    /**
+     * @deprecated
+     */
+    setTextureResolution(...params: any): void;
+
     
 }
 
-declare class Model {
+declare namespace Render {
+    /** 
+     * An interface of the object that is used as [[Render.constructor]] parameter 
+     * */
+    interface RenderParameters {
+        /** 
+         * Name of the cached Render object to be used 
+         */
+        name?: string;
+        /** 
+         * Item ID for Item Sprite render type
+         */
+        item?: number;
+        /** 
+         * Relative path to the texture used by render 
+         */
+        skin?: string;
+        /** 
+         * Render scale multiplier 
+         */
+        scale?: number;
+        /** 
+         * If set to true, a humanoid render is constructed, empty otherwise 
+         */
+        raw?: boolean;
+    }
 
-}
+    /**
+     * Part's box description specified in [[Render.setPart]] method
+     */
+    interface PartElement {
+        /**
+         * Box coordinates, relative to part's coordinates
+         */
+        coords: Vector,
 
-declare class ModelPart {
+        /**
+         * Box texture offset
+         */
+        uv?: {x: number, y: number},
 
+        /**
+         * Box size
+         * @param w aditional size to be added from all the six sizes of the 
+         * box
+         */
+        size: {x: number, y: number, z: number, w?: number},
+
+        /**
+         * Specifies child elements, using current box coordinates as base for the
+         * child boxes
+         */
+        children?: PartElement[]
+    }
+
+    /**
+     * Interface used to perform transformation on the specified render object
+     */
+    interface Transform {
+        /**
+         * Clears all the transformations applied to the render
+         * @returns reference to itself to be used in sequential calls
+         */
+        clear(): Transform;
+        
+        /**
+         * 
+         * @returns reference to itself to be used in sequential calls
+         */
+        lock(): Transform;
+        
+        /**
+         * 
+         * @returns reference to itself to be used in sequential calls
+         */
+        unlock(): Transform;
+        
+        /**
+         * Performs arbitrary matrix transformations on the render
+         * @returns reference to itself to be used in sequential calls
+         */
+        matrix(f0: number, f1: number, f2: number, f3: number, f4: number, f5: number, f6: number, f7: number, f8: number, f9: number, f10: number, f11: number, f12: number, f13: number, f14: number, f15: number): Transform;
+        
+        /**
+         * Scales render along the three axes
+         * @returns reference to itself to be used in sequential calls
+         */
+        scale(x: number, y: number, z: number): Transform;
+
+        /**
+         * Rotates render along three axes
+         * @returns reference to itself to be used in sequential calls
+         */
+        rotate(x: number, y: number, z: number): Transform;
+        /**
+         * Translates render along three axes
+         * @returns reference to itself to be used in sequential calls
+         */
+        translate(x: number, y: number, z: number): Transform;
+
+        /**
+         * Scales the render along all the three axes. Applicable only to the 
+         * [[Animation]]'s transformations
+         * @deprecated consider using [[Transform.scale]] instead
+         * @returns reference to itself to be used in sequential calls
+         */
+        scaleLegacy(scale: number): Transform;
+    }
+
+    /** 
+     * An interface of the object that is used as [[Render.addPart]] parameter
+     */
+    interface PartParameters {
+        /**
+         * If false or not specified in [[Render.setPart]] call, the part is 
+         * cleared, otherwise new parts and params are applied to the existing parts 
+         */
+        add?: boolean,
+
+        /**
+         * Texture width, use the real texture file width or change it to stretch 
+         * texture
+         */
+        width?: number,
+
+        /**
+         * Texture height, use the real texture file height or change it to stretch 
+         * texture
+         */
+        height?: number,
+
+        /**
+         * Texture horizontal offset
+         */
+        u?: number,
+
+        /**
+         * Texture vertical offset
+         */
+        v?: number,
+
+        /**
+         * Part center position
+         */
+        pos?: Vector | [number, number, number];
+
+        /**
+         * Part rotation
+         */
+        rotation?: Vector | [number, number, number];
+    }
+
+    interface Model {
+        /**
+         * @param name part name
+         * @returns true if part with specified name exists in the model, 
+         * false otherwise
+         */
+        hasPart(name: string): boolean;
+
+        /**
+         * @param name part name
+         * @returns part by its name or null if part doesn't exist
+         */
+        getPart(name: string): ModelPart | null;
+
+        /**
+         * Resets model
+         */
+        reset(): void;
+
+        /**
+         * Clears all parts of the model
+         */
+        clearAllParts(): void;
+    }
+
+    interface ModelPart {
+        /**
+         * Clears the contents of the part
+         */
+        clear(): void;
+
+        /**
+         * Adds a new box to the part on the specified coordinates (relative to 
+         * the part's coordinates) of the specified size (width, height, length)
+         * @param add additional size to be added from all the six sizes of the 
+         * box
+         */
+        addBox(x: number, y: number, z: number, w: number, h: number, l: number, add?: number): void;
+
+        /**
+         * Creates a new part with specified name. If a part with specified name
+         * already exists, returns the existing part
+         * @param name name of the part to create or return
+         */
+        addPart(name: string): ModelPart;
+
+        /**
+         * Specifies texture uv offset
+         * @param placeholder deprecated boolean parameter
+         */
+        setTextureOffset(x: number, y: number, placeholder?: boolean): void;
+
+        /**
+         * Specifies texture size size, use the real texture file size or change 
+         * it to stretch texture
+         * @param placeholder deprecated boolean parameter
+         */
+        setTextureSize(x: number, y: number, placeholder?: boolean): void;
+
+        /**
+         * Specifies part default offset
+         */
+        setOffset(x: number, y: number, z: number): void;
+
+        /**
+         * Specifies part rotation
+         */
+        setRotation(x: number, y: number, z: number): void;
+
+        /**
+         * Specifies [[RenderMesh]] to be used as a part
+         */
+        setMesh(mesh: RenderMesh): void;
+
+        /**
+         * @returns [[RenderMesh]] specified via [[setMesh]] call or null, if 
+         * this part doesn't contain mesh
+         */
+        getMesh(): RenderMesh | null;
+    }
+
+    interface ShaderUniformSet {
+        
+        /**
+         * 
+         * @returns reference to itself to be used in sequential calls
+         */
+        lock(): ShaderUniformSet;
+        
+        /**
+         * 
+         * @returns reference to itself to be used in sequential calls
+         */
+        unlock(): ShaderUniformSet;
+        
+        /**
+         * 
+         * @param uniformSet 
+         * @param uniformName 
+         * @param values 
+         * @returns reference to itself to be used in sequential calls
+         */
+        setUniformValue(uniformSet: string, uniformName: string, ...values: number[]): ShaderUniformSet;
+        
+        /**
+         * 
+         * @param uniformSet 
+         * @param uniformName 
+         * @param values 
+         * @returns reference to itself to be used in sequential calls
+         */
+        setUniformValueArr(uniformSet: string, uniformName: string, values: number[]): ShaderUniformSet;
+    }
 }
 declare class RenderMesh {
 	constructor(path: string, type: string, params: object);
@@ -5884,6 +7504,59 @@ declare namespace Saver {
     }
 }
 /**
+ * Class representing texture that can be animated
+ * @deprecated no longer supported and should not be used in new code
+ */
+declare class Texture {
+    /**
+     * Creates new [[Texture]] object using specified file path
+     */
+    constructor(path: string);
+
+    /**
+     * Sets texture file path
+     * @returns reference to itself to be used in sequential calls
+     */
+    setTexture(path: string): Texture;
+
+    /**
+     * Specifies texture resolution. If not equal to file dimensions, the image
+     * will be stretched to fit the resolution
+     * @returns reference to itself to be used in sequential calls
+     */
+    setResolution(w: number, h: number): Texture;
+
+    /**
+     * Makes texture animated
+     * @param animation array of paths to the animation frames. Each frame should
+     * be stored in a separate file
+     * @param delay specifies each frame delay in ticks
+     * @returns reference to itself to be used in sequential calls
+     */
+    setAnimation(animation: string[], delay: number): Texture;
+
+    /**
+     * Resets animation
+     * @returns reference to itself to be used in sequential calls
+     */
+    resetAnimation(token: number): Texture;
+
+    /**
+     * @returns current animation frame
+     */
+    getTexture(token: number): string;
+
+    /**
+     * @returns texture resolution after recalculating it with pixel scale
+     */
+    getResolution(): { w: number, h: number };
+
+    /**
+     * Sets pixel scale for the texture
+     */
+    setPixelScale(scale: number): Texture;
+}
+/**
  * Module used to create and manipulate threads. Threads let you execute 
  * time-consuming tasks without blocking current execution thread
  */
@@ -5976,6 +7649,82 @@ declare namespace TileEntity {
      * the chunks that are also verified
      */
     function isTileEntityLoaded(tileEntity: TileEntity): boolean;
+
+    
+    /**
+     * Interface passed to [[TileEntity.registerPrototype]] function
+     */
+    interface TileEntityPrototype {
+        /**
+         * Default data values, will be initially added to [[TileEntity.data]] field
+         */
+        defaultValues?: {[key: string]: any},
+
+        /**
+         * Called when a [[TileEntity]] is created
+         */
+        created?: () => void,
+
+        /**
+         * Called when a [[TileEntity]] is initialised in the world
+         */
+        init?: () => void,
+
+        /**
+         * Called every tick and should be used for all the updates of the [[TileEntity]]
+         */
+        tick?: () => void,
+
+        /**
+         * Called when player uses some item on a [[TileEntity]]
+         * @returns true if the event is handled and should not be propagated to
+         * the next handlers. E.g. return true if you don't want the user interface 
+         * to be opened
+         */
+        click?: (id: number, count: number, data: number, coords: Callback.ItemUseCoordinates) => boolean|void,
+
+        /**
+         * Occurs when a block of the [[TileEntity]] is being destroyed. See
+         * [[Callback.DestroyBlockFunction]] for details
+         */
+        destroyBlock?: (block: Tile, player: number) => void,
+
+        /**
+         * Occurs when the [[TileEntity]] should handle redstone signal. See 
+         * [[Callback.RedstoneSignalFunction]] for details
+         */
+        redstone?: (params: {power: number, signal: number, onLoad: boolean}) => void,
+        
+        /**
+         * Occurs when a projectile entity hits the [[TileEntity]]. See
+         * [[Callback.ProjectileHitFunction]] for details
+         */
+        projectileHit?: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void,
+        
+        /**
+         * Occurs when the [[TileEntity]] is being destroyed
+         * @returns true to prevent 
+         * [[TileEntity]] object from destroying (but if the block was destroyed, returning 
+         * true from this function doesn't replace the missing block with a new one)
+         */
+        destroy?: () => boolean|void;
+
+        /**
+         * Called to get the [[UI.IWindow]] object for the current [[TileEntity]]. The 
+         * window is then opened within [[TileEntity.container]] when the player clicks it
+         */
+        getGuiScreen?: () => UI.IWindow;
+
+        /**
+         * Called when more liquid is required
+         */
+        requireMoreLiquid?: (liquid: string, amount: number) => void;
+
+        /**
+         * Any other user-defined methods and properties
+         */
+        [key: string]: any
+    }
 }
 
 
@@ -5990,78 +7739,6 @@ declare interface TileEntity {
     selfDestroy: () => void;
 }
 
-
-declare interface TileEntityPrototype {
-    /**
-     * Default data values, will be initially added to [[TileEntity.data]] field
-     */
-    defaultValues?: {[key: string]: any},
-
-    /**
-     * Called when a [[TileEntity]] is created
-     */
-    created?: () => void,
-
-    /**
-     * Called when a [[TileEntity]] is initialised in the world
-     */
-    init?: () => void,
-
-    /**
-     * Called every tick and should be used for all the updates of the [[TileEntity]]
-     */
-    tick?: () => void,
-
-    /**
-     * Called when player uses some item on a [[TileEntity]]
-     * @returns true if the event is handled and should not be propagated to
-     * the next handlers. E.g. return true if you don't want the user interface 
-     * to be opened
-     */
-    click?: (id: number, count: number, data: number) => boolean|void,
-
-    /**
-     * Occurs when a block of the [[TileEntity]] is being destroyed. See
-     * [[Callback.DestroyBlockFunction]] for details
-     */
-    destroyBlock?: (block: Tile, player: number) => void,
-
-    /**
-     * Occurs when the [[TileEntity]] should handle redstone signal. See 
-     * [[Callback.RedstoneSignalFunction]] for details
-     */
-    redstone?: (params: {power: number, signal: number, onLoad: boolean}) => void,
-    
-    /**
-     * Occurs when a projectile entity hits the [[TileEntity]]. See
-     * [[Callback.ProjectileHitFunction]] for details
-     */
-    projectileHit?: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void,
-    
-    /**
-     * Occurs when the [[TileEntity]] is being destroyed
-     * @returns true to prevent 
-     * [[TileEntity]] object from destroying (but if the block was destroyed, returning 
-     * true from this function doesn't replace the missing block with a new one)
-     */
-    destroy?: () => boolean|void;
-
-    /**
-     * Called to get the [[UI.IWindow]] object for the current [[TileEntity]]. The 
-     * window is then opened within [[TileEntity.container]] when the player clicks it
-     */
-    getGuiScreen?: () => UI.IWindow;
-
-    /**
-     * Called when more liquid is required
-     */
-    requireMoreLiquid?: (liquid: string, amount: number) => void;
-
-    /**
-     * Any other user-defined methods and properties
-     */
-    [key: string]: any
-}
 /**
  * Module used to manage block and tools material and create tools with all
  * required properties
@@ -6529,7 +8206,7 @@ declare namespace UI {
          * If container is a part of [[TileEntity]], this field stores reference 
          * to it, otherwise null. You can also assign any value of any type to
          * it using [[Container.setParent]] method or using constructor 
-         * parameter. Consider using [[TileEntity.getParent]] instead of direct 
+         * parameter. Consider using [[Container.getParent]] instead of direct 
          * field access
          */
         parent: TileEntity|null|any;
@@ -7398,7 +9075,8 @@ declare namespace UI {
          * Sets content of the tab
          * @param index index of the tab. There are 12 tabs available, from 0 to
          * 11. The location of the tabs is as follows:
-         * ```0    6
+         * ```
+         * 0    6
          * 1    7
          * 2    8
          * 3    9
@@ -9992,4 +11670,15 @@ declare namespace World {
      * @param id biome id to be set on the specified coordinates
      */
     function setBiomeMap(x: number, z: number, id: number): void;
+
+    /**
+     * Adds a new generation callback using string hash to generate a unique 
+     * random seed for the chunk generator
+     * @param callbackName one of the generation callbacks, see {@page Callbacks}
+     * for details
+     * @param callback callback function
+     * @param uniqueHashStr if specified, will be used as string hash for seed
+     * generation, otherwise default hash string will be used
+     */
+    function addGenerationCallback(callbackName: string, callback: Callback.GenerateChunkFunction, uniqueHashStr?: string): void;
 }
