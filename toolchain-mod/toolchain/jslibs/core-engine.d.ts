@@ -544,6 +544,8 @@ declare namespace Block {
 
     /**
      * Makes block accept redstone signal
+     * @deprecated use [[Block.setupAsRedstoneReceiver]] and 
+     * [[Block.setupAsRedstoneEmitter]] instead
      * @param nameID block numeric or string id
      * @param data block data, currently not used
      * @param isRedstone if true, the redstone changes at the block will notify
@@ -606,6 +608,12 @@ declare namespace Block {
     function setPrototype(nameID: string|number, Prototype: any): number;
 
     /**
+     * @param id numeric block id
+     * @returns the color specified block is displayed on the vanilla maps
+     */
+    function getMapColor(id: number): number;
+
+    /**
      * Makes block invoke callback randomly depending on game speed
      * @param id block id to register for random ticks
      * @param callback function to be called on random block tick
@@ -620,6 +628,26 @@ declare namespace Block {
      * @param callback function to be called 
      */
     function setAnimateTickCallback(id: number, callback: AnimateTickFunction): void;
+
+    /**
+     * Makes block receive redstone signals via "RedstoneSignal" callback
+     * @param id block numeric or string id
+     * @param connectToRedstone if true, redstone wires will connect to the block
+     */
+    function setupAsRedstoneReceiver(id: number|string, connectToRedstone: boolean): void;
+
+    /**
+     * Makes block emit redstone signal
+     * @param id block numeric or string id
+     * @param connectToRedstone if true, redstone wires will connect to the block
+     */
+    function setupAsRedstoneEmitter(id: number|string, connectToRedstone: boolean): void;
+
+    /**
+     * Removes all the redstone functionality from the block
+     * @param id block numeric or string id
+     */
+    function setupAsNonRedstoneTile(id: number|string): void;
 
     function registerNeighbourChangeFunction(id: number, func: NeighourChangeFunction): void;
 
@@ -701,6 +729,11 @@ declare namespace Block {
          * opaque
          */
         translucency?: number,
+
+        /**
+         * Block color when displayed on the vanilla maps
+         */
+        mapcolor?: number,
     }
 
 
@@ -2140,8 +2173,16 @@ interface LookAngle {
  * Object representing item instance in the inventory
  */
 interface ItemInstance {
+    /**
+     * Item id
+     */
     id: number,
+
+    /**
+     * Amount of items of the specified id
+     */
     count: number, 
+
     /**
      * Item data value. Generally specifies some property of the item, e.g. 
      * color, material, etc. Defaults to 0, in many cases -1 means "any data 
@@ -2302,6 +2343,19 @@ declare namespace Dimensions {
          * @returns reference to itself to be used in sequential calls
          */
         resetSunsetColor(): CustomDimension;
+
+        /**
+         * Sets fog displaying distance
+         * @param start nearest fog distance
+         * @param end farthest fog distance
+         * @returns reference to itself to be used in sequential calls
+         */
+        setFogDistance(start: number, end: number): CustomDimension;
+
+        /**
+         * Resets fog displaying distance
+         */
+        resetFogDistance(): CustomDimension;
     }
 
     /**
@@ -4914,6 +4968,62 @@ declare namespace ItemModel {
      * @returns [[ItemModel]] object used to manipulate item's model
      */
     function getFor(id: number, data: number): ItemModel;
+
+    /**
+     * Gets [[ItemModel]] object for the specified id and data. If no [[ItemModel]] for
+     * specified data exist, uses default data (0)
+     * @returns [[ItemModel]] object used to manipulate item's model
+     */
+    function getForWithFallback(id: number, data: number): ItemModel;
+
+    /**
+     * Creates a new standalone item model that is not connected with any item or block
+     */
+    function newStandalone(): ItemModel;
+
+    /**
+     * @returns a collection of all existing item models
+     */
+    function getAllModels(): java.util.Collection<ItemModel>;
+
+    /**
+     * Releases some of the bitmaps to free up memory
+     * @param bytes bytes count to be released
+     */
+    function tryReleaseModelBitmapsOnLowMemory(bytes: number): void;   
+
+    interface ModelOverrideFunction {
+        (item: ItemInstance): ItemModel
+    }
+
+    interface IconRebuildListener {
+        (model: ItemModel, newIcon: android.graphics.Bitmap): void
+    }
+
+    /**
+     * @returns empty [[RenderMesh]] from the pool or creates an empty one. Used 
+     * to reduce constructors/descructors calls
+     */
+    function getEmptyMeshFromPool(): RenderMesh;
+
+    /**
+     * Releases [[RenderMesh]] and returns it to the pool. Used to reduce
+     * constructors/descructors calls
+     */
+    function releaseMesh(mesh: RenderMesh): void;
+
+    /**
+     * @param randomize if true, item mesh position is ramdomized
+     * @returns [[RenderMesh]] generated for specified item
+     */
+    function getItemRenderMeshFor(id: number, count: number, data: number, randomize: boolean): RenderMesh;
+
+    /**
+     * @param id item or block numeric id
+     * @param data item or block data
+     * @returns texture name for the specified item or block
+     */
+    function getItemMeshTextureFor(id: number, data: number): string;
 }
 
 /**
@@ -4922,11 +5032,33 @@ declare namespace ItemModel {
  * player's hand or inventory is (0, 0, 0), (1, 1, 1), so it is generally recommended to use the models 
  * that fit that bound at least for the inventory 
  */
-declare class ItemModel {
+declare interface ItemModel {
+    /**
+     * Item or block id current [[ItemModel]] relates to
+     */
+    readonly id: number;
+
+    /**
+     * Item or block data current [[ItemModel]] relates to
+     */
+    readonly data: number;
+
+    occupy(): ItemModel;
+
+    isSpriteInUi(): boolean;
+
+    isEmptyInUi(): boolean;
+
+    isSpriteInWorld(): boolean;
+
+    isEmptyInWorld(): boolean;
+
     /**
      * @returns true, if the model is empty
      */
     isEmpty(): boolean;
+
+    isNonExistant(): boolean;
 
     /**
      * @returns true, if this item model overrides the default model in player's hand
@@ -4937,6 +5069,12 @@ declare class ItemModel {
      * @returns true, if this item model overrides the default model in player's inventory
      */
     overridesUi(): boolean;
+
+    getShaderUniforms(): Render.ShaderUniformSet;
+
+    setSpriteUiRender(isSprite: boolean): ItemModel;
+
+
 
     /**
      * Sets item's model to display both in the inventory and in hand
@@ -4998,6 +5136,72 @@ declare class ItemModel {
      * @param texture material name to be used for the model
      */
     setUiMaterial(texture: string): ItemModel;
+
+    setGlintMaterial(material: string): ItemModel;
+
+    setHandGlintMaterial(material: string): ItemModel;
+
+    setUiGlintMaterial(material: string): ItemModel;
+
+    getUiTextureName(): string;
+    
+    getWorldTextureName(): string;
+
+    getUiMaterialName(): string;
+
+    getWorldMaterialName(): string;
+
+    getUiGlintMaterialName(): string;
+
+    getWorldGlintMaterialName(): string;
+    
+    newTexture(): android.graphics.Bitmap;
+
+    getSpriteMesh(): RenderMesh;
+
+    addToMesh(mesh: RenderMesh, x: number, y: number, z: number): void;
+
+    getMeshTextureName(): string;
+
+    setItemTexturePath(path: string): ItemModel;
+
+    setItemTexture(name: string, index: number): ItemModel;
+
+    removeModUiSpriteTexture(): ItemModel;
+
+    setModUiSpritePath(path: string): ItemModel;
+
+    setModUiSpriteName(name: string, index: number): ItemModel;
+
+    setModUiSpriteBitmap(bitmap: android.graphics.Bitmap): ItemModel;
+
+    getModelForItemInstance(id: number, count: number, data: number, extra: ItemExtraData): ItemModel;
+
+    setModelOverrideCallback(callback: ItemModel.ModelOverrideFunction): ItemModel;
+
+    isUsingOverrideCallback(): boolean;
+
+    releaseIcon(): void;
+
+    reloadIconIfDirty(): void;
+
+    getIconBitmap(): android.graphics.Bitmap;
+
+    getIconBitmapNoReload(): android.graphics.Bitmap;
+
+    reloadIcon(): void;
+
+    queueReload(listener?: ItemModel.IconRebuildListener): android.graphics.Bitmap;
+
+    setCacheKey(key: string): void;
+
+    getCacheKey(): string;
+
+    // updateForBlockVariant(variant: )    
+    
+    getItemRenderMesh(cound: number, randomize: boolean): RenderMesh;
+
+
 }
 declare namespace LiquidRegistry {
     var liquidStorageSaverId: number;
@@ -5769,14 +5973,14 @@ declare namespace NBT {
 
         /**
          * @param key key to verify for the type
-         * @param type tag type to verify for, one of the [[Native.TagType]] constants
+         * @param type tag type to verify for, one of the [[Native.NbtDataType]] constants
          * @returns true if specified key exists in compound tag and its value is
          * of specified type
          */
         containsValueOfType(key: string, type: number): boolean;
 
         /**
-         * @returns value type for the specified key. One of the [[Native.TagType]] 
+         * @returns value type for the specified key. One of the [[Native.NbtDataType]] 
          * constants
          */
         getValueType(key: string): number;
@@ -5930,7 +6134,7 @@ declare namespace NBT {
         length(): number;
 
         /**
-         * @returns value type for the specified index. One of the [[Native.TagType]] 
+         * @returns value type for the specified index. One of the [[Native.NbtDataType]] 
          * constants
          */
         getValueType(index: number): number;
@@ -6044,11 +6248,6 @@ declare namespace NBT {
          * Puts value of list type into list tag
          */
         putListTag(index: number, value: number): void;
-
-        /**
-         * Removes tag by its index
-         */
-        remove(index: number): void;
 
         /**
          * Removes all the tags from the compound tags
@@ -7401,29 +7600,156 @@ declare namespace Render {
         setUniformValueArr(uniformSet: string, uniformName: string, values: number[]): ShaderUniformSet;
     }
 }
+/**
+ * Class representing a set of vertices with some other parameters required to
+ * display them correctly. Used as block, entity and item models, in animations 
+ * and actually anywhere you need some physical shape
+ */
 declare class RenderMesh {
-	constructor(path: string, type: string, params: object);
+    /**
+     * Creates a new [[RenderMesh]] and initializes it from file. 
+     * See [[RenderMesh.importFromFile]] for parameters details
+     */
+    constructor(path: string, type: string, params: object);
+
+    /**
+     * Creates a new empty [[RenderMesh]]
+     */
 	constructor();
 
-	clone(): RenderMesh;
-	rotate(x: number, y: number, z: number, rotX: number, rotY: number, rotZ: number): void;
-	fitIn(a: number, b: number, c: number, d: number, e: number, f: number, g: boolean): void;
-	setNormal(a: number, b: number, c: number): void;
-    addVertex(x: number, y: number, z: number, u: number, v: number): void
-    setColor(r: number, g: number, b: number): void
-    resetColor(): void
-    setBlockTexture(name: string, index: number): void
-    resetTexture(): void
-    clear(): void
-    translate(x: number, y: number, z: number): void
-    scale(x: number, y: number, z: number): void
-    rebuild(): void
+    /**
+     * Creates a copy of current [[RenderMesh]]
+     */
+    clone(): RenderMesh;
+    
+    /**
+     * Rotates the mesh around the specified coordinates
+     * @param rotX rotation angle along X axis, in radians
+     * @param rotY rotation angle along Y axis, in radians
+     * @param rotZ rotation angle along Z axis, in radians
+     */
+    rotate(x: number, y: number, z: number, rotX: number, rotY: number, rotZ: number): void;
+    
+    /**
+     * Rotates the mesh around the (0, 0, 0) coordinates
+     * @param rotX rotation angle along X axis, in radians
+     * @param rotY rotation angle along Y axis, in radians
+     * @param rotZ rotation angle along Z axis, in radians
+     */
+    rotate(rotX: number, rotY: number, rotZ: number): void;
+    
+    /**
+     * Scales the mesh to fit into the specified box
+     * @param keepRatio if true, the ratio of the dimensions are preserved
+     */
+    fitIn(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, keepRatio: boolean): void;
+    
+    /**
+     * Specifies the normal vector for the next vertices
+     */
+    setNormal(x: number, y: number, z: number): void;
+    
+    /**
+     * Adds a new vertex on the specified coordinates
+     * @param u x texture offset of the vertex
+     * @param v y texture offset of the vertex
+     */
+    addVertex(x: number, y: number, z: number, u: number, v: number): void;
+
+    /**
+     * Specifies color to be applied to the next vertices. If the color is not white and 
+     * the texture is applied to mesh, texture's colors will be affected
+     */
+    setColor(r: number, g: number, b: number, a?: number): void;
+
+    /**
+     * Resets color applied to the mesh. Default is white
+     */
+    resetColor(): void;
+
+    /**
+     * Specifies block texture to be used by mesh
+     */
+    setBlockTexture(name: string, index: number): void;
+
+    /**
+     * Resets texture of the mesh
+     */
+    resetTexture(): void;
+
+    /**
+     * Removes all vertices of the mesh
+     */
+    clear(): void;
+
+    /**
+     * Translates the whole mesh along three axis
+     */
+    translate(x: number, y: number, z: number): void;
+
+    /**
+     * Scales the whole mesh along the three axis
+     */
+    scale(x: number, y: number, z: number): void;
+
+    /**
+     * Forces Minecraft to rebuild specified [[RenderMesh]] object
+     */
+    rebuild(): void;
+
+    /**
+     * Imports mesh file using specified path
+     * @param path path to the mesh file. Path should be abolute path or 
+     * be relative to the resources folder or to the "models/" folder
+     * @param type file type to read mesh from. The only currently supported mesh file 
+     * type is "obj"
+     * @param params additional import parameters
+     */
     importFromFile(path: string, type: string, params: {
+        /**
+         * If true, all existing vertices of the mesh are deleted before the file
+         * is imported
+         */
         clear?: boolean,
+
+        /**
+         * If true, v of the texture is inverted
+         */
         invertV: boolean,
+
+        /**
+         * Additional translation along x, y and z axis
+         */
         translate?: [number, number, number],
-        scale?: [number, number, number]
-    }): void
+
+        /**
+         * Additional scale along x, y and z axis
+         */
+        scale?: [number, number, number],
+
+        /**
+         * 
+         */
+        noRebuild: boolean
+    }): void;
+
+    /**
+     * Adds new mesh to the current one on the specified coordinates with specified scale
+     * @param mesh [[RenderMesh]] object to be added to current mesh
+     */
+    addMesh(mesh: RenderMesh, x: number, y: number, z: number, sx: number, sy: number, sz: number): void;
+
+    /**
+     * Adds new mesh to the current one on the specified coordinates
+     * @param mesh [[RenderMesh]] object to be added to current mesh
+     */
+    addMesh(mesh: RenderMesh, x: number, y: number, z: number): void;
+    
+    /**
+     * Adds new mesh to the current one
+     * @param mesh [[RenderMesh]] object to be added to current mesh
+     */
+    addMesh(mesh: RenderMesh): void;
 }
 /**
  * Module used to save data between world sessions
