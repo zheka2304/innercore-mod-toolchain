@@ -127,7 +127,7 @@ def build_all_resources():
                     resource_type,
                     resource_name,
                     declare={
-                        "type": {"resource_directory": "resource", "gui": "gui"}[resource_type]
+                        "resourceType": {"resource_directory": "resource", "gui": "gui"}[resource_type]
                     }
                 )
             else:
