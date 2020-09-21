@@ -154,8 +154,6 @@ def copy_additionals(source, destination):
 		
 
 def init_java_and_native(make_file, directory):
-	compile_dirs = []
-
 	src_dir = os.path.join(directory, "src")
 
 	sample_native_module = os.path.join(src_dir, "native", "sample")

@@ -1,5 +1,5 @@
 import os
-import os.path
+from os.path import join, exists, isdir, basename, isfile
 import sys
 import json
 from os import getcwd
@@ -30,12 +30,10 @@ def setup_mod_info(make_file):
 
 
 def init_java_and_native(make_file, directory):
-	compile_dirs = []
+	src_dir = join(directory, "src")
 
-	src_dir = os.path.join(directory, "src")
-
-	sample_native_module = os.path.join(src_dir, "native", "sample")
-	if not os.path.exists(sample_native_module):
+	sample_native_module = join(src_dir, "native", "sample")
+	if not exists(sample_native_module):
 		print("native sample module is unavailable")
 
 	else:
@@ -44,14 +42,14 @@ def init_java_and_native(make_file, directory):
 			module_name = input("Enter the new native module name [sample]: ")
 			if module_name != "":
 				os.rename(sample_native_module,
-					os.path.join(src_dir, "native", module_name))
+					join(src_dir, "native", module_name))
 		else:
-			if(os.path.isdir(sample_native_module)):
+			if(isdir(sample_native_module)):
 				clear_directory(sample_native_module)
 
 
-	sample_java_archive = os.path.join(src_dir, "java.zip")
-	if(not os.path.exists(sample_java_archive)):
+	sample_java_archive = join(src_dir, "java.zip")
+	if(not exists(sample_java_archive)):
 		print("java sample module is unavailable")
 	else: 
 		res = input("Do you want to initialize a new java directory? [y/N]: ")
@@ -61,14 +59,14 @@ def init_java_and_native(make_file, directory):
 				module_name = "sample"
 
 			with zipfile.ZipFile(sample_java_archive, 'r') as zip_ref:
-				zip_ref.extractall(os.path.join(src_dir))
+				zip_ref.extractall(join(src_dir))
 
-			os.rename(os.path.join(src_dir, "java", "sample"),
-				os.path.join(src_dir, "java", module_name))
+			os.rename(join(src_dir, "java", "sample"),
+				join(src_dir, "java", module_name))
 
 			# write info to .classpath
 			import xml.etree.ElementTree as etree
-			classpath = os.path.join(directory, ".classpath")
+			classpath = join(directory, ".classpath")
 			tree = etree.parse(classpath)
 			for classpathentry in tree.getroot():
 				if(classpathentry.attrib["kind"] == "src"):
@@ -77,7 +75,7 @@ def init_java_and_native(make_file, directory):
 			tree.write(classpath, encoding="utf-8", xml_declaration=True)
 			
 		else:
-			if(os.path.isfile(sample_java_archive)):
+			if(isfile(sample_java_archive)):
 				os.remove(sample_java_archive)
 
 
@@ -92,24 +90,24 @@ def cleanup_if_required(directory):
 		"toolchain.zip"
 	]
 	for f in to_remove:
-		path = os.path.join(directory, f)
-		if(os.path.exists(path)):
+		path = join(directory, f)
+		if(exists(path)):
 			os.remove(path)
 
 
 def init_directories(directory):
-	assets_dir = os.path.join(directory, "src", "assets")
+	assets_dir = join(directory, "src", "assets")
 	clear_directory(assets_dir)
-	os.makedirs(os.path.join(assets_dir, "gui"))
-	os.makedirs(os.path.join(assets_dir, "res", "items-opaque"))
-	os.makedirs(os.path.join(assets_dir, "res", "terran-atlas"))
-	libs_dir = os.path.join(directory, "src", "lib")
+	os.makedirs(join(assets_dir, "gui"))
+	os.makedirs(join(assets_dir, "res", "items-opaque"))
+	os.makedirs(join(assets_dir, "res", "terran-atlas"))
+	libs_dir = join(directory, "src", "lib")
 	clear_directory(libs_dir)
 	os.makedirs(libs_dir)
-	os.makedirs(os.path.join(directory, "src", "preloader"))
-	os.makedirs(os.path.join(assets_dir, "resource_packs"))
-	os.makedirs(os.path.join(assets_dir, "behavior_packs"))
-	with(open(os.path.join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
+	os.makedirs(join(directory, "src", "preloader"))
+	os.makedirs(join(assets_dir, "resource_packs"))
+	os.makedirs(join(assets_dir, "behavior_packs"))
+	with(open(join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
 		file.write("")
 
 
@@ -125,18 +123,18 @@ def init_adb(make_file, dirname):
 print("running project setup script")
 
 destination = sys.argv[1]
-make_path = os.path.join(destination, "make.json")
+make_path = join(destination, "make.json")
 
-if not (os.path.exists(make_path)):
+if not (exists(make_path)):
 	exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())
 
 if destination == '.':
-	dirname = os.path.basename(os.getcwd())
+	dirname = basename(os.getcwd())
 else: 
-	dirname = os.path.basename(destination)
+	dirname = basename(destination)
 
 
 init_adb(make_obj, dirname)

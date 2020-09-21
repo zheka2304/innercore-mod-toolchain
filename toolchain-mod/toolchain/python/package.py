@@ -1,15 +1,15 @@
 import os
-import os.path
+from os.path import isdir, join
 
 from make_config import make_config
-from utils import *
+from utils import clear_directory, copy_directory
 
 
 def get_path_set(paths, error_sensitive=False):
 	directories = []
 	for path in paths:
 		for directory in make_config.get_paths(path):
-			if os.path.isdir(directory):
+			if isdir(directory):
 				directories.append(directory)
 			else:
 				if error_sensitive:
@@ -50,7 +50,7 @@ def assemble_additional_directories():
 			print("invalid formatted additional directory json", additional_dir)
 			result = -1
 			break
-		dst_dir = os.path.join(output_dir, additional_dir["pushTo"])
+		dst_dir = join(output_dir, additional_dir["pushTo"])
 		clear_directory(dst_dir)
 		source_directories = get_path_set(additional_dir["sources"], error_sensitive=True)
 		if source_directories is None:
