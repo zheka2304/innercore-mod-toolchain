@@ -98,7 +98,7 @@
 			"args": [
 				"task.py",
 				"connectToADB",
-				"'${input:ip}:5037'"
+				"'${input:ip}:${input:port}'"
 			],
 			"group": {
 				"kind": "build",
@@ -129,6 +129,12 @@
 			"id": "ip",
 			"description": "IP:",
 			"default": "192.168.31.74",
+			"type": "promptString"
+		},
+		{
+			"id": "port",
+			"description": "Port:",
+			"default": "5037",
 			"type": "promptString"
 		}
 	]
