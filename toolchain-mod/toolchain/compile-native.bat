@@ -1,3 +1,3 @@
 @echo off
 cd python
-python task.py compileNativeDebug buildInfo pushEverything launchHorizon
+python task.py compileNativeDebug buildInfo stopHorizon pushEverything launchHorizon

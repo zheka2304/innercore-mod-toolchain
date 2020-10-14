@@ -7,7 +7,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py clearOutput buildScripts buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage",
+			"command": "..\\assemble-release.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -19,7 +19,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py clearOutput buildScripts buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo stopHorizon pushEverything launchHorizon",
+			"command": "..\\build-and-push-all.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -32,7 +32,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py clearOutput buildScripts buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo",
+			"command": "..\\build-all.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -45,7 +45,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py buildScripts buildResources buildAdditional buildInfo stopHorizon pushEverything launchHorizon",
+			"command": "..\\build-scripts-and-resources.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -58,7 +58,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py cleanup",
+			"command": "..\\cleanup.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -70,7 +70,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py compileJavaDebug buildInfo stopHorizon pushEverything launchHorizon",
+			"command": "..\\compile-java.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -82,7 +82,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py compileNativeDebug buildInfo stopHorizon pushEverything launchHorizon",
+			"command": "..\\compile-native.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -112,11 +112,7 @@
 			"options": {
 				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python",
-			"args": [
-				"task.py",
-				"loadDocs"
-			],
+			"command": "..\\download-declarations.bat",
 			"group": {
 				"kind": "build",
 				"isDefault": true

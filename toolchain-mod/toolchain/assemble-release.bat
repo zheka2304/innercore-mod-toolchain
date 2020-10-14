@@ -1,4 +1,3 @@
 @echo off
 cd python
 python task.py clearOutput buildScripts buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
-pause

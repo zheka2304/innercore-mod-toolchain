@@ -1,0 +1,11 @@
+@echo off
+cd python
+SETLOCAL
+SET /P IP=IP:
+SET /P PORT=Port:
+
+IF NOT DEFINED IP SET IP=192.168.31.74
+IF NOT DEFINED PORT SET PORT=5037
+
+python task.py connectToADB '%IP%:%PORT%'
+ENDLOCAL
