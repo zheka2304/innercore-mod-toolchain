@@ -3,7 +3,7 @@ toolchain/build
 toolchain/temp
 toolchain/ndk
 output
-.idea
+!.idea/runConfigurations
 **/__pycache__
 **/tsconfig.json
 
