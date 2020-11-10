@@ -13,7 +13,7 @@ from progress_bar import print_progress_bar
 ignore = open(os.devnull, 'w')
 
 def get_push_pack_directory():
-	directory = make_config.get_value("make.pushTo")
+	directory = make_config.get_value("pushTo") + "/innercore/mods/" + make_config.get_value("currentProject")
 	if directory is None:
 		return None
 	if "games/horizon/packs" not in directory:

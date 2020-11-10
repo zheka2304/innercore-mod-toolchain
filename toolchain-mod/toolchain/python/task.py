@@ -161,7 +161,7 @@ def task_build_additional():
 @task("pushEverything", lock=["push"])
 def task_push_everything():
 	from push import push
-	return push(get_make_config().get_path("output"))
+	return push(get_make_config().get_project_path("output"))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output():
@@ -171,8 +171,8 @@ def task_clear_output():
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"])
 def task_exclude_directories():
 	config = get_make_config()
-	for path in config.get_value("make.excludeFromRelease", []):
-		for exclude in config.get_paths(os.path.join("output", path)):
+	for path in config.get_project_value("excludeFromRelease", []):
+		for exclude in config.get_project_paths(os.path.join("output", path)):
 			if os.path.isdir(exclude):
 				clear_directory(exclude)
 			elif os.path.isfile(exclude):
@@ -182,9 +182,10 @@ def task_exclude_directories():
 @task("buildPackage", lock=["push", "assemble", "native", "java"])
 def task_build_package():
 	import shutil
-	output_dir = get_make_config().get_path("output")
-	output_file = get_make_config().get_path("mod.icmod")
-	output_file_tmp = get_make_config().get_path("toolchain/build/mod.zip")
+	config = get_make_config()
+	output_dir = config.get_project_path("output")
+	output_file = config.get_project_path(config.get_value("currentProject", "mod") + ".icmod")
+	output_file_tmp = config.get_path("toolchain/build/mod.zip")
 	ensure_directory(output_dir)
 	ensure_file_dir(output_file_tmp)
 	if os.path.isfile(output_file):
