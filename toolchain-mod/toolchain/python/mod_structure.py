@@ -24,7 +24,7 @@ BUILD_TARGETS = {
 
 class ModStructure:
 	def __init__(self, output_directory):
-		self.directory = make_config.get_path(output_directory)
+		self.directory = make_config.get_project_path(output_directory)
 		self.targets = {}
 		self.build_config = None
 
@@ -102,7 +102,7 @@ class ModStructure:
 			self.build_config["defaultConfig"] = {}
 		default_config = self.build_config["defaultConfig"]
 		default_config["readme"] = "this build config is generated automatically by mod development toolchain"
-		default_config["api"] = make_config.get_value("global.api", fallback="CoreEngine")
+		default_config["api"] = make_config.get_project_value("info.api", fallback="CoreEngine")
 		default_config["buildType"] = "develop"
 		self.write_build_config()
 

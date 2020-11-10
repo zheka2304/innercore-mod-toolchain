@@ -3,7 +3,7 @@ import os
 import os.path
 
 from base_config import BaseConfig
-
+# toolchain config
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
 		self.filename = filename
@@ -38,13 +38,29 @@ class MakeConfig(BaseConfig):
 				paths.append(path)
 		return paths
 
+class ToolchainConfig(MakeConfig):
+	def __init__(self, filename):
+		MakeConfig.__init__(self, filename)
+		self.project_dir = self.root_dir + "/" + self.get_value('currentProject')
+		self.project_make = MakeConfig(self.project_dir + "/make.json")
+	
+	def get_project_value(self, name, fallback=None):
+		return self.project_make.get_value(name, fallback)
+	
+	def get_project_path(self, relative_path):
+		return self.project_make.get_path(relative_path)
+	
+	def get_project_paths(self, relative_path, filter=None, paths=None):
+		return self.project_make.get_paths(relative_path, filter, paths)
+
+	
 
 # search for make.json
 make_config = None
 for i in range(0, 4):
 	make_file = os.path.join("../" * i, "make.json")
 	if os.path.isfile(make_file):
-		make_config = MakeConfig(make_file)
+		make_config = ToolchainConfig(make_file)
 		break
 if make_config is None:
 	raise RuntimeError("failed to find make.json")

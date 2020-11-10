@@ -123,28 +123,30 @@ def task_resources():
 def task_build_info():
 	import json
 	config = get_make_config()
-	with open(config.get_path("output/mod.info"), "w") as info_file:
-		info = dict(config.get_value("global.info", fallback={"name": "Was not provided"}))
+	with open(config.get_project_path("output/mod.info"), "w") as info_file:
+		info = dict(config.get_project_value("info", fallback={"name": "No was provided"}))
 		if "icon" in info:
 			del info["icon"]
+		if "api" in info:
+			del info["api"]
 		info_file.write(json.dumps(info, indent=" " * 4))
-	icon_path = config.get_value("global.info.icon")
+	icon_path = config.get_project_value("info.icon")
 	if icon_path is not None:
-		copy_file(config.get_path(icon_path),
-				  config.get_path("output/mod_icon.png"))
+		copy_file(config.get_project_path(icon_path),
+				  config.get_project_path("output/mod_icon.png"))
 	return 0
 
 @task("buildAdditional", lock=["cleanup", "push"])
 def task_build_additional():
 	overall_result = 0
-	for additional_dir in get_make_config().get_value("additional", fallback=[]):
+	for additional_dir in get_make_config().get_project_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
-			for additional_path in get_make_config().get_paths(additional_dir["source"]):
+			for additional_path in get_make_config().get_project_paths(additional_dir["source"]):
 				if not os.path.exists(additional_path):
 					print("non existing additional path: " + additional_path)
 					overall_result = 1
 					break
-				target = get_make_config().get_path(os.path.join(
+				target = get_make_config().get_project_path(os.path.join(
 					"output",
 					additional_dir["targetDir"],
 					os.path.basename(additional_path)

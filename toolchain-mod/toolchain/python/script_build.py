@@ -29,7 +29,7 @@ def build_all_scripts():
 		else:
 			return 1
 
-	sources = make_config.get_value("sources", fallback=[])
+	sources = make_config.get_project_value("sources", fallback=[])
 	sources = sorted(sources, key=cmp_to_key(libraries_first))
 
 	for item in sources:
@@ -43,7 +43,7 @@ def build_all_scripts():
 			overall_result = 1
 			continue
 
-		for source_path in make_config.get_paths(_source):
+		for source_path in make_config.get_project_paths(_source):
 			if not exists(source_path):
 				print(f"skipped non-existing source path {_source}")
 				overall_result = 1
@@ -93,12 +93,12 @@ def build_all_resources():
 	mod_structure.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 	
-	for resource in make_config.get_value("resources", fallback=[]):
+	for resource in make_config.get_project_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
 			print("skipped invalid source json", resource, file=sys.stderr)
 			overall_result = 1
 			continue
-		for source_path in make_config.get_paths(resource["path"]):
+		for source_path in make_config.get_project_paths(resource["path"]):
 			if not exists(source_path):
 				print("skipped non-existing resource path", resource["path"], file=sys.stderr)
 				overall_result = 1
