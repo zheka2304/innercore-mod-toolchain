@@ -172,6 +172,18 @@
 				"isDefault": true
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "Create new project",
+			"type": "shell",
+			"options": {
+				"cwd": ".\\toolchain\\python"
+			},
+			"command": "python task.py createProject cleanup",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	],
 	"inputs": [

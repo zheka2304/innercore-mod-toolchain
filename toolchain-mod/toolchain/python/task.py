@@ -266,6 +266,43 @@ def task_connect_to_adb():
 	result = call([make_config.get_adb(), "connect", ip])
 	return result
 
+
+@task("createProject")
+def task_create_project():
+	from project_manager import projectManager, NameToFolderName
+
+	name = input("Enter project name: ")
+
+	def_folder = NameToFolderName(name)
+	i = 1
+	while(os.path.exists(projectManager.config.get_path(def_folder))):
+		def_folder = NameToFolderName(name) + str(i)
+		i += 1
+
+	folder = input("Enter project folder [" + def_folder + "]: ")
+	while(folder != "" and os.path.exists(projectManager.config.get_path(folder))):
+		print(f"""Folder "{folder}" exist""")
+		folder = input("Enter project folder [" + def_folder + "]: ")
+	
+	author = input("Enter author name: ")
+	version = input("Enter project version [1.0]: ")
+	description = input("Enter project description: ")
+
+	if folder == "":
+		folder = def_folder
+
+	if version == "":
+		version = "1.0"
+
+	projectManager.createProject(name,
+		folder = folder,
+		author = author,
+		version = version,
+		description = description)
+
+	return 0
+
+
 @task("cleanup")
 def task_cleanup():
 	config = get_make_config()
