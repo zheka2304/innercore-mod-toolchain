@@ -3,6 +3,7 @@ import os
 import os.path
 
 from base_config import BaseConfig
+
 # toolchain config
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
@@ -17,9 +18,6 @@ class MakeConfig(BaseConfig):
 
 	def get_path(self, relative_path):
 		return os.path.abspath(os.path.join(self.root_dir, relative_path))
-
-	def get_adb(self):
-		return self.get_path("toolchain/adb/adb")
 
 	def get_paths(self, relative_path, filter=None, paths=None):
 		if paths is None:
@@ -53,7 +51,9 @@ class ToolchainConfig(MakeConfig):
 	def get_project_paths(self, relative_path, filter=None, paths=None):
 		return self.project_make.get_paths(relative_path, filter, paths)
 
-	
+	def get_adb(self):
+		return self.get_path("toolchain/adb/adb")
+
 
 # search for make.json
 make_config = None
