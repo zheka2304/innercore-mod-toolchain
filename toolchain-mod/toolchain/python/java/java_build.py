@@ -67,13 +67,13 @@ def setup_gradle_project(cache_dir, directories, classpath):
 		ensure_directory(build_dir)
 		ensure_directory(dex_dir)
 
-		if make_config.get_value("make.gradle.keepLibraries", True):
+		if make_config.get_value("gradle.keepLibraries", True):
 			for library_dir in library_dirs:
 				src_dir = os.path.join(directory, library_dir)
 				if os.path.isdir(src_dir):
 					copy_directory(src_dir, os.path.join(dex_dir, library_dir), clear_dst=True)
 
-		if make_config.get_value("make.gradle.keepSources", False):
+		if make_config.get_value("gradle.keepSources", False):
 			for source_dir in source_dirs:
 				src_dir = os.path.join(directory, source_dir)
 				if os.path.isdir(src_dir):
@@ -170,13 +170,13 @@ def compile_all_using_make_config():
 
 	directories = []
 	directory_names = []
-	for directory in make_config.get_filtered_list("compile", prop="type", values=("java",)):
+	for directory in make_config.get_project_filtered_list("compile", prop="type", values=("java",)):
 		if "source" not in directory:
 			print("skipped invalid java directory json", directory, file=sys.stderr)
 			overall_result = -1
 			continue
 
-		for path in make_config.get_paths(directory["source"]):
+		for path in make_config.get_project_paths(directory["source"]):
 			if not os.path.isdir(path):
 				print("skipped non-existing java directory path", directory["source"], file=sys.stderr)
 				overall_result = -1
@@ -188,12 +188,12 @@ def compile_all_using_make_config():
 		return overall_result
 
 	if len(directories) > 0:
-		classpath_directories = [make_config.get_path("toolchain/classpath")] + make_config.get_value("make.gradle.classpath", [])
+		classpath_directories = [make_config.get_path("toolchain/classpath")] + make_config.get_value("gradle.classpath", [])
 		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories))
 		if overall_result != 0:
 			print(f"failed, clearing compiled directories {directories} ...")
 			for directory_name in directory_names:
-				clear_directory(make_config.get_path("output/" + directory_name))
+				clear_directory(make_config.get_project_path("output/" + directory_name))
 	cleanup_gradle_scripts(directories)
 	mod_structure.update_build_config_list("javaDirs")
 
