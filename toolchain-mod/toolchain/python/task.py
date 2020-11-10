@@ -300,8 +300,71 @@ def task_create_project():
 		version = version,
 		description = description)
 
+	print("Project created")
+	r = input("Select this project? [Y/n]: ")
+	if r.lower() != "n":
+		projectManager.selectProject(folder = folder)
+		print("Project select.")
+
 	return 0
 
+@task("removeProject")
+def task_remove_project():
+	from project_manager import projectManager
+	if projectManager.countProjects() == 1:
+		error("Unable to delete a single project")
+	
+	projectManager.printListProjects()
+
+	delete = input("Enter the ID or folder name of the project to be deleted: ")
+	
+	if delete == "":
+		error("Cancel deletion.")
+
+	try:
+		try:
+			delete = int(delete)
+			try:
+				projectManager.removeProject(index = delete-1)
+			except IndexError:
+				error(f"Project №{delete} not found.")
+		except ValueError:
+			try:
+				projectManager.removeProject(folder = delete)
+			except ValueError:
+				error(f"""Folder "{delete}" not found.""")
+	except Exception:
+		error("The current project cannot be deleted")
+
+	print("Project deleted.")
+	return 0
+
+@task("selectProject")
+def task_select_project():
+	from project_manager import projectManager
+	if projectManager.countProjects() == 1:
+		error("Only one project created.")
+	
+	projectManager.printListProjects()
+	select = input("Enter the ID or name of the project folder you want to select: ")
+	
+	if select == "":
+		error("Cancel selection.")
+
+	try:
+		select = int(select)
+		try:
+			projectManager.selectProject(index = select-1)
+		except IndexError:
+			error(f"Project №{select} not found.")
+	except ValueError:
+		try:
+			projectManager.selectProject(folder = select)
+		except ValueError:
+			error(f"""Folder "{select}" not found.""")
+
+	print("Project select.")
+	return 0
 
 @task("cleanup")
 def task_cleanup():

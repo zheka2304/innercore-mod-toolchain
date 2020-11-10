@@ -184,6 +184,30 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "Remove project",
+			"type": "shell",
+			"options": {
+				"cwd": ".\\toolchain\\python"
+			},
+			"command": "python task.py removeProject cleanup",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Select project",
+			"type": "shell",
+			"options": {
+				"cwd": ".\\toolchain\\python"
+			},
+			"command": "python task.py selectProject cleanup",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	],
 	"inputs": [
