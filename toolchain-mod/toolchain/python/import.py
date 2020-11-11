@@ -1,4 +1,5 @@
 from genericpath import exists
+from operator import mod
 import os
 import os.path
 import sys
@@ -9,6 +10,7 @@ import platform
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
+from project_manager import projectManager, NameToFolderName
 
 
 root_files = []
@@ -18,13 +20,23 @@ def import_mod_info(make_file, directory):
 	root_files.append("mod.info")
 
 	mod_info = os.path.join(directory, "mod.info")
+
+	if not exists(mod_info):
+		from project_manager_tasks import create_project
+		folder = create_project(True)
+		projectManager.selectProject(folder = folder)
+		return folder
+
 	with open(mod_info, "r", encoding="utf-8") as info_file:
 		info_obj = json.loads(info_file.read())
-		make_file["global"]["info"] = info_obj
-		return
-	make_file["global"]["info"] = {}
+		index = projectManager.createProject(info_obj.get('name', "example-project"),
+			author = info_obj.get('author', ""),
+			version = info_obj.get('version', "1.0"),
+			description = info_obj.get('description', ""))
+		projectManager.selectProject(index = index)
+		return projectManager.getFolder(index = index)[1]
 
-def import_build_config(make_file, source, destination):
+def import_build_config(make_file, folder, source, destination):
 	global root_files
 	root_files.append("build.config")
 
@@ -34,9 +46,9 @@ def import_build_config(make_file, source, destination):
 	with open(build_config, "r", encoding="utf-8") as config_file:
 		config_obj = json.loads(config_file.read())
 		config = BaseConfig(config_obj)
-		make_file["global"]["api"] = config.get_value("defaultConfig.api", "CoreEngine")
+		make_file["info"]["api"] = config.get_value("defaultConfig.api", "CoreEngine")
 
-		src_dir = os.path.join(destination, "src")
+		src_dir = os.path.join(destination, folder)
 		
 		# clear assets folder
 		assets_dir = os.path.join(src_dir, "assets")
@@ -46,11 +58,11 @@ def import_build_config(make_file, source, destination):
 		# some pre-defined resource folders
 		resources = [
 			{
-				"path": "src/assets/resource_packs/*",
+				"path": "assets/resource_packs/*",
 				"type": "minecraft_resource_pack"
 			},
 			{
-				"path": "src/assets/behavior_packs/*",
+				"path": "assets/behavior_packs/*",
 				"type": "minecraft_behavior_pack"
 			}
 		]
@@ -67,7 +79,7 @@ def import_build_config(make_file, source, destination):
 			path = os.path.join(*path_parts)
 			copy_directory(os.path.join(source, path), os.path.join(assets_dir, path), True)
 			resources.append({
-				"path": "src/assets/" + path_stripped,
+				"path": "assets/" + path_stripped,
 				"type": res_dir["resourceType"]
 			})
 
@@ -76,9 +88,9 @@ def import_build_config(make_file, source, destination):
 		make_file["resources"] = resources
 
 		# clear libraries folder and copy libraries from the old project
-		libs_dir = os.path.join(destination, "src", "lib")
+		libs_dir = os.path.join(destination, folder, "lib")
 		clear_directory(libs_dir)
-		clear_directory(os.path.join(destination, "src", "dev"))
+		clear_directory(os.path.join(destination, folder, "dev"))
 		os.makedirs(libs_dir)
 		old_libs = config.get_value("defaultConfig.libraryDir", "lib").strip('/')
 		old_libs_parts = old_libs.split('/')
@@ -91,12 +103,12 @@ def import_build_config(make_file, source, destination):
 		# some pre-defined source folders
 		sources = [
 			{
-				"source": "src/lib/*",
+				"source": "lib/*",
 				"type": "library",
 				"language": "javascript"
 			},
 			{
-				"source": "src/preloader/*",
+				"source": "preloader/*",
 				"type": "preloader",
 				"language": "javascript"
 			}
@@ -121,14 +133,14 @@ def import_build_config(make_file, source, destination):
 			if len(build_dirs) > 0:
 				old_build_path = build_dirs[0]["dir"].strip("/")
 				old_path_parts = old_build_path.split('/')
-				sourceObj["source"] = "src/" + old_build_path
+				sourceObj["source"] = old_build_path
 				sourceObj["target"] = source_dir["path"]
 				root_files.append(old_path_parts[0])
 
 				copy_directory(os.path.join(source, *old_path_parts), os.path.join(src_dir, *old_path_parts), True)
 				 
 			else:
-				sourceObj["source"] = "src/" + source_dir["path"]
+				sourceObj["source"] = source_dir["path"]
 				copy_file(os.path.join(source, *source_parts), os.path.join(src_dir, *source_parts))
 
 			sources.append(sourceObj)
@@ -136,7 +148,7 @@ def import_build_config(make_file, source, destination):
 		make_file["sources"] = sources
 		return
 
-def copy_additionals(source, destination):
+def copy_additionals(source, folder, destination):
 	global root_files
 
 	files = os.listdir(source)
@@ -144,7 +156,7 @@ def copy_additionals(source, destination):
 		if f in root_files:
 			continue
 		src = os.path.join(source, f)
-		dest = os.path.join(destination, "src", "assets", "root")
+		dest = os.path.join(destination, folder, "assets", "root")
 
 		if os.path.isfile(src):
 			copy_file(src, os.path.join(dest, f))
@@ -240,15 +252,21 @@ if source == '.':
 else:
 	dirname = os.path.basename(source)
 
+#Init
 init_adb(make_obj, dirname)
+
 print("importing mod.info")
-import_mod_info(make_obj, source)
+folder = import_mod_info(make_obj, source)
+with open(projectManager.config.get_project_path("make.json"), "r", encoding="utf-8") as make_file:
+	make_project_obj = json.loads(make_file.read())
+
 print("importing build.config")
-import_build_config(make_obj, source, destination)
+import_build_config(make_project_obj, folder, source, destination)
+
 print("copying additional files and directories")
-copy_additionals(source, destination)
-print("initializing java and native modules")
-init_java_and_native(make_obj, destination)
+copy_additionals(source, folder, destination)
+# print("initializing java and native modules")
+# init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
