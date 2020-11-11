@@ -232,8 +232,7 @@ def init_adb(make_file, dirname):
 	if pack_name == "":
 		pack_name = "Inner_Core"
 
-	make_file["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name + "/innercore/mods/" + dirname
-
+	make_file["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name
 
 print("running project import script")
 
