@@ -2,7 +2,7 @@ import os
 import os.path
 import json
 
-from make_config import make_config
+from make_config import make_config, MakeConfig
 from utils import copy_directory, clear_directory
 
 
