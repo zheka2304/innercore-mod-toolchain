@@ -53,17 +53,6 @@ class ProjectManager:
 
         return self.countProjects()-1
 
-    def getFolder(self, index = None, folder = None):
-        if index == None:
-            if folder == None:
-                raise ValueError("index or folder must be specified")
-            else:
-                index = next((i for i, x in enumerate(self.__projects) if x.lower() == folder.lower()), -1)
-        
-        folder = self.__projects[index]
-
-        return [index, folder]
-
     def removeProject(self, index = None, folder = None):
         if len(self.__projects) == 1:
             raise Exception("Unable to delete a single project")
@@ -94,7 +83,9 @@ class ProjectManager:
         with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
             vsc_settings_obj = json.loads(vsc_settings_file.read())
 
-        vsc_settings_obj["files.exclude"][self.config.get_value("currentProject")] = True
+        last_project = self.config.get_value("currentProject")
+        if last_project != None:
+            vsc_settings_obj["files.exclude"][] = True
         vsc_settings_obj["files.exclude"][folder] = False
 
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
@@ -108,7 +99,18 @@ class ProjectManager:
 
         with open(make_path, "w", encoding="utf-8") as make_file:
 	        make_file.write(json.dumps(make_obj, indent=" " * 4))
+    
+    def getFolder(self, index = None, folder = None):
+        if index == None:
+            if folder == None:
+                raise ValueError("index or folder must be specified")
+            else:
+                index = next((i for i, x in enumerate(self.__projects) if x.lower() == folder.lower()), -1)
         
+        folder = self.__projects[index]
+
+        return [index, folder]
+    
     def countProjects(self):
         return len(self.__projects)
         
