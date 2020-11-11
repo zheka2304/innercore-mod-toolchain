@@ -263,6 +263,9 @@ with open(projectManager.config.get_project_path("make.json"), "r", encoding="ut
 print("importing build.config")
 import_build_config(make_project_obj, folder, source, destination)
 
+with open(projectManager.config.get_project_path("make.json"), "w", encoding="utf-8") as make_file:
+	make_file.write(json.dumps(make_project_obj, indent=" " * 4))
+
 print("copying additional files and directories")
 copy_additionals(source, folder, destination)
 # print("initializing java and native modules")
