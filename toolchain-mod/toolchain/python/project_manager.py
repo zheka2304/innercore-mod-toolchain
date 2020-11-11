@@ -74,9 +74,6 @@ class ProjectManager:
 	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
     def selectProject(self, index = None, folder = None):
-        if len(self.__projects) == 1:
-            raise Exception("Only one project created.")
-
         index, folder = self.getFolder(index, folder)
 
         vsc_settings_path = self.config.get_path(".vscode/settings.json")
