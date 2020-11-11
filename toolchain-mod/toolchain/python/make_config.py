@@ -38,8 +38,10 @@ class MakeConfig(BaseConfig):
 class ToolchainConfig(MakeConfig):
 	def __init__(self, filename):
 		MakeConfig.__init__(self, filename)
-		self.project_dir = self.root_dir + "/" + self.get_value('currentProject')
-		self.project_make = MakeConfig(self.project_dir + "/make.json")
+		self.currentProject = self.get_value('currentProject')
+		if self.currentProject != None:
+			self.project_dir = self.root_dir + "/" + self.currentProject
+			self.project_make = MakeConfig(self.project_dir + "/make.json")
 	
 	def get_project_value(self, name, fallback=None):
 		return self.project_make.get_value(name, fallback)
