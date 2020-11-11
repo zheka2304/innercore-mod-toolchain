@@ -13,7 +13,7 @@ def setup_mod_info(make_file = None):
 
 	from project_manager_tasks import create_project
 
-	make_file["currentProject"] = create_project(True)
+	projectManager.selectProject(index = create_project())
 
 def init_java_and_native(make_file, directory):
 	src_dir = join(directory, "src")
