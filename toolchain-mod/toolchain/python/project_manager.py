@@ -85,7 +85,7 @@ class ProjectManager:
 
         last_project = self.config.get_value("currentProject")
         if last_project != None:
-            vsc_settings_obj["files.exclude"][] = True
+            vsc_settings_obj["files.exclude"][last_project] = True
         vsc_settings_obj["files.exclude"][folder] = False
 
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
