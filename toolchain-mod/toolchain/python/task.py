@@ -269,41 +269,15 @@ def task_connect_to_adb():
 
 @task("createProject")
 def task_create_project():
-	from project_manager import projectManager, NameToFolderName
+	from project_manager import projectManager
+	from project_manager_tasks import create_project
 
-	name = input("Enter project name: ")
+	index = create_project()
+	print("Project created.")
 
-	def_folder = NameToFolderName(name)
-	i = 1
-	while(os.path.exists(projectManager.config.get_path(def_folder))):
-		def_folder = NameToFolderName(name) + str(i)
-		i += 1
-
-	folder = input("Enter project folder [" + def_folder + "]: ")
-	while(folder != "" and os.path.exists(projectManager.config.get_path(folder))):
-		print(f"""Folder "{folder}" exist""")
-		folder = input("Enter project folder [" + def_folder + "]: ")
-	
-	author = input("Enter author name: ")
-	version = input("Enter project version [1.0]: ")
-	description = input("Enter project description: ")
-
-	if folder == "":
-		folder = def_folder
-
-	if version == "":
-		version = "1.0"
-
-	projectManager.createProject(name,
-		folder = folder,
-		author = author,
-		version = version,
-		description = description)
-
-	print("Project created")
 	r = input("Select this project? [Y/n]: ")
 	if r.lower() != "n":
-		projectManager.selectProject(folder = folder)
+		projectManager.selectProject(index = index)
 		print("Project select.")
 
 	return 0

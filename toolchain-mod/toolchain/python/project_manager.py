@@ -51,6 +51,8 @@ class ProjectManager:
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
 	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
+        return self.countProjects()-1
+
     def getFolder(self, index = None, folder = None):
         if index == None:
             if folder == None:

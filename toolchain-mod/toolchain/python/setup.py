@@ -8,21 +8,12 @@ import zipfile
 import platform
 
 
-def setup_mod_info(make_file):
-	name = input("Enter project name: ")
-	author = input("Enter author name: ")
-	version = input("Enter project version [1.0]: ")
-	description = input("Enter project description: ")
+def setup_mod_info(make_file = None):
+	from project_manager import projectManager, NameToFolderName
 
-	if version == "":
-		version = "1.0"
+	from project_manager_tasks import create_project
 
-	make_file["global"]["info"] = {
-		"name": name,
-		"author": author,
-		"version": version,
-		"description": description
-	}
+	make_file["currentProject"] = create_project(True)
 
 def init_java_and_native(make_file, directory):
 	src_dir = join(directory, "src")
@@ -107,7 +98,7 @@ def init_adb(make_file, dirname):
 	if pack_name == "":
 		pack_name = "Inner_Core"
 
-	make_file["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name + "/innercore/mods/" + dirname
+	make_file["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name
 
 
 print("running project setup script")
@@ -129,10 +120,10 @@ else:
 init_adb(make_obj, dirname)
 print("initializing mod.info")
 setup_mod_info(make_obj)
-print("initializing required directories")
-init_directories(destination)
-print("initializing java and native modules")
-init_java_and_native(make_obj, destination)
+# print("initializing required directories")
+# init_directories(destination)
+# print("initializing java and native modules")
+# init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
