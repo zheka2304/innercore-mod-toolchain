@@ -89,6 +89,11 @@ class ProjectManager:
 	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
         make_path = self.config.get_path("make.json")
+        
+        self.config.currentProject = folder
+        self.config.project_dir = self.root_dir + "/" + self.config.currentProject
+        self.config.project_make = MakeConfig(self.project_dir + "/make.json")
+
         with open(make_path, "r", encoding="utf-8") as make_file:
 	        make_obj = json.loads(make_file.read())
 
