@@ -1,6 +1,6 @@
 #project_manager_tasks
-
-import project_manager
+import os.path
+from project_manager import projectManager, NameToFolderName
 
 def create_project(returnFolder = False):
     name = input("Enter project name: ")
