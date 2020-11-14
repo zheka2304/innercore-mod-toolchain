@@ -17,17 +17,12 @@ def get_python():
 
 
 def copytree(src, dst, symlinks=False, ignore=None):
-    if not path.exists(src) or path.isfile(src):
-        raise Exception()
-    for item in os.listdir(src):
-        s = path.join(src, item)
-        d = path.join(dst, item)
-        if path.exists(d):
-            continue
-        if path.isdir(s):
-            shutil.copytree(s, d, symlinks, ignore)
-        else:
-            shutil.copy2(s, d)
+    from distutils.dir_util import copy_tree
+
+    if not os.path.exists(dst):
+        os.mkdir(dst)
+
+    copy_tree(src, dst)
 
 
 def download_and_extract_toolchain(directory):
