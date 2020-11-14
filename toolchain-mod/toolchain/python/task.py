@@ -340,6 +340,12 @@ def task_select_project():
 	print("Project select.")
 	return 0
 
+@task("updateToolchain")
+def task_update_toolchain():
+	from update import update
+	update()
+	return 0
+
 @task("cleanup")
 def task_cleanup():
 	config = get_make_config()

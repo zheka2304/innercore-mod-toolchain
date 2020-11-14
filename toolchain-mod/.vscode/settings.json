@@ -17,6 +17,8 @@
         "toolchain/build/lock": true,
         "toolchain/*.bat": true,
         "toolchain/*.sh": true,
+        "innercore-mod-toolchain-master": true,
+        "update.zip": true,
         "**/*.log": true
     },
     "C_Cpp.errorSquiggles": "Disabled"

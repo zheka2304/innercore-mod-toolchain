@@ -208,6 +208,18 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			"label": "Update toolchain",
+			"type": "shell",
+			"options": {
+				"cwd": ".\\toolchain\\python"
+			},
+			"command": "python task.py updateToolchain",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
 		}
 	],
 	"inputs": [
