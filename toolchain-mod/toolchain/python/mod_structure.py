@@ -31,6 +31,8 @@ class ModStructure:
 	def cleanup_build_target(self, target_type_name):
 		target_type = BUILD_TARGETS[target_type_name]
 		self.targets[target_type_name] = []
+		if target_type.directory == "":
+			return
 		directory = os.path.join(self.directory, target_type.directory)
 		clear_directory(directory)
 		ensure_directory(directory)
