@@ -51,6 +51,17 @@ python3 ./toolchain-import.py
 
 You can optionally pass old project directory as the first parameter of the script. This script will create required project structure and optionally set up the project for native and/or java development.
 
+## Update toolchain
+
+To update toolchain, use the script *toolchain-update.py* script. It should be placed in the toolchain directory and run using python in Windows:
+```
+python .\toolchain-update.py
+```
+or in Linux shell:
+```
+python3 ./toolchain-update.py
+```
+
 ## Installing Android NDK
 
 To install Android NDK of any version on you computer, you should first download it from the archive: https://developer.android.com/ndk/downloads/older_releases. Preferred version is **16b**. Unpack the archive to *%appdata%/../Local/Android* (on Windows) or to */home/Android* (on Linux). When you open the directory "*Android/android-ndk-r16b*", you should see a list of directories. Run the build to see if everything is OK.
