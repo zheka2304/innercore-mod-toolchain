@@ -6,13 +6,12 @@ import json
 from utils import clear_directory
 import zipfile
 import platform
+from setup import set_last_update
 
 
 def setup_mod_info(make_file = None):
-	from project_manager import projectManager, NameToFolderName
-
+	from project_manager import projectManager
 	from project_manager_tasks import create_project
-
 	projectManager.selectProject(index = create_project())
 
 def init_java_and_native(make_file, directory):
@@ -129,4 +128,5 @@ cleanup_if_required(destination)
 with open(make_path, "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_obj, indent=" " * 4))
 
+set_last_update()
 print("project successfully set up")

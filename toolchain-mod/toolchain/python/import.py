@@ -11,6 +11,7 @@ import platform
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
 from project_manager import projectManager, NameToFolderName
+from setup import set_last_update
 
 
 root_files = []
@@ -273,5 +274,7 @@ cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_obj, indent=" " * 4))
+
+set_last_update()
 
 print("project successfully imported, please, delete project.back after triple checking that everything is OK")
