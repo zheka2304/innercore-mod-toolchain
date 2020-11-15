@@ -3,8 +3,6 @@ import os
 import os.path as path
 import sys
 
-from distutils.dir_util import copy_tree
-from subprocess import call
 import platform
 from datetime import datetime
 
@@ -21,17 +19,23 @@ def indexOf(_list, _value):
 	except ValueError:
 		return -1
 
-def copytree(src, dst, clear_dst=False, replacement=None, ignore = ["make.json"]):
+def copytree(src, dst, clear_dst=False, replacement=None, ignore=[], ignore_list=[], ignoreEx=True):
+    from glob import glob
+
+    if len(ignore) > 0:
+        for i in ignore:
+            ignore_list += glob(os.path.join(dst, i))
+
     import shutil
     for item in os.listdir(src):
-        s = path.join(src, item)
-        d = path.join(dst, item)
-        if path.isfile(s) and path.exists(d) and not replacement:
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isfile(s) and os.path.exists(d) and not replacement:
             continue
-        
-        if path.isdir(s):
-            copytree(s, d, clear_dst, replacement)
-        elif indexOf(ignore, item) == -1:
+
+        if os.path.isdir(s):
+            copytree(s, d, clear_dst, replacement, ignore_list=ignore_list, ignoreEx=ignoreEx)
+        elif indexOf(ignore_list, d) == -1:
             shutil.copy2(s, d)
 
 def download_and_extract_toolchain(directory):
@@ -52,7 +56,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["make.json"])
+        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["make.json", "*/adb/*"])
         shutil.rmtree(path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)
@@ -63,7 +67,7 @@ def download_and_extract_toolchain(directory):
             exit()
 
 
-if(len(sys.argv) > 1):
+if len(sys.argv) > 1:
     directory = sys.argv[1]
     os.makedirs(directory)
 else: 
@@ -81,4 +85,4 @@ with open(last_update_path, "w", encoding="utf-8") as last_update_file:
     last_update_file.write(datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
 os.remove(path.join(directory, "toolchain-update.py"))
-print("Toolchain update successful")
+print("Toolchain updated successful!")
