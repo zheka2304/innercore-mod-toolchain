@@ -200,6 +200,7 @@ class Includes:
 				"lib": ["ESNext"],
 				"outFile": temp_path,
 				"experimentalDecorators": True,
+				"declaration": True,
 				"downlevelIteration": True,
 				"allowJs": True
 			},
