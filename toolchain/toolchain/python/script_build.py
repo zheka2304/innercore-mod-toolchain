@@ -6,9 +6,8 @@ from make_config import make_config
 from mod_structure import mod_structure
 from includes import Includes
 
-
-def build_source(source_path, target_path, language):
-	includes = Includes.invalidate(source_path)
+def build_source(source_path, target_path, language, includes_file):
+	includes = Includes.invalidate(source_path, includes_file)
 	return includes.build(target_path, language)
 
 def build_all_scripts():
@@ -37,6 +36,7 @@ def build_all_scripts():
 		_target = item["target"] if "target" in item else None
 		_type = item["type"]
 		_language = item["language"]
+		_includes = item["includes"] if "includes" in item else ".includes"
 
 		if _type not in ("main", "launcher", "library", "preloader"):
 			print(f"skipped invalid source with type {_type}")
@@ -82,7 +82,7 @@ def build_all_scripts():
 			if isfile(source_path):
 				copy_file(source_path, destination_path)
 			else:
-				overall_result += build_source(source_path, destination_path, _language)
+				overall_result += build_source(source_path, destination_path, _language, _includes)
 
 	return overall_result
 

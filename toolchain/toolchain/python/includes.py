@@ -44,15 +44,16 @@ params_list = {
 	"skipLibCheck": False,
 	"sourceMap": False,
 	"strict": False,
-	"tsBuildInfoFile": 	".tsbuildinfo"
+	"tsBuildInfoFile": ".tsbuildinfo"
 }
 
 temp_directory = make_config.get_path("toolchain/build/project/sources")
 
 
 class Includes:
-	def __init__(self, directory):
-		self.file = join(directory, ".includes")
+	def __init__(self, directory, includes_file):
+		self.file = join(directory, includes_file)
+		self.includes_file = includes_file
 		self.directory = directory
 
 		self.include = []
@@ -106,8 +107,8 @@ class Includes:
 			includes.writelines(files)
 
 	@staticmethod
-	def create_from_directory(directory):
-		includes = Includes(directory)
+	def create_from_directory(directory, includes_file):
+		includes = Includes(directory, includes_file)
 		includes.files = [normpath(relpath(file, directory)) for file in glob.glob(f"{directory}/**/*", recursive=True)]
 		includes.params = {}
 		includes.create()
@@ -115,7 +116,7 @@ class Includes:
 		return includes
 
 	@staticmethod
-	def create_from_tsconfig(directory):
+	def create_from_tsconfig(directory, includes_file):
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
 
@@ -130,7 +131,7 @@ class Includes:
 			if "outFile" in params:
 				del params["outFile"]
 
-		includes = Includes(directory)
+		includes = Includes(directory, includes_file)
 		includes.include = include
 		includes.exclude = exclude
 		includes.params = params
@@ -139,15 +140,15 @@ class Includes:
 		return includes
 
 	@staticmethod
-	def invalidate(directory):
-		if not isfile(join(directory, ".includes")):
+	def invalidate(directory, includes_file):
+		if not isfile(join(directory, includes_file)):
 			tsconfig_path = join(directory, "tsconfig.json")
 			if isfile(tsconfig_path):
-				includes = Includes.create_from_tsconfig(directory)
+				includes = Includes.create_from_tsconfig(directory, includes_file)
 			else:
-				includes = Includes.create_from_directory(directory)
+				includes = Includes.create_from_directory(directory, includes_file)
 		else:
-			includes = Includes(directory)
+			includes = Includes(directory, includes_file)
 		includes.read()
 
 		return includes
@@ -161,7 +162,7 @@ class Includes:
 		if storage.is_path_changed(self.directory):
 			import datetime
 
-			print(f"building {basename(target_path)}")
+			print(f"building {basename(target_path)} from {self.includes_file}")
 
 			start_time = datetime.datetime.now()
 			result = self.build_source(temp_path, language)
