@@ -90,11 +90,8 @@ class Includes:
 					self.exclude.append(relpath(file, self.directory).replace("\\", "/"))
 
 		else:
-			search_path = (join(self.directory, line[:-2], ".") + "/**/*") if line.endswith("/.") else join(self.directory, line)
-			for file in glob.glob(search_path, recursive=True):
-				file = normpath(file)
-				if file not in self.include:
-					self.include.append(relpath(file, self.directory).replace("\\", "/"))
+			search_path = re.sub(r"\.$", "**/*", line) if line.endswith("/.") else line
+			self.include.append(search_path.replace("\\", "/"))
 
 	def create(self):
 		with open(self.file, "w") as includes:
