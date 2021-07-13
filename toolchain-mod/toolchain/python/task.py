@@ -122,6 +122,7 @@ def task_resources():
 @task("buildInfo", lock=["cleanup", "push"])
 def task_build_info():
 	import json
+	from utils import shortcodes
 	config = get_make_config()
 	with open(config.get_project_path("output/mod.info"), "w") as info_file:
 		info = dict(config.get_project_value("info", fallback={"name": "No was provided"}))
@@ -129,6 +130,10 @@ def task_build_info():
 			del info["icon"]
 		if "api" in info:
 			del info["api"]
+		
+		info["version"] = shortcodes(info["version"])
+		info["description"] = shortcodes(info["description"])
+
 		info_file.write(json.dumps(info, indent=" " * 4))
 	icon_path = config.get_project_value("info.icon")
 	if icon_path is not None:
