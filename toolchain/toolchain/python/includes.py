@@ -204,6 +204,7 @@ class Includes:
 				"downlevelIteration": True,
 				"allowJs": True
 			},
+			"compileOnSave": False,
 			"exclude": [
 				"**/node_modules/*",
 				"dom",
