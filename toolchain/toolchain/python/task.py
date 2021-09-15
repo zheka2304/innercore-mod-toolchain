@@ -246,6 +246,53 @@ def task_load_docs():
 	print("complete!")
 	return 0
 
+@task("updateIncludes")
+def task_update_includes():
+	from functools import cmp_to_key
+	import mod_structure
+	from includes import Includes, temp_directory
+	def libraries_first(a, b):
+		la = a["type"] == "library"
+		lb = b["type"] == "library"
+		if la == lb:
+			return 0
+		elif la:
+			return -1
+		else:
+			return 1
+	sources = sorted(make_config.get_value("sources", fallback=[]), key=cmp_to_key(libraries_first))
+	for item in sources:
+		_source = item["source"]
+		_target = item["target"] if "target" in item else None
+		_type = item["type"]
+		_includes = item["includes"] if "includes" in item else ".includes"
+		if _type not in ("main", "launcher", "library", "preloader"):
+			print(f"skipped invalid source with type {_type}")
+			continue
+		for source_path in make_config.get_paths(_source):
+			if not os.path.exists(source_path):
+				print(f"skipped non-existing source path {_source}")
+				continue
+			target_path = _target if _target is not None else f"{os.path.splitext(os.path.basename(source_path))[0]}.js"
+			declare = {
+				"sourceType": {
+					"main": "mod",
+					"launcher": "launcher",
+					"preloader": "preloader",
+					"library": "library"
+				}[_type]
+			}
+			if "api" in item:
+				declare["api"] = item["api"]
+			try:
+				dot_index = target_path.rindex(".")
+				target_path = target_path[:dot_index] + "{}" + target_path[dot_index:]
+			except ValueError:
+				target_path += "{}"
+			mod_structure.update_build_config_list("compile")
+			incl = Includes.invalidate(source_path, _includes)
+			incl.create_tsconfig(os.path.join(temp_directory, os.path.basename(target_path)))
+
 @task("connectToADB")
 def task_connect_to_adb():
 	import re

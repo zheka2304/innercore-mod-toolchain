@@ -235,6 +235,28 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Project: Update Includes",
+			"icon": {
+				"id": "milestone"
+			},
+			"type": "shell",
+			"command": "../update-includes.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\update-includes.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Toolchain: Check for Updates",
 			"icon": {
 				"id": "cloud"
