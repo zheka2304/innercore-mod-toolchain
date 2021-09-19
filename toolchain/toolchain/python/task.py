@@ -249,7 +249,7 @@ def task_load_docs():
 @task("updateIncludes")
 def task_update_includes():
 	from functools import cmp_to_key
-	import mod_structure
+	from mod_structure import mod_structure
 	from includes import Includes, temp_directory
 	def libraries_first(a, b):
 		la = a["type"] == "library"
@@ -266,7 +266,7 @@ def task_update_includes():
 		_target = item["target"] if "target" in item else None
 		_type = item["type"]
 		_includes = item["includes"] if "includes" in item else ".includes"
-		if _type not in ("main", "launcher", "library", "preloader"):
+		if _type not in ("main", "library", "preloader"):
 			print(f"skipped invalid source with type {_type}")
 			continue
 		for source_path in make_config.get_paths(_source):
@@ -292,6 +292,7 @@ def task_update_includes():
 			mod_structure.update_build_config_list("compile")
 			incl = Includes.invalidate(source_path, _includes)
 			incl.create_tsconfig(os.path.join(temp_directory, os.path.basename(target_path)))
+	return 0
 
 @task("connectToADB")
 def task_connect_to_adb():
