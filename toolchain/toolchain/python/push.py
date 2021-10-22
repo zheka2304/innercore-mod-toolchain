@@ -24,11 +24,14 @@ def get_push_pack_directory():
 			return None
 	return directory
 
-def push(directory, cleanup=False):
-	items = glob(directory + "/*")
-	changed = [relpath(path, directory) for path in items if storage.is_path_changed(path)]
+def push(directory, cleanup=False, pushUnchanged=False):
+	if not pushUnchanged:
+		raws = glob(directory + "/*")
+		items = [relpath(path, directory) for path in raws if storage.is_path_changed(path)]
+	else:
+		items = [os.path.relpath(path, directory) for path in glob(directory + "/*")]
 
-	if len(changed) < 1:
+	if len(items) < 1:
 		print_progress_bar(1, 1, suffix = 'Complete!', length = 50)
 		return 0
 
@@ -51,10 +54,10 @@ def push(directory, cleanup=False):
 	src_root = directory.replace("\\", "/")
 
 	progress = 0
-	for filename in changed:
+	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
-		print_progress_bar(progress, len(changed), suffix = f'Pushing {filename}' + (" " * 20), length = 50)
+		print_progress_bar(progress, len(items), suffix = f'Pushing {filename}' + (" " * 20), length = 50)
 		subprocess.call([
 			make_config.get_adb(),
 			"shell", "rm", "-r", dst
@@ -69,7 +72,7 @@ def push(directory, cleanup=False):
 			print(f"failed to push to directory {dst_root} with code {result}")
 			return result
 	
-	print_progress_bar(progress, len(changed), suffix = f'Complete!' + (" " * 20), length = 50)
+	print_progress_bar(progress, len(items), suffix = f'Complete!' + (" " * 20), length = 50)
 	storage.save()
 	return result
 
