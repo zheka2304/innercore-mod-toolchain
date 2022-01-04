@@ -1,7 +1,12 @@
+
 #ifndef INNER_CORE_ITEM_REGISTRY_H
 #define INNER_CORE_ITEM_REGISTRY_H
 
 #include <string>
+#include <logger.h>
+
+#include "common.h"
+#include "id_pool.h"
 
 
 class Item;
@@ -29,9 +34,26 @@ public:
 };
 
 namespace ItemRegistry {
-	Item* getItemById(content_id_t id);
+	Item* getItemById(int id);
 	Item* getItemByName(std::string name);
-	ItemProvider* getItemProviderById(content_id_t id);
+	ItemProvider* getItemProviderById(int id);
+	
+	IdPool* getItemIdPool();
+	Item* registerItem(Item* item, ItemProvider* provider);
+
+	template<class ItemClass, class ...Args>
+	ItemClass* registerItemFixed(ItemProvider* provider, int id, std::string nameId, Args... args) {
+		IdPool* pool = getItemIdPool();
+		id = pool->allocateId(nameId, id, IdPool::FLAG_ID_USED);
+	    if (id != INVALID_ID) {
+	    	ItemClass* item = new ItemClass(to_stl(nameId), id, args...);
+	    	registerItem((Item*) item, provider);
+	    	return item;
+		} else {
+			Logger::error("InnerCore-ItemRegistry", "failed to register item for id '%s': cannot allocate id for some reason", nameId.data());
+			return NULL;
+		}
+	};
 };
 
-#endif //INNER_CORE_ITEM_REGISTRY_H
+#endif
