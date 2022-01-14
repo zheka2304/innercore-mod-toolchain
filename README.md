@@ -6,7 +6,7 @@
 
 To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
- - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding), you need to have `tsc` installed (to install run `npm install -g tsc`)
+ - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding), you need to have `typescript` installed (to install run `npm install -g typescript`)
  - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding). Preferred version is r16b
  - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding) 
 
