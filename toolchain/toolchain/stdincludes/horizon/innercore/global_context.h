@@ -4,6 +4,7 @@
 
 class AppPlatform;
 class AppLifecycleContext;
+class Block;
 class BlockSource;
 class ClientInstance;
 class Minecraft;
