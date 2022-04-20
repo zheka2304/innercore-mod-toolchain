@@ -65,7 +65,7 @@ namespace LegacyItemRegistry {
 		virtual void registerItem();
 		void initParameters(int id, std::string nameId, std::string name, std::string textureName, int textureIndex);
 		void applyProperties();
-		virtual LegacyItemProviderType getType();
+		virtual int getType();
 	};
 
 	class LegacyItemFactory : public LegacyItemFactoryBase {
@@ -74,7 +74,7 @@ namespace LegacyItemRegistry {
         ~LegacyItemFactory();
 
 		virtual void registerItem();
-		virtual LegacyItemProviderType getType();
+		virtual int getType();
 	};
     
 	
