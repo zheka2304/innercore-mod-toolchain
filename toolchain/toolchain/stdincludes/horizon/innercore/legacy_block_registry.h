@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include "block_registry.h"
 
@@ -136,6 +137,9 @@ namespace LegacyBlockRegistry {
 
     void registerBlockFactory(LegacyBlockFactoryBase* factory);
 	LegacyBlockFactoryBase* findFactoryById(int id);
+	
+    extern std::unordered_map<int, LegacyBlockFactoryBase*> registeredFactories;
+	
 };
 
 #endif
