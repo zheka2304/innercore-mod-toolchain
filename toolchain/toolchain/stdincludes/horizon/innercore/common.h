@@ -3,8 +3,8 @@
 #define INNER_CORE_COMMON_H
 
 #include <string>
-#include "../stl/string"
-#include "../stl/vector"
+#include <stl/string>
+#include <stl/vector>
 
 
 // std::__ndk1::string
