@@ -35,4 +35,7 @@ inline int getVtableOffset(const char* vtableName, const char* functionName) {
 #define VTABLE_SET(vtableVariableName, vtableName, functionName) VTABLE_FIND_OFFSET(_ZTV ## vtableName ## functionName, vtableName, functionName); ((void**) vtableVariableName)[_ZTV ## vtableName ## functionName]
 
 
+void dumpVtable(const char*, void*);
+
+
 #endif //INNER_CORE_DEFINE_H
