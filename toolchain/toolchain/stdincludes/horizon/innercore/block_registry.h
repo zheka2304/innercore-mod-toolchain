@@ -6,6 +6,7 @@
 #include <string>
 #include <logger.h>
 #include "common.h"
+#include "id_pool.h"
 
 
 class Block;
