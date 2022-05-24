@@ -18,6 +18,10 @@ It is also highly recommended you install Visual Studio Code code editor. This e
 You can find detailed explanation about how to set up all the requirements in this video:
 [![Inner Core/Horizon Mods Development | Setting up the Environment](https://img.youtube.com/vi/ofwKkRYh97k/0.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
 
+## Linux version
+
+Here is a fork of toolchain to run under linux: [link](https://github.com/ModCompany/innercore-mod-toolchain-linux)
+
 ## Creating a new project
 
 To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python:
