@@ -229,7 +229,7 @@ def stop_horizon():
 def task_load_docs():
 	import urllib.request
 	print("downloading...")
-	response = urllib.request.urlopen("https://docs.mineprogramming.org/core-engine.d.ts")
+	response = urllib.request.urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
 	content = response.read().decode('utf-8')
 
 	with open(make_config.get_path("toolchain/declarations/core-engine.d.ts"), 'w') as docs:
