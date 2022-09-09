@@ -1,0 +1,1 @@
+python task.py loadDocs

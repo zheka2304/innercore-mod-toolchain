@@ -79,7 +79,10 @@ def require_compiler_executable(arch, install_if_required=False):
 
 
 def check_installed(arch):
-	return isfile(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)))
+	if platform.system() == "Windows":
+		return isfile(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)))
+	else:
+		return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
 
 
 def install(arch="arm", reinstall=False):
@@ -91,13 +94,19 @@ def install(arch="arm", reinstall=False):
 		if ndk_path is None:
 			from urllib import request
 			print("failed to get ndk path")
-			ans = input("download ndk? (Y/N) ")
+			ans = input("download ndk? (y/N) ")
 			if ans.lower() == "y":
-				archive_path = make_config.get_path("toolchain\\temp\\ndk.zip")
+				if platform.system() == "Windows":
+					archive_path = make_config.get_path("toolchain\\temp\\ndk.zip")
+				else:
+					archive_path = make_config.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
 				
 				if not isfile(archive_path):
-					url = "https://dl.google.com/android/repository/android-ndk-r16b-windows-x86_64.zip"
+					if platform.system() == "Windows":
+						url = "https://dl.google.com/android/repository/android-ndk-r16b-windows-x86_64.zip"
+					else:
+						url = "https://dl.google.com/android/repository/android-ndk-r16b-linux-x86_64.zip"
 					with request.urlopen(url) as response:
 						with open(archive_path, 'wb') as f:
 							info = response.info()
@@ -115,7 +124,10 @@ def install(arch="arm", reinstall=False):
 								print_progress_bar(downloaded, length, suffix = 'Downloading...' if downloaded < length else "Complete!", length = 50)
 
 				print("extracting ndk...")
-				extract_path = make_config.get_path("toolchain\\temp")
+				if platform.system() == "Windows":
+					extract_path = make_config.get_path("toolchain\\temp")
+				else:
+					extract_path = make_config.get_path("toolchain/temp")
 				with ZipFile(archive_path, 'r') as archive:
 					archive.extractall(extract_path)
 
@@ -125,18 +137,33 @@ def install(arch="arm", reinstall=False):
 				return False
 
 		print("installing...")
-		result = subprocess.call([
-			"python",
-			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
-			"--arch", str(arch),
-			"--install-dir", make_config.get_path("toolchain\\ndk\\" + str(arch)),
-			"--force"
-		])
+		if platform.system() == "Windows":
+			result = subprocess.call([
+				"python",
+				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
+				"--arch", str(arch),
+				"--install-dir", make_config.get_path("toolchain\\ndk\\" + str(arch)),
+				"--force"
+			])
+		else:
+			result = subprocess.call([
+				"python",
+				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
+				"--arch", str(arch),
+				"--install-dir", make_config.get_path("toolchain/ndk/" + str(arch)),
+				"--force"
+			])
 
 		if result == 0:
-			open(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)), 'tw').close()
+			if platform.system() == "Windows":
+				open(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)), 'tw').close()
+			else:
+				open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), 'tw').close()
 			print("removing temp files...")
-			clear_directory(make_config.get_path("toolchain\\temp"))
+			if platform.system() == "Windows":
+				clear_directory(make_config.get_path("toolchain\\temp"))
+			else:
+				clear_directory(make_config.get_path("toolchain/temp"))
 			print("done!")
 			return True
 		else:

@@ -24,7 +24,10 @@ def build_java_directories(directories, cache_dir, classpath):
 	ensure_directory(cache_dir)
 
 	setup_gradle_project(cache_dir, directories, classpath)
-	gradle_executable = make_config.get_path("toolchain/bin/gradlew.bat")
+	if platform.system() == "Windows":
+		gradle_executable = make_config.get_path("toolchain/bin/gradlew.bat")
+	else:
+		gradle_executable = make_config.get_path("toolchain/bin/gradlew")
 	result = subprocess.call([gradle_executable, "-p", cache_dir, "shadowJar"])
 	if result != 0:
 		print(f"java compilation failed with code {result}")
@@ -81,42 +84,79 @@ def setup_gradle_project(cache_dir, directories, classpath):
 					copy_directory(src_dir, os.path.join(dex_dir, source_dir), clear_dst=True)
 
 		with open(os.path.join(directory, "build.gradle"), "w", encoding="utf-8") as build_file:
-			build_file.write("""
-				plugins {
-					id 'com.github.johnrengelman.shadow' version '5.2.0'
-					id "java"
-				}
-		
-				dependencies { 
-					""" + ("""compile fileTree('""" + "', '".join([path.replace("\\", "\\\\") for path in library_dirs]) + """') { include '*.jar' }""" if len(library_dirs) > 0 else "") + """
-				}
-		
-				sourceSets {
-					main {
-						java {
-							srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
-							buildDir = \"""" + os.path.join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
-						}
-						resources {
-							srcDirs = []
-						}
-						compileClasspath += files('""" + "', '".join([path.replace("\\", "\\\\") for path in classpath]) + """')
+			if platform.system() == "Windows":
+				build_file.write("""
+					plugins {
+						id 'com.github.johnrengelman.shadow' version '5.2.0'
+						id "java"
 					}
-				}
-		
-				tasks.register("dex") {
-					javaexec { 
-						main = "-jar";
-						args = [
-							\"""" + make_config.get_path("toolchain/bin/dx.jar").replace("\\", "\\\\") + """\",
-							"--dex",
-							"--multi-dex",
-							"--output=\\\"""" + os.path.join(dex_dir, ".").replace("\\", "\\\\") + """\\\"",
-							\"""" + os.path.join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\"
-						]
-					} 
-				}
-			""")
+			
+					dependencies { 
+						""" + ("""compile fileTree('""" + "', '".join([path.replace("\\", "\\\\") for path in library_dirs]) + """') { include '*.jar' }""" if len(library_dirs) > 0 else "") + """
+					}
+			
+					sourceSets {
+						main {
+							java {
+								srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
+								buildDir = \"""" + os.path.join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
+							}
+							resources {
+								srcDirs = []
+							}
+							compileClasspath += files('""" + "', '".join([path.replace("\\", "\\\\") for path in classpath]) + """')
+						}
+					}
+			
+					tasks.register("dex") {
+						javaexec { 
+							main = "-jar";
+							args = [
+								\"""" + make_config.get_path("toolchain/bin/dx.jar").replace("\\", "\\\\") + """\",
+								"--dex",
+								"--multi-dex",
+								"--output=\\\"""" + os.path.join(dex_dir, ".").replace("\\", "\\\\") + """\\\"",
+								\"""" + os.path.join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\"
+							]
+						} 
+					}
+				""")
+			else:
+				build_file.write("""
+					plugins {
+						id 'com.github.johnrengelman.shadow' version '5.2.0'
+						id "java"
+					}
+			
+					dependencies { 
+						""" + ("""compile fileTree('""" + "', '".join([path.replace("\\", "\\\\") for path in library_dirs]) + """') { include '*.jar' }""" if len(library_dirs) > 0 else "") + """
+					}
+			
+					sourceSets {
+						main {
+							java {
+								srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
+								buildDir = \"""" + os.path.join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
+							}
+							resources {
+								srcDirs = []
+							}
+							compileClasspath += files('""" + "', '".join([path.replace("\\", "\\\\") for path in classpath]) + """')
+						}
+					}
+			
+					tasks.register("dex") {
+						javaexec { 
+							main = "-jar";
+							args = [
+								\"""" + make_config.get_path("toolchain/bin/dx.jar") + """\",
+								"--dex",
+								"--multi-dex",
+								"--output=""" + os.path.join(dex_dir, ".").replace("\\", "\\\\") + """",
+								\"""" + os.path.join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\",]
+						} 
+					}
+				""")
 
 
 def cleanup_gradle_scripts(directories):

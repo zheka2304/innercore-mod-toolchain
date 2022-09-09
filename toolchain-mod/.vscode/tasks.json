@@ -4,10 +4,16 @@
 		{
 			"label": "Assemble Mod for Release",
 			"type": "shell",
+			"command": "../assemble-release.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python",
 			},
-			"command": "..\\assemble-release.bat",
+			"windows": {
+				"command": "..\\assemble-release.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -16,10 +22,16 @@
 		{
 			"label": "Build and Push Everything",
 			"type": "shell",
+			"command": "../build-and-push-all.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\build-and-push-all.bat",
+			"windows": {
+				"command": "..\\build-and-push-all.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -29,10 +41,16 @@
 		{
 			"label": "Build Everything",
 			"type": "shell",
+			"command": "../build-all.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\build-all.bat",
+			"windows": {
+				"command": "..\\build-all.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -42,10 +60,16 @@
 		{
 			"label": "Build Scripts and Resources",
 			"type": "shell",
+			"command": "../build-scripts-and-resources.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\build-scripts-and-resources.bat",
+			"windows": {
+				"command": "..\\build-scripts-and-resources.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -55,10 +79,16 @@
 		{
 			"label": "Cleanup",
 			"type": "shell",
+			"command": "../cleanup.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\cleanup.bat",
+			"windows": {
+				"command": "..\\cleanup.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -67,10 +97,16 @@
 		{
 			"label": "Build and Push Java",
 			"type": "shell",
+			"command": "../compile-java.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\compile-java.bat",
+			"windows": {
+				"command": "..\\compile-java.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -79,10 +115,16 @@
 		{
 			"label": "Build and Push Native",
 			"type": "shell",
+			"command": "../compile-native.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\compile-native.bat",
+			"windows": {
+				"command": "..\\compile-native.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -91,10 +133,15 @@
 		{
 			"label": "Connect to ADB",
 			"type": "shell",
-			"options": {
-				"cwd": ".\\toolchain\\python"
-			},
 			"command": "python",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"args": [
 				"task.py",
 				"connectToADB",
@@ -109,10 +156,16 @@
 		{
 			"label": "Download Declarations",
 			"type": "shell",
+			"command": "../download-declarations.sh",
 			"options": {
-				"cwd": ".\\toolchain\\python"
+				"cwd": "./toolchain/python"
 			},
-			"command": "..\\download-declarations.bat",
+			"windows": {
+				"command": "..\\download-declarations.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true

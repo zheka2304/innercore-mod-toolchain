@@ -71,7 +71,8 @@ def task(name, lock=None):
 			lock_task(name, silent=False)
 			for lock_name in lock:
 				lock_task(lock_name, silent=False)
-			os.system("color")
+			if platform.system() == "Windows":
+				os.system("color")
 			print(f"\033[92m> executing task: {name}\033[0m")
 			task_result = func(*args, **kwargs)
 			unlock_task(name)

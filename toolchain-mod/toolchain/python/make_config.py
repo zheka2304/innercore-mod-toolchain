@@ -19,7 +19,7 @@ class MakeConfig(BaseConfig):
 		return os.path.abspath(os.path.join(self.root_dir, relative_path))
 
 	def get_adb(self):
-		return self.get_path("toolchain/adb/adb.exe")
+		return self.get_path("toolchain/adb/adb")
 
 	def get_paths(self, relative_path, filter=None, paths=None):
 		if paths is None:
