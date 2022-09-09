@@ -1,4 +1,5 @@
 .vscode/.ropeproject
+toolchain/bin/.gradle
 toolchain/build
 toolchain/temp
 toolchain/ndk
