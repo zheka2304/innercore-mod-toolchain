@@ -133,11 +133,12 @@
 		{
 			"label": "Connect to ADB",
 			"type": "shell",
-			"command": "python",
+			"command": "python3",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
+				"command": "python",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}

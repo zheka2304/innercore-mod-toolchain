@@ -1,2 +1,2 @@
-python task.py cleanup
+python3 task.py cleanup
 echo cleanup completed

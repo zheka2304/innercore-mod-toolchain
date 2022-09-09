@@ -1,2 +1,1 @@
-cd python
-python task.py buildScripts buildResources buildAdditional buildInfo stopHorizon pushEverything launchHorizon
+python3 task.py buildScripts buildResources buildAdditional buildInfo stopHorizon pushEverything launchHorizon

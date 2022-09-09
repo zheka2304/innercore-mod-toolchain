@@ -7,6 +7,7 @@ import json
 from utils import *
 from make_config import make_config
 from mod_structure import mod_structure
+import platform
 
 
 def get_classpath_from_directories(directories):
@@ -190,7 +191,7 @@ def compile_all_using_make_config():
 			directories.append(path)
 
 	if overall_result != 0:
-		print("failed to get java directories", file=sys.stderr)
+		print("java building interrupted", file=sys.stderr)
 		return overall_result
 
 	if len(directories) > 0:

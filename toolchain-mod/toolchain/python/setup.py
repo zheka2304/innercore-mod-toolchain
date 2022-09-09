@@ -8,7 +8,7 @@ from base_config import BaseConfig
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
-
+import platform
 
 
 def setup_mod_info(make_file):
@@ -126,7 +126,10 @@ destination = sys.argv[1]
 make_path = join(destination, "make.json")
 
 if not (exists(make_path)):
-	exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
+	if platform.system() == "Windows":
+        exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
+	else:
+		exit("invalid arguments passed to import script, usage: \r\npython3 setup.py <destination>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())

@@ -5,5 +5,5 @@ SET /P PORT=Port:
 IF NOT DEFINED IP SET IP=192.168.31.74
 IF NOT DEFINED PORT SET PORT=5037
 
-python task.py connectToADB '%IP%:%PORT%'
+python3 task.py connectToADB '%IP%:%PORT%'
 ENDLOCAL

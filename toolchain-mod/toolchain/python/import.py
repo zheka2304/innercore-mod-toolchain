@@ -1,5 +1,3 @@
-
-
 import os
 import os.path
 import sys
@@ -7,6 +5,7 @@ import json
 from os import getcwd
 
 from base_config import BaseConfig
+import platform
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
@@ -237,7 +236,10 @@ make_path = os.path.join(destination, "make.json")
 
 
 if not (os.path.exists(make_path) and os.path.exists(source)):
-	exit("invalid arguments passed to import script, usage: \r\npython import.py <destination> <source>")
+	if platform.system() == "Windows":
+        exit("invalid arguments passed to import script, usage: \r\npython import.py <destination> <source>")
+	else:
+		exit("invalid arguments passed to import script, usage: \r\npython3 import.py <destination> <source>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())

@@ -246,6 +246,8 @@ def compile_all_using_make_config(abis):
 					std_includes,
 					BaseConfig(native_dir["rules"] if "rules" in native_dir else {})
 				)
+				if result == CODE_FAILED_NO_GCC:
+					return overall_result
 				if result != CODE_OK:
 					overall_result = result
 			else:

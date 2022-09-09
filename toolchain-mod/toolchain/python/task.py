@@ -4,6 +4,7 @@ import sys
 import time
 
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
+import platform
 
 make_config = None
 registered_tasks = {}

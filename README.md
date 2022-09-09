@@ -20,13 +20,20 @@ You can find detailed explanation about how to set up all the requirements in th
 
 ## Linux version
 
-Here is a fork of toolchain to run under linux: [link](https://github.com/ModCompany/innercore-mod-toolchain-linux)
+Module python3-distutils must be installed additionally on modern unix systems:
+```sh
+sudo apt-get install python3-distutils --reinstall
+```
 
 ## Creating a new project
 
-To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python:
-```
+To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python in Windows:
+```bat
 python .\toolchain-setup.py project_folder
+```
+or Linux and MacOS:
+```sh
+python3 ./toolchain-setup.py project_folder
 ```
 
 The script will create a new project and set it up for native and/or java development. See detailed explanations in the video:
@@ -35,9 +42,13 @@ The script will create a new project and set it up for native and/or java develo
 
 ## Importing existing project
 
-To create a project from an existing Inner Core mod, use the script *toolchain-import.py*. It should be placed in the mod directory and run using python:
-```
+To create a project from an existing Inner Core mod, use the script *toolchain-import.py*. It should be placed in the mod directory and run using python in Windows:
+```bat
 python .\toolchain-import.py
+```
+or Linux and MacOS:
+```sh
+python3 ./toolchain-import.py
 ```
 
 You can optionally pass old project directory as the first parameter of the script. This script will create required project structure and optionally set up the project for native and/or java development.

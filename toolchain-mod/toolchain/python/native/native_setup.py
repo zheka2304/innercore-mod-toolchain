@@ -8,6 +8,7 @@ from make_config import make_config
 from progress_bar import print_progress_bar
 from zipfile import ZipFile
 from utils import clear_directory
+import platform
 
 
 def list_subdirectories(path, max_depth=5, dirs=None):
@@ -41,14 +42,13 @@ def get_ndk_path():
 	path_from_config = make_config.get_value("make.ndkPath")
 	if path_from_config is not None:
 		return path_from_config
-	# linux
+	# Unix
 	try:
 		return search_ndk_path(environ['HOME'])
 	except KeyError:
 		pass
-	# windows
+	# Windows
 	return search_ndk_path(getenv("LOCALAPPDATA"))
-
 
 
 def search_for_gcc_executable(ndk_dir):
@@ -64,11 +64,13 @@ def require_compiler_executable(arch, install_if_required=False):
 	ndk_dir = make_config.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
-		install(arch=arch, reinstall=False)
+		if install(arch=arch, reinstall=False) == -1:
+			return None
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
 			print("ndk installation is broken, trying to re-install")
-			install(arch=arch, reinstall=True)
+			if install(arch=arch, reinstall=True) == -1:
+				return None
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
 				print("re-install haven't helped")
@@ -88,12 +90,12 @@ def check_installed(arch):
 def install(arch="arm", reinstall=False):
 	if not reinstall and check_installed(arch):
 		print("toolchain for " + arch + " is already installed, installation skipped")
-		return True
+		return 0
 	else:
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			from urllib import request
-			print("failed to get ndk path")
+			print("not found ndk installation")
 			ans = input("download ndk? (y/N) ")
 			if ans.lower() == "y":
 				if platform.system() == "Windows":
@@ -134,7 +136,7 @@ def install(arch="arm", reinstall=False):
 				ndk_path = search_ndk_path(extract_path, contains_ndk=True)
 			else:
 				print("aborting native compilation")
-				return False
+				return -1
 
 		print("installing...")
 		if platform.system() == "Windows":
@@ -147,7 +149,7 @@ def install(arch="arm", reinstall=False):
 			])
 		else:
 			result = subprocess.call([
-				"python",
+				"python3",
 				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 				"--arch", str(arch),
 				"--install-dir", make_config.get_path("toolchain/ndk/" + str(arch)),
@@ -165,10 +167,10 @@ def install(arch="arm", reinstall=False):
 			else:
 				clear_directory(make_config.get_path("toolchain/temp"))
 			print("done!")
-			return True
+			return 0
 		else:
 			print("installation failed with result code:", result)
-			return False
+			return result
 
 
 if __name__ == "__main__":
