@@ -1,5 +1,6 @@
 # Inner Core Toolchain Guide
 
+[![FAQ](https://img.shields.io/badge/figure_out-FAQ-black?style=for-the-badge)](FAQ.md)
 ![Windows](https://img.shields.io/badge/windows-compatible-blue?style=for-the-badge&logo=windows&logoColor=white)
 ![Linux](https://img.shields.io/badge/linux-compatible-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)
 
@@ -25,11 +26,11 @@ You can find detailed explanation about how to set up all the requirements in th
 ## Creating a new project
 
 To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python in Windows:
-```bat
+```
 python .\toolchain-setup.py project_folder
 ```
 or in Linux shell:
-```sh
+```
 python3 ./toolchain-setup.py project_folder
 ```
 
@@ -40,11 +41,11 @@ The script will create a new project and set it up for native and/or java develo
 ## Importing existing project
 
 To create a project from an existing Inner Core mod, use the script *toolchain-import.py*. It should be placed in the mod directory and run using python in Windows:
-```bat
+```
 python .\toolchain-import.py
 ```
 or in Linux shell:
-```sh
+```
 python3 ./toolchain-import.py
 ```
 
@@ -130,7 +131,7 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 
 ## Working with Android Debug Bridge
 
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in the **make.pushTo** property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `make.pushTo` property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
 
 ## Building and Publishing a Release Version of the Mod
 
