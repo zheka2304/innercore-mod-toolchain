@@ -1,8 +1,11 @@
 # Inner Core Toolchain Guide
 
+![Windows](https://img.shields.io/badge/windows-compatible-blue?style=for-the-badge&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/linux-compatible-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)
+
 ## Requirements
 
-**Inner Core for Horizon toolchain** is a toolchain that can be used to efficiently develop and build mods from your PC. 
+**Inner Core for Horizon toolchain** is a toolchain that can be used to efficiently develop and build mods from your PC.
 
 To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
@@ -11,19 +14,13 @@ To work properly this toolchain requires:
  - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding) 
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
- - TSLint (Microsoft)
- - C/C++ (Microsoft)
+ - TSLint for TypeScript / ESLint for JavaScript (Microsoft)
+ - C/C++ Extension Pack (Microsoft)
  - Java Extension Pack (Microsoft)
- 
+
 You can find detailed explanation about how to set up all the requirements in this video:
+
 [![Inner Core/Horizon Mods Development | Setting up the Environment](https://img.youtube.com/vi/ofwKkRYh97k/0.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
-
-## Linux version
-
-Module python3-distutils must be installed additionally on modern unix systems:
-```sh
-sudo apt-get install python3-distutils --reinstall
-```
 
 ## Creating a new project
 
@@ -31,14 +28,14 @@ To create a new project for Inner Core, use the script *toolchain-setup.py*. It 
 ```bat
 python .\toolchain-setup.py project_folder
 ```
-or Linux and MacOS:
+or in Linux shell:
 ```sh
 python3 ./toolchain-setup.py project_folder
 ```
 
 The script will create a new project and set it up for native and/or java development. See detailed explanations in the video:
-[![Inner Core/Horizon Mods Development | Creating and Importing Projects](https://img.youtube.com/vi/ykAVJoxKTKc/0.jpg)](https://www.youtube.com/watch?v=ykAVJoxKTKc)
 
+[![Inner Core/Horizon Mods Development | Creating and Importing Projects](https://img.youtube.com/vi/ykAVJoxKTKc/0.jpg)](https://www.youtube.com/watch?v=ykAVJoxKTKc)
 
 ## Importing existing project
 
@@ -46,7 +43,7 @@ To create a project from an existing Inner Core mod, use the script *toolchain-i
 ```bat
 python .\toolchain-import.py
 ```
-or Linux and MacOS:
+or in Linux shell:
 ```sh
 python3 ./toolchain-import.py
 ```
@@ -63,7 +60,7 @@ To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task
 
 ## make.json
 
-*make.json* is the main configuration file of the project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood. 
+*make.json* is the main configuration file of the project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood.
 
 Here's a description of some of the key properties you can specify in your *make.json*:
  - **global&#46;info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
@@ -97,7 +94,7 @@ To update your local typescript header files (used for hints in JavaScript files
 
 ## Adding Java directories
 
-By default this toolchain doesn't contain java modules to minimize build time. However, if you need to include a java module into your mod, follow the instructions below. 
+By default this toolchain doesn't contain java modules to minimize build time. However, if you need to include a java module into your mod, follow the instructions below.
 
 Unpack *java.zip* archive to the root of mod source. You will get the following files structure:
 
@@ -116,6 +113,7 @@ Unpack *java.zip* archive to the root of mod source. You will get the following 
    │     └─ manifest
    └─ .classpath
 ```
+
 In the example above, a sample java module is already created. To add a new one, create a directory in *java* folder and add it to 
 *.classpath* file as a new entry:
 
@@ -132,8 +130,8 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 
 ## Working with Android Debug Bridge
 
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in the **make.pushTo** property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed. 
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in the **make.pushTo** property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
 
 ## Building and Publishing a Release Version of the Mod
 
-To build a release version of the mod, run **Assemble Mod for Release** task. An *.icmod* archive is being generated and is ready for upload. Go to https://icmods.mineprogramming.org and upload a new mod or update an existing one.
+To build a release version of the mod, run **Assemble Mod for Release** task. An *.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md.
