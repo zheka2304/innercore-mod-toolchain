@@ -1,4 +1,3 @@
-
 import sys
 import os
 import subprocess
@@ -20,7 +19,6 @@ def get_classpath_from_directories(directories):
 					classpath.append(file)
 	return classpath
 
-
 def build_java_directories(directories, cache_dir, classpath):
 	ensure_directory(cache_dir)
 
@@ -40,7 +38,6 @@ def build_java_directories(directories, cache_dir, classpath):
 	print('\033[1m' + '\033[92m' + "\n****SUCCESS****\n" + '\033[0m')
 	return result
 
-
 def build_list(working_dir):
 	dirs = os.listdir(working_dir)
 	if "order.txt" in dirs:
@@ -49,7 +46,6 @@ def build_list(working_dir):
 	else:
 		dirs = list(filter(lambda name: os.path.isdir(os.path.join(working_dir, name)), dirs))
 	return dirs
-
 
 def setup_gradle_project(cache_dir, directories, classpath):
 	file = open(os.path.join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
@@ -159,13 +155,11 @@ def setup_gradle_project(cache_dir, directories, classpath):
 					}
 				""")
 
-
 def cleanup_gradle_scripts(directories):
 	for path in directories:
 		gradle_script = os.path.join(path, "build.gradle")
 		if os.path.isfile(gradle_script):
 			os.remove(gradle_script)
-
 
 def compile_all_using_make_config():
 	import time

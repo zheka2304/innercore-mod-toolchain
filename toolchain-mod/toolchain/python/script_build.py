@@ -1,19 +1,15 @@
-import glob
-import os
-import os.path
 import sys
-import json
 
 from make_config import make_config
 from mod_structure import mod_structure
-from utils import ensure_file_dir, clear_directory, copy_file, copy_directory, move_file
-from os.path import join, exists, splitext, basename, isfile
+from utils import clear_directory, copy_file, copy_directory
+from os.path import exists, splitext, basename, isfile
 from includes import Includes
+
 
 def build_source(source_path, target_path):
 	includes = Includes.invalidate(source_path)
 	return includes.build(target_path)
-
 
 def build_all_scripts():
 	mod_structure.cleanup_build_target("script_source")
@@ -89,7 +85,6 @@ def build_all_scripts():
 				overall_result += build_source(source_path, destination_path)
 
 	return overall_result
-
 
 def build_all_resources():
 	mod_structure.cleanup_build_target("resource_directory")

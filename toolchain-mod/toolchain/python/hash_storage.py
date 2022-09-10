@@ -1,7 +1,9 @@
-from os.path import isfile, isdir, join, relpath, dirname, basename
+from os.path import isfile, isdir, join, dirname
 from os import walk, remove, strerror, makedirs
 from errno import ENOENT
+
 import json
+
 from hashlib import md5
 from make_config import make_config
 

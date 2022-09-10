@@ -1,4 +1,3 @@
-import os
 from os.path import isdir, join
 
 from make_config import make_config
@@ -19,7 +18,6 @@ def get_path_set(paths, error_sensitive=False):
 					print(f"declared invalid directory {path}, it will be skipped")
 	return directories
 
-
 def get_asset_directories(**kw):
 	main_assets = get_path_set(make_config.get_value("assets.main", []), error_sensitive=True)
 	if main_assets is not None:
@@ -27,7 +25,6 @@ def get_asset_directories(**kw):
 		if modified_assets is not None:
 			return main_assets + modified_assets
 	return None
-
 
 def assemble_assets():
 	asset_directories = get_asset_directories()
@@ -40,7 +37,6 @@ def assemble_assets():
 	for asset_dir in asset_directories:
 		copy_directory(asset_dir, output_dir)
 	return 0
-
 
 def assemble_additional_directories():
 	result = 0

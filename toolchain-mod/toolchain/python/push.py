@@ -8,6 +8,7 @@ from glob import glob
 from hash_storage import output_storage as storage
 from progress_bar import print_progress_bar
 
+
 # /dev/null
 ignore = open(os.devnull, 'w')
 
@@ -23,7 +24,6 @@ def get_push_pack_directory():
 			print("interpreted as NO, aborting push")
 			return None
 	return directory
-
 
 def push(directory, cleanup=False):
 	items = glob(directory + "/*")
@@ -64,7 +64,6 @@ def push(directory, cleanup=False):
 	print_progress_bar(progress, len(changed), suffix = f'Complete!' + (" " * 20), length = 50)
 	storage.save()
 	return result
-
 
 def make_locks(*locks):
 	dst = get_push_pack_directory()

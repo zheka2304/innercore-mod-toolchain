@@ -6,11 +6,11 @@ import time
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
 import platform
 
+
 make_config = None
 registered_tasks = {}
 locked_tasks = {}
 devnull = open(os.devnull, "w")
-
 
 def get_make_config():
 	global make_config
@@ -18,7 +18,6 @@ def get_make_config():
 		from make_config import make_config as config
 		make_config = config
 	return make_config
-
 
 def lock_task(name, silent=True):
 	path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
@@ -48,7 +47,6 @@ def lock_task(name, silent=True):
 	open(path, "tw").close()
 	locked_tasks[name] = open(path, "a")
 
-
 def unlock_task(name):
 	if name in locked_tasks:
 		locked_tasks[name].close()
@@ -57,11 +55,9 @@ def unlock_task(name):
 	if os.path.isfile(path):
 		os.remove(path)
 
-
 def unlock_all_tasks():
 	for name in list(locked_tasks.keys()):
 		unlock_task(name)
-
 
 def task(name, lock=None):
 	if lock is None:
@@ -86,7 +82,6 @@ def task(name, lock=None):
 
 	return decorator
 
-
 @task("compileNativeDebug", lock=["native", "cleanup", "push"])
 def task_compile_native_debug():
 	abi = get_make_config().get_value("make.debugAbi", None)
@@ -96,7 +91,6 @@ def task_compile_native_debug():
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
-
 @task("compileNativeRelease", lock=["native", "cleanup", "push"])
 def task_compile_native_release():
 	abis = get_make_config().get_value("make.abis", [])
@@ -105,37 +99,32 @@ def task_compile_native_release():
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
-
 @task("compileJavaDebug", lock=["java", "cleanup", "push"])
 def task_compile_java_debug():
 	from java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config()
-
 
 @task("compileJavaRelease", lock=["java", "cleanup", "push"])
 def task_compile_java_release():
 	from java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config()
 
-
 @task("buildScripts", lock=["script", "cleanup", "push"])
 def task_build_scripts():
 	from script_build import build_all_scripts
 	return build_all_scripts()
-
 
 @task("buildResources", lock=["resource", "cleanup", "push"])
 def task_resources():
 	from script_build import build_all_resources
 	return build_all_resources()
 
-
 @task("buildInfo", lock=["cleanup", "push"])
 def task_build_info():
 	import json
 	config = get_make_config()
 	with open(config.get_path("output/mod.info"), "w") as info_file:
-		info = dict(config.get_value("global.info", fallback={"name": "No was provided"}))
+		info = dict(config.get_value("global.info", fallback={"name": "Was not provided"}))
 		if "icon" in info:
 			del info["icon"]
 		info_file.write(json.dumps(info, indent=" " * 4))
@@ -144,7 +133,6 @@ def task_build_info():
 		copy_file(config.get_path(icon_path),
 				  config.get_path("output/mod_icon.png"))
 	return 0
-
 
 @task("buildAdditional", lock=["cleanup", "push"])
 def task_build_additional():
@@ -168,18 +156,15 @@ def task_build_additional():
 					copy_file(additional_path, target)
 	return overall_result
 
-
 @task("pushEverything", lock=["push"])
 def task_push_everything():
 	from push import push
 	return push(get_make_config().get_path("output"))
 
-
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output():
 	clear_directory(get_make_config().get_path("output"))
 	return 0
-
 
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"])
 def task_exclude_directories():
@@ -191,7 +176,6 @@ def task_exclude_directories():
 			elif os.path.isfile(exclude):
 				os.remove(exclude)
 	return 0
-
 
 @task("buildPackage", lock=["push", "assemble", "native", "java"])
 def task_build_package():
@@ -208,7 +192,6 @@ def task_build_package():
 	shutil.make_archive(output_file_tmp[:-4], 'zip', output_dir)
 	os.rename(output_file_tmp, output_file)
 	return 0
-
 
 @task("launchHorizon")
 def task_launch_horizon():
@@ -240,7 +223,6 @@ def task_load_docs():
 	print("complete!")
 	return 0
 
-
 @task("connectToADB")
 def task_connect_to_adb():
 	import re
@@ -266,7 +248,6 @@ def task_connect_to_adb():
 	result = call([make_config.get_adb(), "connect", ip])
 	return result
 
-
 @task("cleanup")
 def task_cleanup():
 	config = get_make_config()
@@ -279,13 +260,10 @@ def task_cleanup():
 #     java.java_build.cleanup_gradle_scripts()
 	return 0
 
-
 def error(message, code=-1):
 	sys.stderr.write(message + "\n")
 	unlock_all_tasks()
-#    input("Press enter to continue...")
 	exit(code)
-
 
 if __name__ == '__main__':
 	if len(sys.argv[1:]) > 0:
@@ -302,8 +280,8 @@ if __name__ == '__main__':
 					import traceback
 					traceback.print_exc()
 					error(f"task {task_name} failed with above error")
-#            else:
-#                error(f"no such task: {task_name}")
+			else:
+				error(f"no such task: {task_name}")
 	else:
 		error("no tasks to execute")
 	unlock_all_tasks()

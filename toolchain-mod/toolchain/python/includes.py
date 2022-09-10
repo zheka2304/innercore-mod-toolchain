@@ -1,4 +1,4 @@
-from os.path import join, basename, isfile, getmtime, normpath, splitext, dirname, relpath
+from os.path import join, basename, isfile, normpath, splitext, relpath
 import glob
 import json
 from make_config import make_config
@@ -181,7 +181,7 @@ class Includes:
 
 	def get_tsconfig(self):
 		return join(self.directory, "tsconfig.json")
-		
+
 	def create_tsconfig(self, temp_path):
 		declarations = []
 		declarations.extend(glob.glob(make_config.get_path(

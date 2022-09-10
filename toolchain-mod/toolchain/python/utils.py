@@ -6,28 +6,23 @@ def ensure_directory(directory):
 	if not os.path.exists(directory):
 		os.makedirs(directory)
 
-
 def ensure_file_dir(file):
 	ensure_directory(os.path.abspath(os.path.join(file, "..")))
-
 
 def clear_directory(directory):
 	import shutil
 	ensure_directory(directory)
 	shutil.rmtree(directory)
 
-
 def copy_file(src, dst):
 	import shutil
 	ensure_file_dir(dst)
 	shutil.copy(src, dst)
 
-
 def move_file(src, dst):
 	import shutil
 	ensure_file_dir(dst)
 	shutil.move(src, dst)
-
 
 def copy_directory(src, dst, clear_dst=False):
 	ensure_directory(dst)
@@ -35,7 +30,6 @@ def copy_directory(src, dst, clear_dst=False):
 		clear_directory(dst)
 	from distutils.dir_util import copy_tree
 	copy_tree(src, dst)
-
 
 def get_all_files(directory, extensions=()):
 	all_files = []
@@ -50,7 +44,6 @@ def get_all_files(directory, extensions=()):
 						break
 	return all_files
 
-
 def relative_path(directory, file):
 	directory = os.path.abspath(directory)
 	file = os.path.abspath(file)
@@ -63,4 +56,3 @@ def relative_path(directory, file):
 		return file
 	else:
 		raise RuntimeError("file is not in a directory: file=" + file + " dir=" + directory)
-

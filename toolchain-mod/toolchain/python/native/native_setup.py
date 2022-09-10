@@ -1,7 +1,7 @@
 import sys
 import re
 from os import listdir, environ, getenv, makedirs
-from os.path import isfile, isdir, join, abspath, exists, dirname
+from os.path import isfile, isdir, join, abspath, dirname
 import subprocess
 
 from make_config import make_config
@@ -23,7 +23,6 @@ def list_subdirectories(path, max_depth=5, dirs=None):
 			list_subdirectories(file, dirs=dirs, max_depth=max_depth - 1)
 	return dirs
 
-
 def search_ndk_path(home_dir, contains_ndk=False):
 	preferred_ndk_versions = [
 		"android-ndk-r16b",
@@ -37,7 +36,6 @@ def search_ndk_path(home_dir, contains_ndk=False):
 			if re.findall(compiled_pattern, possible_ndk_dir):
 				return possible_ndk_dir
 
-
 def get_ndk_path():
 	path_from_config = make_config.get_value("make.ndkPath")
 	if path_from_config is not None:
@@ -50,7 +48,6 @@ def get_ndk_path():
 	# Windows
 	return search_ndk_path(getenv("LOCALAPPDATA"))
 
-
 def search_for_gcc_executable(ndk_dir):
 	search_dir = join(ndk_dir, "bin")
 	if isdir(search_dir):
@@ -58,7 +55,6 @@ def search_for_gcc_executable(ndk_dir):
 		for file in listdir(search_dir):
 			if re.match(pattern, file):
 				return abspath(join(search_dir, file))
-
 
 def require_compiler_executable(arch, install_if_required=False):
 	ndk_dir = make_config.get_path("toolchain/ndk/" + str(arch))
@@ -79,13 +75,11 @@ def require_compiler_executable(arch, install_if_required=False):
 	else:
 		return file
 
-
 def check_installed(arch):
 	if platform.system() == "Windows":
 		return isfile(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)))
 	else:
 		return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
-
 
 def install(arch="arm", reinstall=False):
 	if not reinstall and check_installed(arch):

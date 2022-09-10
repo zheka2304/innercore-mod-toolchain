@@ -2,11 +2,8 @@ import os
 from os.path import join, exists, isdir, basename, isfile
 import sys
 import json
-from os import getcwd
 
-from base_config import BaseConfig
-
-from utils import clear_directory, copy_directory, ensure_directory, copy_file
+from utils import clear_directory
 import zipfile
 import platform
 
@@ -27,8 +24,6 @@ def setup_mod_info(make_file):
 		"description": description
 	}
 
-
-
 def init_java_and_native(make_file, directory):
 	src_dir = join(directory, "src")
 
@@ -46,7 +41,6 @@ def init_java_and_native(make_file, directory):
 		else:
 			if(isdir(sample_native_module)):
 				clear_directory(sample_native_module)
-
 
 	sample_java_archive = join(src_dir, "java.zip")
 	if(not exists(sample_java_archive)):
@@ -78,7 +72,6 @@ def init_java_and_native(make_file, directory):
 			if(isfile(sample_java_archive)):
 				os.remove(sample_java_archive)
 
-
 def cleanup_if_required(directory):
 	res = input("Do you want to clean up the project? [Y/n]: ")
 	if res.lower() == 'n':
@@ -93,7 +86,6 @@ def cleanup_if_required(directory):
 		path = join(directory, f)
 		if(exists(path)):
 			os.remove(path)
-
 
 def init_directories(directory):
 	assets_dir = join(directory, "src", "assets")
@@ -110,8 +102,6 @@ def init_directories(directory):
 	with(open(join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
 		file.write("")
 
-
-
 def init_adb(make_file, dirname):
 	pack_name = input("Enter your pack directory name [Inner_Core]: ")
 	if pack_name == "":
@@ -127,7 +117,7 @@ make_path = join(destination, "make.json")
 
 if not (exists(make_path)):
 	if platform.system() == "Windows":
-        exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
+		exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
 	else:
 		exit("invalid arguments passed to import script, usage: \r\npython3 setup.py <destination>")
 
@@ -139,7 +129,6 @@ if destination == '.':
 else: 
 	dirname = basename(destination)
 
-
 init_adb(make_obj, dirname)
 print("initializing mod.info")
 setup_mod_info(make_obj)
@@ -148,7 +137,6 @@ init_directories(destination)
 print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
-
 
 with open(make_path, "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_obj, indent=" " * 4))

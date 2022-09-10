@@ -6,8 +6,9 @@ import json
 
 from utils import ensure_directory, copy_directory, copy_file, clear_directory, ensure_file_dir, get_all_files, relative_path
 import native.native_setup as native_setup
-from make_config import make_config, BaseConfig, MakeConfig
+from make_config import make_config, BaseConfig
 from mod_structure import mod_structure
+
 
 CODE_OK = 0
 CODE_FAILED_NO_GCC = 1001
@@ -15,7 +16,6 @@ CODE_FAILED_INVALID_MANIFEST = 1002
 CODE_DUPLICATE_NAME = 1003
 CODE_INVALID_JSON = 1004
 CODE_INVALID_PATH = 1005
-
 
 def prepare_compiler_executable(abi):
 	abi_map = {
@@ -30,19 +30,16 @@ def prepare_compiler_executable(abi):
 		print("warning: unregistered abi " + abi)
 	return native_setup.require_compiler_executable(arch=abi, install_if_required=True)
 
-
 def get_manifest(directory):
 	with open(os.path.join(directory, "manifest"), "r", encoding="utf-8") as file:
 		manifest = json.load(file)
 	return manifest
-
 
 def get_name_from_manifest(directory):
 	try:
 		return get_manifest(directory)["shared"]["name"]
 	except Exception:
 		return None
-
 
 def search_directory(parent, name):
 	for root, dirs, _ in os.walk(parent):
@@ -51,12 +48,10 @@ def search_directory(parent, name):
 			if get_name_from_manifest(path) == name:
 				return path
 
-
 def get_fake_so_dir(abi):
 	fake_so_dir = make_config.get_path(os.path.join("toolchain/ndk/fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
-
 
 def add_fake_so(gcc, abi, name):
 	file = os.path.join(get_fake_so_dir(abi), "lib" + name + ".so")
@@ -67,7 +62,6 @@ def add_fake_so(gcc, abi, name):
 			"-shared", "-o", f"{file}"
 		])
 		print("created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
-
 
 def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, rules: BaseConfig):
 	executables = {}
@@ -218,7 +212,6 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 			overall_result = result
 			return overall_result
 	return overall_result
-
 
 def compile_all_using_make_config(abis):
 	import time

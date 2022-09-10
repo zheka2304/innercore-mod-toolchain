@@ -5,12 +5,10 @@ import json
 from make_config import make_config
 from utils import ensure_directory, clear_directory, ensure_file_dir
 
-
 class BuildTargetType:
 	def __init__(self, directory=None, list_property=None, **kw):
 		self.directory = directory
 		self.list_property = list_property
-
 
 BUILD_TARGETS = {
 	"resource_directory": BuildTargetType(directory="resources", list_property="resources"),
@@ -23,7 +21,6 @@ BUILD_TARGETS = {
 	"native": BuildTargetType(directory="native", list_property="nativeDirs"),
 	"java": BuildTargetType(directory="java", list_property="javaDirs")
 }
-
 
 class ModStructure:
 	def __init__(self, output_directory):
@@ -116,5 +113,3 @@ class ModStructure:
 
 
 mod_structure = ModStructure("output")
-
-

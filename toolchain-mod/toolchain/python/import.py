@@ -2,13 +2,13 @@ import os
 import os.path
 import sys
 import json
-from os import getcwd
 
 from base_config import BaseConfig
 import platform
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
+
 
 root_files = []
 
@@ -22,7 +22,6 @@ def import_mod_info(make_file, directory):
 		make_file["global"]["info"] = info_obj
 		return
 	make_file["global"]["info"] = {}
-
 
 def import_build_config(make_file, source, destination):
 	global root_files
@@ -135,7 +134,6 @@ def import_build_config(make_file, source, destination):
 		return
 	exit("unable to read build.config")
 
-
 def copy_additionals(source, destination):
 	global root_files
 
@@ -150,7 +148,6 @@ def copy_additionals(source, destination):
 			copy_file(src, os.path.join(dest, f))
 		elif(os.path.isdir(src)):
 			copy_file(src, os.path.join(dest, f))
-		
 
 def init_java_and_native(make_file, directory):
 	src_dir = os.path.join(directory, "src")
@@ -169,7 +166,6 @@ def init_java_and_native(make_file, directory):
 		else:
 			if(os.path.isdir(sample_native_module)):
 				clear_directory(sample_native_module)
-
 
 	sample_java_archive = os.path.join(src_dir, "java.zip")
 	if(not os.path.exists(sample_java_archive)):
@@ -201,7 +197,6 @@ def init_java_and_native(make_file, directory):
 			if(os.path.isfile(sample_java_archive)):
 				os.remove(sample_java_archive)
 
-
 def cleanup_if_required(directory):
 	res = input("Do you want to clean up the project? [Y/n]: ")
 	if res.lower() == 'n':
@@ -212,12 +207,11 @@ def cleanup_if_required(directory):
 		"toolchain-import.py",
 		"toolchain.zip"
 	]
+
 	for f in to_remove:
 		path = os.path.join(directory, f)
 		if(os.path.exists(path)):
 			os.remove(path)
-
-
 
 def init_adb(make_file, dirname):
 	pack_name = input("Enter your pack directory name [Inner_Core]: ")
@@ -229,22 +223,20 @@ def init_adb(make_file, dirname):
 
 print("running project import script")
 
-
 destination = sys.argv[1]
 source = sys.argv[2]
 make_path = os.path.join(destination, "make.json")
 
-
 if not (os.path.exists(make_path) and os.path.exists(source)):
 	if platform.system() == "Windows":
-        exit("invalid arguments passed to import script, usage: \r\npython import.py <destination> <source>")
+		exit("invalid arguments passed to import script, usage: \r\npython import.py <destination> <source>")
 	else:
 		exit("invalid arguments passed to import script, usage: \r\npython3 import.py <destination> <source>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())
 
-if(source == '.'):
+if source == '.':
 	dirname = os.path.basename(os.getcwd())
 else:
 	dirname = os.path.basename(source)
@@ -259,7 +251,6 @@ copy_additionals(source, destination)
 print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
-
 
 with open(make_path, "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_obj, indent=" " * 4))

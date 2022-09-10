@@ -1,7 +1,4 @@
-import json
-import os
 import os.path
-
 
 class BaseConfig:
 	def __init__(self, _json):
