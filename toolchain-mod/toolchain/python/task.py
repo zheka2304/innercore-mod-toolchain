@@ -196,8 +196,17 @@ def task_build_package():
 @task("launchHorizon")
 def task_launch_horizon():
 	from subprocess import call
-	call([make_config.get_adb(), "shell", "touch", "/storage/emulated/0/games/horizon/.flag_auto_launch"], stdout=devnull, stderr=devnull)
-	result = call([make_config.get_adb(), "shell", "monkey", "-p", "com.zheka.horizon", "-c", "android.intent.category.LAUNCHER", "1"], stdout=devnull, stderr=devnull)
+	call([
+		make_config.get_adb(),
+		"shell", "touch",
+		"/storage/emulated/0/games/horizon/.flag_auto_launch"
+	], stdout=devnull, stderr=devnull)
+	result = call([
+		make_config.get_adb(),
+		"shell", "monkey",
+		"-p", "com.zheka.horizon",
+		"-c", "android.intent.category.LAUNCHER", "1"
+	], stdout=devnull, stderr=devnull)
 	if result != 0:
 		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
 	return 0
@@ -205,7 +214,13 @@ def task_launch_horizon():
 @task("stopHorizon")
 def stop_horizon():
 	from subprocess import call
-	result = call([make_config.get_adb(), "shell", "am", "force-stop", "com.zheka.horizon"], stdout=devnull, stderr=devnull)
+	result = call([
+		make_config.get_adb(),
+		"shell",
+		"am",
+		"force-stop",
+		"com.zheka.horizon"
+	], stdout=devnull, stderr=devnull)
 	if result != 0:
 		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
 	return result

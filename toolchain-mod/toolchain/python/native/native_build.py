@@ -125,7 +125,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 			add_fake_so(executable, abi, link)
 			dependencies.append(f'-l{link}')
 		if "depends" in manifest:
-			search_dir = os.path.abspath(os.path.join(directory, ".."))  # always search for dependencies in current dir
+			search_dir = os.path.abspath(os.path.join(directory, "..")) # always search for dependencies in current dir
 			for dependency in manifest["depends"]:
 				if dependency is not None:
 					add_fake_so(executable, abi, dependency)

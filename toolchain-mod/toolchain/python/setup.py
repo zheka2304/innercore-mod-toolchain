@@ -39,11 +39,11 @@ def init_java_and_native(make_file, directory):
 				os.rename(sample_native_module,
 					join(src_dir, "native", module_name))
 		else:
-			if(isdir(sample_native_module)):
+			if isdir(sample_native_module):
 				clear_directory(sample_native_module)
 
 	sample_java_archive = join(src_dir, "java.zip")
-	if(not exists(sample_java_archive)):
+	if not exists(sample_java_archive):
 		print("java sample module is unavailable")
 	else: 
 		res = input("Do you want to initialize a new java directory? [y/N]: ")
@@ -63,13 +63,13 @@ def init_java_and_native(make_file, directory):
 			classpath = join(directory, ".classpath")
 			tree = etree.parse(classpath)
 			for classpathentry in tree.getroot():
-				if(classpathentry.attrib["kind"] == "src"):
+				if classpathentry.attrib["kind"] == "src":
 					classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
 
 			tree.write(classpath, encoding="utf-8", xml_declaration=True)
 			
 		else:
-			if(isfile(sample_java_archive)):
+			if isfile(sample_java_archive):
 				os.remove(sample_java_archive)
 
 def cleanup_if_required(directory):
@@ -84,7 +84,7 @@ def cleanup_if_required(directory):
 	]
 	for f in to_remove:
 		path = join(directory, f)
-		if(exists(path)):
+		if exists(path):
 			os.remove(path)
 
 def init_directories(directory):
@@ -116,10 +116,7 @@ destination = sys.argv[1]
 make_path = join(destination, "make.json")
 
 if not (exists(make_path)):
-	if platform.system() == "Windows":
-		exit("invalid arguments passed to import script, usage: \r\npython setup.py <destination>")
-	else:
-		exit("invalid arguments passed to import script, usage: \r\npython3 setup.py <destination>")
+	exit("invalid arguments passed to import script, usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " setup.py <destination>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())

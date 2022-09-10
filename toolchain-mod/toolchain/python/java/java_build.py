@@ -23,10 +23,9 @@ def build_java_directories(directories, cache_dir, classpath):
 	ensure_directory(cache_dir)
 
 	setup_gradle_project(cache_dir, directories, classpath)
+	gradle_executable = make_config.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
-		gradle_executable = make_config.get_path("toolchain/bin/gradlew.bat")
-	else:
-		gradle_executable = make_config.get_path("toolchain/bin/gradlew")
+		gradle_executable += ".bat"
 	result = subprocess.call([gradle_executable, "-p", cache_dir, "shadowJar"])
 	if result != 0:
 		print(f"java compilation failed with code {result}")

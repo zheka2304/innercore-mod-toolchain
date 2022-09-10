@@ -65,7 +65,7 @@ class Includes:
 				self.decode_line(line)
 
 	def decode_line(self, line):
-		if line.startswith("#"):  # comment or parameter
+		if line.startswith("#"): # comment or parameter
 			pair = [item.strip() for item in line[1:].strip().split(":")]
 			key = pair[0]
 
@@ -224,7 +224,7 @@ class Includes:
 		result = os.system(f'tsc -p "{self.get_tsconfig()}" --noEmitOnError')
 
 		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
-		if(isfile(declaration_path)):
+		if isfile(declaration_path):
 			move_file(declaration_path, join(make_config.get_path("toolchain/build/project/declarations"), basename(declaration_path)))
 
 		return result

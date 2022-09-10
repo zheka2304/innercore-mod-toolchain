@@ -1,3 +1,4 @@
+from genericpath import exists
 import os
 import os.path
 import sys
@@ -28,6 +29,8 @@ def import_build_config(make_file, source, destination):
 	root_files.append("build.config")
 
 	build_config = os.path.join(source, "build.config")
+	if not exists(build_config):
+		exit("unable to read build.config")
 	with open(build_config, "r", encoding="utf-8") as config_file:
 		config_obj = json.loads(config_file.read())
 		config = BaseConfig(config_obj)
@@ -115,7 +118,7 @@ def import_build_config(make_file, source, destination):
 			root_files.append(source_parts[0])
 
 			build_dirs = config.get_filtered_list("buildDirs", "targetSource", (source_dir["path"]))
-			if(len(build_dirs) > 0):
+			if len(build_dirs) > 0:
 				old_build_path = build_dirs[0]["dir"].strip("/")
 				old_path_parts = old_build_path.split('/')
 				sourceObj["source"] = "src/" + old_build_path
@@ -132,7 +135,6 @@ def import_build_config(make_file, source, destination):
 
 		make_file["sources"] = sources
 		return
-	exit("unable to read build.config")
 
 def copy_additionals(source, destination):
 	global root_files
@@ -144,9 +146,9 @@ def copy_additionals(source, destination):
 		src = os.path.join(source, f)
 		dest = os.path.join(destination, "src", "assets", "root")
 
-		if(os.path.isfile(src)):
+		if os.path.isfile(src):
 			copy_file(src, os.path.join(dest, f))
-		elif(os.path.isdir(src)):
+		elif os.path.isdir(src):
 			copy_file(src, os.path.join(dest, f))
 
 def init_java_and_native(make_file, directory):
@@ -164,11 +166,11 @@ def init_java_and_native(make_file, directory):
 				os.rename(sample_native_module,
 					os.path.join(src_dir, "native", module_name))
 		else:
-			if(os.path.isdir(sample_native_module)):
+			if os.path.isdir(sample_native_module):
 				clear_directory(sample_native_module)
 
 	sample_java_archive = os.path.join(src_dir, "java.zip")
-	if(not os.path.exists(sample_java_archive)):
+	if not os.path.exists(sample_java_archive):
 		print("java sample module is unavailable")
 	else: 
 		res = input("Do you want to initialize a new java directory? [y/N]: ")
@@ -188,13 +190,13 @@ def init_java_and_native(make_file, directory):
 			classpath = os.path.join(directory, ".classpath")
 			tree = etree.parse(classpath)
 			for classpathentry in tree.getroot():
-				if(classpathentry.attrib["kind"] == "src"):
+				if classpathentry.attrib["kind"] == "src":
 					classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
 
 			tree.write(classpath, encoding="utf-8", xml_declaration=True)
 			
 		else:
-			if(os.path.isfile(sample_java_archive)):
+			if os.path.isfile(sample_java_archive):
 				os.remove(sample_java_archive)
 
 def cleanup_if_required(directory):
@@ -210,7 +212,7 @@ def cleanup_if_required(directory):
 
 	for f in to_remove:
 		path = os.path.join(directory, f)
-		if(os.path.exists(path)):
+		if os.path.exists(path):
 			os.remove(path)
 
 def init_adb(make_file, dirname):
@@ -228,10 +230,7 @@ source = sys.argv[2]
 make_path = os.path.join(destination, "make.json")
 
 if not (os.path.exists(make_path) and os.path.exists(source)):
-	if platform.system() == "Windows":
-		exit("invalid arguments passed to import script, usage: \r\npython import.py <destination> <source>")
-	else:
-		exit("invalid arguments passed to import script, usage: \r\npython3 import.py <destination> <source>")
+	exit("invalid arguments passed to import script, usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())

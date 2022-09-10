@@ -64,7 +64,7 @@ def require_compiler_executable(arch, install_if_required=False):
 			return None
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
-			print("ndk installation is broken, trying to re-install")
+			print("ndk installation for " + arch + " is broken, trying to re-install")
 			if install(arch=arch, reinstall=True) == -1:
 				return None
 			file = search_for_gcc_executable(ndk_dir)
@@ -76,10 +76,7 @@ def require_compiler_executable(arch, install_if_required=False):
 		return file
 
 def check_installed(arch):
-	if platform.system() == "Windows":
-		return isfile(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)))
-	else:
-		return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
+	return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
 
 def install(arch="arm", reinstall=False):
 	if not reinstall and check_installed(arch):
@@ -92,17 +89,11 @@ def install(arch="arm", reinstall=False):
 			print("not found ndk installation")
 			ans = input("download ndk? (y/N) ")
 			if ans.lower() == "y":
-				if platform.system() == "Windows":
-					archive_path = make_config.get_path("toolchain\\temp\\ndk.zip")
-				else:
-					archive_path = make_config.get_path("toolchain/temp/ndk.zip")
+				archive_path = make_config.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
 				
 				if not isfile(archive_path):
-					if platform.system() == "Windows":
-						url = "https://dl.google.com/android/repository/android-ndk-r16b-windows-x86_64.zip"
-					else:
-						url = "https://dl.google.com/android/repository/android-ndk-r16b-linux-x86_64.zip"
+					url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
 					with request.urlopen(url) as response:
 						with open(archive_path, 'wb') as f:
 							info = response.info()
@@ -120,10 +111,7 @@ def install(arch="arm", reinstall=False):
 								print_progress_bar(downloaded, length, suffix = 'Downloading...' if downloaded < length else "Complete!", length = 50)
 
 				print("extracting ndk...")
-				if platform.system() == "Windows":
-					extract_path = make_config.get_path("toolchain\\temp")
-				else:
-					extract_path = make_config.get_path("toolchain/temp")
+				extract_path = make_config.get_path("toolchain/temp")
 				with ZipFile(archive_path, 'r') as archive:
 					archive.extractall(extract_path)
 
@@ -133,37 +121,39 @@ def install(arch="arm", reinstall=False):
 				return -1
 
 		print("installing...")
-		if platform.system() == "Windows":
-			result = subprocess.call([
-				"python",
-				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
-				"--arch", str(arch),
-				"--install-dir", make_config.get_path("toolchain\\ndk\\" + str(arch)),
-				"--force"
-			])
-		else:
-			result = subprocess.call([
-				"python3",
-				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
-				"--arch", str(arch),
-				"--install-dir", make_config.get_path("toolchain/ndk/" + str(arch)),
-				"--force"
-			])
+		if platform.system() != "Windows":
+			try:
+				subprocess.call([
+					"chmod",
+					"-R",
+					"+x",
+					ndk_path
+				])
+				print("chmod +x done")
+			except Exception as err:
+				if isinstance(err, SystemExit):
+					raise err
+				import traceback
+				traceback.print_exc()
+				print("chmod failed, maybe you are must run it manually")
+		result = subprocess.call([
+			"python3",
+			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
+			"--arch", str(arch),
+			"--api", "19",
+			"--install-dir", make_config.get_path("toolchain/ndk/" + str(arch)),
+			"--force"
+		])
 
 		if result == 0:
-			if platform.system() == "Windows":
-				open(make_config.get_path("toolchain\\ndk\\.installed-" + str(arch)), 'tw').close()
-			else:
-				open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), 'tw').close()
+			open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), 'tw').close()
 			print("removing temp files...")
-			if platform.system() == "Windows":
-				clear_directory(make_config.get_path("toolchain\\temp"))
-			else:
-				clear_directory(make_config.get_path("toolchain/temp"))
+			clear_directory(make_config.get_path("toolchain/temp"))
 			print("done!")
 			return 0
 		else:
 			print("installation failed with result code:", result)
+			print("you are must reinstall it manually from toolchain/temp/ndk.zip")
 			return result
 
 

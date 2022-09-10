@@ -21,12 +21,12 @@ def init_java_and_native(make_file, directory):
                 os.rename(sample_native_module,
                     os.path.join(src_dir, "native", module_name))
         else:
-            if(os.path.isdir(sample_native_module)):
+            if os.path.isdir(sample_native_module):
                 clear_directory(sample_native_module)
 
 
     sample_java_archive = os.path.join(src_dir, "java.zip")
-    if(not os.path.exists(sample_java_archive)):
+    if not os.path.exists(sample_java_archive):
         print("java sample module is unavailable")
     else: 
         res = input("Do you want to initialize a new java directory? [y/N]: ")
@@ -40,19 +40,19 @@ def init_java_and_native(make_file, directory):
 
             os.rename(os.path.join(src_dir, "java", "sample"),
                 os.path.join(src_dir, "java", module_name))
-
+            
             # write info to .classpath
             import xml.etree.ElementTree as etree
             classpath = os.path.join(directory, ".classpath")
             tree = etree.parse(classpath)
             for classpathentry in tree.getroot():
-                if(classpathentry.attrib["kind"] == "src"):
+                if classpathentry.attrib["kind"] == "src":
                     classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
 
             tree.write(classpath, encoding="utf-8", xml_declaration=True)
             
         else:
-            if(os.path.isfile(sample_java_archive)):
+            if os.path.isfile(sample_java_archive):
                 os.remove(sample_java_archive)
 
 def ensure_typescript():
@@ -84,7 +84,7 @@ def cleanup_if_required(directory):
 
     for f in to_remove:
         path = os.path.join(directory, f)
-        if(os.path.exists(path)):
+        if os.path.exists(path):
             os.remove(path)
 
 def init_adb(make_file, dirname):
