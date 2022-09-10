@@ -135,4 +135,4 @@ Android Debug Bridge allows this toolchain to push mod files to the remote devic
 
 ## Building and Publishing a Release Version of the Mod
 
-To build a release version of the mod, run **Assemble Mod for Release** task. An *.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md.
+To build a release version of the mod, run **Assemble Mod for Release** task. An *mod.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md.
