@@ -21,7 +21,7 @@
 			"nativejs"
 		],
 		"excludeFromRelease": [],
-		"pushTo": "storage/emulated/0/games/horizon/packs/innercore-dev/innercore/mods/sample_mod",
+		"pushTo": "storage/emulated/0/games/horizon/packs/Inner_Core_Test/innercore/mods/sample_mod",
 		"ndkPath": null
 	},
 	"resources": [

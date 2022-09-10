@@ -1,6 +1,9 @@
 {
-    "source-dirs": [
-        "src"
+	"source-dirs": [
+		"src"
 	],
-    "library-dirs": []
+	"library-dirs": [],
+	"boot-classes": [
+		"com.sample_mod.main.Boot"
+	]
 }

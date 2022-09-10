@@ -1,4 +1,3 @@
-
 #include <hook.h>
 #include <mod.h>
 #include <logger.h>
