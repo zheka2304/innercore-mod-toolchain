@@ -3,13 +3,9 @@
     "java.dependency.syncWithFolderExplorer": true,
     "files.exclude": {
         "**/__pycache__/**": true,
-        "**/tsconfig.json": true,
         ".vscode": true,
         ".settings/**": true,
         ".project": true,
-        ".gitignore": true,
-        ".gitattributes": true,
-        ".classpath": true,
         ".idea/**": true,
         "toolchain/ndk": true,
         "toolchain/stdincludes": true,

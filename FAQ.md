@@ -30,7 +30,7 @@ Android dex compiler requires JDK 8 (identifier 1.8). Set it as default if neede
 3. Select java8 or something like this
 4. Apply changes
  - VSCode:
-1. Open Explorer *(Ctrl+Shift+E)*
+1. Open Explorer (*Ctrl+Shift+E*)
 2. Find Java Projects tab, enable it in `Views and More Actions...` if needed
 3. Go to `More Actions...` > `Configure Java Runtime`
 4. Change Java Version to required one
