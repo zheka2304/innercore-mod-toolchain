@@ -24,16 +24,33 @@ def move_file(src, dst):
 	ensure_file_dir(dst)
 	shutil.move(src, dst)
 
-def copy_directory(src, dst, clear_dst=False):
+def indexOf(_list, _value):
+	try:
+		return _list.index(_value)
+	except ValueError:
+		return -1
+
+def copy_directory(src, dst, clear_dst=False, replacement=True, ignore=[]):
 	ensure_directory(dst)
 	if clear_dst:
 		clear_directory(dst)
-	from distutils.dir_util import copy_tree
 	
 	if not os.path.exists(dst):
 		os.mkdir(dst)
+
+	import shutil
+	for item in os.listdir(src):
+		s = os.path.join(src, item)
+		d = os.path.join(dst, item)
+		if os.path.isfile(s) and os.path.exists(d) and not replacement:
+			continue
+		
+		if os.path.isdir(s):
+			copy_directory(s, d, clear_dst, replacement, ignore)
+		elif indexOf(ignore, item) == -1:
+			shutil.copy2(s, d)
 	
-	copy_tree(src, dst)
+	# copy_tree(src, dst)
 
 def get_all_files(directory, extensions=()):
 	all_files = []

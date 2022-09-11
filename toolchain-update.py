@@ -15,15 +15,24 @@ def get_python():
     else:
         return "python3"
 
+def indexOf(_list, _value):
+	try:
+		return _list.index(_value)
+	except ValueError:
+		return -1
 
-def copytree(src, dst, symlinks=False, ignore=None):
-    from distutils.dir_util import copy_tree
-
-    if not os.path.exists(dst):
-        os.mkdir(dst)
-
-    copy_tree(src, dst)
-
+def copytree(src, dst, clear_dst=False, replacement=None, ignore = ["make.json"]):
+    import shutil
+    for item in os.listdir(src):
+        s = path.join(src, item)
+        d = path.join(dst, item)
+        if path.isfile(s) and path.exists(d) and not replacement:
+            continue
+        
+        if path.isdir(s):
+            copytree(s, d, clear_dst, replacement)
+        elif indexOf(ignore, item) == -1:
+            shutil.copy2(s, d)
 
 def download_and_extract_toolchain(directory):
     import urllib.request
@@ -43,7 +52,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory)
+        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["make.json"])
         shutil.rmtree(path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)
