@@ -223,12 +223,14 @@ def compile_all_using_make_config(abis):
 	mod_structure.cleanup_build_target("native")
 
 	overall_result = CODE_OK
-	for native_dir in make_config.get_filtered_list("compile", prop="type", values=("native",)):
+	#print(make_config.get_project_filtered_list("compile", prop="type", values=("native",)))
+
+	for native_dir in make_config.get_project_filtered_list("compile", prop="type", values=("native",)):
 		if "source" not in native_dir:
 			print("skipped invalid native directory json", native_dir, file=sys.stderr)
 			overall_result = CODE_INVALID_JSON
 			continue
-		for native_dir_path in make_config.get_paths(native_dir["source"]):
+		for native_dir_path in make_config.get_project_paths(native_dir["source"]):
 			if os.path.isdir(native_dir_path):
 				directory_name = os.path.basename(native_dir_path)
 				result = build_native_dir(

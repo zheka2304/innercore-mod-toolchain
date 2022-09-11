@@ -84,18 +84,18 @@ def task(name, lock=None):
 
 @task("compileNativeDebug", lock=["native", "cleanup", "push"])
 def task_compile_native_debug():
-	abi = get_make_config().get_value("make.debugAbi", None)
+	abi = get_make_config().get_value("debugAbi", None)
 	if abi is None:
 		abi = "armeabi-v7a"
-		print(f"WARNING: no make.debugAbi value in config, using {abi} as default")
+		print(f"WARNING: no debugAbi value in config, using {abi} as default")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
 @task("compileNativeRelease", lock=["native", "cleanup", "push"])
 def task_compile_native_release():
-	abis = get_make_config().get_value("make.abis", [])
+	abis = get_make_config().get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
-		error(f"ERROR: no make.abis value in config")
+		error(f"ERROR: no abis value in config")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
