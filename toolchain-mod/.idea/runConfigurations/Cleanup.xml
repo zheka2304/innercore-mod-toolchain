@@ -4,7 +4,7 @@
     <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/cleanup.bat" />
     <option name="SCRIPT_OPTIONS" value="" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="false" />
-    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/toolchain" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/toolchain/python" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
     <option name="INTERPRETER_PATH" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
