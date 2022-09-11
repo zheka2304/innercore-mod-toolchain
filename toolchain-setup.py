@@ -3,7 +3,6 @@ import os
 import os.path
 import sys
 
-from distutils.dir_util import copy_tree
 from subprocess import call
 import platform
 
@@ -13,7 +12,6 @@ def get_python():
         return "python"
     else:
         return "python3"
-
 
 def copytree(src, dst, symlinks=False, ignore=None):
     if not os.path.exists(src) or os.path.isfile(src):
@@ -27,7 +25,6 @@ def copytree(src, dst, symlinks=False, ignore=None):
             shutil.copytree(s, d, symlinks, ignore)
         else:
             shutil.copy2(s, d)
-
 
 def download_and_extract_toolchain(directory):
     import urllib.request
@@ -58,7 +55,7 @@ def download_and_extract_toolchain(directory):
             exit()
 
 
-if(len(sys.argv) > 1):
+if len(sys.argv) > 1:
     directory = sys.argv[1]
     os.makedirs(directory)
 else: 

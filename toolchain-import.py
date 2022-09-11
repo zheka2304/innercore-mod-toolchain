@@ -3,7 +3,6 @@ import os
 import os.path
 import sys
 
-from distutils.dir_util import copy_tree
 from subprocess import call
 import platform
 
@@ -13,7 +12,6 @@ def get_python():
         return "python"
     else:
         return "python3"
-        
 
 def copytree(src, dst, symlinks=False, ignore=None):
     if not os.path.exists(src) or os.path.isfile(src):
@@ -48,11 +46,11 @@ def backup_project(directory):
         if f in exceptions: continue
         entry = os.path.join(directory, f)
 
-        if(os.path.isfile(entry)):
+        if os.path.isfile(entry):
             shutil.copyfile(entry, os.path.join(backup_path, f))
             os.remove(entry)
 
-        elif(os.path.isdir(entry)):
+        elif os.path.isdir(entry):
             shutil.copytree(entry, os.path.join(backup_path, f))
             shutil.rmtree(entry)
 
@@ -83,11 +81,9 @@ def download_and_extract_toolchain(directory):
             print("an error occured while extracting toolchain archive, please, retry the operation")
             os.remove(archive)
             exit()
-    
-    
 
-    
-if(len(sys.argv) > 1):
+
+if len(sys.argv) > 1:
     directory = sys.argv[1]
 else: 
     directory = '.'

@@ -35,10 +35,6 @@ Android dex compiler requires JDK 8 (identifier 1.8). Set it as default if neede
 3. Go to `More Actions...` > `Configure Java Runtime`
 4. Change Java Version to required one
 
-### ImportError: No module named distutils
-
-Debian has decided that distutils is not a core python package, so it is not included in the last versions of debian and debian-based OSes. You should be able to do `sudo apt-get install python3-distutils --reinstall` and it should work.
-
 ### ./gradlew: Permission denied
 
 For some unknown reason, your *gradlew* file did not have executable flag applied. Open `innercore-mod-toolchain` folder in terminal and type `chmod +x gradlew`.
