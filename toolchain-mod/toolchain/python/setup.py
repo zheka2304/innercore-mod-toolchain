@@ -119,10 +119,10 @@ else:
 init_adb(make_obj, dirname)
 print("initializing mod.info")
 setup_mod_info(make_obj)
-# print("initializing required directories")
-# init_directories(destination)
-# print("initializing java and native modules")
-# init_java_and_native(make_obj, destination)
+print("initializing required directories")
+init_directories(destination)
+print("initializing java and native modules")
+init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:

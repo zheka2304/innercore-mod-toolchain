@@ -40,12 +40,12 @@ def get_ndk_path():
 	path_from_config = make_config.get_value("ndkPath")
 	if path_from_config is not None:
 		return path_from_config
-	# Unix
+	# unix/linux
 	try:
 		return search_ndk_path(environ['HOME'])
 	except KeyError:
 		pass
-	# Windows
+	# windows
 	return search_ndk_path(getenv("LOCALAPPDATA"))
 
 def search_for_gcc_executable(ndk_dir):

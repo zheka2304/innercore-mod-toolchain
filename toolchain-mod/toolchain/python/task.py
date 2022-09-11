@@ -357,10 +357,10 @@ def task_cleanup():
 	clear_directory(config.get_path("toolchain/build/gcc"))
 	clear_directory(config.get_path("toolchain/build/gradle"))
 	clear_directory(config.get_path("toolchain/build/project"))
-
-#                               not working
-#     import java.java_build
-#     java.java_build.cleanup_gradle_scripts()
+	
+	# TODO
+	import java.java_build
+	java.java_build.cleanup_gradle_scripts()
 	return 0
 
 def error(message, code=-1):

@@ -37,7 +37,7 @@ class HashStorage:
 		for root, _, files in walk(directory):
 			for names in files:
 				filepath = join(root, names)
-				total.update(open(filepath,'rb').read())
+				total.update(open(filepath, 'rb').read())
 				"""
 				with open(filepath, "rb") as f:
 					for chunk in iter(lambda: f.read(4096), b""):
@@ -60,7 +60,6 @@ class HashStorage:
 		return key not in self.last_hashes or self.last_hashes[key] != hash
 
 	def path_to_key(self, path):
-		# return relpath(path, self.file)
 		return md5(path.encode("utf-8")).hexdigest()
 
 	def clear(self):

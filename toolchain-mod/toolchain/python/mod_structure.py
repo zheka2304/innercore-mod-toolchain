@@ -12,7 +12,7 @@ class BuildTargetType:
 
 BUILD_TARGETS = {
 	"resource_directory": BuildTargetType(directory="resources", list_property="resources"),
-	"gui": BuildTargetType(directory="", list_property="resources"),
+	"gui": BuildTargetType(directory="gui", list_property="resources"),
 	"minecraft_resource_pack": BuildTargetType(directory="minecraft_packs/resource", list_property="resources"),
 	"minecraft_behavior_pack": BuildTargetType(directory="minecraft_packs/behavior", list_property="resources"),
 

@@ -1,6 +1,8 @@
 from os.path import join, basename, isfile, normpath, splitext, relpath
 import glob
 import json
+import re
+
 from make_config import make_config
 from utils import move_file, copy_file
 import os

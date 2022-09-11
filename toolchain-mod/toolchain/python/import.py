@@ -1,5 +1,4 @@
 from genericpath import exists
-from operator import mod
 import os
 import os.path
 import sys
@@ -10,7 +9,7 @@ import platform
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 import zipfile
-from project_manager import projectManager, NameToFolderName
+from project_manager import projectManager
 from setup import set_last_update
 
 
@@ -252,7 +251,6 @@ if source == '.':
 else:
 	dirname = os.path.basename(source)
 
-#Init
 init_adb(make_obj, dirname)
 
 print("importing mod.info")
@@ -268,8 +266,8 @@ with open(projectManager.config.get_project_path("make.json"), "w", encoding="ut
 
 print("copying additional files and directories")
 copy_additionals(source, folder, destination)
-# print("initializing java and native modules")
-# init_java_and_native(make_obj, destination)
+print("initializing java and native modules")
+init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
