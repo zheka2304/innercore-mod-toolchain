@@ -1,8 +1,6 @@
 {
 	"info": {
-		"name": "Sample Mod",
-		"description": "This is sample description",
-		"author": "Unknown",
+		"name": "Template Mod",
 		"version": "1.0",
 		"icon": "mod_icon.png"
 	},
@@ -41,21 +39,6 @@
 			"source": "lib/*",
 			"type": "library",
 			"language": "javascript"
-		},
-		{
-			"source": "preloader/*",
-			"type": "preloader",
-			"language": "javascript"
-		}
-	],
-	"compile": [
-		{
-			"source": "native/*",
-			"type": "native"
-		},
-		{
-			"source": "java/*",
-			"type": "java"
 		}
 	],
 	"additional": [
@@ -63,5 +46,6 @@
 			"source": "assets/root/*",
 			"targetDir": "."
 		}
-	]
+	],
+	"compile": []
 }

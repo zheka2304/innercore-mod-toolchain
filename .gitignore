@@ -1,6 +1,7 @@
 .vscode/.ropeproject
 output
 **/__pycache__
+**/tsconfig.json
 
 *.log
 *.icmod
