@@ -56,7 +56,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["make.json", "*/adb/*"])
+        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore=["toolchain.json", "*/adb/*"])
         shutil.rmtree(path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)

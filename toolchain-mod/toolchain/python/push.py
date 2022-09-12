@@ -13,7 +13,7 @@ from progress_bar import print_progress_bar
 ignore = open(os.devnull, 'w')
 
 def get_push_pack_directory():
-	directory = make_config.get_value("pushTo") + "/innercore/mods/" + make_config.get_value("currentProject")
+	directory = os.path.join(make_config.get_value("pushTo"), "innercore", "mods", make_config.get_value("currentProject"))
 	if directory is None:
 		return None
 	if "games/horizon/packs" not in directory:
@@ -37,7 +37,10 @@ def push(directory, cleanup=False):
 	if dst_root is None:
 		return -1
 
-	result = subprocess.call([make_config.get_adb(), "devices"], stderr=ignore, stdout=ignore)
+	result = subprocess.call([
+		make_config.get_adb(),
+		"devices"
+	], stderr=ignore, stdout=ignore)
 	if result != 0:
 		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
 		return result
@@ -53,8 +56,14 @@ def push(directory, cleanup=False):
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
 		print_progress_bar(progress, len(changed), suffix = f'Pushing {filename}' + (" " * 20), length = 50)
-		subprocess.call([make_config.get_adb(), "shell", "rm", "-r", dst], stderr=ignore, stdout=ignore)
-		result = subprocess.call([make_config.get_adb(), "push", src, dst], stderr=ignore, stdout=ignore)
+		subprocess.call([
+			make_config.get_adb(),
+			"shell", "rm", "-r", dst
+		], stderr=ignore, stdout=ignore)
+		result = subprocess.call([
+			make_config.get_adb(),
+			"push", src, dst
+		], stderr=ignore, stdout=ignore)
 		progress += 1
 
 		if result != 0:
@@ -72,7 +81,10 @@ def make_locks(*locks):
 
 	for lock in locks:
 		lock = os.path.join(dst, lock).replace("\\", "/")
-		result = subprocess.call([make_config.get_adb(), "shell", "touch", lock])
+		result = subprocess.call([
+			make_config.get_adb(),
+			"shell", "touch", lock
+		])
 		if result != 0:
 			return result
 	return 0

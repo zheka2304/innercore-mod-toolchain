@@ -40,8 +40,8 @@ class ProjectManager:
         make_obj['info']["description"] = description
         
         with open(make_path, "w", encoding="utf-8") as make_file:
-	        make_file.write(json.dumps(make_obj, indent=" " * 4))
-
+            make_file.write(json.dumps(make_obj, indent=" " * 4))
+        
         vsc_settings_path = self.config.get_path(".vscode/settings.json")
         with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
             vsc_settings_obj = json.loads(vsc_settings_file.read())
@@ -49,9 +49,9 @@ class ProjectManager:
         vsc_settings_obj["files.exclude"][folder] = True
         self.__projects.append(folder)
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
-
-        return self.countProjects()-1
+            vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
+        
+        return self.countProjects() - 1
 
     def removeProject(self, index = None, folder = None):
         if len(self.__projects) == 1:
@@ -71,7 +71,7 @@ class ProjectManager:
 
         del vsc_settings_obj["files.exclude"][folder]
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
+            vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
     def selectProject(self, index = None, folder = None):
         index, folder = self.getFolder(index, folder)
@@ -86,7 +86,7 @@ class ProjectManager:
         vsc_settings_obj["files.exclude"][folder] = False
 
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-	        vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
+            vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
         make_path = self.config.get_path("make.json")
         
@@ -95,13 +95,13 @@ class ProjectManager:
         self.config.project_make = MakeConfig(self.config.project_dir + "/make.json")
 
         with open(make_path, "r", encoding="utf-8") as make_file:
-	        make_obj = json.loads(make_file.read())
+            make_obj = json.loads(make_file.read())
 
         make_obj['currentProject'] = folder
 
         with open(make_path, "w", encoding="utf-8") as make_file:
-	        make_file.write(json.dumps(make_obj, indent=" " * 4))
-    
+            make_file.write(json.dumps(make_obj, indent=" " * 4))
+
     def getFolder(self, index = None, folder = None):
         if index == None:
             if folder == None:
@@ -112,10 +112,10 @@ class ProjectManager:
         folder = self.__projects[index]
 
         return [index, folder]
-    
+
     def countProjects(self):
         return len(self.__projects)
-        
+
     def printListProjects(self, title = "List of projects"):
         print(title)
 
@@ -129,5 +129,6 @@ class ProjectManager:
             s = str(i+1).ljust(id_length) + " | " + self.__projects[i]
             print(s)
             i += 1
+
 
 projectManager = ProjectManager(make_config)

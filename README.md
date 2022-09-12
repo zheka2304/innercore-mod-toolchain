@@ -72,7 +72,11 @@ To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task
 
 ## toolchain.json
 
-*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change these settings.
+*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. Projects basic configuration can be changed here.
+
+### Working with Android Debug Bridge
+
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `pushTo` property in your *toolchain.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
 
 ## make.json
 
@@ -121,10 +125,6 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 ```xml
 <classpathentry kind="lib" path="src/java/sample/lib/lib_name.jar" />
 ```
-
-## Working with Android Debug Bridge
-
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `make.pushTo` property in your *make.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
 
 ## Building and Publishing a Release Version of the Mod
 

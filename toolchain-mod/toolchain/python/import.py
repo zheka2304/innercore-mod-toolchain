@@ -164,9 +164,7 @@ def copy_additionals(source, folder, destination):
 			copy_file(src, os.path.join(dest, f))
 
 def init_java_and_native(make_file, directory):
-	src_dir = os.path.join(directory, "src")
-
-	sample_native_module = os.path.join(src_dir, "native", "sample")
+	sample_native_module = os.path.join(directory, "native", "sample")
 	if not os.path.exists(sample_native_module):
 		print("native sample module is unavailable")
 
@@ -176,12 +174,12 @@ def init_java_and_native(make_file, directory):
 			module_name = input("Enter the new native module name [sample]: ")
 			if module_name != "":
 				os.rename(sample_native_module,
-					os.path.join(src_dir, "native", module_name))
+					os.path.join(directory, "native", module_name))
 		else:
 			if os.path.isdir(sample_native_module):
 				clear_directory(sample_native_module)
 
-	sample_java_archive = os.path.join(src_dir, "java.zip")
+	sample_java_archive = os.path.join(directory, "java.zip")
 	if not os.path.exists(sample_java_archive):
 		print("java sample module is unavailable")
 	else: 
@@ -192,10 +190,10 @@ def init_java_and_native(make_file, directory):
 				module_name = "sample"
 
 			with zipfile.ZipFile(sample_java_archive, 'r') as zip_ref:
-				zip_ref.extractall(os.path.join(src_dir))
+				zip_ref.extractall(os.path.join(directory))
 
-			os.rename(os.path.join(src_dir, "java", "sample"),
-				os.path.join(src_dir, "java", module_name))
+			os.rename(os.path.join(directory, "java", "sample"),
+				os.path.join(directory, "java", module_name))
 
 			# write info to .classpath
 			import xml.etree.ElementTree as etree
@@ -203,7 +201,7 @@ def init_java_and_native(make_file, directory):
 			tree = etree.parse(classpath)
 			for classpathentry in tree.getroot():
 				if classpathentry.attrib["kind"] == "src":
-					classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
+					classpathentry.attrib["path"] = "java/" + module_name + "/src"
 
 			tree.write(classpath, encoding="utf-8", xml_declaration=True)
 			
@@ -221,7 +219,6 @@ def cleanup_if_required(directory):
 		"toolchain-import.py",
 		"toolchain.zip"
 	]
-
 	for f in to_remove:
 		path = os.path.join(directory, f)
 		if os.path.exists(path):
@@ -238,12 +235,12 @@ print("running project import script")
 
 destination = sys.argv[1]
 source = sys.argv[2]
-make_path = os.path.join(destination, "make.json")
+toolchain_path = os.path.join(destination, "toolchain.json")
 
-if not (os.path.exists(make_path) and os.path.exists(source)):
+if not (os.path.exists(toolchain_path) and os.path.exists(source)):
 	exit("invalid arguments passed to import script, usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
 
-with open(make_path, "r", encoding="utf-8") as make_file:
+with open(toolchain_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())
 
 if source == '.':
@@ -270,7 +267,7 @@ print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
 cleanup_if_required(destination)
 
-with open(make_path, "w", encoding="utf-8") as make_file:
+with open(toolchain_path, "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_obj, indent=" " * 4))
 
 set_last_update()

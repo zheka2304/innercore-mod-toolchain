@@ -18,7 +18,7 @@ def set_last_update():
 def download_and_extract_toolchain(directory):
     import urllib.request
     import zipfile
-    archive = path.join(directory, 'update.zip')
+    archive = path.join(directory, 'toolchain.zip')
 
     if not path.exists(archive):
         url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
@@ -33,7 +33,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        utils.copy_directory(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["make.json", "*/adb/*"], ignoreEx = True)
+        utils.copy_directory(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore = ["toolchain.json", "*/adb/*"], ignoreEx = True)
         utils.clear_directory(path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)

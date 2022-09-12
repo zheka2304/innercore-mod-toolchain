@@ -9,15 +9,13 @@ import platform
 from setup import set_last_update
 
 
-def setup_mod_info(make_file = None):
+def setup_mod_info(make_file=None):
 	from project_manager import projectManager
 	from project_manager_tasks import create_project
 	projectManager.selectProject(index = create_project())
 
 def init_java_and_native(make_file, directory):
-	src_dir = join(directory, "src")
-
-	sample_native_module = join(src_dir, "native", "sample")
+	sample_native_module = join(directory, "native", "sample")
 	if not exists(sample_native_module):
 		print("native sample module is unavailable")
 
@@ -27,12 +25,12 @@ def init_java_and_native(make_file, directory):
 			module_name = input("Enter the new native module name [sample]: ")
 			if module_name != "":
 				os.rename(sample_native_module,
-					join(src_dir, "native", module_name))
+					join(directory, "native", module_name))
 		else:
 			if isdir(sample_native_module):
 				clear_directory(sample_native_module)
 
-	sample_java_archive = join(src_dir, "java.zip")
+	sample_java_archive = join(directory, "java.zip")
 	if not exists(sample_java_archive):
 		print("java sample module is unavailable")
 	else: 
@@ -43,10 +41,10 @@ def init_java_and_native(make_file, directory):
 				module_name = "sample"
 
 			with zipfile.ZipFile(sample_java_archive, 'r') as zip_ref:
-				zip_ref.extractall(join(src_dir))
+				zip_ref.extractall(join(directory))
 
-			os.rename(join(src_dir, "java", "sample"),
-				join(src_dir, "java", module_name))
+			os.rename(join(directory, "java", "sample"),
+				join(directory, "java", module_name))
 
 			# write info to .classpath
 			import xml.etree.ElementTree as etree
@@ -54,7 +52,7 @@ def init_java_and_native(make_file, directory):
 			tree = etree.parse(classpath)
 			for classpathentry in tree.getroot():
 				if classpathentry.attrib["kind"] == "src":
-					classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
+					classpathentry.attrib["path"] = "java/" + module_name + "/src"
 
 			tree.write(classpath, encoding="utf-8", xml_declaration=True)
 			
@@ -78,18 +76,18 @@ def cleanup_if_required(directory):
 			os.remove(path)
 
 def init_directories(directory):
-	assets_dir = join(directory, "src", "assets")
+	assets_dir = join(directory, "assets")
 	clear_directory(assets_dir)
 	os.makedirs(join(assets_dir, "gui"))
 	os.makedirs(join(assets_dir, "res", "items-opaque"))
 	os.makedirs(join(assets_dir, "res", "terrain-atlas"))
-	libs_dir = join(directory, "src", "lib")
+	libs_dir = join(directory, "lib")
 	clear_directory(libs_dir)
 	os.makedirs(libs_dir)
-	os.makedirs(join(directory, "src", "preloader"))
+	os.makedirs(join(directory, "preloader"))
 	os.makedirs(join(assets_dir, "resource_packs"))
 	os.makedirs(join(assets_dir, "behavior_packs"))
-	with(open(join(directory, "src", "dev", "header.js"), "w", encoding="utf-8")) as file:
+	with(open(join(directory, "dev", "header.js"), "w", encoding="utf-8")) as file:
 		file.write("")
 
 def init_adb(make_file, dirname):
@@ -105,7 +103,7 @@ print("running project setup script")
 destination = sys.argv[1]
 make_path = join(destination, "make.json")
 
-if not (exists(make_path)):
+if not exists(make_path):
 	exit("invalid arguments passed to import script, usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " setup.py <destination>")
 
 with open(make_path, "r", encoding="utf-8") as make_file:

@@ -5,11 +5,7 @@ import zipfile
 
 
 def init_java_and_native(make_file, directory):
-    compile_dirs = []
-
-    src_dir = os.path.join(directory, "src")
-
-    sample_native_module = os.path.join(src_dir, "native", "sample")
+    sample_native_module = os.path.join(directory, "native", "sample")
     if not os.path.exists(sample_native_module):
         print("native sample module is unavailable")
 
@@ -19,13 +15,13 @@ def init_java_and_native(make_file, directory):
             module_name = input("Enter the new native module name [sample]: ")
             if module_name != "":
                 os.rename(sample_native_module,
-                    os.path.join(src_dir, "native", module_name))
+                    os.path.join(directory, "native", module_name))
         else:
             if os.path.isdir(sample_native_module):
                 clear_directory(sample_native_module)
 
 
-    sample_java_archive = os.path.join(src_dir, "java.zip")
+    sample_java_archive = os.path.join(directory, "java.zip")
     if not os.path.exists(sample_java_archive):
         print("java sample module is unavailable")
     else: 
@@ -36,10 +32,10 @@ def init_java_and_native(make_file, directory):
                 module_name = "sample"
 
             with zipfile.ZipFile(sample_java_archive, 'r') as zip_ref:
-                zip_ref.extractall(os.path.join(src_dir))
+                zip_ref.extractall(os.path.join(directory))
 
-            os.rename(os.path.join(src_dir, "java", "sample"),
-                os.path.join(src_dir, "java", module_name))
+            os.rename(os.path.join(directory, "java", "sample"),
+                os.path.join(directory, "java", module_name))
             
             # write info to .classpath
             import xml.etree.ElementTree as etree
@@ -47,7 +43,7 @@ def init_java_and_native(make_file, directory):
             tree = etree.parse(classpath)
             for classpathentry in tree.getroot():
                 if classpathentry.attrib["kind"] == "src":
-                    classpathentry.attrib["path"] = "src/java/" + module_name + "/src"
+                    classpathentry.attrib["path"] = "java/" + module_name + "/src"
 
             tree.write(classpath, encoding="utf-8", xml_declaration=True)
             
@@ -92,4 +88,4 @@ def init_adb(make_file, dirname):
     if pack_name == "":
         pack_name = "Inner_Core"
 
-    make_file["make"]["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name + "/innercore/mods/" + dirname
+    make_file["pushTo"] = "storage/emulated/0/games/horizon/packs/" + pack_name
