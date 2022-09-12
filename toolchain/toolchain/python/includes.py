@@ -153,18 +153,19 @@ class Includes:
 
 		return includes
 
-	def build(self, target_path):
+	def build(self, target_path, language="typescript"):
 		temp_path = join(temp_directory, basename(target_path))
 
 		result = 0
-		self.create_tsconfig(temp_path)
+		if language == "typescript":
+			self.create_tsconfig(temp_path)
 		if storage.is_path_changed(self.directory):
 			import datetime
 
 			print(f"building {basename(target_path)}")
 
 			start_time = datetime.datetime.now()
-			result = self.build_source(temp_path)
+			result = self.build_source(temp_path, language)
 			end_time = datetime.datetime.now()
 			diff = end_time - start_time
 
@@ -220,8 +221,11 @@ class Includes:
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			json.dump(template, tsconfig, indent="\t")
 
-	def build_source(self, temp_path):
-		result = os.system(f'tsc -p "{self.get_tsconfig()}" --noEmitOnError')
+	def build_source(self, temp_path, language):
+		if language.lower() == "typescript":
+			result = os.system(f'tsc -p "{self.get_tsconfig()}" --noEmitOnError')
+		else:
+			result = 0
 
 		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
 		if isfile(declaration_path):

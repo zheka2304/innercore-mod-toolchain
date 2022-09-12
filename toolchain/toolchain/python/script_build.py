@@ -7,9 +7,9 @@ from os.path import exists, splitext, basename, isfile
 from includes import Includes
 
 
-def build_source(source_path, target_path):
+def build_source(source_path, target_path, language):
 	includes = Includes.invalidate(source_path)
-	return includes.build(target_path)
+	return includes.build(target_path, language)
 
 def build_all_scripts():
 	mod_structure.cleanup_build_target("script_source")
@@ -79,10 +79,10 @@ def build_all_scripts():
 			)
 			mod_structure.update_build_config_list("compile")
 
-			if (isfile(source_path)):
+			if isfile(source_path):
 				copy_file(source_path, destination_path)
 			else:
-				overall_result += build_source(source_path, destination_path)
+				overall_result += build_source(source_path, destination_path, _language)
 
 	return overall_result
 
@@ -92,7 +92,7 @@ def build_all_resources():
 	mod_structure.cleanup_build_target("minecraft_resource_pack")
 	mod_structure.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
-	
+
 	for resource in make_config.get_project_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
 			print("skipped invalid source json", resource, file=sys.stderr)
