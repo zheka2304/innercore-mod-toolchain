@@ -56,7 +56,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory, ignore=["toolchain.json", "*/adb/*"])
+        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain"), directory, ignore=["toolchain.json", "*/adb/*"])
         shutil.rmtree(path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)
@@ -85,4 +85,4 @@ with open(last_update_path, "w", encoding="utf-8") as last_update_file:
     last_update_file.write(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
 os.remove(path.join(directory, "toolchain-update.py"))
-print("Toolchain updated successful!")
+print("Toolchain successfully updated!")

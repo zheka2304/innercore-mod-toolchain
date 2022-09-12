@@ -44,7 +44,7 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(os.path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory)
+        copytree(os.path.join(directory, "innercore-mod-toolchain-master/toolchain"), directory)
         shutil.rmtree(os.path.join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         pass
