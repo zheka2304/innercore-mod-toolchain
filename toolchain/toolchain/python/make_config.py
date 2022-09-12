@@ -1,15 +1,15 @@
 import json
 import os
-import os.path
+from os.path import join, abspath, isfile, isdir
 
 from base_config import BaseConfig
 
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
-		if not os.path.isfile(filename):
+		if not isfile(filename):
 			raise RuntimeError("Not found make.json, are you sure that project exists?")
 		self.filename = filename
-		self.root_dir = os.path.abspath(os.path.join(self.filename, ".."))
+		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
 			self.json = json.load(file)
 		BaseConfig.__init__(self, self.json)
@@ -18,17 +18,17 @@ class MakeConfig(BaseConfig):
 		return self.root_dir
 
 	def get_path(self, relative_path):
-		return os.path.abspath(os.path.join(self.root_dir, relative_path))
+		return abspath(join(self.root_dir, relative_path))
 
 	def get_paths(self, relative_path, filter=None, paths=None):
 		if paths is None:
 			paths = []
 		if len(relative_path) > 0 and relative_path[-1] == "*":
 			path = self.get_path(relative_path[:-1])
-			if not os.path.isdir(path):
+			if not isdir(path):
 				return []
 			for f in os.listdir(path):
-				file = os.path.join(path, f)
+				file = join(path, f)
 				if filter is None or filter(file):
 					paths.append(file)
 		else:
@@ -42,8 +42,8 @@ class ToolchainConfig(MakeConfig):
 		MakeConfig.__init__(self, filename)
 		self.currentProject = self.get_value('currentProject', None)
 		if self.currentProject != None:
-			self.project_dir = os.path.join(self.root_dir, self.currentProject)
-			self.project_make = MakeConfig(os.path.join(self.project_dir, "make.json"))
+			self.project_dir = join(self.root_dir, self.currentProject)
+			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
 	
 	def get_project_value(self, name, fallback=None):
 		return self.project_make.get_value(name, fallback)
@@ -67,8 +67,8 @@ class ToolchainConfig(MakeConfig):
 # search for toolchain.json
 make_config = None
 for i in range(0, 4):
-	make_file = os.path.join("../" * i, "toolchain.json")
-	if os.path.isfile(make_file):
+	make_file = join("../" * i, "toolchain.json")
+	if isfile(make_file):
 		make_config = ToolchainConfig(make_file)
 		break
 if make_config is None:

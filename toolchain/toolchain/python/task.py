@@ -1,10 +1,10 @@
 import os
-import os.path
+from os.path import join, exists, basename, isfile, isdir
 import sys
 import time
+import platform
 
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
-import platform
 
 
 make_config = None
@@ -24,10 +24,10 @@ def lock_task(name, silent=True):
 	ensure_file_dir(path)
 	await_message = False
 
-	if os.path.exists(path):
+	if exists(path):
 		while True:
 			try:
-				if os.path.exists(path):
+				if exists(path):
 					os.remove(path)
 				break
 			except IOError as _:
@@ -52,7 +52,7 @@ def unlock_task(name):
 		locked_tasks[name].close()
 		del locked_tasks[name]
 	path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
-	if os.path.isfile(path):
+	if isfile(path):
 		os.remove(path)
 
 def unlock_all_tasks():
@@ -130,7 +130,7 @@ def task_build_info():
 			del info["icon"]
 		if "api" in info:
 			del info["api"]
-		
+
 		info["version"] = shortcodes(info["version"])
 		info["description"] = shortcodes(info["description"])
 
@@ -147,16 +147,16 @@ def task_build_additional():
 	for additional_dir in get_make_config().get_project_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in get_make_config().get_project_paths(additional_dir["source"]):
-				if not os.path.exists(additional_path):
+				if not exists(additional_path):
 					print("non existing additional path: " + additional_path)
 					overall_result = 1
 					break
-				target = get_make_config().get_project_path(os.path.join(
+				target = get_make_config().get_project_path(join(
 					"output",
 					additional_dir["targetDir"],
-					os.path.basename(additional_path)
+					basename(additional_path)
 				))
-				if os.path.isdir(additional_path):
+				if isdir(additional_path):
 					copy_directory(additional_path, target)
 				else:
 					ensure_file_dir(target)
@@ -177,10 +177,10 @@ def task_clear_output():
 def task_exclude_directories():
 	config = get_make_config()
 	for path in config.get_project_value("excludeFromRelease", []):
-		for exclude in config.get_project_paths(os.path.join("output", path)):
-			if os.path.isdir(exclude):
+		for exclude in config.get_project_paths(join("output", path)):
+			if isdir(exclude):
 				clear_directory(exclude)
-			elif os.path.isfile(exclude):
+			elif isfile(exclude):
 				os.remove(exclude)
 	return 0
 
@@ -193,9 +193,9 @@ def task_build_package():
 	output_file_tmp = config.get_path("toolchain/build/mod.zip")
 	ensure_directory(output_dir)
 	ensure_file_dir(output_file_tmp)
-	if os.path.isfile(output_file):
+	if isfile(output_file):
 		os.remove(output_file)
-	if os.path.isfile(output_file_tmp):
+	if isfile(output_file_tmp):
 		os.remove(output_file_tmp)
 	shutil.make_archive(output_file_tmp[:-4], 'zip', output_dir)
 	os.rename(output_file_tmp, output_file)
@@ -232,7 +232,7 @@ def stop_horizon():
 	if result != 0:
 		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
 	return result
-	
+
 @task("loadDocs")
 def task_load_docs():
 	import urllib.request
@@ -266,11 +266,14 @@ def task_connect_to_adb():
 	print(f"connecting to {ip}")
 
 	from subprocess import call
-	call([make_config.get_adb(), "disconnect"], stdout=devnull, stderr=devnull)
-	call([make_config.get_adb(), "tcpip", port], stdout=devnull, stderr=devnull)
+	call([
+		make_config.get_adb(), "disconnect"
+	], stdout=devnull, stderr=devnull)
+	call([
+		make_config.get_adb(), "tcpip", port
+	], stdout=devnull, stderr=devnull)
 	result = call([make_config.get_adb(), "connect", ip])
 	return result
-
 
 @task("createProject")
 def task_create_project():
@@ -292,11 +295,11 @@ def task_remove_project():
 	from project_manager import projectManager
 	if projectManager.countProjects() == 1:
 		error("Unable to delete a single project")
-	
+
 	projectManager.printListProjects()
 
 	delete = input("Enter the ID or folder name of the project to be deleted: ")
-	
+
 	if delete == "":
 		error("Cancel deletion.")
 
@@ -323,10 +326,10 @@ def task_select_project():
 	from project_manager import projectManager
 	if projectManager.countProjects() == 1:
 		error("Only one project created.")
-	
+
 	projectManager.printListProjects()
 	select = input("Enter the ID or name of the project folder you want to select: ")
-	
+
 	if select == "":
 		error("Cancel selection.")
 
@@ -357,16 +360,19 @@ def task_cleanup():
 	clear_directory(config.get_path("toolchain/build/gcc"))
 	clear_directory(config.get_path("toolchain/build/gradle"))
 	clear_directory(config.get_path("toolchain/build/project"))
-	
-	# TODO
-	import java.java_build
-	java.java_build.cleanup_gradle_scripts()
+
+	try:
+		import java.java_build
+		java.java_build.cleanup_gradle_scripts()
+	except BaseException as err:
+		sys.stdout.write("gradle cleanup failed: " + err)
 	return 0
 
 def error(message, code=-1):
 	sys.stderr.write(message + "\n")
 	unlock_all_tasks()
 	exit(code)
+
 
 if __name__ == '__main__':
 	if len(sys.argv[1:]) > 0:

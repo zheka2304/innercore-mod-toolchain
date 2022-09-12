@@ -1,8 +1,7 @@
-import shutil
 import os
-import os.path
+from os.path import join, exists, isfile, isdir
 import sys
-
+import shutil
 from subprocess import call
 import platform
 
@@ -14,27 +13,27 @@ def get_python():
         return "python3"
 
 def copytree(src, dst, symlinks=False, ignore=None):
-    if not os.path.exists(src) or os.path.isfile(src):
+    if not exists(src) or isfile(src):
         raise Exception()
     for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.exists(d):
+        s = join(src, item)
+        d = join(dst, item)
+        if exists(d):
             continue
-        if os.path.isdir(s):
+        if isdir(s):
             shutil.copytree(s, d, symlinks, ignore)
         else:
             shutil.copy2(s, d)
 
 def download_and_extract_toolchain(directory):
-    import urllib.request
+    from urllib.request import urlretrieve
     import zipfile
-    archive = os.path.join(directory, 'toolchain.zip')
+    archive = join(directory, 'toolchain.zip')
 
-    if not os.path.exists(archive):
+    if not exists(archive):
         url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
         print("downloading toolchain archive from " + url)
-        urllib.request.urlretrieve(url, archive)
+        urlretrieve(url, archive)
     else: 
         print("toolchain archive already exists in " + directory)
 
@@ -44,12 +43,12 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(os.path.join(directory, "innercore-mod-toolchain-master/toolchain"), directory)
-        shutil.rmtree(os.path.join(directory, "innercore-mod-toolchain-master"))
+        copytree(join(directory, "innercore-mod-toolchain-master/toolchain"), directory)
+        shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         pass
     finally:
-        if not os.path.exists(os.path.join(directory, "toolchain")):
+        if not exists(join(directory, "toolchain")):
             print("an error occured while extracting toolchain archive, please, retry the operation")
             os.remove(archive)
             exit()
@@ -62,6 +61,11 @@ else:
     directory = '.'
 
 download_and_extract_toolchain(directory)
+setup_script = join(directory, "toolchain", "python", "setup.py")
 
-setup_script = os.path.join(directory, "toolchain", "python", "setup.py")
-call(get_python() + " " + setup_script + " " + directory + " " + os.path.join(directory, "project.back"), shell=True)
+call([
+    get_python(),
+    setup_script,
+    directory,
+    join(directory, "project.back")
+], shell=True)

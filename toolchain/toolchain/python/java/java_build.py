@@ -1,5 +1,6 @@
-import sys
 import os
+from os.path import join, basename, isfile, isdir
+import sys
 import subprocess
 import json
 
@@ -12,10 +13,10 @@ import platform
 def get_classpath_from_directories(directories):
 	classpath = []
 	for directory in directories:
-		if os.path.isdir(directory):
+		if isdir(directory):
 			for file in os.listdir(directory):
-				file = os.path.join(directory, file)
-				if os.path.isfile(file):
+				file = join(directory, file)
+				if isfile(file):
 					classpath.append(file)
 	return classpath
 
@@ -40,46 +41,46 @@ def build_java_directories(directories, cache_dir, classpath):
 def build_list(working_dir):
 	dirs = os.listdir(working_dir)
 	if "order.txt" in dirs:
-		order = open(os.path.join(working_dir, "order.txt"), "r", encoding="utf-8")
+		order = open(join(working_dir, "order.txt"), "r", encoding="utf-8")
 		dirs = order.read().splitlines()
 	else:
-		dirs = list(filter(lambda name: os.path.isdir(os.path.join(working_dir, name)), dirs))
+		dirs = list(filter(lambda name: isdir(join(working_dir, name)), dirs))
 	return dirs
 
 def setup_gradle_project(cache_dir, directories, classpath):
-	file = open(os.path.join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
-	file.writelines(["include ':%s'\nproject(':%s').projectDir = file('%s')\n" % (os.path.basename(item), os.path.basename(item), item.replace("\\", "\\\\")) for item in directories])
+	file = open(join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
+	file.writelines(["include ':%s'\nproject(':%s').projectDir = file('%s')\n" % (basename(item), basename(item), item.replace("\\", "\\\\")) for item in directories])
 	file.close()
 
 	for directory in directories:
-		target_dir = mod_structure.new_build_target("java", os.path.basename(directory))
+		target_dir = mod_structure.new_build_target("java", basename(directory))
 		clear_directory(target_dir)
 		ensure_directory(target_dir)
-		copy_file(os.path.join(directory, "manifest"), os.path.join(target_dir, "manifest"))
+		copy_file(join(directory, "manifest"), join(target_dir, "manifest"))
 
-		with open(os.path.join(directory, "manifest"), "r", encoding="utf-8") as file:
+		with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
 			manifest = json.load(file)
 
 		source_dirs = manifest["source-dirs"]
 		library_dirs = manifest["library-dirs"]
-		build_dir = os.path.join(cache_dir, os.path.basename(target_dir), "classes")
+		build_dir = join(cache_dir, basename(target_dir), "classes")
 		dex_dir = target_dir
 		ensure_directory(build_dir)
 		ensure_directory(dex_dir)
 
 		if make_config.get_value("gradle.keepLibraries", True):
 			for library_dir in library_dirs:
-				src_dir = os.path.join(directory, library_dir)
-				if os.path.isdir(src_dir):
-					copy_directory(src_dir, os.path.join(dex_dir, library_dir), clear_dst=True)
+				src_dir = join(directory, library_dir)
+				if isdir(src_dir):
+					copy_directory(src_dir, join(dex_dir, library_dir), clear_dst=True)
 
 		if make_config.get_value("gradle.keepSources", False):
 			for source_dir in source_dirs:
-				src_dir = os.path.join(directory, source_dir)
-				if os.path.isdir(src_dir):
-					copy_directory(src_dir, os.path.join(dex_dir, source_dir), clear_dst=True)
+				src_dir = join(directory, source_dir)
+				if isdir(src_dir):
+					copy_directory(src_dir, join(dex_dir, source_dir), clear_dst=True)
 
-		with open(os.path.join(directory, "build.gradle"), "w", encoding="utf-8") as build_file:
+		with open(join(directory, "build.gradle"), "w", encoding="utf-8") as build_file:
 			if platform.system() == "Windows":
 				build_file.write("""
 					plugins {
@@ -95,7 +96,7 @@ def setup_gradle_project(cache_dir, directories, classpath):
 						main {
 							java {
 								srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
-								buildDir = \"""" + os.path.join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
+								buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
 							}
 							resources {
 								srcDirs = []
@@ -111,8 +112,8 @@ def setup_gradle_project(cache_dir, directories, classpath):
 								\"""" + make_config.get_path("toolchain/bin/dx.jar").replace("\\", "\\\\") + """\",
 								"--dex",
 								"--multi-dex",
-								"--output=\\\"""" + os.path.join(dex_dir, ".").replace("\\", "\\\\") + """\\\"",
-								\"""" + os.path.join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\"
+								"--output=\\\"""" + join(dex_dir, ".").replace("\\", "\\\\") + """\\\"",
+								\"""" + join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\"
 							]
 						} 
 					}
@@ -132,7 +133,7 @@ def setup_gradle_project(cache_dir, directories, classpath):
 						main {
 							java {
 								srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
-								buildDir = \"""" + os.path.join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
+								buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
 							}
 							resources {
 								srcDirs = []
@@ -148,16 +149,16 @@ def setup_gradle_project(cache_dir, directories, classpath):
 								\"""" + make_config.get_path("toolchain/bin/dx.jar") + """\",
 								"--dex",
 								"--multi-dex",
-								"--output=""" + os.path.join(dex_dir, ".").replace("\\", "\\\\") + """",
-								\"""" + os.path.join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\",]
+								"--output=""" + join(dex_dir, ".").replace("\\", "\\\\") + """",
+								\"""" + join(build_dir, "${project.name}", "libs", "${project.name}-all.jar").replace("\\", "\\\\") + """\",]
 						} 
 					}
 				""")
 
 def cleanup_gradle_scripts(directories):
 	for path in directories:
-		gradle_script = os.path.join(path, "build.gradle")
-		if os.path.isfile(gradle_script):
+		gradle_script = join(path, "build.gradle")
+		if isfile(gradle_script):
 			os.remove(gradle_script)
 
 def compile_all_using_make_config():
@@ -177,7 +178,7 @@ def compile_all_using_make_config():
 			continue
 
 		for path in make_config.get_project_paths(directory["source"]):
-			if not os.path.isdir(path):
+			if not isdir(path):
 				print("skipped non-existing java directory path", directory["source"], file=sys.stderr)
 				overall_result = -1
 				continue

@@ -1,10 +1,9 @@
 import os
-import os.path
+from os.path import join, relpath
 import subprocess
-
-from make_config import make_config
 from glob import glob
 
+from make_config import make_config
 from hash_storage import output_storage as storage
 from progress_bar import print_progress_bar
 
@@ -13,7 +12,7 @@ from progress_bar import print_progress_bar
 ignore = open(os.devnull, 'w')
 
 def get_push_pack_directory():
-	directory = os.path.join(make_config.get_value("pushTo"), "innercore", "mods", make_config.get_value("currentProject"))
+	directory = join(make_config.get_value("pushTo"), "innercore", "mods", make_config.get_value("currentProject"))
 	if directory is None:
 		return None
 	if "games/horizon/packs" not in directory:
@@ -27,7 +26,7 @@ def get_push_pack_directory():
 
 def push(directory, cleanup=False):
 	items = glob(directory + "/*")
-	changed = [os.path.relpath(path, directory) for path in items if storage.is_path_changed(path)]
+	changed = [relpath(path, directory) for path in items if storage.is_path_changed(path)]
 
 	if len(changed) < 1:
 		print_progress_bar(1, 1, suffix = 'Complete!', length = 50)
@@ -80,7 +79,7 @@ def make_locks(*locks):
 		return -1
 
 	for lock in locks:
-		lock = os.path.join(dst, lock).replace("\\", "/")
+		lock = join(dst, lock).replace("\\", "/")
 		result = subprocess.call([
 			make_config.get_adb(),
 			"shell", "touch", lock

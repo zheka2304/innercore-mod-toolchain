@@ -1,6 +1,5 @@
-from genericpath import exists
 import os
-import os.path
+from os.path import exists, join, basename, isfile, isdir
 import sys
 import json
 
@@ -19,7 +18,7 @@ def import_mod_info(make_file, directory):
 	global root_files
 	root_files.append("mod.info")
 
-	mod_info = os.path.join(directory, "mod.info")
+	mod_info = join(directory, "mod.info")
 
 	if not exists(mod_info):
 		from project_manager_tasks import create_project
@@ -40,7 +39,7 @@ def import_build_config(make_file, folder, source, destination):
 	global root_files
 	root_files.append("build.config")
 
-	build_config = os.path.join(source, "build.config")
+	build_config = join(source, "build.config")
 	if not exists(build_config):
 		exit("unable to read build.config")
 	with open(build_config, "r", encoding="utf-8") as config_file:
@@ -48,10 +47,10 @@ def import_build_config(make_file, folder, source, destination):
 		config = BaseConfig(config_obj)
 		make_file["info"]["api"] = config.get_value("defaultConfig.api", "CoreEngine")
 
-		src_dir = os.path.join(destination, folder)
-		
+		src_dir = join(destination, folder)
+
 		# clear assets folder
-		assets_dir = os.path.join(src_dir, "assets")
+		assets_dir = join(src_dir, "assets")
 		clear_directory(assets_dir)
 		os.makedirs(assets_dir)
 
@@ -67,8 +66,8 @@ def import_build_config(make_file, folder, source, destination):
 			}
 		]
 
-		os.makedirs(os.path.join(assets_dir, "resource_packs"))
-		os.makedirs(os.path.join(assets_dir, "behavior_packs"))
+		os.makedirs(join(assets_dir, "resource_packs"))
+		os.makedirs(join(assets_dir, "behavior_packs"))
 
 		# import assets
 		for res_dir in config.get_filtered_list("resources", "resourceType", ("resource", "gui")):
@@ -76,8 +75,8 @@ def import_build_config(make_file, folder, source, destination):
 				res_dir["resourceType"] = "resource_directory"
 			path_stripped = res_dir["path"].strip('/')
 			path_parts = path_stripped.split('/')
-			path = os.path.join(*path_parts)
-			copy_directory(os.path.join(source, path), os.path.join(assets_dir, path), True)
+			path = join(*path_parts)
+			copy_directory(join(source, path), join(assets_dir, path), True)
 			resources.append({
 				"path": "assets/" + path_stripped,
 				"type": res_dir["resourceType"]
@@ -88,17 +87,16 @@ def import_build_config(make_file, folder, source, destination):
 		make_file["resources"] = resources
 
 		# clear libraries folder and copy libraries from the old project
-		libs_dir = os.path.join(destination, folder, "lib")
+		libs_dir = join(destination, folder, "lib")
 		clear_directory(libs_dir)
-		clear_directory(os.path.join(destination, folder, "dev"))
+		clear_directory(join(destination, folder, "dev"))
 		os.makedirs(libs_dir)
 		old_libs = config.get_value("defaultConfig.libraryDir", "lib").strip('/')
 		old_libs_parts = old_libs.split('/')
-		old_libs_dir = os.path.join(source, *old_libs_parts)
-		if os.path.isdir(old_libs_dir):
+		old_libs_dir = join(source, *old_libs_parts)
+		if isdir(old_libs_dir):
 			root_files.append(old_libs_parts[0])
 			copy_directory(old_libs_dir, libs_dir)
-		
 
 		# some pre-defined source folders
 		sources = [
@@ -114,13 +112,13 @@ def import_build_config(make_file, folder, source, destination):
 			}
 		]
 
-		ensure_directory(os.path.join(src_dir, "preloader"))
+		ensure_directory(join(src_dir, "preloader"))
 
 		# import sources
 		for source_dir in config.get_filtered_list("compile", "sourceType", ("mod", "launcher")):
 			if source_dir["sourceType"] == "mod": 
 				source_dir["sourceType"] = "main"
-			
+
 			sourceObj = {
 				"type": source_dir["sourceType"],
 				"language": "javascript"
@@ -137,11 +135,11 @@ def import_build_config(make_file, folder, source, destination):
 				sourceObj["target"] = source_dir["path"]
 				root_files.append(old_path_parts[0])
 
-				copy_directory(os.path.join(source, *old_path_parts), os.path.join(src_dir, *old_path_parts), True)
-				 
+				copy_directory(join(source, *old_path_parts), join(src_dir, *old_path_parts), True)
+
 			else:
 				sourceObj["source"] = source_dir["path"]
-				copy_file(os.path.join(source, *source_parts), os.path.join(src_dir, *source_parts))
+				copy_file(join(source, *source_parts), join(src_dir, *source_parts))
 
 			sources.append(sourceObj)
 
@@ -155,30 +153,30 @@ def copy_additionals(source, folder, destination):
 	for f in files:
 		if f in root_files:
 			continue
-		src = os.path.join(source, f)
-		dest = os.path.join(destination, folder, "assets", "root")
+		src = join(source, f)
+		dest = join(destination, folder, "assets", "root")
 
-		if os.path.isfile(src):
-			copy_file(src, os.path.join(dest, f))
-		elif os.path.isdir(src):
-			copy_file(src, os.path.join(dest, f))
+		if isfile(src):
+			copy_file(src, join(dest, f))
+		elif isdir(src):
+			copy_file(src, join(dest, f))
 
 print("running project import script")
 
 destination = sys.argv[1]
 source = sys.argv[2]
-toolchain_path = os.path.join(destination, "toolchain.json")
+toolchain_path = join(destination, "toolchain.json")
 
-if not (os.path.exists(toolchain_path) and os.path.exists(source)):
+if not (exists(toolchain_path) and exists(source)):
 	exit("invalid arguments passed to import script, usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
 
 with open(toolchain_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())
 
 if source == '.':
-	dirname = os.path.basename(os.getcwd())
+	dirname = basename(os.getcwd())
 else:
-	dirname = os.path.basename(source)
+	dirname = basename(source)
 
 init_adb(make_obj, dirname)
 

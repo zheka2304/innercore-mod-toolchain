@@ -1,5 +1,5 @@
 import os
-import os.path
+from os.path import join, exists, isfile
 import json
 
 from make_config import make_config, MakeConfig
@@ -15,33 +15,33 @@ class ProjectManager:
         self.root_dir = config.root_dir
         self.__projects = []
         for _dir in os.listdir(config.root_dir):
-            path = os.path.join(config.root_dir,  _dir, "make.json")
-            if os.path.exists(path) and os.path.isfile(path):
+            path = join(config.root_dir,  _dir, "make.json")
+            if exists(path) and isfile(path):
                 self.__projects.append(_dir)
-    
+
     def createProject(self, name, author = "", version = "1.0", description = "", folder = None):
         if folder == None:
             folder = NameToFolderName(name)
 
-        path = os.path.join(self.root_dir, folder)
-        if os.path.exists(path):
+        path = join(self.root_dir, folder)
+        if exists(path):
             raise IOError(f"""Folder "{folder}" exists""")
 
         os.mkdir(path)
         copy_directory(self.config.get_path("toolchain/simple-project"), path, True)
-        
-        make_path = os.path.join(path, "make.json")
+
+        make_path = join(path, "make.json")
         with open(make_path, "r", encoding="utf-8") as make_file:
             make_obj = json.loads(make_file.read())
-        
+
         make_obj['info']["name"] = name
         make_obj['info']["author"] = author
         make_obj['info']["version"] = version
         make_obj['info']["description"] = description
-        
+
         with open(make_path, "w", encoding="utf-8") as make_file:
             make_file.write(json.dumps(make_obj, indent=" " * 4))
-        
+
         vsc_settings_path = self.config.get_path(".vscode/settings.json")
         with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
             vsc_settings_obj = json.loads(vsc_settings_file.read())
@@ -50,7 +50,7 @@ class ProjectManager:
         self.__projects.append(folder)
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
             vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
-        
+
         return self.countProjects() - 1
 
     def removeProject(self, index = None, folder = None):
@@ -58,10 +58,10 @@ class ProjectManager:
             raise Exception("Unable to delete a single project")
 
         index, folder = self.getFolder(index, folder)
-        
+
         if folder == self.config.get_value("currentProject"):
             raise Exception("The current project cannot be deleted")
-        
+
         clear_directory(self.config.get_path(folder))
         del self.__projects[index]
 
@@ -89,7 +89,7 @@ class ProjectManager:
             vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
 
         make_path = self.config.get_path("make.json")
-        
+
         self.config.currentProject = folder
         self.config.project_dir = self.root_dir + "/" + self.config.currentProject
         self.config.project_make = MakeConfig(self.config.project_dir + "/make.json")
@@ -108,7 +108,7 @@ class ProjectManager:
                 raise ValueError("index or folder must be specified")
             else:
                 index = next((i for i, x in enumerate(self.__projects) if x.lower() == folder.lower()), -1)
-        
+
         folder = self.__projects[index]
 
         return [index, folder]
@@ -124,7 +124,7 @@ class ProjectManager:
 
         id_length = len(str(l))
         print("№".ljust(id_length) + " | Name folder")
-        
+
         while(i < l):
             s = str(i+1).ljust(id_length) + " | " + self.__projects[i]
             print(s)

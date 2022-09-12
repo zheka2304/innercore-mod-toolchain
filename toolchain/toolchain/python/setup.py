@@ -31,7 +31,7 @@ else:
 	dirname = basename(destination)
 
 init_adb(make_obj, dirname)
-print("initializing mod.info")
+print("initializing project and mod.info")
 setup_mod_info(make_obj)
 print("initializing required directories")
 init_directories(destination)

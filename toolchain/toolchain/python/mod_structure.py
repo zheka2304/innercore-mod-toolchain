@@ -1,5 +1,5 @@
 import os
-import os.path
+from os.path import join, isfile, isdir
 import json
 
 from make_config import make_config
@@ -33,7 +33,7 @@ class ModStructure:
 		self.targets[target_type_name] = []
 		if target_type.directory == "":
 			return
-		directory = os.path.join(self.directory, target_type.directory)
+		directory = join(self.directory, target_type.directory)
 		clear_directory(directory)
 		ensure_directory(directory)
 
@@ -49,8 +49,11 @@ class ModStructure:
 		else:
 			self.targets[target_type_name] = []
 
-		target_path = os.path.join(self.directory, target_type.directory, formatted_name)
-		self.targets[target_type_name].append({"name": formatted_name, "path": target_path, **properties})
+		target_path = join(self.directory, target_type.directory, formatted_name)
+		self.targets[target_type_name].append({
+			"name": formatted_name,
+			"path": target_path, **properties
+		})
 		return target_path
 
 	def get_all_targets(self, target_type, prop=None, values=()):
@@ -70,15 +73,18 @@ class ModStructure:
 			if target_type.list_property == list_name and target_name in self.targets:
 				for target in self.targets[target_name]:
 					if "exclude" not in target or not target["exclude"]:
-						result.append({"path": target_type.directory + "/" + target["name"], **(target["declare"] if "declare" in target else {})})
+						result.append({
+							"path": target_type.directory + "/" + target["name"],
+							**(target["declare"] if "declare" in target else {})
+						})
 					if default_overrides is not None and "declare_default" in target:
 						for key, value in target["declare_default"].items():
 							default_overrides[key] = value
 		return result
 
 	def read_or_create_build_config(self):
-		build_config_file = os.path.join(self.directory, "build.config")
-		if os.path.isfile(build_config_file):
+		build_config_file = join(self.directory, "build.config")
+		if isfile(build_config_file):
 			with open(build_config_file, "r", encoding="utf-8") as build_config:
 				try:
 					self.build_config = json.loads(build_config.read())
@@ -90,8 +96,8 @@ class ModStructure:
 	def write_build_config(self):
 		if self.build_config is None:
 			return
-		build_config_file = os.path.join(self.directory, "build.config")
-		if os.path.isdir(build_config_file):
+		build_config_file = join(self.directory, "build.config")
+		if isdir(build_config_file):
 			clear_directory(build_config_file)
 			os.remove(build_config_file)
 		ensure_file_dir(build_config_file)

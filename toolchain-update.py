@@ -1,10 +1,9 @@
-import shutil
 import os
-import os.path as path
+from os.path import join, exists, isfile, isdir
 import sys
-
-import platform
+import shutil
 from datetime import datetime, timezone
+import platform
 
 
 def get_python():
@@ -24,29 +23,28 @@ def copytree(src, dst, clear_dst=False, replacement=None, ignore=[], ignore_list
 
     if len(ignore) > 0:
         for i in ignore:
-            ignore_list += glob(os.path.join(dst, i))
+            ignore_list += glob(join(dst, i))
 
-    import shutil
     for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.isfile(s) and os.path.exists(d) and not replacement:
+        s = join(src, item)
+        d = join(dst, item)
+        if isfile(s) and exists(d) and not replacement:
             continue
 
-        if os.path.isdir(s):
+        if isdir(s):
             copytree(s, d, clear_dst, replacement, ignore_list=ignore_list, ignoreEx=ignoreEx)
         elif indexOf(ignore_list, d) == -1:
             shutil.copy2(s, d)
 
 def download_and_extract_toolchain(directory):
-    import urllib.request
+    from urllib.request import urlretrieve
     import zipfile
-    archive = path.join(directory, 'update.zip')
+    archive = join(directory, 'update.zip')
 
-    if not path.exists(archive):
+    if not exists(archive):
         url = "https://codeload.github.com/80LK/innercore-mod-toolchain/zip/master"
         print("downloading toolchain archive from " + url)
-        urllib.request.urlretrieve(url, archive)
+        urlretrieve(url, archive)
     else: 
         print("toolchain archive already exists in " + directory)
 
@@ -56,13 +54,13 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        copytree(path.join(directory, "innercore-mod-toolchain-master/toolchain"), directory, ignore=["toolchain.json", "*/adb/*"])
-        shutil.rmtree(path.join(directory, "innercore-mod-toolchain-master"))
+        copytree(join(directory, "innercore-mod-toolchain-master/toolchain"), directory, ignore=["toolchain.json", "*/adb/*"])
+        shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)
     finally:
         os.remove(archive)
-        if not path.exists(path.join(directory, "toolchain")):
+        if not exists(join(directory, "toolchain")):
             print("an error occured while extracting toolchain archive, please, retry the operation")
             exit()
 
@@ -73,16 +71,15 @@ if len(sys.argv) > 1:
 else: 
     directory = '.'
 
-if not path.exists(path.join(directory, "toolchain")):
+if not exists(join(directory, "toolchain")):
     print("Toolchain not found.")
     exit()
-    
 
 download_and_extract_toolchain(directory)
 
-last_update_path = path.join(directory, "toolchain", "bin", ".last_update")
+last_update_path = join(directory, "toolchain", "bin", ".last_update")
 with open(last_update_path, "w", encoding="utf-8") as last_update_file:
     last_update_file.write(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
 
-os.remove(path.join(directory, "toolchain-update.py"))
+os.remove(join(directory, "toolchain-update.py"))
 print("Toolchain successfully updated!")

@@ -1,11 +1,11 @@
-import json
-import os.path as path
 import os
+from os.path import join, exists
+import json
 import urllib.request as request
 from datetime import datetime, timezone
 
-from make_config import make_config
 import utils
+from make_config import make_config
 
 
 date_format = "%Y-%m-%dT%H:%M:%SZ"
@@ -16,14 +16,13 @@ def set_last_update():
         last_update_file.write(datetime.now(timezone.utc).strftime(date_format))
 
 def download_and_extract_toolchain(directory):
-    import urllib.request
     import zipfile
-    archive = path.join(directory, 'toolchain.zip')
+    archive = join(directory, 'toolchain.zip')
 
-    if not path.exists(archive):
+    if not exists(archive):
         url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
         print("downloading toolchain archive from " + url)
-        urllib.request.urlretrieve(url, archive)
+        request.urlretrieve(url, archive)
     else: 
         print("toolchain archive already exists in " + directory)
 
@@ -33,20 +32,20 @@ def download_and_extract_toolchain(directory):
         zip_ref.extractall(directory)
 
     try:
-        utils.copy_directory(path.join(directory, "innercore-mod-toolchain-master/toolchain"), directory, ignore = ["toolchain.json", "*/adb/*"], ignoreEx = True)
-        utils.clear_directory(path.join(directory, "innercore-mod-toolchain-master"))
+        utils.copy_directory(join(directory, "innercore-mod-toolchain-master/toolchain"), directory, ignore = ["toolchain.json", "*/adb/*"], ignoreEx = True)
+        utils.clear_directory(join(directory, "innercore-mod-toolchain-master"))
     except Exception as ex: 
         print(ex)
     finally:
         os.remove(archive)
-        if not path.exists(path.join(directory, "toolchain")):
+        if not exists(join(directory, "toolchain")):
             print("an error occured while extracting toolchain archive, please, retry the operation")
             exit()
 
 def update():
     print("Getting information about your latest update...")
 
-    if path.exists(last_update_path):
+    if exists(last_update_path):
         with open(last_update_path, "r", encoding="utf-8") as last_update_file:
             last_update = datetime.strptime(last_update_file.read(), date_format)
 

@@ -1,9 +1,9 @@
+from os.path import exists, splitext, basename, isfile
 import sys
 
+from utils import clear_directory, copy_file, copy_directory
 from make_config import make_config
 from mod_structure import mod_structure
-from utils import clear_directory, copy_file, copy_directory
-from os.path import exists, splitext, basename, isfile
 from includes import Includes
 
 
