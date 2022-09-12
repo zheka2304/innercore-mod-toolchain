@@ -19,6 +19,8 @@
         "toolchain/*.sh": true,
         "innercore-mod-toolchain-master": true,
         "update.zip": true,
+        ".classpath": true,
+        ".gitignore": true,
         "**/*.log": true
     },
     "C_Cpp.errorSquiggles": "Disabled"

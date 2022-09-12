@@ -70,14 +70,6 @@ To install Android NDK of any version on you computer, you should first download
 
 To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task. This task performs the required setup and builds the whole project. If your project contains native code, local NDK installation will be created. This can take some time.
 
-## toolchain.json
-
-*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. Projects basic configuration can be changed here.
-
-### Working with Android Debug Bridge
-
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `pushTo` property in your *toolchain.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
-
 ## make.json
 
 *make.json* is the main configuration file of the every project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood.
@@ -103,6 +95,14 @@ Here's a description of some of the key properties you can specify in your *make
    - *java* is used to compile Java sources. Note that you have to install JDK of version 1.8 or higher to run this type of compilation
  - **additional** contains additional directories that should be copied to the mod build. In this example, root directory is copied to the root of the mod
 
+## toolchain.json
+
+*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. Projects basic configuration can be changed here.
+
+### Working with Android Debug Bridge
+
+Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `pushTo` property in your *toolchain.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
+
 ## Documentation and Further Resources
 
 All the documentation is available at https://docs.mineprogramming.org.
@@ -116,14 +116,14 @@ To update your local typescript header files (used for hints in JavaScript files
 To add a new one module, create a directory in *java* folder and add it to *.classpath* file in project folder as a new entry:
 
 ```xml
-<classpathentry kind="src" path="src/java/module_name/src" />
+<classpathentry kind="src" path="java/<module_name>/src" />
 ```
 
 To add *.jar* libraries to classpath and to the compiler, move your library file
 to the *libs* directory and add a new entry to the *.classpath* file:
 
 ```xml
-<classpathentry kind="lib" path="src/java/sample/lib/lib_name.jar" />
+<classpathentry kind="lib" path="java/<module_name>/lib/<lib_name>.jar" />
 ```
 
 ## Building and Publishing a Release Version of the Mod

@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "toolchain"
+		}
+	],
+	"settings": {
+		"java.dependency.packagePresentation": "flat",
+		"java.dependency.syncWithFolderExplorer": true,
+		"java.project.referencedLibraries": [
+			"toolchain/classpath/**/*.jar"
+		],
+		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
+		"search.useParentIgnoreFiles": true,
+		"C_Cpp.errorSquiggles": "Disabled"
+	}
+}
