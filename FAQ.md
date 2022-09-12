@@ -9,6 +9,10 @@ If task **Connect to ADB** is not what you were looking for, try reading https:/
 ### I cannot find pushed location
 Check `pushTo` property in *toolchain.json* file at the root of toolchain, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
 
+### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor.
+
+One of most convenient and advantageous ways to find out which folder you are interacting with is to open any file in the project that you want to act on. By default, the last opened folder is used, if it does not exist, you will be prompted to create a new project.
+
 ## Issues you may encounter in terminal
 
 ### tsc: command not found

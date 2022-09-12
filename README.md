@@ -1,12 +1,12 @@
-# Inner Core Toolchain Guide
+# Inner Core Mod Toolchain
 
-[![FAQ](https://img.shields.io/badge/figure_out-FAQ-black?style=for-the-badge)](FAQ.md)
-![Windows](https://img.shields.io/badge/windows-compatible-blue?style=for-the-badge&logo=windows&logoColor=white)
-![Linux](https://img.shields.io/badge/linux-compatible-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)
+[![FAQ](https://img.shields.io/badge/figure_out-FAQ-888888?style=for-the-badge)](FAQ.md)
+[![Windows](https://img.shields.io/badge/windows-compatible-blue?style=for-the-badge&logo=windows&logoColor=white)](README.md)
+[![Linux](https://img.shields.io/badge/linux-compatible-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)](README.md)
 
 ## Requirements
 
-**Inner Core for Horizon toolchain** is a toolchain that can be used to efficiently develop and build mods from your PC.
+**Inner Core Mod Toolchain for Horizon** is a toolchain that can be used to efficiently develop and build Minecraft: Bedrock mods from your PC.
 
 To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
@@ -15,11 +15,13 @@ To work properly this toolchain requires:
  - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding)
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
- - TSLint for TypeScript / ESLint for JavaScript (Microsoft)
+ - ESLint (Microsoft), TSLint now deprecated
  - C/C++ Extension Pack (Microsoft)
- - Java Extension Pack (Microsoft)
+ - Extension Pack for Java (Microsoft)
 
 ### Setting up the Environment
+
+Just clone or [download this repository](https://github.com/zheka2304/innercore-mod-toolchain/archive/refs/heads/master.zip) and open [toolchain.code-workspace](toolchain.code-workspace), it contains everything that needed and will be set up automatically!
 
 [![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
 

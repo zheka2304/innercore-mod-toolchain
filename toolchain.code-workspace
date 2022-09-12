@@ -1,7 +1,8 @@
 {
 	"folders": [
 		{
-			"path": "toolchain"
+			"path": "toolchain",
+			"name": "Inner Core Mod Toolchain"
 		}
 	],
 	"settings": {
@@ -11,7 +12,18 @@
 			"toolchain/classpath/**/*.jar"
 		],
 		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
+		"window.titleSeparator": " — ",
 		"search.useParentIgnoreFiles": true,
 		"C_Cpp.errorSquiggles": "Disabled"
+	},
+	"extensions": {
+		"recommendations": [
+			"dbaeumer.vscode-eslint",
+			"ms-vscode.cpptools-extension-pack",
+			"vscjava.vscode-java-pack"
+		],
+		"unwantedRecommendations": [
+			"ms-vscode.vscode-typescript-tslint-plugin"
+		]
 	}
 }
