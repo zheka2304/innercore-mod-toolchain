@@ -1,12 +1,5 @@
-.vscode/.ropeproject
 toolchain/bin/.gradle
 toolchain/build
 toolchain/temp
 toolchain/ndk
-output
 !.idea/runConfigurations
-**/__pycache__
-**/tsconfig.json
-
-*.log
-*.icmod

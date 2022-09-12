@@ -1,0 +1,6 @@
+.vscode/.ropeproject
+output
+**/__pycache__
+
+*.log
+*.icmod
