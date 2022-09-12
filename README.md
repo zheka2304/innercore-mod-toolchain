@@ -12,7 +12,7 @@ To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
  - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding), you need to have `tsc` installed (to install run `npm install -g tsc`)
  - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding). Preferred version is r16b
- - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding) 
+ - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding)
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
  - TSLint for TypeScript / ESLint for JavaScript (Microsoft)
@@ -26,11 +26,11 @@ You can find detailed explanation about how to set up all the requirements in th
 ## Creating a new project
 
 To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python in Windows:
-```
+```cmd
 python .\toolchain-setup.py project_folder
 ```
 or in Linux shell:
-```
+```sh
 python3 ./toolchain-setup.py project_folder
 ```
 
@@ -41,11 +41,11 @@ The script will create a new project and set it up for native and/or java develo
 ## Importing existing project
 
 To create a project from an existing Inner Core mod, use the script *toolchain-import.py*. It should be placed in the mod directory and run using python in Windows:
-```
+```cmd
 python .\toolchain-import.py
 ```
 or in Linux shell:
-```
+```sh
 python3 ./toolchain-import.py
 ```
 
@@ -54,11 +54,11 @@ You can optionally pass old project directory as the first parameter of the scri
 ## Update toolchain
 
 To update toolchain, use the script *toolchain-update.py* script. It should be placed in the toolchain directory and run using python in Windows:
-```
+```cmd
 python .\toolchain-update.py
 ```
 or in Linux shell:
-```
+```sh
 python3 ./toolchain-update.py
 ```
 
@@ -70,20 +70,23 @@ To install Android NDK of any version on you computer, you should first download
 
 To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task. This task performs the required setup and builds the whole project. If your project contains native code, local NDK installation will be created. This can take some time.
 
+## toolchain.json
+
+*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change these settings.
+
 ## make.json
 
-*make.json* is the main configuration file of the project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood.
+*make.json* is the main configuration file of the every project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood.
 
 Here's a description of some of the key properties you can specify in your *make.json*:
- - **global&#46;info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
- - **global&#46;api** specifies what JavaScript API is used in the mod by default
- - **make** contains information about what libraries should be linked and what ABIs should the project target. You generally don't want to change these settings
- - **resources** specifies what resources should be included in the output mod. There are currently four resource types available:  
+ - **info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
+ - **api** specifies what JavaScript API is used in the mod by default
+ - **resources** specifies what resources should be included in the output mod. There are currently four resource types available:
    - *resource_directory* contains textures to use in Minecraft
    - *gui* contains all the gui textures
    - *minecraft_resource_pack* contains vanilla resource packs to be used with the mod
    - *minecraft_behavior_pack* contains vanilla behavior packs to be used with the mod
- - **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently four types of sources: 
+ - **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently four types of sources:
    - *main* contains main mod logic
    - *launcher* contains mod launching logics
    - *preloader* is run before resources injection. This is useful to generate resources programmatically before Minecraft loads them
@@ -98,9 +101,9 @@ Here's a description of some of the key properties you can specify in your *make
 
 ## Documentation and Further Resources
 
-All the documentation is available at https://docs.mineprogramming.org
+All the documentation is available at https://docs.mineprogramming.org.
 
-Some of the old (but mostly still applicable) information can be found at https://wiki.mineprogramming.org
+Some of the old (but mostly still applicable) information can be found at https://wiki.mineprogramming.org.
 
 To update your local typescript header files (used for hints in JavaScript files), go to https://github.com/zheka2304/innercore-mod-toolchain, download everything from *toolchain/jslibs* and unpack to your local *toolchain/jslibs* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
 
@@ -109,14 +112,14 @@ To update your local typescript header files (used for hints in JavaScript files
 To add a new one module, create a directory in *java* folder and add it to *.classpath* file in project folder as a new entry:
 
 ```xml
-<classpathentry kind="src" path="src/java/module_name/src"/>
+<classpathentry kind="src" path="src/java/module_name/src" />
 ```
 
 To add *.jar* libraries to classpath and to the compiler, move your library file
 to the *libs* directory and add a new entry to the *.classpath* file:
 
 ```xml
-<classpathentry kind="lib" path="src/java/sample/lib/lib_name.jar"/>
+<classpathentry kind="lib" path="src/java/sample/lib/lib_name.jar" />
 ```
 
 ## Working with Android Debug Bridge

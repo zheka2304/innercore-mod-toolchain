@@ -7,13 +7,13 @@ Here is presented most common questions and problems encounted by users.
 If task **Connect to ADB** is not what you were looking for, try reading https://developer.android.com/studio/command-line/adb.
 
 ### I cannot find pushed location
-Check `make.pushTo` property in *make.json* file at the root of opened project, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
+Check `pushTo` property in *toolchain.json* file at the root of toolchain, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
 
 ## Issues you may encounter in terminal
 
 ### tsc: command not found
 
-```
+```sh
 npm -g install typescript
 ```
 

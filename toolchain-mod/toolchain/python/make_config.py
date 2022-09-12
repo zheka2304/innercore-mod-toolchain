@@ -6,6 +6,8 @@ from base_config import BaseConfig
 
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
+		if not os.path.isfile(filename):
+			raise RuntimeError("Not found make.json, are you sure that project exists?")
 		self.filename = filename
 		self.root_dir = os.path.abspath(os.path.join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
@@ -40,8 +42,8 @@ class ToolchainConfig(MakeConfig):
 		MakeConfig.__init__(self, filename)
 		self.currentProject = self.get_value('currentProject', None)
 		if self.currentProject != None:
-			self.project_dir = self.root_dir + "/" + self.currentProject
-			self.project_make = MakeConfig(self.project_dir + "/make.json")
+			self.project_dir = os.path.join(self.root_dir, self.currentProject)
+			self.project_make = MakeConfig(os.path.join(self.project_dir, "make.json"))
 	
 	def get_project_value(self, name, fallback=None):
 		return self.project_make.get_value(name, fallback)
@@ -62,15 +64,15 @@ class ToolchainConfig(MakeConfig):
 		return self.get_path("toolchain/adb/adb")
 
 
-# search for make.json
+# search for toolchain.json
 make_config = None
 for i in range(0, 4):
-	make_file = os.path.join("../" * i, "make.json")
+	make_file = os.path.join("../" * i, "toolchain.json")
 	if os.path.isfile(make_file):
 		make_config = ToolchainConfig(make_file)
 		break
 if make_config is None:
-	raise RuntimeError("failed to find make.json")
+	raise RuntimeError("not found toolchain.json")
 
 if __name__ == '__main__':
 	print(make_config.get_value("native"))
