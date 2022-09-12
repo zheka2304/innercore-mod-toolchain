@@ -19,9 +19,9 @@ It is also highly recommended you install Visual Studio Code code editor. This e
  - C/C++ Extension Pack (Microsoft)
  - Java Extension Pack (Microsoft)
 
-You can find detailed explanation about how to set up all the requirements in this video:
+### Setting up the Environment
 
-[![Inner Core/Horizon Mods Development | Setting up the Environment](https://img.youtube.com/vi/ofwKkRYh97k/0.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
+[![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
 
 ## Creating a new project
 
@@ -35,8 +35,6 @@ python3 ./toolchain-setup.py project_folder
 ```
 
 The script will create a new project and set it up for native and/or java development. See detailed explanations in the video:
-
-[![Inner Core/Horizon Mods Development | Creating and Importing Projects](https://img.youtube.com/vi/ykAVJoxKTKc/0.jpg)](https://www.youtube.com/watch?v=ykAVJoxKTKc)
 
 ## Importing existing project
 
