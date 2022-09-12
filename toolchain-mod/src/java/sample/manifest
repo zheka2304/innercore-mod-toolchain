@@ -4,6 +4,6 @@
 	],
 	"library-dirs": [],
 	"boot-classes": [
-		"com.sample_mod.main.Boot"
+		"com.sample_mod.sample_package.Boot"
 	]
 }

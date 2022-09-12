@@ -1,4 +1,4 @@
-package com.sample_mod.main;
+package com.sample_mod.sample_package;
 
 import java.util.HashMap;
 
