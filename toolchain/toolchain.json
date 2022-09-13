@@ -9,7 +9,12 @@
         "innercore",
         "nativejs"
     ],
-    "currentProject": null,
     "pushTo": "/storage/emulated/0/games/horizon/packs/Inner_Core",
-    "ndkPath": null
+    "ndkPath": null,
+    "projectLocations": [
+        "",
+        "../"
+    ],
+    "workspaceFile": "../toolchain.code-workspace",
+    "currentProject": "../toolchain-sample-mod"
 }

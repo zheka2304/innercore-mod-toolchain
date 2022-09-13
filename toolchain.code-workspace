@@ -3,6 +3,10 @@
 		{
 			"path": "toolchain",
 			"name": "Inner Core Mod Toolchain"
+		},
+		{
+			"path": "toolchain-sample-mod",
+			"name": "Sample Mod"
 		}
 	],
 	"settings": {

@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isfile, isdir
+from os.path import join, exists, isfile
 import json
 
 from make_config import make_config, MakeConfig
@@ -14,15 +14,18 @@ class ProjectManager:
         self.config = config
         self.root_dir = config.root_dir
         self.__projects = []
-        for _dir in os.listdir(config.root_dir):
-            path = join(config.root_dir, _dir, "make.json")
-            if exists(path) and isfile(path):
-                self.__projects.append(_dir)
-            elif isdir(_dir):
-                for _subdir in os.listdir(_dir):
-                    subpath = join(path, _subdir, "make.json")
-                    if exists(subpath) and isfile(subpath):
-                        self.__projects.append(_subdir)
+        locations = config.get_value("projectLocations", [config.root_dir])
+        for location in locations:
+            realpath = join(config.root_dir, location)
+            if not exists(realpath):
+                print(f"Not found project location {location}")
+                continue
+            for next in os.listdir(realpath):
+                if next == "toolchain-mod":
+                    continue
+                path = join(realpath, next, "make.json")
+                if exists(path) and isfile(path):
+                    self.__projects.append(join(location, next))
 
     def createProject(self, name, author="", version="1.0", description="", folder=None):
         if folder == None:
@@ -34,7 +37,7 @@ class ProjectManager:
         if not exists(self.config.get_path("../toolchain-mod")):
             raise RuntimeError("Not found ../toolchain-mod template, nothing to do.")
 
-        os.mkdir(path)
+        os.makedirs(path)
         copy_directory(self.config.get_path("../toolchain-mod"), path, True)
 
         make_path = join(path, "make.json")
@@ -86,15 +89,18 @@ class ProjectManager:
             del self.config.project_dir
             del self.config.project_make
         else:
-             self.config.project_dir = join(self.root_dir, self.config.currentProject)
-             self.config.project_make = MakeConfig(join(self.config.project_dir, "make.json"))
+            self.config.project_dir = join(self.root_dir, self.config.currentProject)
+            self.config.project_make = MakeConfig(join(self.config.project_dir, "make.json"))
 
         make_path = self.config.get_path("toolchain.json")
 
         with open(make_path, "r", encoding="utf-8") as make_file:
             make_obj = json.loads(make_file.read())
 
-        make_obj['currentProject'] = folder
+        if folder is None:
+            del make_obj['currentProject']
+        else:
+            make_obj['currentProject'] = folder
 
         with open(make_path, "w", encoding="utf-8") as make_file:
             make_file.write(json.dumps(make_obj, indent=" " * 4))
@@ -130,7 +136,7 @@ class ProjectManager:
     def countProjects(self):
         return len(self.__projects)
 
-    def printListProjects(self, title="List of projects"):
+    def printListProjects(self, title="List of projects", includeSelection=True):
         print(title)
 
         l = self.countProjects()
@@ -141,7 +147,7 @@ class ProjectManager:
 
         while i < l:
             s = str(i + 1).ljust(id_length) + " | " + self.__projects[i]
-            print(s)
+            print(f"{s} ✔" if includeSelection and self.__projects[i] == self.config.currentProject else s)
             i += 1
 
 

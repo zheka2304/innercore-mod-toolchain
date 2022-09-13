@@ -1,5 +1,5 @@
 import os
-from os.path import join, abspath, isfile, isdir
+from os.path import join, basename, abspath, isfile, isdir
 import json
 
 from base_config import BaseConfig
@@ -7,7 +7,7 @@ from base_config import BaseConfig
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
 		if not isfile(filename):
-			raise RuntimeError("Not found make.json, are you sure that project exists?")
+			raise RuntimeError(f"Not found {basename(filename)}, are you sure that project exists?")
 		self.filename = filename
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
@@ -82,6 +82,3 @@ for i in range(0, 4):
 		break
 if make_config is None:
 	raise RuntimeError("Not found toolchain.json!")
-
-if __name__ == '__main__':
-	print(make_config.get_value("native"))

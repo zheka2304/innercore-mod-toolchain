@@ -286,7 +286,7 @@ def task_create_project():
 	r = input("Select this project? [Y/n]: ")
 	if r.lower() != "n":
 		projectManager.selectProject(index = index)
-		print("Project select.")
+		print(f"Project {index} selected.")
 
 	return 0
 
@@ -331,11 +331,13 @@ def task_select_project():
 	select = input("Enter the ID or name of the project folder you want to select: ")
 
 	if select == "":
-		error("Cancel selection.")
+		error("Cancelled selection.")
 
 	try:
 		select = int(select)
 		try:
+			if (select < 1):
+				raise IndexError()
 			projectManager.selectProject(index = select - 1)
 		except IndexError:
 			error(f"Project №{select} not found.")
@@ -345,7 +347,7 @@ def task_select_project():
 		except ValueError:
 			error(f"""Folder "{select}" not found.""")
 
-	print("Project select.")
+	print(f"Project {select} selected.")
 	return 0
 
 @task("updateToolchain")
