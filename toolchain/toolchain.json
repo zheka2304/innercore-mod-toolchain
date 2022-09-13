@@ -9,6 +9,7 @@
         "innercore",
         "nativejs"
     ],
+    "pushUnchangedFiles": false,
     "pushTo": "/storage/emulated/0/games/horizon/packs/Inner_Core",
     "ndkPath": null,
     "projectLocations": [

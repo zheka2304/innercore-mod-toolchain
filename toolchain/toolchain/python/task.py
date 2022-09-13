@@ -166,7 +166,7 @@ def task_build_additional():
 @task("pushEverything", lock=["push"])
 def task_push_everything():
 	from push import push
-	return push(get_make_config().get_project_path("output"))
+	return push(get_make_config().get_project_path("output"), False, get_make_config().get_value("pushUnchangedFiles", False))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output():
