@@ -13,12 +13,9 @@
 		"java.dependency.packagePresentation": "flat",
 		"java.dependency.syncWithFolderExplorer": true,
 		"java.project.referencedLibraries": [
-			"toolchain/classpath/**/*.jar",
-			"../toolchain/classpath/**/*.jar",
-			"toolchain/toolchain/classpath/**/*.jar",
-			"../toolchain/toolchain/classpath/**/*.jar"
+			"${workspaceFolder}/toolchain/classpath/**/*.jar"
 		],
-		"java.project.outputPath": "toolchain/build/java",
+		"java.project.outputPath": "${workspaceFolder}/toolchain/build/java",
 		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
 		"window.titleSeparator": " — ",
 		"search.useParentIgnoreFiles": true,
