@@ -2,25 +2,10 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Assemble Mod for Release",
-			"type": "shell",
-			"command": "../assemble-release.sh",
-			"options": {
-				"cwd": "./toolchain/python",
-			},
-			"windows": {
-				"command": "..\\assemble-release.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
 			"label": "Build and Push Everything",
+			"icon": {
+				"id": "rocket"
+			},
 			"type": "shell",
 			"command": "../build-and-push-all.sh",
 			"options": {
@@ -39,7 +24,54 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Build and Push Java",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"type": "shell",
+			"command": "../compile-java.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\compile-java.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build and Push Native",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"type": "shell",
+			"command": "../compile-native.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\compile-native.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Everything",
+			"icon": {
+				"id": "run-all"
+			},
 			"type": "shell",
 			"command": "../build-all.sh",
 			"options": {
@@ -59,6 +91,9 @@
 		},
 		{
 			"label": "Build Scripts and Resources",
+			"icon": {
+				"id": "debug-all"
+			},
 			"type": "shell",
 			"command": "../build-scripts-and-resources.sh",
 			"options": {
@@ -77,61 +112,10 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Cleanup",
-			"type": "shell",
-			"command": "../cleanup.sh",
-			"options": {
-				"cwd": "./toolchain/python"
-			},
-			"windows": {
-				"command": "..\\cleanup.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"label": "Build and Push Java",
-			"type": "shell",
-			"command": "../compile-java.sh",
-			"options": {
-				"cwd": "./toolchain/python"
-			},
-			"windows": {
-				"command": "..\\compile-java.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"label": "Build and Push Native",
-			"type": "shell",
-			"command": "../compile-native.sh",
-			"options": {
-				"cwd": "./toolchain/python"
-			},
-			"windows": {
-				"command": "..\\compile-native.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
 			"label": "Connect to ADB",
+			"icon": {
+				"id": "device-mobile"
+			},
 			"type": "shell",
 			"command": "python3",
 			"options": {
@@ -155,7 +139,128 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Download Declarations",
+			"label": "Project: Assemble",
+			"icon": {
+				"id": "archive"
+			},
+			"type": "shell",
+			"command": "../assemble-release.sh",
+			"options": {
+				"cwd": "./toolchain/python",
+			},
+			"windows": {
+				"command": "..\\assemble-release.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Project: New",
+			"icon": {
+				"id": "new-folder"
+			},
+			"type": "shell",
+			"command": "../project-create.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\project-create.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Project: Select",
+			"icon": {
+				"id": "folder-opened"
+			},
+			"type": "shell",
+			"command": "../project-select.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\project-select.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Project: Remove",
+			"icon": {
+				"id": "root-folder-opened"
+			},
+			"type": "shell",
+			"command": "../project-remove.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\project-remove.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Toolchain: Check for Updates",
+			"icon": {
+				"id": "cloud"
+			},
+			"type": "shell",
+			"command": "../update-toolchain.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\update-toolchain.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Toolchain: Download Declarations",
+			"icon": {
+				"id": "symbol-type-parameter"
+			},
 			"type": "shell",
 			"command": "../download-declarations.sh",
 			"options": {
@@ -174,52 +279,39 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Create new project",
-			"type": "shell",
-			"options": {
-				"cwd": ".\\toolchain\\python"
+			"label": "Toolchain: Remove Cache",
+			"icon": {
+				"id": "flame"
 			},
-			"command": "python task.py createProject cleanup",
+			"type": "shell",
+			"command": "../cleanup.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\cleanup.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+			"problemMatcher": []
 		},
 		{
-			"label": "Remove project",
-			"type": "shell",
-			"options": {
-				"cwd": ".\\toolchain\\python"
+			"label": "TODO: Where am I?",
+			"icon": {
+				"id": "tools"
 			},
-			"command": "python task.py removeProject cleanup",
+			"type": "shell",
+			"command": "echo userHome: ${userHome}; echo execPath: ${execPath}; echo cwd: ${cwd}; echo defaultBuildTask: ${defaultBuildTask}; echo file: ${file}; echo lineNumber: ${lineNumber}; echo fileBasenameNoExtension: ${fileBasenameNoExtension}; echo fileDirname: ${fileDirname}; echo fileBasename: ${fileBasename}; echo fileExtname: ${fileExtname}; echo fileWorkspaceFolder: ${fileWorkspaceFolder}; echo relativeFileDirname: ${relativeFileDirname}; echo relativeFile: ${relativeFile}; echo workspaceFolder: ${workspaceFolder}; echo workspaceFolderBasename: ${workspaceFolderBasename}",
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
-		},
-		{
-			"label": "Select project",
-			"type": "shell",
-			"options": {
-				"cwd": ".\\toolchain\\python"
 			},
-			"command": "python task.py selectProject cleanup",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"label": "Update toolchain",
-			"type": "shell",
-			"options": {
-				"cwd": ".\\toolchain\\python"
-			},
-			"command": "python task.py updateToolchain",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
+			"problemMatcher": []
 		}
 	],
 	"inputs": [
@@ -233,6 +325,24 @@
 			"id": "port",
 			"description": "Port:",
 			"default": "5037",
+			"type": "promptString"
+		},
+		{
+			"id": "projectName",
+			"description": "Name:",
+			"default": "",
+			"type": "promptString"
+		},
+		{
+			"id": "projectAuthor",
+			"description": "Author:",
+			"default": "",
+			"type": "promptString"
+		},
+		{
+			"id": "projectFolder",
+			"description": "Folder:",
+			"default": "",
 			"type": "promptString"
 		}
 	]
