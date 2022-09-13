@@ -1,5 +1,5 @@
 import os
-from os import join, exists, abspath, isfile, isdir
+from os.path import join, exists, abspath, isfile, isdir
 
 
 def ensure_directory(directory):

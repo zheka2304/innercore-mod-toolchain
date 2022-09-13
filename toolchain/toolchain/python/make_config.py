@@ -1,6 +1,6 @@
-import json
 import os
 from os.path import join, abspath, isfile, isdir
+import json
 
 from base_config import BaseConfig
 
@@ -44,20 +44,29 @@ class ToolchainConfig(MakeConfig):
 		if self.currentProject != None:
 			self.project_dir = join(self.root_dir, self.currentProject)
 			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
-	
+
+	def assure_project_selected(self):
+		if not hasattr(self, "project_dir"):
+			raise RuntimeError("Not found any opened project, nothing to do.")
+
 	def get_project_value(self, name, fallback=None):
+		self.assure_project_selected()
 		return self.project_make.get_value(name, fallback)
 
 	def get_project_config(self, name, not_none=False):
+		self.assure_project_selected()
 		return self.project_make.get_config(name, not_none)
-		
+
 	def get_project_filtered_list(self, name, prop, values):
+		self.assure_project_selected()
 		return self.project_make.get_filtered_list(name, prop, values)
-	
+
 	def get_project_path(self, relative_path):
+		self.assure_project_selected()
 		return self.project_make.get_path(relative_path)
-	
+
 	def get_project_paths(self, relative_path, filter=None, paths=None):
+		self.assure_project_selected()
 		return self.project_make.get_paths(relative_path, filter, paths)
 
 	def get_adb(self):
@@ -72,7 +81,7 @@ for i in range(0, 4):
 		make_config = ToolchainConfig(make_file)
 		break
 if make_config is None:
-	raise RuntimeError("not found toolchain.json")
+	raise RuntimeError("Not found toolchain.json!")
 
 if __name__ == '__main__':
 	print(make_config.get_value("native"))

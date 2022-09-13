@@ -2,8 +2,15 @@ from os.path import exists
 from project_manager import projectManager, NameToFolderName
 
 
-def create_project(returnFolder = False):
+def create_project(returnFolder=False):
+    if not exists(projectManager.config.get_path("../toolchain-mod")):
+        raise RuntimeError("Not found ../toolchain-mod template, nothing to do.")
+
     name = input("Enter project name: ")
+
+    if name == "":
+        print("New project will not be created.")
+        exit(0)
 
     def_folder = NameToFolderName(name)
     i = 1

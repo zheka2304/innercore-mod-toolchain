@@ -136,7 +136,7 @@ def task_build_info():
 
 		info_file.write(json.dumps(info, indent=" " * 4))
 	icon_path = config.get_project_value("info.icon")
-	if icon_path is not None:
+	if icon_path is not None and exists(icon_path):
 		copy_file(config.get_project_path(icon_path),
 				  config.get_project_path("output/mod_icon.png"))
 	return 0
@@ -235,9 +235,9 @@ def stop_horizon():
 
 @task("loadDocs")
 def task_load_docs():
-	import urllib.request
+	from urllib.request import urlopen
 	print("downloading...")
-	response = urllib.request.urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
+	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
 	content = response.read().decode('utf-8')
 
 	with open(make_config.get_path("toolchain/declarations/core-engine.d.ts"), 'w') as docs:
@@ -293,15 +293,15 @@ def task_create_project():
 @task("removeProject")
 def task_remove_project():
 	from project_manager import projectManager
-	if projectManager.countProjects() == 1:
-		error("Unable to delete a single project")
+	if projectManager.countProjects() == 0:
+		error("Not found any project to remove.")
 
 	projectManager.printListProjects()
 
 	delete = input("Enter the ID or folder name of the project to be deleted: ")
 
 	if delete == "":
-		error("Cancel deletion.")
+		error("Cancelled deletion.")
 
 	try:
 		try:
@@ -324,8 +324,8 @@ def task_remove_project():
 @task("selectProject")
 def task_select_project():
 	from project_manager import projectManager
-	if projectManager.countProjects() == 1:
-		error("Only one project created.")
+	if projectManager.countProjects() == 0:
+		error("Not found any project to select.")
 
 	projectManager.printListProjects()
 	select = input("Enter the ID or name of the project folder you want to select: ")
@@ -336,7 +336,7 @@ def task_select_project():
 	try:
 		select = int(select)
 		try:
-			projectManager.selectProject(index = select-1)
+			projectManager.selectProject(index = select - 1)
 		except IndexError:
 			error(f"Project №{select} not found.")
 	except ValueError:
@@ -364,8 +364,8 @@ def task_cleanup():
 	try:
 		import java.java_build
 		java.java_build.cleanup_gradle_scripts()
-	except BaseException as err:
-		sys.stdout.write("gradle cleanup failed: " + err)
+	except BaseException:
+		sys.stdout.write("gradle cleanup skipped due to error\n")
 	return 0
 
 def error(message, code=-1):
