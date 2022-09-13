@@ -27,7 +27,7 @@ class ProjectManager:
                 if exists(path) and isfile(path):
                     self.__projects.append(join(location, next))
 
-    def createProject(self, name, author="", version="1.0", description="", folder=None):
+    def createProject(self, name, author="", version="1.0", description="", folder=None, client=False):
         if folder == None:
             folder = NameToFolderName(name)
 
@@ -48,6 +48,7 @@ class ProjectManager:
         make_obj['info']["author"] = author
         make_obj['info']["version"] = version
         make_obj['info']["description"] = description
+        make_obj['info']["client"] = client
 
         with open(make_path, "w", encoding="utf-8") as make_file:
             make_file.write(json.dumps(make_obj, indent=" " * 4))
@@ -60,6 +61,9 @@ class ProjectManager:
         self.__projects.append(folder)
         with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
             vsc_settings_file.write(json.dumps(vsc_settings_obj, indent=" " * 4))
+
+        from project_manager_tasks import setup_launcher_js
+        setup_launcher_js(make_obj, path)
 
         return self.countProjects() - 1
 

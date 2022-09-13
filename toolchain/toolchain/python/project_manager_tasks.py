@@ -1,4 +1,4 @@
-from os.path import exists
+from os.path import exists, join
 from project_manager import projectManager, NameToFolderName
 
 
@@ -26,6 +26,7 @@ def create_project(returnFolder=False):
     author = input("Enter author name: ")
     version = input("Enter project version [1.0]: ")
     description = input("Enter project description: ")
+    isClient = input("It will be client side [y/N]: ")
 
     if folder == "":
         folder = def_folder
@@ -33,10 +34,27 @@ def create_project(returnFolder=False):
     if version == "":
         version = "1.0"
 
+    if isClient.lower() == "y":
+        isClient = True
+    else:
+        isClient = False
+
     i = projectManager.createProject(name,
         folder = folder,
         author = author,
         version = version,
-        description = description)
+        description = description,
+        client = isClient)
 
     return folder if returnFolder else i
+
+def setup_launcher_js(make_obj, path):
+    with open(join(path, "launcher.js"), 'w') as file:
+        file.write("""ConfigureMultiplayer({
+    name: \"""" + make_obj["info"]["name"] + """\",
+    version: \"""" + make_obj["info"]["version"] + """\",
+    isClientOnly: """ + ("true" if make_obj["info"]["client"] else "false") + """
+});
+
+Launch();
+""")

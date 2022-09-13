@@ -5,6 +5,7 @@ import sys
 import platform
 
 from setup_commons import init_adb, init_directories, init_java_and_native, cleanup_if_required
+from project_manager_tasks import setup_launcher_js
 from update import set_last_update
 
 
@@ -37,6 +38,7 @@ print("initializing required directories")
 init_directories(destination)
 print("initializing java and native modules")
 init_java_and_native(make_obj, destination)
+setup_launcher_js(make_obj, destination)
 cleanup_if_required(destination)
 
 with open(make_path, "w", encoding="utf-8") as make_file:
