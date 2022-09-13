@@ -23,5 +23,11 @@
         ".gitignore": true,
         "**/*.log": true
     },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.code-search": true,
+        "toolchain/**/*": true
+    },
     "C_Cpp.errorSquiggles": "Disabled"
 }
