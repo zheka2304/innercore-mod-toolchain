@@ -11,13 +11,15 @@
 To work properly this toolchain requires:
  - [Python](https://www.python.org/) 3.6 or higher
  - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding), you need to have `tsc` installed (to install run `npm install -g tsc`)
- - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding). Preferred version is r16b
- - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) or higher (for Java modding)
+ - Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding), it will be installed by toolchain when needed otherwise; preferred version is r16b
+ - [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) (for Java modding)
 
 It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
  - ESLint (Microsoft), TSLint now deprecated
  - C/C++ Extension Pack (Microsoft)
  - Extension Pack for Java (Microsoft)
+ 
+ Also, IntelliJ supported, but some multiproject operations more harder than in Visual Studio Code.
 
 ### Setting up the Environment
 
@@ -29,14 +31,12 @@ Just clone or [download this repository](https://github.com/zheka2304/innercore-
 
 To create a new project for Inner Core, use the script *toolchain-setup.py*. It should be placed in your projects directory and run using python in Windows:
 ```cmd
-python .\toolchain-setup.py project_folder
+python .\toolchain-setup.py <project_folder>
 ```
 or in Linux shell:
 ```sh
-python3 ./toolchain-setup.py project_folder
+python3 ./toolchain-setup.py <project_folder>
 ```
-
-The script will create a new project and set it up for native and/or java development. See detailed explanations in the video:
 
 ## Importing existing project
 
@@ -128,4 +128,4 @@ to the *libs* directory and add a new entry to the *.classpath* file:
 
 ## Building and Publishing a Release Version of the Mod
 
-To build a release version of the mod, run **Assemble Mod for Release** task. An *mod.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md.
+To build a release version of the mod, run **Assemble Mod for Release** task. An *<project_folder>/release.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md.

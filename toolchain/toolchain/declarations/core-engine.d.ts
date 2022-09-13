@@ -6805,12 +6805,12 @@ declare namespace Block {
 		 * following order:
 		 * ```js 
 		 * texture: [
-		 *   ["название1", индекс1], // bottom (Y: -1)
-		 *   ["название2", индекс2], // top (Y: +1)
-		 *   ["название3", индекс3], // back (X: -1)
-		 *   ["название4", индекс4], // front (X: +1)
-		 *   ["название5", индекс5], // left (Z: -1)
-		 *   ["название6", индекс6]  // right (Z: +1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ1", РёРЅРґРµРєСЃ1], // bottom (Y: -1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ2", РёРЅРґРµРєСЃ2], // top (Y: +1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ3", РёРЅРґРµРєСЃ3], // back (X: -1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ4", РёРЅРґРµРєСЃ4], // front (X: +1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ5", РёРЅРґРµРєСЃ5], // left (Z: -1)
+		 *   ["РЅР°Р·РІР°РЅРёРµ6", РёРЅРґРµРєСЃ6]  // right (Z: +1)
 		 * ]
 		 * ```
 		 */
@@ -10929,29 +10929,29 @@ declare enum EBlockStates {
  * Defines text colors and font styles for chat and tip messages
  */
 declare enum EColor {
-    AQUA = "§b",
-    BEGIN = "§",
-    BLACK = "§0",
-    BLUE = "§9",
-    BOLD = "§l",
-    DARK_AQUA = "§3",
-    DARK_BLUE = "§1",
-    DARK_GRAY = "§8",
-    DARK_GREEN = "§2",
-    DARK_PURPLE = "§5",
-    DARK_RED = "§4",
-    GOLD = "§6",
-    GRAY = "§7",
-    GREEN = "§a",
-    ITALIC = "§o",
-    LIGHT_PURPLE = "§d",
-    OBFUSCATED = "§k",
-    RED = "§c",
-    RESET = "§r",
-    STRIKETHROUGH = "§m",
-    UNDERLINE = "§n",
-    WHITE = "§f",
-    YELLOW = "§e",
+    AQUA = "В§b",
+    BEGIN = "В§",
+    BLACK = "В§0",
+    BLUE = "В§9",
+    BOLD = "В§l",
+    DARK_AQUA = "В§3",
+    DARK_BLUE = "В§1",
+    DARK_GRAY = "В§8",
+    DARK_GREEN = "В§2",
+    DARK_PURPLE = "В§5",
+    DARK_RED = "В§4",
+    GOLD = "В§6",
+    GRAY = "В§7",
+    GREEN = "В§a",
+    ITALIC = "В§o",
+    LIGHT_PURPLE = "В§d",
+    OBFUSCATED = "В§k",
+    RED = "В§c",
+    RESET = "В§r",
+    STRIKETHROUGH = "В§m",
+    UNDERLINE = "В§n",
+    WHITE = "В§f",
+    YELLOW = "В§e",
 }
 
 /**
@@ -13574,29 +13574,29 @@ declare namespace Native {
      * Defines text colors and font styles for chat and tip messages
      */
     enum Color {
-        AQUA = "§b",
-        BEGIN = "§",
-        BLACK = "§0",
-        BLUE = "§9",
-        BOLD = "§l",
-        DARK_AQUA = "§3",
-        DARK_BLUE = "§1",
-        DARK_GRAY = "§8",
-        DARK_GREEN = "§2",
-        DARK_PURPLE = "§5",
-        DARK_RED = "§4",
-        GOLD = "§6",
-        GRAY = "§7",
-        GREEN = "§a",
-        ITALIC = "§o",
-        LIGHT_PURPLE = "§d",
-        OBFUSCATED = "§k",
-        RED = "§c",
-        RESET = "§r",
-        STRIKETHROUGH = "§m",
-        UNDERLINE = "§n",
-        WHITE = "§f",
-        YELLOW = "§e",
+        AQUA = "В§b",
+        BEGIN = "В§",
+        BLACK = "В§0",
+        BLUE = "В§9",
+        BOLD = "В§l",
+        DARK_AQUA = "В§3",
+        DARK_BLUE = "В§1",
+        DARK_GRAY = "В§8",
+        DARK_GREEN = "В§2",
+        DARK_PURPLE = "В§5",
+        DARK_RED = "В§4",
+        GOLD = "В§6",
+        GRAY = "В§7",
+        GREEN = "В§a",
+        ITALIC = "В§o",
+        LIGHT_PURPLE = "В§d",
+        OBFUSCATED = "В§k",
+        RED = "В§c",
+        RESET = "В§r",
+        STRIKETHROUGH = "В§m",
+        UNDERLINE = "В§n",
+        WHITE = "В§f",
+        YELLOW = "В§e",
     }
 
     /**
