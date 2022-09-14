@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Cleanup" type="ShConfigurationType">
+  <configuration default="false" name="Toolchain: Remove Cache" type="ShConfigurationType">
     <option name="INDEPENDENT_SCRIPT_PATH" value="false" />
     <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/cleanup.bat" />
     <option name="SCRIPT_OPTIONS" value="" />
