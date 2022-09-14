@@ -1,6 +1,7 @@
 import os
 from os.path import join, basename, abspath, isfile, isdir
 import json
+import platform
 
 from base_config import BaseConfig
 
@@ -70,6 +71,8 @@ class ToolchainConfig(MakeConfig):
 		return self.project_make.get_paths(relative_path, filter, paths)
 
 	def get_adb(self):
+		if platform.system() == "Windows":
+			return self.get_path("toolchain/adb/adb.exe")
 		return self.get_path("toolchain/adb/adb")
 
 
