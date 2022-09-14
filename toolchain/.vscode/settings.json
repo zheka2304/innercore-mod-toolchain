@@ -1,6 +1,7 @@
 {
     "java.dependency.packagePresentation": "flat",
     "java.dependency.syncWithFolderExplorer": true,
+    "java.project.outputPath": "toolchain/build/java",
     "files.exclude": {
         "**/__pycache__/**": true,
         ".vscode": true,
