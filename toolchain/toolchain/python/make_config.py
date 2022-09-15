@@ -71,6 +71,12 @@ class ToolchainConfig(MakeConfig):
 		return self.project_make.get_paths(relative_path, filter, paths)
 
 	def get_adb(self):
+		try:
+			import shutil
+			if shutil.which("adb") is not None:
+				return "adb"
+		except:
+			pass
 		if platform.system() == "Windows":
 			return self.get_path("toolchain/adb/adb.exe")
 		return self.get_path("toolchain/adb/adb")
