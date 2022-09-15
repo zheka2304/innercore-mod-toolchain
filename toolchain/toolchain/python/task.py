@@ -346,10 +346,16 @@ def task_create_project():
 	from project_manager import projectManager
 	from project_manager_tasks import create_project
 
-	index = create_project()
+	try:
+		index = create_project()
+	except KeyboardInterrupt:
+		return -1
 	print("Project created.")
 
-	r = input("Select this project? [Y/n]: ")
+	try:
+		r = input("Choice this project? [Y/n]: ")
+	except KeyboardInterrupt:
+		return -1
 	if r.lower() != "n":
 		projectManager.selectProject(index = index)
 		print(f"Project {index} selected.")
@@ -362,29 +368,26 @@ def task_remove_project():
 	if projectManager.countProjects() == 0:
 		error("Not found any project to remove.")
 
-	projectManager.printListProjects()
+	try:
+		who = projectManager.requireSelection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
+	except KeyboardInterrupt:
+		return -1
+	if who is None:
+		error("Deletion cancelled by user.")
 
-	delete = input("Enter the ID or folder name of the project to be deleted: ")
-
-	if delete == "":
-		error("Cancelled deletion.")
+	if projectManager.countProjects() > 1:
+		try:
+			if input("Do you really want to delete it? [Y/n]: ").lower() == "n":
+				error("Deletion cancelled by user.")
+		except KeyboardInterrupt:
+			return -1
 
 	try:
-		try:
-			delete = int(delete)
-			try:
-				projectManager.removeProject(index = delete-1)
-			except IndexError:
-				error(f"Project №{delete} not found.")
-		except ValueError:
-			try:
-				projectManager.removeProject(folder = delete)
-			except ValueError:
-				error(f"""Folder "{delete}" not found.""")
-	except Exception:
-		error("The current project cannot be deleted")
+		projectManager.removeProject(folder = who)
+	except ValueError:
+		error(f"""Folder "{who}" not found.""")
 
-	print("Project deleted.")
+	print("Project permanently deleted.")
 	return 0
 
 @task("selectProject")
@@ -393,27 +396,16 @@ def task_select_project():
 	if projectManager.countProjects() == 0:
 		error("Not found any project to select.")
 
-	projectManager.printListProjects()
-	select = input("Enter the ID or name of the project folder you want to select: ")
-
-	if select == "":
-		error("Cancelled selection.")
+	who = projectManager.requireSelection("Which project do you choice?", "Do you want to select {}?")
+	if who is None:
+		error("Selection cancelled by user.")
 
 	try:
-		select = int(select)
-		try:
-			if (select < 1):
-				raise IndexError()
-			projectManager.selectProject(index = select - 1)
-		except IndexError:
-			error(f"Project №{select} not found.")
+		projectManager.selectProject(folder = who)
 	except ValueError:
-		try:
-			projectManager.selectProject(folder = select)
-		except ValueError:
-			error(f"""Folder "{select}" not found.""")
+		error(f"Folder {who} not found.""")
 
-	print(f"Project {select} selected.")
+	print(f"""Project "{who}" selected.""")
 	return 0
 
 @task("updateToolchain")

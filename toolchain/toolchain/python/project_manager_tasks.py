@@ -1,4 +1,6 @@
 from os.path import exists, join
+
+from shell import SelectionShell
 from project_manager import projectManager, NameToFolderName
 
 
@@ -58,3 +60,13 @@ def setup_launcher_js(make_obj, path):
 
 Launch();
 """)
+
+def select_project(variants, prompt = "Which project do you want?", selected = None):
+    shell = SelectionShell(prompt)
+    for variant in variants:
+        shell.variant(variant, variant if selected != variant else f"\x1b[92m{variant}\x1b[0m")
+    try:
+        shell.loop()
+    except KeyboardInterrupt:
+        return None
+    return shell.what()

@@ -140,19 +140,23 @@ class ProjectManager:
     def countProjects(self):
         return len(self.__projects)
 
-    def printListProjects(self, title="List of projects", includeSelection=True):
-        print(title)
-
-        l = self.countProjects()
-        i = 0
-
-        id_length = len(str(l))
-        print("№".ljust(id_length) + " | Name folder")
-
-        while i < l:
-            s = str(i + 1).ljust(id_length) + " | " + self.__projects[i]
-            print(f"{s} ✔" if includeSelection and self.__projects[i] == self.config.currentProject else s)
-            i += 1
+    def requireSelection(self, prompt = None, promptWhenSingle = None, dontWantAnymore = None):
+        from project_manager_tasks import select_project
+        if self.countProjects() == 1:
+            itwillbe = self.__projects[0]
+            if promptWhenSingle is None:
+                return itwillbe
+            else:
+                if input(promptWhenSingle.format(itwillbe) + " [Y/n]: ").lower() == "n":
+                    return None
+                return itwillbe
+        if dontWantAnymore is not None:
+            who = self.__projects.copy()
+            who.append(dontWantAnymore)
+        else:
+            who = self.__projects
+        raw = select_project(who, prompt, self.config.currentProject)
+        return (raw if raw != dontWantAnymore else None)
 
 
 projectManager = ProjectManager(make_config)
