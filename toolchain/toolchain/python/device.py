@@ -1,7 +1,7 @@
 import os
-from os.path import join, relpath
+from os.path import join, relpath, basename
 import subprocess
-import glob
+from glob import glob
 
 from make_config import make_config
 from hash_storage import output_storage
@@ -10,19 +10,33 @@ from progress_bar import print_progress_bar
 devnull = open(os.devnull, "w")
 
 def get_push_pack_directory():
-	directory = join(make_config.get_value("pushTo"), "innercore", "mods", make_config.get_value("currentProject"))
+	directory = make_config.get_value("pushTo")
 	if directory is None:
-		return None
-	if "games/horizon/packs" not in directory:
-		ans = input(f"Push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing [y/N]: ")
-		if ans.lower() == "y":
-			return directory
-		else:
-			print("Aborting push.")
+		from setup_commons import init_adb
+		init_adb(make_config.json)
+		make_config.save()
+		return get_push_pack_directory()
+	directory = join(directory, "innercore", "mods", basename(make_config.get_value("currentProject")))
+	if "games/horizon/packs" not in directory and not make_config.get_value("device.pushAnyLocation", False):
+		print(f"Push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing.")
+		print()
+		from shell import select_prompt
+		answer = select_prompt("What will you do?", "Choice modpack", "Push it anyway", "Always push", "Nothing", fallback=3)
+		if answer == 0:
+			del make_config.json["pushTo"]
+			return get_push_pack_directory()
+		elif answer == 2:
+			if not "device" in make_config.json:
+				make_config.json["device"] = {}
+			make_config.json["device"]["pushAnyLocation"] = True
+			make_config.save()
+			print("This may be changed in your toolchain.json config.")
+		elif answer == 3:
+			print("Pushing aborted.")
 			return None
 	return directory
 
-def push(directory, cleanup = False, pushUnchanged = False):
+def push(directory, pushUnchanged = False):
 	if not pushUnchanged:
 		raws = glob(directory + "/*")
 		items = [relpath(path, directory) for path in raws if output_storage.is_path_changed(path)]
