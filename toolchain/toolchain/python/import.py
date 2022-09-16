@@ -174,7 +174,7 @@ if source == ".":
 else:
 	dirname = basename(source)
 
-init_adb(make_obj, dirname)
+init_adb(make_obj)
 
 print("Importing mod.info")
 folder = import_mod_info(make_obj, source)

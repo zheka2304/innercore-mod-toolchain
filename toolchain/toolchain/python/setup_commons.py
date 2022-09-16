@@ -2,8 +2,6 @@ import os
 from os.path import join, isdir, isfile
 import utils
 
-from utils import clear_directory
-
 def ensure_typescript():
 	print("Updating typescript version")
 	os.system("npm install -g typescript")
@@ -37,7 +35,7 @@ def cleanup_if_required(directory):
 		elif isdir:
 			utils.clear_directory(path)
 
-def init_adb(make_file, dirname):
+def init_adb(make_file):
 	pack_name = input("Enter your pack directory name [Inner_Core]: ")
 	if pack_name == "":
 		pack_name = "Inner_Core"
