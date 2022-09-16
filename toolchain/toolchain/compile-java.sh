@@ -1,1 +1,1 @@
-python3 task.py compileJavaDebug buildInfo stopHorizon pushEverything launchHorizon
+python3 task.py compileJavaDebug buildInfo

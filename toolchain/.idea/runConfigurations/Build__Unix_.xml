@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Build Everything" type="ShConfigurationType">
+  <configuration default="false" name="Build" type="ShConfigurationType">
     <option name="INDEPENDENT_SCRIPT_PATH" value="false" />
     <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/build-all.sh" />
     <option name="SCRIPT_OPTIONS" value="" />

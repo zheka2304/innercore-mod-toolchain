@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Build and Push Everything" type="ShConfigurationType">
+  <configuration default="false" name="Push" type="ShConfigurationType">
     <option name="INDEPENDENT_SCRIPT_PATH" value="false" />
-    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/build-and-push-all.sh" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/push.sh" />
     <option name="SCRIPT_OPTIONS" value="" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="false" />
     <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/toolchain/python" />

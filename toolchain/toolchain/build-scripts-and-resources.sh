@@ -1,1 +1,1 @@
-python3 task.py clearOutput buildScripts buildResources buildAdditional buildInfo stopHorizon pushEverything launchHorizon
+python3 task.py clearOutput buildScripts buildResources buildAdditional buildInfo
