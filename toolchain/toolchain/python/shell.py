@@ -89,7 +89,7 @@ class InteractiveShell(Shell):
 
     def read(self, count = 1):
         key = self.read_raw(count)
-        if key == "\x03": # Ctrl+C
+        if key == "\x03" or key == "\x1a": # Ctrl+C or Ctrl+Z
             raise KeyboardInterrupt()
         return key
 
@@ -97,7 +97,7 @@ class InteractiveShell(Shell):
         buffer = ""
         while count > 0:
             key = self.read()
-            if key == "\r":
+            if ord(key) in {10, 13}: # Enter
                 buffer += "\n"
                 count -= 1
             else:
@@ -126,7 +126,7 @@ class SelectionShell(InteractiveShell):
 
     def read_key(self):
         key = self.read(1)
-        if key == "\r": # Enter
+        if ord(key) in {10, 13}: # Enter
             raise EOFError()
         if key != "\x1b":
             return 0
