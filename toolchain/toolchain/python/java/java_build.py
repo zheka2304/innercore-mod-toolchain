@@ -97,8 +97,8 @@ def update_modified_classes(directories, cache_dir):
 	return modified_files, cache_json
 
 def save_modified_classes_cache(cache_json, cache_dir):
-    with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
-        file.write(json.dumps(cache_json))
+	with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
+		file.write(json.dumps(cache_json))
 
 def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	d8_libs = []
@@ -221,8 +221,8 @@ def build_list(working_dir):
 def setup_gradle_project(cache_dir, directories, classpath):
 	file = open(join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
 	file.writelines(["include \":%s\"\nproject(\":%s\").projectDir = file(\"%s\")\n"
-                  % (basename(item), basename(item), item.replace("\\", "\\\\"))
-                  for item in directories])
+				  % (basename(item), basename(item), item.replace("\\", "\\\\"))
+				  for item in directories])
 	file.close()
 
 	targets = []
@@ -267,22 +267,22 @@ def write_build_gradle(directory, classpath, build_dir, source_dirs, library_dir
 
 dependencies {
 	""" + ("""compile fileTree(\"""" + "\", \"".join([path.replace("\\", "\\\\")
-                                                for path in library_dirs])
-        + """\") { include \"*.jar\" }""" if len(library_dirs) > 0 else "") + """
+												for path in library_dirs])
+		+ """\") { include \"*.jar\" }""" if len(library_dirs) > 0 else "") + """
 }
 
 sourceSets {
 	main {
 		java {
 			srcDirs = [\"""" + "\", \"".join([path.replace("\\", "\\\\")
-                                  for path in source_dirs]) + """\"]
+								  for path in source_dirs]) + """\"]
 			buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
 		}
 		resources {
 			srcDirs = []
 		}
 		compileClasspath += files(\"""" + "\", \"".join([path.replace("\\", "\\\\")
-                                                for path in classpath]) + """\")
+												for path in classpath]) + """\")
 	}
 }
 """)

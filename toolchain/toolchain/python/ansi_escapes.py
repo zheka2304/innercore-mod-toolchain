@@ -27,45 +27,45 @@ clearTerminal = f"{eraseScreen}{ESC}0f" if system() == "Windows" else f"{eraseSc
 beep = "\u0007"
 
 def cursorTo(x, y = None):
-    if x is None:
-        raise TypeError("The `x` argument is required")
-    if y is None:
-        return ESC + str(x + 1) + "G"
-    return ESC + str(y + 1) + ";" + str(x + 1) + "H"
+	if x is None:
+		raise TypeError("The `x` argument is required")
+	if y is None:
+		return ESC + str(x + 1) + "G"
+	return ESC + str(y + 1) + ";" + str(x + 1) + "H"
 
 def cursorMove(x, y = 0):
-    if x is None:
-        raise TypeError("The `x` argument is required")
-    returnValue = ""
-    if x < 0:
-        returnValue += ESC + str(-x) + "D"
-    elif x > 0:
-        returnValue += ESC + str(x) + "C"
-    if y < 0:
-        returnValue += ESC + str(-y) + "A"
-    elif y > 0:
-        returnValue += ESC + str(y) + "B"
-    return returnValue
+	if x is None:
+		raise TypeError("The `x` argument is required")
+	returnValue = ""
+	if x < 0:
+		returnValue += ESC + str(-x) + "D"
+	elif x > 0:
+		returnValue += ESC + str(x) + "C"
+	if y < 0:
+		returnValue += ESC + str(-y) + "A"
+	elif y > 0:
+		returnValue += ESC + str(y) + "B"
+	return returnValue
 
 def cursorUp(count = 1):
-    return ESC + str(count) + "A"
+	return ESC + str(count) + "A"
 
 def cursorDown(count = 1):
-    return ESC + str(count) + "B"
+	return ESC + str(count) + "B"
 
 def cursorForward(count = 1):
-    return ESC + str(count) + "C"
+	return ESC + str(count) + "C"
 
 def cursorBackward(count = 1):
-    return ESC + str(count) + "D"
+	return ESC + str(count) + "D"
 
 def eraseLines(count):
-    clear = ""
-    for i in range(count - 1):
-        clear += eraseLine + (cursorUp() if i < count - 1 else "")
-    if count > 0:
-        clear += cursorLeft
-    return clear
+	clear = ""
+	for i in range(count - 1):
+		clear += eraseLine + (cursorUp() if i < count - 1 else "")
+	if count > 0:
+		clear += cursorLeft
+	return clear
 
 def link(text, url):
 	return f"{OSC}8;;{url}{beep}{text}{OSC}8;;{beep}"

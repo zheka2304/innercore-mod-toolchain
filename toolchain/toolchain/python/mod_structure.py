@@ -106,7 +106,7 @@ class ModStructure:
 			os.remove(build_config_file)
 		ensure_file_dir(build_config_file)
 		with open(build_config_file, "w", encoding="utf-8") as build_config:
-			build_config.write(json.dumps(self.build_config, indent=" " * 4))
+			build_config.write(json.dumps(self.build_config, indent="\t") + "\n")
 
 	def setup_default_config(self):
 		self.read_or_create_build_config()

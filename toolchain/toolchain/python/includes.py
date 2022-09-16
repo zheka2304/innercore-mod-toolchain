@@ -225,6 +225,7 @@ class Includes:
 
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			json.dump(template, tsconfig, indent="\t")
+			tsconfig.write("\n")
 
 	def build_source(self, temp_path, language):
 		if language.lower() == "typescript":

@@ -8,6 +8,7 @@ from utils import clear_directory, copy_directory, ensure_directory, copy_file
 from base_config import BaseConfig
 from setup_commons import init_adb, cleanup_if_required
 from project_manager import projectManager
+from make_config import make_config
 
 root_files = []
 
@@ -26,7 +27,7 @@ def import_mod_info(make_file, directory):
 	with open(mod_info, "r", encoding="utf-8") as info_file:
 		info_obj = json.loads(info_file.read())
 		index = projectManager.create_project(
-      		info_obj.get("name", "example-project"),
+	  		info_obj.get("name", "example-project"),
 			author = info_obj.get("author", ""),
 			version = info_obj.get("version", "1.0"),
 			description = info_obj.get("description", "")
@@ -161,7 +162,7 @@ def copy_additionals(source, folder, destination):
 
 destination = sys.argv[1]
 source = sys.argv[2]
-toolchain_path = join(destination, "toolchain.json")
+toolchain_path = make_config.filename
 
 if not (exists(toolchain_path) and exists(source)):
 	exit("Usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
@@ -185,13 +186,13 @@ print("Importing build.config")
 import_build_config(make_project_obj, folder, source, destination)
 
 with open(projectManager.config.get_project_path("make.json"), "w", encoding="utf-8") as make_file:
-	make_file.write(json.dumps(make_project_obj, indent=" " * 4))
+	make_file.write(json.dumps(make_project_obj, indent="\t") + "\n")
 
 print("Copying additional files and directories")
 copy_additionals(source, folder, destination)
 cleanup_if_required(destination)
 
 with open(toolchain_path, "w", encoding="utf-8") as make_file:
-	make_file.write(json.dumps(make_obj, indent=" " * 4))
+	make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
 print("Project successfully imported, please, delete project.back after triple checking that everything is OK")

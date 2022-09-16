@@ -133,7 +133,7 @@ def task_build_info():
 		info["version"] = shortcodes(info["version"])
 		info["description"] = shortcodes(info["description"])
 
-		info_file.write(json.dumps(info, indent=" " * 4))
+		info_file.write(json.dumps(info, indent="\t") + "\n")
 	icon_path = config.get_project_value("info.icon")
 	if icon_path is not None:
 		icon_path = config.get_project_path(icon_path)

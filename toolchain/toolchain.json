@@ -1,21 +1,21 @@
 {
-    "debugAbi": "armeabi-v7a",
-    "abis": [
-        "armeabi-v7a",
-        "x86"
-    ],
-    "linkNative": [
-        "minecraftpe",
-        "innercore",
-        "nativejs"
-    ],
-    "pushUnchangedFiles": false,
-    "pushTo": "/storage/emulated/0/games/horizon/packs/Inner_Core",
-    "ndkPath": null,
-    "projectLocations": [
-        "",
-        "../"
-    ],
-    "workspaceFile": "../toolchain.code-workspace",
-    "currentProject": "../toolchain-sample-mod"
+	"debugAbi": "armeabi-v7a",
+	"abis": [
+		"armeabi-v7a",
+		"x86"
+	],
+	"linkNative": [
+		"minecraftpe",
+		"innercore",
+		"nativejs"
+	],
+	"pushUnchangedFiles": false,
+	"pushTo": "/storage/emulated/0/games/horizon/packs/Inner_Core",
+	"ndkPath": null,
+	"projectLocations": [
+		"",
+		"../"
+	],
+	"workspaceFile": "../toolchain.code-workspace",
+	"currentProject": "../toolchain-sample-mod"
 }

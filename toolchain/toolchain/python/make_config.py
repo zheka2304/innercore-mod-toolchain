@@ -17,7 +17,7 @@ class MakeConfig(BaseConfig):
 
 	def save(self):
 		with open(self.filename, "w", encoding="utf-8") as make_file:
-			make_file.write(json.dumps(self.json, indent="\t"))
+			make_file.write(json.dumps(self.json, indent="\t") + "\n")
 
 	def get_root_dir(self):
 		return self.root_dir

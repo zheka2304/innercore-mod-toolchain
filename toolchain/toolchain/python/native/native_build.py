@@ -151,7 +151,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		recompiled_count = 0
 		for file in source_files:
 			relative_file = relative_path(directory, file)
-			sys.stdout.write("Preprocessing " + relative_file + " " * 32 + "\r")
+			sys.stdout.write("Preprocessing " + relative_file + " " * 48 + "\r")
 
 			object_file = join(object_dir, relative_file) + ".o"
 			preprocessed_file = join(preprocessed_dir, relative_file)
@@ -165,14 +165,14 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 			] + includes)
 			if result == CODE_OK:
 				if not isfile(preprocessed_file) or not isfile(object_file) \
-        				or not filecmp.cmp(preprocessed_file, tmp_preprocessed_file):
+						or not filecmp.cmp(preprocessed_file, tmp_preprocessed_file):
 					if isfile(preprocessed_file):
 						os.remove(preprocessed_file)
 					os.rename(tmp_preprocessed_file, preprocessed_file)
 					if isfile(object_file):
 						os.remove(object_file)
 
-					sys.stdout.write("Compiling " + relative_file + " " * 64 + "\n")
+					sys.stdout.write("Compiling " + relative_file + " " * 96 + "\n")
 					result = max(result, subprocess.call(gcc + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))
@@ -187,7 +187,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 					os.remove(object_file)
 				overall_result = result
 
-		print(" " * 64)
+		print()
 		if overall_result != CODE_OK:
 			print("Failed to compile", overall_result)
 			return overall_result
