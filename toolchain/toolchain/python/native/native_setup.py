@@ -1,29 +1,28 @@
 import sys
-import re
 from os import listdir, environ, getenv, makedirs
 from os.path import isfile, isdir, join, abspath, dirname
+import platform
 import subprocess
+import re
+from zipfile import ZipFile
 
 from make_config import make_config
 from progress_bar import print_progress_bar
-from zipfile import ZipFile
 from utils import clear_directory
-import platform
 
-
-def list_subdirectories(path, max_depth=5, dirs=None):
+def list_subdirectories(path, max_depth = 5, dirs = None):
 	if dirs is None:
 		dirs = []
 	if not isdir(path):
 		return dirs
 	dirs.append(path)
-	for f in listdir(path):
-		file = join(path, f)
+	for filename in listdir(path):
+		file = join(path, filename)
 		if max_depth > 0 and isdir(file):
 			list_subdirectories(file, dirs=dirs, max_depth=max_depth - 1)
 	return dirs
 
-def search_ndk_path(home_dir, contains_ndk=False):
+def search_ndk_path(home_dir, contains_ndk = False):
 	preferred_ndk_versions = [
 		"android-ndk-r16b",
 		"android-ndk-.*",
@@ -40,12 +39,12 @@ def get_ndk_path():
 	path_from_config = make_config.get_value("ndkPath")
 	if path_from_config is not None:
 		return path_from_config
-	# unix/linux
+	# Unix
 	try:
-		return search_ndk_path(environ['HOME'])
+		return search_ndk_path(environ["HOME"])
 	except KeyError:
 		pass
-	# windows
+	# Windows
 	return search_ndk_path(getenv("LOCALAPPDATA"))
 
 def search_for_gcc_executable(ndk_dir):
@@ -56,7 +55,7 @@ def search_for_gcc_executable(ndk_dir):
 			if re.match(pattern, file):
 				return abspath(join(search_dir, file))
 
-def require_compiler_executable(arch, install_if_required=False):
+def require_compiler_executable(arch, install_if_required = False):
 	ndk_dir = make_config.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
@@ -64,12 +63,12 @@ def require_compiler_executable(arch, install_if_required=False):
 			return None
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
-			print("ndk installation for " + arch + " is broken, trying to re-install")
+			print("NDK installation for " + arch + " is broken, trying to re-install")
 			if install(arch=arch, reinstall=True) == -1:
 				return None
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
-				print("re-install haven't helped")
+				print("Reinstallation doesn't help, please, retry setup manually")
 				return None
 		return file
 	else:
@@ -78,49 +77,49 @@ def require_compiler_executable(arch, install_if_required=False):
 def check_installed(arch):
 	return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
 
-def install(arch="arm", reinstall=False):
+def install(arch = "arm", reinstall = False):
 	if not reinstall and check_installed(arch):
-		print("toolchain for " + arch + " is already installed, installation skipped")
+		print("GCC for", arch, "is already installed, installation skipped")
 		return 0
 	else:
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			from urllib import request
-			print("not found ndk installation")
-			ans = input("download ndk? (y/N) ")
+			print("Not found valid NDK installation.")
+			ans = input("Download android-ndk-r16b? (y/N) ")
 			if ans.lower() == "y":
 				archive_path = make_config.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
-				
+
 				if not isfile(archive_path):
 					url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
 					with request.urlopen(url) as response:
-						with open(archive_path, 'wb') as f:
+						with open(archive_path, "wb") as f:
 							info = response.info()
 							length = int(info["Content-Length"])
-	
+
 							downloaded = 0
 							while True:
 								buffer = response.read(8192)
 								if not buffer:
 									break
-								
+
 								downloaded += len(buffer)
 								f.write(buffer)
-	
-								print_progress_bar(downloaded, length, suffix = 'Downloading...' if downloaded < length else "Complete!", length = 50)
 
-				print("extracting ndk...")
+								print_progress_bar(downloaded, length, suffix = "Downloading" if downloaded < length else "Complete!", length = 50)
+
+				print("Extracting NDK/GCC")
 				extract_path = make_config.get_path("toolchain/temp")
-				with ZipFile(archive_path, 'r') as archive:
+				with ZipFile(archive_path, "r") as archive:
 					archive.extractall(extract_path)
 
 				ndk_path = search_ndk_path(extract_path, contains_ndk=True)
 			else:
-				print("aborting native compilation")
+				print("Native compilation aborted.")
 				return -1
 
-		print("installing...")
+		print("Installing")
 		if platform.system() != "Windows":
 			try:
 				subprocess.call([
@@ -137,7 +136,7 @@ def install(arch="arm", reinstall=False):
 				traceback.print_exc()
 				print("chmod failed, maybe you are must run it manually")
 		result = subprocess.call([
-			"python3",
+			"python3" if platform.system() != "Windows" else "python",
 			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 			"--arch", str(arch),
 			"--api", "19",
@@ -146,19 +145,19 @@ def install(arch="arm", reinstall=False):
 		])
 
 		if result == 0:
-			open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), 'tw').close()
-			print("removing temp files...")
+			open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
+			print("Removing temporary files")
 			clear_directory(make_config.get_path("toolchain/temp"))
-			print("done!")
+			print("Complete!")
 			return 0
 		else:
-			print("installation failed with result code:", result)
-			print("you are must reinstall it manually from toolchain/temp/ndk.zip")
+			print("Installation failed with result", result)
+			print("You are must extract it manually from toolchain/temp/ndk.zip")
 			return result
 
 
 if __name__ == "__main__":
 	if len(sys.argv) >= 2:
-		install(arch=sys.argv[1])
+		install(sys.argv[1])
 	else:
 		install()

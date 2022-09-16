@@ -2,11 +2,11 @@ import os
 from os.path import join, isfile, isdir
 import json
 
-from make_config import make_config
 from utils import ensure_directory, clear_directory, ensure_file_dir
+from make_config import make_config
 
 class BuildTargetType:
-	def __init__(self, directory=None, list_property=None, **kw):
+	def __init__(self, directory = None, list_property = None, **kw):
 		self.directory = directory
 		self.list_property = list_property
 
@@ -52,11 +52,12 @@ class ModStructure:
 		target_path = join(self.directory, target_type.directory, formatted_name)
 		self.targets[target_type_name].append({
 			"name": formatted_name,
-			"path": target_path, **properties
+			"path": target_path,
+			**properties
 		})
 		return target_path
 
-	def get_all_targets(self, target_type, prop=None, values=()):
+	def get_all_targets(self, target_type, prop = None, values = ()):
 		targets = []
 		if target_type in self.targets:
 			for target in self.targets[target_type]:
@@ -64,10 +65,13 @@ class ModStructure:
 					targets.append(target)
 		return targets
 
-	def get_target_directories(self, *names, filter_unchanged=False):
-		return list(map(lambda name: BUILD_TARGETS[name].directory, filter(lambda name: name in self.targets and len(self.targets[name]) > 0, names) if filter_unchanged else names))
+	def get_target_directories(self, *names, filter_unchanged = False):
+		return list(map(lambda name: BUILD_TARGETS[name].directory,
+			filter(lambda name: name in self.targets \
+				and len(self.targets[name]) > 0, names) if filter_unchanged else names
+		))
 
-	def create_build_config_list(self, list_name, default_overrides=None):
+	def create_build_config_list(self, list_name, default_overrides = None):
 		result = []
 		for target_name, target_type in BUILD_TARGETS.items():
 			if target_type.list_property == list_name and target_name in self.targets:
@@ -89,8 +93,8 @@ class ModStructure:
 				try:
 					self.build_config = json.loads(build_config.read())
 					return
-				except json.JSONDecodeError as e:
-					print("error occurred while reading cached build config:", e)
+				except json.JSONDecodeError as err:
+					print("Something went wrong while reading cached build config:", err)
 		self.build_config = {}
 
 	def write_build_config(self):

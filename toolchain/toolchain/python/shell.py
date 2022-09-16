@@ -1,10 +1,9 @@
-import os
 import sys
+import os
 import termios
 import tty
 
 from ansi_escapes import *
-
 
 def mute_input():
     with open(os.devnull, "r") as devnull:
@@ -36,7 +35,6 @@ def input_key(count = 1):
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, term_attrs)
     return key
-
 
 class Shell():
     def __init__(self, stdin = sys.stdin, stdout = sys.stdout):

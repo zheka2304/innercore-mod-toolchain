@@ -1,8 +1,8 @@
 class BaseConfig:
-	def __init__(self, _json):
-		self.json = _json
+	def __init__(self, json):
+		self.json = json
 
-	def get_value(self, name, fallback=None):
+	def get_value(self, name, fallback = None):
 		name = name.split(".")
 		value = self.json
 		while len(name) > 0 and len(name[0]) > 0:
@@ -13,7 +13,7 @@ class BaseConfig:
 				return fallback
 		return value
 
-	def get_config(self, name, not_none=False):
+	def get_config(self, name, not_none = False):
 		value = self.get_value(name)
 		if isinstance(value, dict):
 			return BaseConfig(value)

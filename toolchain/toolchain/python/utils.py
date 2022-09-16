@@ -1,7 +1,6 @@
 import os
 from os.path import join, exists, abspath, isfile, isdir
 
-
 def ensure_directory(directory):
 	if not exists(directory):
 		os.makedirs(directory)
@@ -30,13 +29,13 @@ def indexOf(_list, _value):
 	except ValueError:
 		return -1
 
-def copy_directory(src, dst, clear_dst=False, replacement=True, ignore=[], ignore_list=[], ignoreEx=False):
+def copy_directory(src, dst, clear_dst = False, replacement = True, ignore = [], ignore_list = [], ignoreEx = False):
 	ensure_directory(dst)
 	if clear_dst:
 		clear_directory(dst)
 
 	if not exists(dst):
-		os.mkdir(dst)
+		os.makedirs(dst)
 	from glob import glob
 
 	if len(ignore) > 0:
@@ -55,7 +54,7 @@ def copy_directory(src, dst, clear_dst=False, replacement=True, ignore=[], ignor
 		elif indexOf(ignore_list, d) == -1:
 			shutil.copy2(s, d)
 
-def get_all_files(directory, extensions=()):
+def get_all_files(directory, extensions = ()):
 	all_files = []
 	for root, _, files in os.walk(directory):
 		for file in files:

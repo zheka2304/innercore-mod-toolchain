@@ -1,6 +1,7 @@
-import os
-from os.path import join, basename, isfile, isdir, getmtime, relpath
 import sys
+import os
+from os.path import join, basename, isfile, isdir, getmtime
+import platform
 import subprocess
 import json
 import zipfile
@@ -9,8 +10,6 @@ import hashlib
 from utils import *
 from make_config import make_config
 from mod_structure import mod_structure
-import platform
-
 
 def get_classpath_from_directories(directories):
 	classpath = []
@@ -27,31 +26,31 @@ def rebuild_library_cache(directory, library_files, cache_dir):
 	lib_cache_dir = join(cache_dir, "d8_lib_cache", directory_name)
 	lib_cache_zip = join(cache_dir, "d8_lib_cache-" + directory_name + ".zip")
 
-	print("rebuilding library cache:", directory_name)
+	print("Rebuilding library cache:", directory_name)
 	clear_directory(lib_cache_dir)
 	ensure_directory(lib_cache_dir)
 
 	for lib_file in library_files:
-		print("extracting library classes:", basename(lib_file))
+		print("Extracting library classes:", basename(lib_file))
 		with zipfile.ZipFile(lib_file, "r") as zip_ref:
 			zip_ref.extractall(lib_cache_dir)
-	print("creating zip...")
+	print("Zipping")
 
 	import shutil
 	if isfile(lib_cache_zip):
 		os.remove(lib_cache_zip)
-	shutil.make_archive(lib_cache_zip[:-4], 'zip', lib_cache_dir)
+	shutil.make_archive(lib_cache_zip[:-4], "zip", lib_cache_dir)
 	return [lib_cache_zip]
 
 def update_modified_classes(directories, cache_dir):
 	cache_json = {}
 	try:
-		with open(join(cache_dir, "gradle_classes_cache.json")) as f:
-			cache_json = json.load(f)
-	except Exception as e:
+		with open(join(cache_dir, "gradle_classes_cache.json")) as file:
+			cache_json = json.load(file)
+	except Exception:
 		pass
 
-	print("recalculating class file hashes...")
+	print("Recalculating class file hashes")
 	modified_files = {}
 	for directory in directories:
 		directory_name = basename(directory)
@@ -65,9 +64,9 @@ def update_modified_classes(directories, cache_dir):
 		}
 		modified_files_for_dir = modified_files[directory_name]["class"]
 		for dirpath, dnames, fnames in os.walk(classes_dir):
-			for f in fnames:
-				if f.endswith(".class"):
-					file = str(join(dirpath, f))
+			for filename in fnames:
+				if filename.endswith(".class"):
+					file = str(join(dirpath, filename))
 					modified_time = int(1000 * getmtime(file))
 					hash_factory = hashlib.md5()
 					with open(file, "rb") as fp:
@@ -84,9 +83,9 @@ def update_modified_classes(directories, cache_dir):
 		library_files = []
 		for library_dir in manifest["library-dirs"]:
 			for dirpath, dnames, fnames in os.walk(join(directory, library_dir)):
-				for fname in fnames:
-					if fname.endswith(".jar"):
-						file = join(dirpath, fname)
+				for filename in fnames:
+					if filename.endswith(".jar"):
+						file = join(dirpath, filename)
 						library_files.append(file)
 						modified_time = int(1000 * getmtime(file))
 						key = "lib:" + file
@@ -98,14 +97,14 @@ def update_modified_classes(directories, cache_dir):
 	return modified_files, cache_json
 
 def save_modified_classes_cache(cache_json, cache_dir):
-    with open(join(cache_dir, "gradle_classes_cache.json"), "w") as f:
-        f.write(json.dumps(cache_json))
+    with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
+        file.write(json.dumps(cache_json))
 
 def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	d8_libs = []
 	for dirpath, dnames, fnames in os.walk(make_config.get_path("toolchain/classpath")):
-		for fname in fnames:
-			d8_libs += ["--lib", join(dirpath, fname)]
+		for filename in fnames:
+			d8_libs += ["--lib", join(dirpath, filename)]
 
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	jar_dir = join(cache_dir, "classes", directory_name, "libs", directory_name + "-all.jar")
@@ -114,7 +113,7 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	modified_classes = modified_files["class"]
 	modified_libs = modified_files["lib"]
 
-	print("dexing libraries...")
+	print("Dexing libraries")
 	result = subprocess.call([
 		"java",
 		"-cp", make_config.get_path("toolchain/bin/r8.jar"),
@@ -129,7 +128,7 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	if result != 0:
 		return result
 
-	print("dexing classes...")
+	print("Dexing classes")
 	index = 0
 	max_span_size = 128
 	while index < len(modified_classes):
@@ -149,24 +148,24 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 		if result != 0:
 			return result
 		index += max_span_size
-		print("dexing classes: ", min(index, len(modified_classes)), "/", len(modified_classes), " completed")
+		print("Dexing classes:", min(index, len(modified_classes)), "/", len(modified_classes), "completed")
 
-	print("compressing changed parts...")
+	print("Compressing changed archives")
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
-	with zipfile.ZipFile(dex_zip_file, 'w') as zip_ref:
+	with zipfile.ZipFile(dex_zip_file, "w") as zip_ref:
 		for dirpath, dnames, fnames in os.walk(dex_classes_dir):
-			for fname in fnames:
-				if fname.endswith(".dex"):
-					file = join(dirpath, fname)
+			for filename in fnames:
+				if filename.endswith(".dex"):
+					file = join(dirpath, filename)
 					zip_ref.write(file, arcname=file[len(dex_classes_dir) + 1:])
 
-	print("preparing output...")
+	print("Cleaning output")
 	ensure_directory(output_dex_dir)
-	for fname in os.listdir(output_dex_dir):
-		if fname.endswith(".dex"):
-			os.remove(fname)
+	for filename in os.listdir(output_dex_dir):
+		if filename.endswith(".dex"):
+			os.remove(filename)
 
-	print("merging dex...")
+	print("Merging dex")
 	return subprocess.call([
 		"java",
 		"-cp", make_config.get_path("toolchain/bin/r8.jar"),
@@ -190,7 +189,7 @@ def build_java_directories(directories, cache_dir, classpath):
 		"-p", cache_dir, "shadowJar"
 	])
 	if result != 0:
-		print(f"java compilation failed with code {result}")
+		print(f"Java compilation failed with code {result}")
 		return result
 
 	modified_files, cache_json = update_modified_classes(directories, cache_dir)
@@ -198,16 +197,16 @@ def build_java_directories(directories, cache_dir, classpath):
 	for target in targets:
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
-			print('\033[1m' + '\033[92m' + f"\nrunning d8 for {directory_name}\n" + '\033[0m')
+			print(f"\x1b[1m\x1b[92m\nRunning d8 for {directory_name}\x1b[0m\n")
 			result = run_d8(directory_name, modified_files[directory_name], cache_dir, target)
 			if result != 0:
-				print(f"failed to dex {directory_name} with code {result}")
+				print(f"Failed to dex {directory_name} with code {result}")
 				return result
 		else:
-			print(f"skipping folder {directory_name}, it still same")
+			print(f"{directory_name} is not changed")
 
 	save_modified_classes_cache(cache_json, cache_dir)
-	print('\033[1m' + '\033[92m' + "\n**** SUCCESS ****\n" + '\033[0m')
+	print("\n\x1b[1m\x1b[92m**** SUCCESS ****\x1b[0m\n")
 	return result
 
 def build_list(working_dir):
@@ -221,7 +220,9 @@ def build_list(working_dir):
 
 def setup_gradle_project(cache_dir, directories, classpath):
 	file = open(join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
-	file.writelines(["include ':%s'\nproject(':%s').projectDir = file('%s')\n" % (basename(item), basename(item), item.replace("\\", "\\\\")) for item in directories])
+	file.writelines(["include \":%s\"\nproject(\":%s\").projectDir = file(\"%s\")\n"
+                  % (basename(item), basename(item), item.replace("\\", "\\\\"))
+                  for item in directories])
 	file.close()
 
 	targets = []
@@ -260,24 +261,28 @@ def setup_gradle_project(cache_dir, directories, classpath):
 def write_build_gradle(directory, classpath, build_dir, source_dirs, library_dirs):
 	with open(join(directory, "build.gradle"), "w", encoding="utf-8") as build_file:
 		build_file.write("""plugins {
-	id 'com.github.johnrengelman.shadow' version '5.2.0'
+	id "com.github.johnrengelman.shadow" version "5.2.0"
 	id "java"
 }
 
-dependencies { 
-	""" + ("""compile fileTree('""" + "', '".join([path.replace("\\", "\\\\") for path in library_dirs]) + """') { include '*.jar' }""" if len(library_dirs) > 0 else "") + """
+dependencies {
+	""" + ("""compile fileTree(\"""" + "\", \"".join([path.replace("\\", "\\\\")
+                                                for path in library_dirs])
+        + """\") { include \"*.jar\" }""" if len(library_dirs) > 0 else "") + """
 }
 
 sourceSets {
 	main {
 		java {
-			srcDirs = ['""" + "', '".join([path.replace("\\", "\\\\") for path in source_dirs]) + """']
+			srcDirs = [\"""" + "\", \"".join([path.replace("\\", "\\\\")
+                                  for path in source_dirs]) + """\"]
 			buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
 		}
 		resources {
 			srcDirs = []
 		}
-		compileClasspath += files('""" + "', '".join([path.replace("\\", "\\\\") for path in classpath]) + """')
+		compileClasspath += files(\"""" + "\", \"".join([path.replace("\\", "\\\\")
+                                                for path in classpath]) + """\")
 	}
 }
 """)
@@ -300,34 +305,34 @@ def compile_all_using_make_config():
 	directory_names = []
 	for directory in make_config.get_project_filtered_list("compile", prop="type", values=("java",)):
 		if "source" not in directory:
-			print("skipped invalid java directory json", directory, file=sys.stderr)
+			print("Skipped invalid java directory json", directory, file=sys.stderr)
 			overall_result = -1
 			continue
 
 		for path in make_config.get_project_paths(directory["source"]):
 			if not isdir(path):
-				print("skipped non-existing java directory path", directory["source"], file=sys.stderr)
+				print("Skipped non existing java directory path", directory["source"], file=sys.stderr)
 				overall_result = -1
 				continue
 			directories.append(path)
 
 	if overall_result != 0:
-		print("failed to get java directories", file=sys.stderr)
+		print("Failed to get java directories", file=sys.stderr)
 		return overall_result
 
 	if len(directories) > 0:
 		classpath_directories = [make_config.get_path("toolchain/classpath")] + make_config.get_value("gradle.classpath", [])
 		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories))
 		if overall_result != 0:
-			print(f"failed, clearing compiled directories {directories} ...")
+			print(f"Nope, clearing compiled directories {directories}")
 			for directory_name in directory_names:
 				clear_directory(make_config.get_project_path("output/" + directory_name))
 	cleanup_gradle_scripts(directories)
 	mod_structure.update_build_config_list("javaDirs")
 
-	print(f"completed java build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+	print(f"Completed java build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
 	return overall_result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	compile_all_using_make_config()

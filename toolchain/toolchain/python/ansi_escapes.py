@@ -26,7 +26,6 @@ clearTerminal = f"{eraseScreen}{ESC}0f" if system() == "Windows" else f"{eraseSc
 
 beep = "\u0007"
 
-
 def cursorTo(x, y = None):
     if x is None:
         raise TypeError("The `x` argument is required")

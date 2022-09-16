@@ -1,11 +1,10 @@
-import os
-from os.path import join, exists, basename, isfile, isdir
 import sys
-import time
+import os
+from os.path import join, exists, basename, isfile, isdir, splitext
 import platform
+import time
 
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
-
 
 make_config = None
 registered_tasks = {}
@@ -19,7 +18,7 @@ def get_make_config():
 		make_config = config
 	return make_config
 
-def lock_task(name, silent=True):
+def lock_task(name, silent = True):
 	path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
 	ensure_file_dir(path)
 	await_message = False
@@ -30,17 +29,17 @@ def lock_task(name, silent=True):
 				if exists(path):
 					os.remove(path)
 				break
-			except IOError as _:
+			except IOError:
 				if not await_message:
 					await_message = True
 					if not silent:
-						sys.stdout.write(f"task {name} is locked by another process, waiting for it to unlock.")
+						sys.stdout.write(f"Task {name} is locked by another process, waiting for it to unlock.")
 					if name in locked_tasks:
-						error("ERROR: dead lock detected", code=-2)
+						error("ERROR: Dead lock detected", code=-2)
 				if not silent:
 					sys.stdout.write(".")
 					sys.stdout.flush()
-				time.sleep(0.5)
+				time.sleep(0.25)
 	if await_message:
 		if not silent:
 			print("")
@@ -59,7 +58,7 @@ def unlock_all_tasks():
 	for name in list(locked_tasks.keys()):
 		unlock_task(name)
 
-def task(name, lock=None):
+def task(name, lock = None):
 	if lock is None:
 		lock = []
 
@@ -70,7 +69,7 @@ def task(name, lock=None):
 				lock_task(lock_name, silent=False)
 			if platform.system() == "Windows":
 				os.system("color")
-			print(f"\033[92m> executing task: {name}\033[0m")
+			print(f"\x1b[92m> Executing task: {name}\x1b[0m")
 			task_result = func(*args, **kwargs)
 			unlock_task(name)
 			for lock_name in lock:
@@ -87,7 +86,7 @@ def task_compile_native_debug():
 	abi = get_make_config().get_value("debugAbi", None)
 	if abi is None:
 		abi = "armeabi-v7a"
-		print(f"WARNING: no debugAbi value in config, using {abi} as default")
+		print(f"WARNING: No debugAbi value in config, using {abi} as default")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
@@ -95,7 +94,7 @@ def task_compile_native_debug():
 def task_compile_native_release():
 	abis = get_make_config().get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
-		error(f"ERROR: no abis value in config")
+		error(f"ERROR: No abis value in config")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
@@ -125,7 +124,7 @@ def task_build_info():
 	from utils import shortcodes
 	config = get_make_config()
 	with open(config.get_project_path("output/mod.info"), "w") as info_file:
-		info = dict(config.get_project_value("info", fallback={"name": "No was provided"}))
+		info = dict(config.get_project_value("info", fallback={"name": "Unnamed"}))
 		if "icon" in info:
 			del info["icon"]
 		if "api" in info:
@@ -148,7 +147,7 @@ def task_build_additional():
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in get_make_config().get_project_paths(additional_dir["source"]):
 				if not exists(additional_path):
-					print("non existing additional path: " + additional_path)
+					print("Non existing additional path: " + additional_path)
 					overall_result = 1
 					break
 				target = get_make_config().get_project_path(join(
@@ -197,7 +196,7 @@ def task_build_package():
 		os.remove(output_file)
 	if isfile(output_file_tmp):
 		os.remove(output_file_tmp)
-	shutil.make_archive(output_file_tmp[:-4], 'zip', output_dir)
+	shutil.make_archive(output_file_tmp[:-4], "zip", output_dir)
 	os.rename(output_file_tmp, output_file)
 	return 0
 
@@ -216,7 +215,7 @@ def task_launch_horizon():
 		"-c", "android.intent.category.LAUNCHER", "1"
 	], stdout=devnull, stderr=devnull)
 	if result != 0:
-		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
+		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
 	return 0
 
 @task("stopHorizon")
@@ -230,20 +229,20 @@ def stop_horizon():
 		"com.zheka.horizon"
 	], stdout=devnull, stderr=devnull)
 	if result != 0:
-		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
+		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
 	return result
 
 @task("loadDocs")
 def task_load_docs():
 	from urllib.request import urlopen
-	print("downloading...")
+	print("Downloading core-engine.d.ts")
 	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
-	content = response.read().decode('utf-8')
+	content = response.read().decode("utf-8")
 
-	with open(make_config.get_path("toolchain/declarations/core-engine.d.ts"), 'w') as docs:
+	with open(make_config.get_path("toolchain/declarations/core-engine.d.ts"), "w") as docs:
 		docs.write(content)
 
-	print("complete!")
+	print("Complete!")
 	return 0
 
 @task("cleanupOutput")
@@ -269,6 +268,7 @@ def task_update_includes():
 	from functools import cmp_to_key
 	from mod_structure import mod_structure
 	from includes import Includes, temp_directory
+
 	def libraries_first(a, b):
 		la = a["type"] == "library"
 		lb = b["type"] == "library"
@@ -278,6 +278,7 @@ def task_update_includes():
 			return -1
 		else:
 			return 1
+
 	sources = sorted(make_config.get_value("sources", fallback=[]), key=cmp_to_key(libraries_first))
 	for item in sources:
 		_source = item["source"]
@@ -285,13 +286,13 @@ def task_update_includes():
 		_type = item["type"]
 		_includes = item["includes"] if "includes" in item else ".includes"
 		if _type not in ("main", "library", "preloader"):
-			print(f"skipped invalid source with type {_type}")
+			print(f"Skipped invalid source with type {_type}")
 			continue
 		for source_path in make_config.get_paths(_source):
-			if not os.path.exists(source_path):
-				print(f"skipped non-existing source path {_source}")
+			if not exists(source_path):
+				print(f"Skipped non existing source path {_source}")
 				continue
-			target_path = _target if _target is not None else f"{os.path.splitext(os.path.basename(source_path))[0]}.js"
+			target_path = _target if _target is not None else f"{splitext(basename(source_path))[0]}.js"
 			declare = {
 				"sourceType": {
 					"main": "mod",
@@ -309,7 +310,7 @@ def task_update_includes():
 				target_path += "{}"
 			mod_structure.update_build_config_list("compile")
 			incl = Includes.invalidate(source_path, _includes)
-			incl.create_tsconfig(os.path.join(temp_directory, os.path.basename(target_path)))
+			incl.create_tsconfig(join(temp_directory, basename(target_path)))
 	return 0
 
 @task("connectToADB")
@@ -326,10 +327,10 @@ def task_connect_to_adb():
 			port = match[1]
 
 	if ip is None:
-		print("incorrect IP-address")
+		print("Incorrect IP-address")
 		return 1
 
-	print(f"connecting to {ip}")
+	print(f"Connecting to {ip}")
 
 	from subprocess import call
 	call([
@@ -350,32 +351,32 @@ def task_create_project():
 		index = create_project()
 	except KeyboardInterrupt:
 		return -1
-	print("Project created.")
+	print("Project created!")
 
 	try:
 		r = input("Choice this project? [Y/n]: ")
 	except KeyboardInterrupt:
 		return -1
 	if r.lower() != "n":
-		projectManager.selectProject(index = index)
-		print(f"Project {index} selected.")
+		projectManager.select_project(index = index)
+		print(f"Project {index} selected")
 
 	return 0
 
 @task("removeProject")
 def task_remove_project():
 	from project_manager import projectManager
-	if projectManager.countProjects() == 0:
+	if projectManager.how_much() == 0:
 		error("Not found any project to remove.")
 
 	try:
-		who = projectManager.requireSelection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
+		who = projectManager.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	except KeyboardInterrupt:
 		return -1
 	if who is None:
 		error("Deletion cancelled by user.")
 
-	if projectManager.countProjects() > 1:
+	if projectManager.how_much() > 1:
 		try:
 			if input("Do you really want to delete it? [Y/n]: ").lower() == "n":
 				error("Deletion cancelled by user.")
@@ -383,9 +384,9 @@ def task_remove_project():
 			return -1
 
 	try:
-		projectManager.removeProject(folder = who)
+		projectManager.remove_project(folder=who)
 	except ValueError:
-		error(f"""Folder "{who}" not found.""")
+		error(f"""Folder "{who}" not found!""")
 
 	print("Project permanently deleted.")
 	return 0
@@ -393,19 +394,19 @@ def task_remove_project():
 @task("selectProject")
 def task_select_project():
 	from project_manager import projectManager
-	if projectManager.countProjects() == 0:
+	if projectManager.how_much() == 0:
 		error("Not found any project to select.")
 
-	who = projectManager.requireSelection("Which project do you choice?", "Do you want to select {}?")
+	who = projectManager.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
 		error("Selection cancelled by user.")
 
 	try:
-		projectManager.selectProject(folder = who)
+		projectManager.select_project(folder=who)
 	except ValueError:
-		error(f"Folder {who} not found.""")
+		error(f"Folder {who} not found!""")
 
-	print(f"""Project "{who}" selected.""")
+	print(f"Project {who} selected.")
 	return 0
 
 @task("updateToolchain")
@@ -424,8 +425,8 @@ def task_cleanup():
 	try:
 		import java.java_build
 		java.java_build.cleanup_gradle_scripts()
-	except BaseException:
-		sys.stdout.write("gradle cleanup skipped due to error\n")
+	except BaseException as err:
+		print("Gradle cleanup skipped due to error:", err)
 	return 0
 
 def error(message, code=-1):
@@ -434,7 +435,7 @@ def error(message, code=-1):
 	exit(code)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	if len(sys.argv[1:]) > 0:
 		for task_name in sys.argv[1:]:
 			if task_name in registered_tasks:
@@ -448,9 +449,9 @@ if __name__ == '__main__':
 
 					import traceback
 					traceback.print_exc()
-					error(f"task {task_name} failed with above error")
+					error(f"Task {task_name} failed with above error")
 			else:
-				error(f"no such task: {task_name}")
+				print(f"No such task: {task_name}")
 	else:
-		error("no tasks to execute")
+		error("No tasks to execute.")
 	unlock_all_tasks()

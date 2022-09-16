@@ -1,5 +1,5 @@
-from os.path import exists, splitext, basename, isfile
 import sys
+from os.path import exists, splitext, basename, isfile
 
 from utils import clear_directory, copy_file, copy_directory
 from make_config import make_config
@@ -39,13 +39,13 @@ def build_all_scripts():
 		_includes = item["includes"] if "includes" in item else ".includes"
 
 		if _type not in ("main", "launcher", "library", "preloader"):
-			print(f"skipped invalid source with type {_type}")
+			print(f"Skipped invalid source with type {_type}")
 			overall_result = 1
 			continue
 
 		for source_path in make_config.get_project_paths(_source):
 			if not exists(source_path):
-				print(f"skipped non-existing source path {_source}")
+				print(f"Skipped non existing source {_source}")
 				overall_result = 1
 				continue
 
@@ -95,17 +95,17 @@ def build_all_resources():
 
 	for resource in make_config.get_project_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
-			print("skipped invalid source json", resource, file=sys.stderr)
+			print("Skipped invalid source json", resource, file=sys.stderr)
 			overall_result = 1
 			continue
 		for source_path in make_config.get_project_paths(resource["path"]):
 			if not exists(source_path):
-				print("skipped non-existing resource path", resource["path"], file=sys.stderr)
+				print("Skipped non existing resource", resource["path"], file=sys.stderr)
 				overall_result = 1
 				continue
 			resource_type = resource["type"]
 			if resource_type not in ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack"):
-				print("skipped invalid resource with type", resource_type, file=sys.stderr)
+				print("Skipped invalid resource with type", resource_type, file=sys.stderr)
 				overall_result = 1
 				continue
 			resource_name = resource["target"] if "target" in resource else basename(source_path)
@@ -116,7 +116,10 @@ def build_all_resources():
 					resource_type,
 					resource_name,
 					declare={
-						"resourceType": {"resource_directory": "resource", "gui": "gui"}[resource_type]
+						"resourceType": {
+							"resource_directory": "resource",
+							"gui": "gui"
+						}[resource_type]
 					}
 				)
 			else:
@@ -135,6 +138,6 @@ def build_all_resources():
 	return overall_result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	build_all_resources()
 	build_all_scripts()

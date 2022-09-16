@@ -1,18 +1,11 @@
+import sys
 import os
 from os.path import join, exists, isfile, isdir
-import sys
 import shutil
-from subprocess import call
-import platform
+import urllib.request as request
+from datetime import datetime, timezone
 
-
-def get_python():
-    if platform.system() == "Windows":
-        return "python"
-    else:
-        return "python3"
-
-def copytree(src, dst, symlinks=False, ignore=None):
+def copy_directory(src, dst, symlinks = False, ignore = None):
     if not exists(src) or isfile(src):
         raise Exception()
     for item in os.listdir(src):
@@ -22,50 +15,45 @@ def copytree(src, dst, symlinks=False, ignore=None):
             continue
         if isdir(s):
             shutil.copytree(s, d, symlinks, ignore)
-        else:
+        elif not item in ignore:
             shutil.copy2(s, d)
 
 def download_and_extract_toolchain(directory):
-    from urllib.request import urlretrieve
     import zipfile
-    archive = join(directory, 'toolchain.zip')
+    archive = join(directory, "toolchain.zip")
 
     if not exists(archive):
         url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
-        print("downloading toolchain archive from " + url)
-        urlretrieve(url, archive)
+        print("Downloading Inner Core Mod Toolchain: " + url)
+        request.urlretrieve(url, archive)
     else: 
-        print("toolchain archive already exists in " + directory)
+        print("'toolchain.zip' already exists in '" + directory + "'")
 
-    print("extracting toolchain to " + directory)
+    print("Extracting into '" + directory + "'...")
 
-    with zipfile.ZipFile(archive, 'r') as zip_ref:
+    with zipfile.ZipFile(archive, "r") as zip_ref:
         zip_ref.extractall(directory)
 
+    timestamp = "unknown"
     try:
-        copytree(join(directory, "innercore-mod-toolchain-master/toolchain"), directory)
+        copy_directory(join(directory, "innercore-mod-toolchain-master"), "toolchain", False, ["toolchain-setup.py"])
+        last_update_path = join(directory, "toolchain/toolchain/bin/.last_update")
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with open(last_update_path, "w", encoding="utf-8") as last_update_file:
+            last_update_file.write(timestamp)
         shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
-    except Exception as ex: 
-        pass
+    except Exception as err:
+        print(err, file=sys.stderr)
+        print("Inner Core Mod Toolchain installation not completed due to above error.", file=sys.stderr)
+        exit(1)
     finally:
+        os.remove(archive)
         if not exists(join(directory, "toolchain")):
-            print("an error occured while extracting toolchain archive, please, retry the operation")
-            os.remove(archive)
-            exit()
+            print("Inner Core Mod Toolchain extracted '/toolchain' folder not found.")
+            print("Retry operation or extract 'toolchain.zip' manually.")
+            exit(2)
+
+    print("Installed into '" + directory + "' under '" + timestamp + "' revision.")
 
 
-if len(sys.argv) > 1:
-    directory = sys.argv[1]
-    os.makedirs(directory)
-else: 
-    directory = '.'
-
-download_and_extract_toolchain(directory)
-setup_script = join(directory, "toolchain", "python", "setup.py")
-
-call([
-    get_python(),
-    setup_script,
-    directory,
-    join(directory, "project.back")
-], shell=True)
+download_and_extract_toolchain(".")

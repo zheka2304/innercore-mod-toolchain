@@ -1,38 +1,36 @@
 import os
 from os.path import join, relpath
 import subprocess
-from glob import glob
+import glob
 
 from make_config import make_config
-from hash_storage import output_storage as storage
+from hash_storage import output_storage
 from progress_bar import print_progress_bar
 
-
-# /dev/null
-ignore = open(os.devnull, 'w')
+devnull = open(os.devnull, "w")
 
 def get_push_pack_directory():
 	directory = join(make_config.get_value("pushTo"), "innercore", "mods", make_config.get_value("currentProject"))
 	if directory is None:
 		return None
 	if "games/horizon/packs" not in directory:
-		ans = input(f"push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing (type Y or yes to proceed): ")
-		if ans.lower() in ["yes", "y"]:
+		ans = input(f"Push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing [y/N]: ")
+		if ans.lower() == "y":
 			return directory
 		else:
-			print("interpreted as NO, aborting push")
+			print("Aborting push.")
 			return None
 	return directory
 
-def push(directory, cleanup=False, pushUnchanged=False):
+def push(directory, cleanup = False, pushUnchanged = False):
 	if not pushUnchanged:
 		raws = glob(directory + "/*")
-		items = [relpath(path, directory) for path in raws if storage.is_path_changed(path)]
+		items = [relpath(path, directory) for path in raws if output_storage.is_path_changed(path)]
 	else:
 		items = [os.path.relpath(path, directory) for path in glob(directory + "/*")]
 
 	if len(items) < 1:
-		print_progress_bar(1, 1, suffix = 'Complete!', length = 50)
+		print_progress_bar(1, 1, suffix = "Complete!", length = 50)
 		return 0
 
 	dst_root = get_push_pack_directory()
@@ -42,9 +40,9 @@ def push(directory, cleanup=False, pushUnchanged=False):
 	result = subprocess.call([
 		make_config.get_adb(),
 		"devices"
-	], stderr=ignore, stdout=ignore)
+	], stderr=devnull, stdout=devnull)
 	if result != 0:
-		print("\033[91mno devices/emulators found, try to use task \"Connect to ADB\"\033[0m")
+		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
 		return result
 
 	dst_root = dst_root.replace("\\", "/")
@@ -57,23 +55,23 @@ def push(directory, cleanup=False, pushUnchanged=False):
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
-		print_progress_bar(progress, len(items), suffix = f'Pushing {filename}' + (" " * 20), length = 50)
+		print_progress_bar(progress, len(items), suffix = f"Pushing {filename}" + (" " * 20), length = 50)
 		subprocess.call([
 			make_config.get_adb(),
 			"shell", "rm", "-r", dst
-		], stderr=ignore, stdout=ignore)
+		], stderr=devnull, stdout=devnull)
 		result = subprocess.call([
 			make_config.get_adb(),
 			"push", src, dst
-		], stderr=ignore, stdout=ignore)
+		], stderr=devnull, stdout=devnull)
 		progress += 1
 
 		if result != 0:
-			print(f"failed to push to directory {dst_root} with code {result}")
+			print(f"Failed to push to directory {dst_root} with code {result}")
 			return result
-	
-	print_progress_bar(progress, len(items), suffix = f'Complete!' + (" " * 20), length = 50)
-	storage.save()
+
+	print_progress_bar(progress, len(items), suffix = "Complete!" + (" " * 20), length = 50)
+	output_storage.save()
 	return result
 
 def make_locks(*locks):

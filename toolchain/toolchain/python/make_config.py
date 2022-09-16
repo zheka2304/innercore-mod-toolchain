@@ -1,7 +1,7 @@
 import os
 from os.path import join, basename, abspath, isfile, isdir
-import json
 import platform
+import json
 
 from base_config import BaseConfig
 
@@ -28,8 +28,8 @@ class MakeConfig(BaseConfig):
 			path = self.get_path(relative_path[:-1])
 			if not isdir(path):
 				return []
-			for f in os.listdir(path):
-				file = join(path, f)
+			for filename in os.listdir(path):
+				file = join(path, filename)
 				if filter is None or filter(file):
 					paths.append(file)
 		else:
@@ -41,7 +41,7 @@ class MakeConfig(BaseConfig):
 class ToolchainConfig(MakeConfig):
 	def __init__(self, filename):
 		MakeConfig.__init__(self, filename)
-		self.currentProject = self.get_value('currentProject', None)
+		self.currentProject = self.get_value("currentProject", None)
 		if self.currentProject != None:
 			self.project_dir = join(self.root_dir, self.currentProject)
 			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
@@ -50,11 +50,11 @@ class ToolchainConfig(MakeConfig):
 		if not hasattr(self, "project_dir"):
 			raise RuntimeError("Not found any opened project, nothing to do.")
 
-	def get_project_value(self, name, fallback=None):
+	def get_project_value(self, name, fallback = None):
 		self.assure_project_selected()
 		return self.project_make.get_value(name, fallback)
 
-	def get_project_config(self, name, not_none=False):
+	def get_project_config(self, name, not_none = False):
 		self.assure_project_selected()
 		return self.project_make.get_config(name, not_none)
 
@@ -66,7 +66,7 @@ class ToolchainConfig(MakeConfig):
 		self.assure_project_selected()
 		return self.project_make.get_path(relative_path)
 
-	def get_project_paths(self, relative_path, filter=None, paths=None):
+	def get_project_paths(self, relative_path, filter = None, paths = None):
 		self.assure_project_selected()
 		return self.project_make.get_paths(relative_path, filter, paths)
 
