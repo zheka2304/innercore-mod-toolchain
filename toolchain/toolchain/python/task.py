@@ -135,9 +135,12 @@ def task_build_info():
 
 		info_file.write(json.dumps(info, indent=" " * 4))
 	icon_path = config.get_project_value("info.icon")
-	if icon_path is not None and exists(icon_path):
-		copy_file(config.get_project_path(icon_path),
-				  config.get_project_path("output/mod_icon.png"))
+	if icon_path is not None:
+		icon_path = config.get_project_path(icon_path)
+		if isfile(icon_path):
+			copy_file(icon_path, config.get_project_path("output/mod_icon.png"))
+		else:
+			print("Icon", icon_path, "not found!")
 	return 0
 
 @task("buildAdditional", lock=["cleanup", "push"])
@@ -188,15 +191,22 @@ def task_build_package():
 	import shutil
 	config = get_make_config()
 	output_dir = config.get_project_path("output")
-	output_file = config.get_project_path(basename(config.get_value("currentProject", "mod")) + ".icmod")
-	output_file_tmp = config.get_path("toolchain/build/mod.zip")
+	name = basename(config.get_value("currentProject", "unknown"))
+	output_dir_root_tmp = config.get_path("toolchain/build/package")
+	output_dir_tmp = join(output_dir_root_tmp, name)
 	ensure_directory(output_dir)
+	if exists(output_dir_tmp):
+		shutil.rmtree(output_dir_tmp)
+	output_file_tmp = join(output_dir_root_tmp, "package.zip")
 	ensure_file_dir(output_file_tmp)
+	output_file = config.get_project_path(name + ".icmod")
 	if isfile(output_file):
 		os.remove(output_file)
 	if isfile(output_file_tmp):
 		os.remove(output_file_tmp)
-	shutil.make_archive(output_file_tmp[:-4], "zip", output_dir)
+	shutil.copytree(output_dir, output_dir_tmp)
+	shutil.make_archive(output_file_tmp[:-4], "zip", output_dir_root_tmp, name)
+	shutil.rmtree(output_dir_tmp)
 	os.rename(output_file_tmp, output_file)
 	return 0
 
