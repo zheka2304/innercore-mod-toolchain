@@ -4,12 +4,13 @@ Here is presented most common questions and problems encounted by users.
 
 ### How to connect a device/emulator via ADB
 
-If task **Connect to ADB** is not what you were looking for, try reading https://developer.android.com/studio/command-line/adb.
+If task **Connect to ADB** is not what you were looking for, try reading <https://developer.android.com/studio/command-line/adb>.
 
 ### I cannot find pushed location
+
 Check `pushTo` property in *toolchain.json* file at the root of toolchain, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
 
-### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor.
+### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor
 
 One of most convenient and advantageous ways to find out which folder you are interacting with is to open any file in the project that you want to act on. By default, the last opened folder is used, if it does not exist, you will be prompted to create a new project.
 
@@ -27,17 +28,21 @@ npm -g install typescript
 
 ### npm: command not found
 
-https://nodejs.org/en/download/package-manager/
+<https://nodejs.org/en/download/package-manager/>
 
 ### unsupported class file version 55.0
 
 Android dex compiler requires JDK 8 (identifier 1.8). Set it as default if needed, or do a little work to choose correct version in IDEs:
- - IntelliJ:
+
+- IntelliJ:
+
 1. Go to `File` > `Project Structure` > `Project`
 2. Click on `Project SDK`
 3. Select java8 or something like this
 4. Apply changes
- - VSCode:
+
+- VSCode:
+
 1. Open Explorer (*Ctrl+Shift+E*)
 2. Find Java Projects tab, enable it in `Views and More Actions...` if needed
 3. Go to `More Actions...` > `Configure Java Runtime`
