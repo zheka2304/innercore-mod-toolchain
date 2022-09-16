@@ -110,9 +110,8 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 	# compile for every abi
 	overall_result = CODE_OK
 	for abi in abis:
-		printed_compilation_title = f"compiling {basename(directory)} for {abi}"
-		print("\n")
-		print(f"{'=' * (48 - len(printed_compilation_title) // 2)} {printed_compilation_title} {'=' * (48 - (1 + len(printed_compilation_title)) // 2)}")
+		print()
+		print(f"* Compiling {basename(directory)} for {abi}")
 
 		executable = executables[abi]
 		gcc = [executable, "-std=c++11"]
@@ -152,7 +151,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		recompiled_count = 0
 		for file in source_files:
 			relative_file = relative_path(directory, file)
-			sys.stdout.write("Preprocessing " + relative_file + " " * 64 + "\r")
+			sys.stdout.write("Preprocessing " + relative_file + " " * 32 + "\r")
 
 			object_file = join(object_dir, relative_file) + ".o"
 			preprocessed_file = join(preprocessed_dir, relative_file)
@@ -161,7 +160,9 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 			ensure_file_dir(object_file)
 			object_files.append(object_file)
 
-			result = subprocess.call(gcc + ["-E", file, "-o", tmp_preprocessed_file] + includes)
+			result = subprocess.call(gcc + [
+				"-E", file, "-o", tmp_preprocessed_file
+			] + includes)
 			if result == CODE_OK:
 				if not isfile(preprocessed_file) or not isfile(object_file) \
         				or not filecmp.cmp(preprocessed_file, tmp_preprocessed_file):
@@ -172,7 +173,9 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 						os.remove(object_file)
 
 					sys.stdout.write("Compiling " + relative_file + " " * 64 + "\n")
-					result = max(result, subprocess.call(gcc + ["-c", preprocessed_file, "-shared", "-o", object_file]))
+					result = max(result, subprocess.call(gcc + [
+						"-c", preprocessed_file, "-shared", "-o", object_file
+					]))
 					if result != CODE_OK:
 						if isfile(object_file):
 							os.remove(object_file)
@@ -184,7 +187,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 					os.remove(object_file)
 				overall_result = result
 
-		print(" " * 128)
+		print(" " * 64)
 		if overall_result != CODE_OK:
 			print("Failed to compile", overall_result)
 			return overall_result
@@ -210,6 +213,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 			print("Linker failed with result", result)
 			overall_result = result
 			return overall_result
+		print()
 	return overall_result
 
 def compile_all_using_make_config(abis):

@@ -197,7 +197,7 @@ def build_java_directories(directories, cache_dir, classpath):
 	for target in targets:
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
-			print(f"\x1b[1m\x1b[92m\nRunning d8 for {directory_name}\x1b[0m\n")
+			print(f"\x1b[1m\x1b[92m\n* Running d8 for {directory_name}\x1b[0m\n")
 			result = run_d8(directory_name, modified_files[directory_name], cache_dir, target)
 			if result != 0:
 				print(f"Failed to dex {directory_name} with code {result}")
@@ -206,7 +206,7 @@ def build_java_directories(directories, cache_dir, classpath):
 			print(f"{directory_name} is not changed")
 
 	save_modified_classes_cache(cache_json, cache_dir)
-	print("\n\x1b[1m\x1b[92m**** SUCCESS ****\x1b[0m\n")
+	print("\n\x1b[1m\x1b[92mJAVA BUILD COMPLETED\x1b[0m\n")
 	return result
 
 def build_list(working_dir):
