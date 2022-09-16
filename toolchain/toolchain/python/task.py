@@ -431,12 +431,7 @@ def task_cleanup():
 	clear_directory(config.get_path("toolchain/build/gcc"))
 	clear_directory(config.get_path("toolchain/build/gradle"))
 	clear_directory(config.get_path("toolchain/build/project"))
-
-	try:
-		import java.java_build
-		java.java_build.cleanup_gradle_scripts()
-	except BaseException as err:
-		print("Gradle cleanup skipped due to error:", err)
+	clear_directory(config.get_path("toolchain/build/package"))
 	return 0
 
 def error(message, code=-1):

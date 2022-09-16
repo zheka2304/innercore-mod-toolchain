@@ -37,7 +37,7 @@ def create_project(returnFolder = False):
 		folder = def_folder
 	if version == "":
 		version = "1.0"
-	is_client = is_client.lower() is "y"
+	is_client = is_client.lower() == "y"
 
 	index = projectManager.create_project(
 		name,
