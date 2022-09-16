@@ -193,7 +193,7 @@ class SelectionShell(InteractiveShell):
     def leave(self):
         self.clear()
         if self.selected != -1:
-            self.write("\x1b[2m" + self.prompt + "\x1b[0m " + self.what() + "\n")
+            self.write(self.prompt + " \x1b[2m" + self.what() + "\x1b[0m\n")
         self.show_cursor()
 
     def what(self):
@@ -204,10 +204,20 @@ class SelectionShell(InteractiveShell):
     def which(self):
         return self.selected
 
+def select_prompt(prompt = None, *variants, fallback = None):
+    shell = SelectionShell(prompt)
+    for variant in variants:
+        shell.variant(variant, variant)
+    try:
+        shell.loop()
+    except KeyboardInterrupt:
+        return fallback
+    return shell.which()
+
 
 if __name__ == "__main__":
     while True:
         key = input_key()
-        if key == "\x03":
+        if key == "\x03" or key == "\x1a":
             break
         print(ord(key), ": ", str(key.encode("unicode-escape"))[2:][::-1][1:][::-1].replace("\\\\", "\\"), sep="")
