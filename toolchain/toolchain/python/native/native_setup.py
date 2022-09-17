@@ -7,7 +7,7 @@ import re
 from zipfile import ZipFile
 
 from make_config import make_config
-from progress_bar import print_progress_bar
+from shell import print_progress_bar
 from utils import clear_directory
 
 def list_subdirectories(path, max_depth = 5, dirs = None):

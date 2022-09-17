@@ -5,26 +5,42 @@ import tty
 
 from ansi_escapes import *
 
-def mute_input():
-	with open(os.devnull, "r") as devnull:
-		sys_stdin = sys.stdin
-		sys.stdin = devnull
-		try:
-			yield
-		finally:
-			sys.stdin = sys_stdin
+def print_progress_bar(iteration, total, prefix = "", suffix = "", decimals = 1, length = 100, fill = "\u2588"):
+	percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+	filledLength = int(length * iteration // total)
+	bar = fill * filledLength + "-" * (length - filledLength)
+	print(f"\r{prefix} |{bar}| {percent}% {suffix}", end = "\r")
+	if iteration == total: 
+		print()
 
-def mute_output():
-	with open(os.devnull, "w") as devnull:
-		sys_stdout = sys.stdout
-		sys_stderr = sys.stderr
-		sys.stdout = devnull
-		sys.stderr = devnull
-		try:
-			yield
-		finally:
-			sys.stdout = sys_stdout
-			sys.stderr = sys_stderr
+class MuteInput():
+	def __enter__(self):
+		with open(os.devnull, "r") as devnull:
+			sys_stdin = sys.stdin
+			sys.stdin = devnull
+			try:
+				yield
+			finally:
+				sys.stdin = sys_stdin
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		pass
+
+class MuteOutput():
+	def __enter__(self):
+		with open(os.devnull, "w") as devnull:
+			sys_stdout = sys.stdout
+			sys_stderr = sys.stderr
+			sys.stdout = devnull
+			sys.stderr = devnull
+			try:
+				yield
+			finally:
+				sys.stdout = sys_stdout
+				sys.stderr = sys_stderr
+
+	def __exit__(self, exc_type, exc_value, traceback):
+		pass
 
 def input_key(count = 1):
 	fd = sys.stdin.fileno()
