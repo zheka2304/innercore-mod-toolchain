@@ -213,13 +213,12 @@ def task_build_package():
 @task("launchHorizon")
 def task_launch_horizon():
 	from subprocess import call
-	call([
-		make_config.get_adb(),
+	from device import adb_command
+	call(adb_command + [
 		"shell", "touch",
 		"/storage/emulated/0/games/horizon/.flag_auto_launch"
 	], stdout=devnull, stderr=devnull)
-	result = call([
-		make_config.get_adb(),
+	result = call(adb_command + [
 		"shell", "monkey",
 		"-p", "com.zheka.horizon",
 		"-c", "android.intent.category.LAUNCHER", "1"
@@ -231,8 +230,8 @@ def task_launch_horizon():
 @task("stopHorizon")
 def stop_horizon():
 	from subprocess import call
-	result = call([
-		make_config.get_adb(),
+	from device import adb_command
+	result = call(adb_command + [
 		"shell",
 		"am",
 		"force-stop",
@@ -343,13 +342,16 @@ def task_connect_to_adb():
 	print(f"Connecting to {ip}")
 
 	from subprocess import call
-	call([
-		make_config.get_adb(), "disconnect"
+	from device import adb_command
+	call(adb_command + [
+		"disconnect"
 	], stdout=devnull, stderr=devnull)
-	call([
-		make_config.get_adb(), "tcpip", port
+	call(adb_command + [
+		"tcpip", port
 	], stdout=devnull, stderr=devnull)
-	result = call([make_config.get_adb(), "connect", ip])
+	result = call(adb_command + [
+		"connect", ip
+	])
 	return result
 
 @task("createProject")

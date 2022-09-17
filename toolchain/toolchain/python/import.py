@@ -6,7 +6,7 @@ import platform
 
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 from base_config import BaseConfig
-from setup_commons import init_adb, cleanup_if_required
+from setup_commons import cleanup_if_required
 from project_manager import projectManager
 from make_config import make_config
 
@@ -174,8 +174,6 @@ if source == ".":
 	dirname = basename(os.getcwd())
 else:
 	dirname = basename(source)
-
-init_adb(make_obj)
 
 print("Importing mod.info")
 folder = import_mod_info(make_obj, source)

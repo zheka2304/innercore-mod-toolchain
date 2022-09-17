@@ -34,10 +34,3 @@ def cleanup_if_required(directory):
 			os.remove(path)
 		elif isdir:
 			utils.clear_directory(path)
-
-def init_adb(make_file):
-	pack_name = input("Enter your pack directory name [Inner_Core]: ")
-	if pack_name == "":
-		pack_name = "Inner_Core"
-
-	make_file["pushTo"] = "/storage/emulated/0/games/horizon/packs/" + pack_name
