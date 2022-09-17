@@ -67,8 +67,8 @@ def eraseLines(count):
 		clear += cursorLeft
 	return clear
 
-def link(text, url):
-	return f"{OSC}8;;{url}{beep}{text}{OSC}8;;{beep}"
+def link(text, url = None):
+	return f"{OSC}8;;{url if url is not None else text}{beep}{text}{OSC}8;;{beep}"
 
 def image(base64, options = {}):
 	returnValue = OSC + "1337;File=inline=1"
