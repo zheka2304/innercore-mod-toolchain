@@ -124,6 +124,7 @@
 				"id": "debug-all"
 			},
 			"dependsOn": [
+				"Project: Select by Active File",
 				"Build (No push)",
 				"Push"
 			],
@@ -144,6 +145,7 @@
 				"id": "debug-alt"
 			},
 			"dependsOn": [
+				"Project: Select by Active File",
 				"Build Scripts and Resources (No push)",
 				"Push"
 			],
@@ -164,6 +166,7 @@
 				"id": "run-above"
 			},
 			"dependsOn": [
+				"Project: Select by Active File",
 				"Build Java (No push)",
 				"Push"
 			],
@@ -184,6 +187,7 @@
 				"id": "run-above"
 			},
 			"dependsOn": [
+				"Project: Select by Active File",
 				"Build Native (No push)",
 				"Push"
 			],
@@ -290,6 +294,32 @@
 			"presentation": {
 				"focus": true
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Project: Select by Active File",
+			"icon": {
+				"id": "repo-force-push"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "../project-select.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\project-select.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"args": [
+				"${fileWorkspaceFolder}"
+			],
 			"group": {
 				"kind": "build",
 				"isDefault": true
