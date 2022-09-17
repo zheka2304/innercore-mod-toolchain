@@ -71,7 +71,7 @@ def update_modified_classes(directories, cache_dir):
 					hash_factory = hashlib.md5()
 					with open(file, "rb") as fp:
 						hash_factory.update(fp.read())
-					hash = str(hash_factory.digest())
+					hash = hash_factory.hexdigest()
 					if file not in modified_timings or modified_timings[file] != hash:
 						modified_files_for_dir.append(file)
 					modified_timings[file] = hash
