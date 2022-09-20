@@ -1,0 +1,118 @@
+name: Inner Core Classpath
+
+on: workflow_dispatch
+concurrency: deploy
+
+jobs:
+  classpath:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_MASTER: deploy
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ env.BRANCH_MASTER }}
+          path: ${{ env.BRANCH_MASTER }}
+      - name: Fetch repository commit
+        id: github-commit-hash
+        working-directory: ${{ env.BRANCH_MASTER }}
+        run: |
+          if test -f toolchain/toolchain/classpath/.labcommit; then
+            read result < toolchain/toolchain/classpath/.labcommit
+            echo "::set-output name=result::$result"
+          fi
+      - name: Raw curl latest commit
+        run: |
+          GITLAB_COMMIT=$(curl --silent --fail --show-error \
+            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/commits/master?stats=false)
+          echo "GITLAB_COMMIT<<EOF" >> $GITHUB_ENV
+          echo "$GITLAB_COMMIT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Fetch latest commit
+        id: gitlab-commit-hash
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: return ${{ env.GITLAB_COMMIT }}.id
+      - name: Compare commit differences
+        uses: actions/github-script@v6
+        with:
+          script: |
+            if ("${{ steps.github-commit-hash.outputs.result }}" == "${{ steps.gitlab-commit-hash.outputs.result }}") {
+              core.setFailed("Triggered when same commit already used!")
+            }
+      - name: Fetch curl raw manifest
+        run: |
+          GITLAB_MANIFEST=$(curl --silent --fail --show-error \
+            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore-test%2Fmanifest.json/raw?ref=master)
+          echo "GITLAB_MANIFEST<<EOF" >> $GITHUB_ENV
+          echo "$GITLAB_MANIFEST" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Merge output commit name
+        id: that-commit-name
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const { pack, packVersion } = ${{ env.GITLAB_MANIFEST }}
+            return `${pack} v${packVersion}`
+      - name: Download curl pack.zip
+        run: |
+          curl --silent --fail --show-error --output pack.zip -L -H "Accept:application/octet-stream"  \
+            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore-test%2Fpack.zip/raw?ref=master
+      - name: Unpack pack.zip *.dex to innercore-test
+        run: |
+          unzip pack.zip -d innercore-test -C java/**/*.dex 2>&1 || :
+      - name: Merge *.dex into innercore-test.apk
+        working-directory: innercore-test
+        run: |
+          mkdir classes
+          mv --backup=numbered -t classes java/**/*.dex
+          ls -v classes | cat -n | while read n f; do mv -n "classes/$f" "classes$n.dex"; done
+          if test -f classes1.dex; then mv classes1.dex classes.dex; fi
+          zip -0 innercore-test.apk *.dex
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "8"
+      - name: Fetch curl dex2jar.jar
+        run: |
+          DEX2JAR_RELEASE=$(curl --silent --fail --show-error \
+            https://api.github.com/repos/pxb1988/dex2jar/releases/latest)
+          echo "DEX2JAR_RELEASE<<EOF" >> $GITHUB_ENV
+          echo "$DEX2JAR_RELEASE" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Extract dex2jar executable url
+        id: dex2jar-executable-url
+        uses: actions/github-script@v6
+        with:
+          result-encoding: string
+          script: |
+            const { assets } = ${{ env.DEX2JAR_RELEASE }}
+            return assets[0].browser_download_url
+      - name: Download curl dex2jar.zip
+        run: |
+          curl --silent --fail --show-error --output dex2jar.zip -L -H "Accept:application/octet-stream"  \
+            ${{ steps.dex2jar-executable-url.outputs.result }}
+      - name: Unpack dex2jar.zip to dex2jar
+        run: |
+          unzip dex2jar.zip -d dex2jar 2>&1 || :
+      - name: Run dex2jar on innercore-test.apk
+        run: |
+          cd $(ls -d dex2jar/* | head -n 1)
+          ./d2j-dex2jar.sh --force --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
+      - name: Run mv innercore-test.jar to deploy
+        run: |
+          mv innercore-test/innercore-test.jar $BRANCH_MASTER/toolchain/toolchain/classpath
+          echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_MASTER/toolchain/toolchain/classpath/.labcommit
+      - name: Configure git
+        run: |
+          git config --global user.name "MaXFeeD"
+          git config --global user.email "maksfeed.mf@gmail.com"
+          git config --global push.autoSetupRemote true
+      - name: Push into deploy
+        working-directory: ${{ env.BRANCH_MASTER }}
+        run: |
+          git add --all .
+          git commit -m "${{ steps.that-commit-name.outputs.result }}" --quiet
+          git push
