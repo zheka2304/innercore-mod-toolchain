@@ -10,8 +10,6 @@ from hash_storage import output_storage
 from shell import print_progress_bar, select_prompt
 from ansi_escapes import link
 
-devnull = open(os.devnull, "w")
-
 def get_modpack_push_directory():
 	directory = make_config.get_value("pushTo")
 	if directory is None:
@@ -20,19 +18,27 @@ def get_modpack_push_directory():
 		return get_modpack_push_directory()
 	directory = join(directory, "mods", basename(make_config.get_value("currentProject")))
 	if "games/horizon/packs" not in directory and not make_config.get_value("device.pushAnyLocation", False):
-		print(f"Push directory {directory} looks suspicious, it does not belong to horizon packs directory, push will corrupt all contents, allow it only if you know what are you doing.")
-		print()
-		answer = select_prompt("What will you do?", "Choice modpack", "Push it anyway", "Always push", "Nothing", fallback=3)
-		if answer == 0:
+		print(
+			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
+			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
+		)
+		which = select_prompt(
+			"What will you do?",
+			"Choice another modpack",
+			"Push it anyway",
+			"No questions, always push",
+			"Nothing", fallback=3
+		)
+		if which == 0:
 			del make_config.json["pushTo"]
 			return get_modpack_push_directory()
-		elif answer == 2:
+		elif which == 2:
 			if not "device" in make_config.json:
 				make_config.json["device"] = {}
 			make_config.json["device"]["pushAnyLocation"] = True
 			make_config.save()
 			print("This may be changed in your toolchain.json config.")
-		elif answer == 3:
+		elif which == 3:
 			print("Pushing aborted.")
 			return None
 	return directory
@@ -44,9 +50,9 @@ def ls_pack(path):
 def person_readable_modpack_name(path):
 	what = path.split("/")[::-1]
 	try:
-		if what[0] == "com.mojang":
-			return "Legacy Core Engine"
 		suffix = " (internal)" if "Android/data" in path else ""
+		if what[0] == "com.mojang":
+			return "Legacy Core Engine" + suffix
 		if what[0] == "innercore":
 			return what[1] + suffix
 		if what[3] == "packs":
@@ -66,9 +72,14 @@ def setup_modpack_directory(directories = []):
 	if "mods" in ls("/storage/emulated/0/games/com.mojang"):
 		directories.append("/storage/emulated/0/games/com.mojang")
 	if len(directories) == 0:
-		print("It seems your device doesn't contain any Inner Core pack directory. If not, describe output path manually in toolchain.json.")
+		print(
+			"It seems your device doesn't contain any Inner Core pack directory. " +
+			"If not, describe output path manually in toolchain.json."
+		)
 		return None
-	which = select_prompt("Which modpack will be used?", *[person_readable_modpack_name(directory) for directory in directories])
+	which = select_prompt("Which modpack will be used?", *[
+		person_readable_modpack_name(directory) for directory in directories
+	])
 	return None if which is None else directories[which]
 
 def ls(path, *args):
@@ -83,33 +94,22 @@ def ls(path, *args):
 	return pipe.stdout.rstrip().splitlines()
 
 def push(directory, pushUnchanged = False):
-	if not pushUnchanged:
-		items = [relpath(path, directory) for path in glob(directory + "/*") if output_storage.is_path_changed(path)]
-	else:
-		items = [relpath(path, directory) for path in glob(directory + "/*")]
-
+	items = [relpath(path, directory) for path in glob(directory + "/*") if pushUnchanged or output_storage.is_path_changed(path)]
 	if len(items) < 1:
-		print_progress_bar(1, 1, suffix = "Complete!", length = 50)
+		print_progress_bar(1, 1, suffix = "Nothing to push.", length = 50)
 		return 0
 
 	dst_root = get_modpack_push_directory()
 	if dst_root is None:
 		return -1
 
-	result = subprocess.call(adb_command + [
-		"devices"
-	], stderr=devnull, stdout=devnull)
-	if result != 0:
-		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
-		return result
-
 	dst_root = dst_root.replace("\\", "/")
 	if not dst_root.startswith("/"):
 		dst_root = "/" + dst_root
-
 	src_root = directory.replace("\\", "/")
 
 	progress = 0
+	from task import devnull
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
@@ -127,7 +127,8 @@ def push(directory, pushUnchanged = False):
 			return result
 
 	print_progress_bar(progress, len(items), suffix = "Complete!" + (" " * 20), length = 50)
-	output_storage.save()
+	if not pushUnchanged:
+		output_storage.save()
 	return result
 
 def make_locks(*locks):
@@ -186,6 +187,17 @@ def get_device_state():
 		return STATE_UNKNOWN
 	return which_state(pipe.stdout.strip())
 
+def get_device_serial():
+	try:
+		pipe = subprocess.run([
+			make_config.get_adb(),
+			"get-serialno"
+		], text=True, check=True, capture_output=True)
+	except subprocess.CalledProcessError as err:
+		print("adb get-serialno failed with code", err.returncode)
+		return None
+	return pipe.stdout.strip()
+
 def device_list():
 	try:
 		pipe = subprocess.run([
@@ -215,10 +227,11 @@ def person_readable_device_name(device):
 				return f"{device['serial']} ({what[2]})"
 	return device["serial"]
 
-def which_device_will_be_connected(*devices):
+def which_device_will_be_connected(*devices, stateDoesntMatter = False):
 	devices = [device for device in devices
 		if device["state"] == STATE_DEVICE_CONNECTED
-		or device["state"] == STATE_DEVICE_AUTHORIZING]
+		or device["state"] == STATE_DEVICE_AUTHORIZING
+		or stateDoesntMatter]
 	if len(devices) < 2:
 		return None if len(devices) == 0 else devices[0]
 	which = select_prompt("Which device will be used?", *[
@@ -243,10 +256,25 @@ def get_adb_command_by_serial(serial):
 
 def setup_device_connection():
 	if not "device" in make_config.json or get_device_state() == STATE_NO_DEVICES:
-		print("Howdy! Before starting we're must set up your devices, don't you think so? Let's configure some connections.")
-		print()
-	which = select_prompt("How connection will be performed?", "I've connected device via cable", "Over air/network will be best", "Connect through pair code", "Wha.. I don't understand!", "It will be performed later")
-	return None if which == 4 else setup_how_to_use() if which == 3 else setup_via_usb() if which == 0 else setup_via_network()
+		print(
+			"Howdy! " +
+			"Before starting we're must set up your devices, don't you think so? " +
+			"Let's configure some connections."
+		)
+	which = select_prompt(
+		"How connection will be performed?",
+		"I've connected device via cable",
+		"Over air/network will be best",
+		"Connect with pairing code",
+		"Everything already performed",
+		"Wha.. I don't understand!",
+		"It will be performed later"
+	)
+	return None if which == 5 else \
+		setup_how_to_use() if which == 4 else \
+		setup_externally() if which == 3 else \
+		setup_via_usb() if which == 0 else \
+		setup_via_network(which == 2)
 
 def setup_via_usb():
 	try:
@@ -272,11 +300,32 @@ def setup_via_usb():
 		print()
 	return get_adb_command()
 
-def setup_via_network():
+def setup_via_network(withPairingCode = False):
 	return get_adb_command()
 
+def setup_externally():
+	state = get_device_state()
+	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
+		serial = get_device_serial()
+		if serial is not None:
+			return get_adb_command_by_serial(serial)
+	print("Not found connected devices, resolving everything...")
+	list = device_list()
+	if list is None:
+		return get_adb_command()
+	device = which_device_will_be_connected(*list, stateDoesntMatter=True)
+	if device is None:
+		print("Nope, nothing to perform here.")
+		input()
+		return get_adb_command()
+	return get_adb_command_by_serial(device["serial"])
+
 def setup_how_to_use():
-	print("Android Debug Bridge (adb) is a versatile command-line tool that lets you communicate with a device. The adb command facilitates a variety of device actions, such as installing and debugging apps, and it provides access to a Unix shell that you can use to run a variety of commands on a device.")
+	print(
+		"Android Debug Bridge (adb) is a versatile command-line tool that lets you communicate with a device. " +
+		"The adb command facilitates a variety of device actions, such as installing and debugging apps, " +
+		"and it provides access to a Unix shell that you can use to run a variety of commands on a device."
+	)
 	print(link("https://developer.android.com/studio/command-line/adb"))
 	input()
 	return get_adb_command()
