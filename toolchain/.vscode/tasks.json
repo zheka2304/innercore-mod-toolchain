@@ -2,31 +2,6 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Push",
-			"icon": {
-				"id": "rocket"
-			},
-			"type": "shell",
-			"command": "../push.sh",
-			"options": {
-				"cwd": "./toolchain/python"
-			},
-			"windows": {
-				"command": "..\\push.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"presentation": {
-				"focus": true
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
-		{
 			"label": "Build (No push)",
 			"icon": {
 				"id": "debug-all"
@@ -161,48 +136,6 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Build Scripts and Resources",
-			"icon": {
-				"id": "debug-alt"
-			},
-			"dependsOn": [
-				"Build Scripts and Resources (No push)",
-				"Push"
-			],
-			"dependsOrder": "sequence",
-			"presentation": {
-				"panel": "shared",
-				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Build Scripts and Resources by Active File",
-			"icon": {
-				"id": "debug-alt"
-			},
-			"hide": true,
-			"dependsOn": [
-				"Project: Select by Active File",
-				"Build Scripts and Resources"
-			],
-			"dependsOrder": "sequence",
-			"presentation": {
-				"panel": "shared",
-				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"glob": "**/*",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
-		{
 			"label": "Build Java",
 			"icon": {
 				"id": "run-above"
@@ -287,6 +220,48 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Build Scripts and Resources",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"dependsOn": [
+				"Build Scripts and Resources (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Scripts and Resources by Active File",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Project: Select by Active File",
+				"Build Scripts and Resources"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Configure ADB",
 			"icon": {
 				"id": "device-mobile"
@@ -355,6 +330,31 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Project: Remove",
+			"icon": {
+				"id": "root-folder-opened"
+			},
+			"type": "shell",
+			"command": "../project-remove.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\project-remove.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Project: Select",
 			"icon": {
 				"id": "folder-opened"
@@ -407,31 +407,6 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Remove",
-			"icon": {
-				"id": "root-folder-opened"
-			},
-			"type": "shell",
-			"command": "../project-remove.sh",
-			"options": {
-				"cwd": "./toolchain/python"
-			},
-			"windows": {
-				"command": "..\\project-remove.bat",
-				"options": {
-					"cwd": ".\\toolchain\\python"
-				}
-			},
-			"presentation": {
-				"focus": true
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
-		},
-		{
 			"label": "Project: Update Includes",
 			"icon": {
 				"id": "milestone"
@@ -447,6 +422,31 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Push",
+			"icon": {
+				"id": "rocket"
+			},
+			"type": "shell",
+			"command": "../push.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\push.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
 			},
 			"group": {
 				"kind": "build",
