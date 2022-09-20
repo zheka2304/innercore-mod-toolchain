@@ -1,3 +1,4 @@
+import hashlib
 import os
 from os.path import join, basename, abspath, isfile, isdir
 import platform
@@ -6,7 +7,7 @@ import json
 from base_config import BaseConfig
 
 class MakeConfig(BaseConfig):
-	def __init__(self, filename):
+	def __init__(self, filename, base = None):
 		if not isfile(filename):
 			from task import error
 			error(f"Not found {basename(filename)}, are you sure that selected project exists?")
@@ -14,7 +15,7 @@ class MakeConfig(BaseConfig):
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
 			self.json = json.load(file)
-		BaseConfig.__init__(self, self.json)
+		BaseConfig.__init__(self, self.json, base)
 
 	def save(self):
 		with open(self.filename, "w", encoding="utf-8") as make_file:
@@ -49,6 +50,9 @@ class ToolchainConfig(MakeConfig):
 		self.currentProject = self.get_value("currentProject", None)
 		if self.currentProject != None:
 			self.project_dir = join(self.root_dir, self.currentProject)
+			md5 = hashlib.md5()
+			md5.update(bytes(self.currentProject, "utf-8"))
+			self.project_unique_name = basename(self.currentProject) + "-" + md5.hexdigest()
 			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
 
 	def assure_project_selected(self):
