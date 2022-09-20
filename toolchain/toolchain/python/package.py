@@ -1,5 +1,6 @@
 import sys
-from os.path import isdir, join
+from os.path import isdir, join, basename
+import time
 
 from utils import clear_directory, copy_directory
 from make_config import make_config
@@ -56,3 +57,8 @@ def assemble_additional_directories():
 		for source_dir in source_directories:
 			copy_directory(source_dir, dst_dir)
 	return result
+
+def cleanup_relative_directory(path, project = False):
+	start_time = time.time()
+	clear_directory(make_config.get_project_path(path) if project else make_config.get_path(path))
+	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")

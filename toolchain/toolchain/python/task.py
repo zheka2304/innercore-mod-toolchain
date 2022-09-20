@@ -19,7 +19,7 @@ def get_make_config():
 	return make_config
 
 def lock_task(name, silent = True):
-	path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
+	path = get_make_config().get_path(f"toolchain/temp/lock/{name}.lock")
 	ensure_file_dir(path)
 	await_message = False
 
@@ -50,7 +50,7 @@ def unlock_task(name):
 	if name in locked_tasks:
 		locked_tasks[name].close()
 		del locked_tasks[name]
-	path = get_make_config().get_path(f"toolchain/build/lock/{name}.lock")
+	path = get_make_config().get_path(f"toolchain/temp/lock/{name}.lock")
 	if isfile(path):
 		os.remove(path)
 
@@ -192,7 +192,9 @@ def task_build_package(args = None):
 	config = get_make_config()
 	output_dir = config.get_project_path("output")
 	name = basename(config.get_value("currentProject", "unknown"))
-	output_dir_root_tmp = config.get_path("toolchain/build/package")
+	output_dir_root_tmp = config.get_path(
+		"toolchain/build/" + make_config.project_unique_name + "/package"
+	)
 	output_dir_tmp = join(output_dir_root_tmp, name)
 	ensure_directory(output_dir)
 	if exists(output_dir_tmp):
@@ -248,7 +250,10 @@ def task_load_docs(args = None):
 	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
 	content = response.read().decode("utf-8")
 
-	with open(make_config.get_path("toolchain/declarations/core-engine.d.ts"), "w") as docs:
+	declaration_path = make_config.get_path("toolchain/declarations")
+	if not exists(declaration_path):
+		os.mkdir(declaration_path)
+	with open(join(declaration_path, "core-engine.d.ts"), "w") as docs:
 		docs.write(content)
 
 	print("Complete!")
@@ -416,14 +421,21 @@ def task_update_toolchain(args = None):
 
 @task("cleanup")
 def task_cleanup(args = None):
-	config = get_make_config()
-	clear_directory(config.get_path("toolchain/build/gcc"))
-	clear_directory(config.get_path("toolchain/build/gradle"))
-	clear_directory(config.get_path("toolchain/build/project"))
-	clear_directory(config.get_path("toolchain/build/package"))
+	try:
+		from package import cleanup_relative_directory
+		if make_config.currentProject is not None:
+			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n]: ").lower() != "n":
+				cleanup_relative_directory("toolchain/build/" + make_config.project_unique_name)
+				cleanup_relative_directory("output", True)
+				return 0
+		elif input("Do you want to clear all project cache? [Y/n]: ").lower() == "n":
+			error("Cleaning cancelled by user.")
+		cleanup_relative_directory("toolchain/build")
+	except KeyboardInterrupt:
+		return -1
 	return 0
 
-def error(message, code=-1):
+def error(message, code = -1):
 	sys.stderr.write(message + "\n")
 	unlock_all_tasks()
 	exit(code)

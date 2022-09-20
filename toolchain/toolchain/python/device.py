@@ -243,8 +243,8 @@ def get_adb_command():
 	ensure_server_running()
 	which = setup_device_connection()
 	if which is None:
-		print("Nothing will happened, adb set up interrupted.")
-		exit(1)
+		from task import error
+		error("Nothing will happened, adb set up interrupted.", 1)
 	return which
 
 def get_adb_command_by_serial(serial):

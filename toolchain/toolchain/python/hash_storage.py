@@ -68,5 +68,9 @@ class HashStorage:
 		return
 
 
-build_storage = HashStorage(make_config.get_path("toolchain/build/project/.buildhashes"))
-output_storage = HashStorage(make_config.get_path("toolchain/build/project/.outputhashes"))
+build_storage = HashStorage(make_config.get_path(
+	"toolchain/build/" + make_config.project_unique_name + "/project/.buildhashes"
+))
+output_storage = HashStorage(make_config.get_path(
+	"toolchain/build/" + make_config.project_unique_name + "/project/.outputhashes"
+))

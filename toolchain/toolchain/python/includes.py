@@ -1,5 +1,5 @@
 import os
-from os.path import join, basename, isfile, normpath, splitext, relpath
+from os.path import join, exists, basename, isfile, normpath, splitext, relpath
 import glob
 import json
 import re
@@ -46,7 +46,7 @@ params_list = {
 	"tsBuildInfoFile": ".tsbuildinfo"
 }
 
-temp_directory = make_config.get_path("toolchain/build/project/sources")
+temp_directory = make_config.get_path("toolchain/build/" + make_config.project_unique_name + "/project/sources")
 
 class Includes:
 	def __init__(self, directory, includes_file):
@@ -184,12 +184,15 @@ class Includes:
 
 	def create_tsconfig(self, temp_path):
 		declarations = []
+		if exists(make_config.get_path("toolchain/declarations")):
+			declarations.extend(glob.glob(
+				make_config.get_path("toolchain/declarations/**/*.d.ts"),
+				recursive=True
+			))
 		declarations.extend(glob.glob(
-			make_config.get_path("toolchain/declarations/**/*.d.ts"),
-			recursive=True
-		))
-		declarations.extend(glob.glob(
-			make_config.get_path("toolchain/build/project/declarations/**/*.d.ts"),
+			make_config.get_path(
+				"toolchain/build/" + make_config.project_unique_name + "/project/declarations/**/*.d.ts"
+			),
 			recursive=True
 		))
 
@@ -235,6 +238,8 @@ class Includes:
 
 		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
 		if isfile(declaration_path):
-			move_file(declaration_path, join(make_config.get_path("toolchain/build/project/declarations"), basename(declaration_path)))
+			move_file(declaration_path, join(make_config.get_path(
+				"toolchain/build/" + make_config.project_unique_name + "/project/declarations"
+			), basename(declaration_path)))
 
 		return result

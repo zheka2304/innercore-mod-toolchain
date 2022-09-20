@@ -165,7 +165,8 @@ source = sys.argv[2]
 toolchain_path = make_config.filename
 
 if not (exists(toolchain_path) and exists(source)):
-	exit("Usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
+	from task import error
+	error("Usage: \r\n" + ("python" if platform.system() == "Windows" else "python3") + " import.py <destination> <source>")
 
 with open(toolchain_path, "r", encoding="utf-8") as make_file:
 	make_obj = json.loads(make_file.read())

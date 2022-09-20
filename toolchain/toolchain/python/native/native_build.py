@@ -104,8 +104,9 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 				clear_directory(output_include_path)
 
 	std_includes = []
-	for std_includes_dir in os.listdir(std_includes_path):
-		std_includes.append(abspath(join(std_includes_path, std_includes_dir)))
+	if exists(std_includes_path):
+		for std_includes_dir in os.listdir(std_includes_path):
+			std_includes.append(abspath(join(std_includes_path, std_includes_dir)))
 
 	# compile for every abi
 	overall_result = CODE_OK
@@ -221,7 +222,11 @@ def compile_all_using_make_config(abis):
 	start_time = time.time()
 
 	std_includes = make_config.get_path("toolchain/stdincludes")
-	cache_dir = make_config.get_path("toolchain/build/gcc")
+	if not exists(std_includes):
+		print("N\x1b[93mot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
+	cache_dir = make_config.get_path(
+		"toolchain/build/" + make_config.project_unique_name + "/gcc"
+	)
 	ensure_directory(cache_dir)
 	mod_structure.cleanup_build_target("native")
 

@@ -11,8 +11,8 @@ def create_project(returnFolder = False):
 	name = input("Enter project name: ")
 
 	if name == "":
-		print("New project will not be created.")
-		exit(0)
+		from task import error
+		error("New project will not be created.", 0)
 
 	def_folder = name.replace(":", "-")
 	i = 1
@@ -65,7 +65,7 @@ Launch();
 def select_project(variants, prompt = "Which project do you want?", selected = None):
 	shell = SelectionShell(prompt)
 	for variant in variants:
-		shell.variant(variant, variant if selected != variant else f"\x1b[92m{variant}\x1b[0m")
+		shell.variant(variant, variant if selected != variant else f"\x1b[2m{variant}\x1b[0m")
 	try:
 		shell.loop()
 	except KeyboardInterrupt:

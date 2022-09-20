@@ -102,10 +102,12 @@ def save_modified_classes_cache(cache_json, cache_dir):
 
 def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	d8_libs = []
-	for dirpath, dirnames, filenames in os.walk(make_config.get_path("toolchain/classpath")):
-		for filename in filenames:
-			if filename.endswith(".jar"):
-				d8_libs += ["--lib", join(dirpath, filename)]
+	classpath_dir = make_config.get_path("toolchain/classpath")
+	if exists(classpath_dir):
+		for dirpath, dirnames, filenames in os.walk(classpath_dir):
+			for filename in filenames:
+				if filename.endswith(".jar"):
+					d8_libs += ["--lib", join(dirpath, filename)]
 
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	jar_dir = join(cache_dir, "classes", directory_name, "libs", directory_name + "-all.jar")
@@ -120,9 +122,10 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 		"-cp", make_config.get_path("toolchain/bin/r8.jar"),
 		"com.android.tools.r8.D8"
 	] + modified_libs + d8_libs + [
+		"--classpath", classpath_dir
+	] if exists(classpath_dir) else [] + [
 		"--min-api", "19",
 		"--lib", jar_dir,
-		"--classpath", make_config.get_path("toolchain/classpath"),
 		"--intermediate",
 		"--output", dex_classes_dir
 	])
@@ -139,9 +142,10 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 			"-cp", make_config.get_path("toolchain/bin/r8.jar"),
 			"com.android.tools.r8.D8"
 		] + modified_classes_span + d8_libs + [
+			"--classpath", classpath_dir
+		] if exists(classpath_dir) else [] + [
 			"--min-api", "19",
 			"--lib", jar_dir,
-			"--classpath", make_config.get_path("toolchain/classpath"),
 			"--intermediate",
 			"--file-per-class",
 			"--output", dex_classes_dir
@@ -299,7 +303,9 @@ def compile_all_using_make_config():
 	start_time = time.time()
 
 	overall_result = 0
-	cache_dir = make_config.get_path("toolchain/build/gradle")
+	cache_dir = make_config.get_path(
+		"toolchain/build/" + make_config.project_unique_name + "/gradle"
+	)
 	ensure_directory(cache_dir)
 
 	directories = []
@@ -322,7 +328,12 @@ def compile_all_using_make_config():
 		return overall_result
 
 	if len(directories) > 0:
-		classpath_directories = [make_config.get_path("toolchain/classpath")] + make_config.get_value("gradle.classpath", [])
+		classpath_dir = make_config.get_path("toolchain/classpath")
+		if not exists(classpath_dir):
+			print("\x1b[93mNot found toolchain/classpath, in most cases build will be failed, please install it via tasks.\x1b[0m")
+		classpath_directories = [
+			classpath_dir
+		] if exists(classpath_dir) else [] + make_config.get_value("gradle.classpath", [])
 		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories))
 		if overall_result != 0:
 			print(f"Nope, clearing compiled directories {directories}")

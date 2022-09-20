@@ -15,6 +15,9 @@ def build_all_scripts():
 	mod_structure.cleanup_build_target("script_library")
 	overall_result = 0
 
+	if not exists(make_config.get_path("toolchain/declarations")):
+			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
+
 	from functools import cmp_to_key
 
 	def libraries_first(a, b):
