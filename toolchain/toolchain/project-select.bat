@@ -1,3 +1,3 @@
 @echo off
 cd python
-python task.py selectProject cleanup @ %1
+python task.py selectProject @ %1

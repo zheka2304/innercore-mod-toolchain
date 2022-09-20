@@ -377,6 +377,9 @@ def task_remove_project(args = None):
 
 	try:
 		projectManager.remove_project(folder=who)
+		from make_config import unique_folder_name
+		from package import cleanup_relative_directory
+		cleanup_relative_directory("toolchain/build/" + unique_folder_name(who))
 	except ValueError:
 		error(f"""Folder "{who}" not found!""")
 
@@ -455,16 +458,17 @@ if __name__ == "__main__":
 				try:
 					result = registered_tasks[task_name](args)
 					if result != 0:
-						error(f"task {task_name} failed with result {result}", code=result)
+						print()
+						error(f"* Task {task_name} failed with result {result}", code=result)
 				except BaseException as err:
 					if isinstance(err, SystemExit):
 						raise err
 
 					import traceback
 					traceback.print_exc()
-					error(f"Task {task_name} failed with above error")
+					error(f"* Task {task_name} failed with above error")
 			else:
-				print(f"No such task: {task_name}")
+				print(f"* No such task: {task_name}")
 	else:
-		error("No tasks to execute.")
+		error("* No tasks to execute.")
 	unlock_all_tasks()

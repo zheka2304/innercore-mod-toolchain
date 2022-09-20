@@ -1,1 +1,1 @@
-python3 task.py createProject cleanup
+python3 task.py createProject

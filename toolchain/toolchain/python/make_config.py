@@ -50,9 +50,7 @@ class ToolchainConfig(MakeConfig):
 		self.currentProject = self.get_value("currentProject", None)
 		if self.currentProject != None:
 			self.project_dir = join(self.root_dir, self.currentProject)
-			md5 = hashlib.md5()
-			md5.update(bytes(self.currentProject, "utf-8"))
-			self.project_unique_name = basename(self.currentProject) + "-" + md5.hexdigest()
+			self.project_unique_name = unique_folder_name(self.currentProject)
 			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
 
 	def assure_project_selected(self):
@@ -90,6 +88,11 @@ class ToolchainConfig(MakeConfig):
 		if platform.system() == "Windows":
 			return self.get_path("toolchain/adb/adb.exe")
 		return self.get_path("toolchain/adb/adb")
+
+def unique_folder_name(path):
+	md5 = hashlib.md5()
+	md5.update(bytes(path, "utf-8"))
+	return basename(path) + "-" + md5.hexdigest()
 
 
 # search for toolchain.json
