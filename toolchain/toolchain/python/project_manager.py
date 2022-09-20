@@ -84,6 +84,9 @@ class ProjectManager:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
 
 	def select_project_folder(self, folder = None):
+		if self.config.currentProject == folder:
+			return
+
 		self.config.currentProject = folder
 		if folder is None:
 			del self.config.project_dir
