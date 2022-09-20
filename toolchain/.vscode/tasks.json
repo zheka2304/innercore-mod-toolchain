@@ -124,7 +124,6 @@
 				"id": "debug-all"
 			},
 			"dependsOn": [
-				"Project: Select by Active File",
 				"Build (No push)",
 				"Push"
 			],
@@ -140,12 +139,33 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Build by Active File",
+			"icon": {
+				"id": "debug-all"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Project: Select by Active File",
+				"Build"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Scripts and Resources",
 			"icon": {
 				"id": "debug-alt"
 			},
 			"dependsOn": [
-				"Project: Select by Active File",
 				"Build Scripts and Resources (No push)",
 				"Push"
 			],
@@ -161,12 +181,33 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Build Scripts and Resources by Active File",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Project: Select by Active File",
+				"Build Scripts and Resources"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Java",
 			"icon": {
 				"id": "run-above"
 			},
 			"dependsOn": [
-				"Project: Select by Active File",
 				"Build Java (No push)",
 				"Push"
 			],
@@ -182,12 +223,33 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Build Java by Active File",
+			"icon": {
+				"id": "run-above"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Project: Select by Active File",
+				"Build Java"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Native",
 			"icon": {
 				"id": "run-above"
 			},
 			"dependsOn": [
-				"Project: Select by Active File",
 				"Build Native (No push)",
 				"Push"
 			],
@@ -198,6 +260,28 @@
 			},
 			"group": {
 				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Native by Active File",
+			"icon": {
+				"id": "run-above"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Project: Select by Active File",
+				"Build Native"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
 				"isDefault": true
 			},
 			"problemMatcher": []
@@ -317,6 +401,7 @@
 			],
 			"group": {
 				"kind": "build",
+				"glob": "**/*",
 				"isDefault": true
 			},
 			"problemMatcher": []
