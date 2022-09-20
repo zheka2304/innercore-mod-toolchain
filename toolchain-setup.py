@@ -3,7 +3,6 @@ import os
 from os.path import join, exists, isfile, isdir
 import shutil
 import urllib.request as request
-from datetime import datetime, timezone
 
 def copy_directory(src, dst, symlinks = False, ignore = None):
     if not exists(src) or isfile(src):
@@ -37,10 +36,6 @@ def download_and_extract_toolchain(directory):
     timestamp = "unknown"
     try:
         copy_directory(join(directory, "innercore-mod-toolchain-master"), "toolchain", False, ["toolchain-setup.py"])
-        last_update_path = join(directory, "toolchain/toolchain/bin/.last_update")
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        with open(last_update_path, "w", encoding="utf-8") as last_update_file:
-            last_update_file.write(timestamp)
         shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
     except Exception as err:
         print(err, file=sys.stderr)
