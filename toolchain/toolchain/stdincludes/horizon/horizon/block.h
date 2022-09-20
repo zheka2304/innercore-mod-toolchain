@@ -2,6 +2,8 @@
 // Created by zheka on 18/11/10.
 //
 
+// DEPRECATED IN THIS TOOLCHAIN
+
 #ifndef HORIZON_BLOCK_H
 #define HORIZON_BLOCK_H
 
