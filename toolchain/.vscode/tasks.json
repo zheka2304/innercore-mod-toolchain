@@ -203,26 +203,21 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Connect to ADB",
+			"label": "Configure ADB",
 			"icon": {
 				"id": "device-mobile"
 			},
 			"type": "shell",
-			"command": "python3",
+			"command": "../configure-adb.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "python",
+				"command": "..\\configure-adb.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
 			},
-			"args": [
-				"task.py",
-				"connectToADB",
-				"'${input:ip}:${input:port}'"
-			],
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -452,38 +447,6 @@
 				"isDefault": true
 			},
 			"problemMatcher": []
-		}
-	],
-	"inputs": [
-		{
-			"id": "ip",
-			"description": "IP:",
-			"default": "192.168.31.74",
-			"type": "promptString"
-		},
-		{
-			"id": "port",
-			"description": "Port:",
-			"default": "5037",
-			"type": "promptString"
-		},
-		{
-			"id": "projectName",
-			"description": "Name:",
-			"default": "",
-			"type": "promptString"
-		},
-		{
-			"id": "projectAuthor",
-			"description": "Author:",
-			"default": "",
-			"type": "promptString"
-		},
-		{
-			"id": "projectFolder",
-			"description": "Folder:",
-			"default": "",
-			"type": "promptString"
 		}
 	]
 }
