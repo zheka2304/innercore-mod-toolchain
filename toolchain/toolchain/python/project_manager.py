@@ -29,9 +29,11 @@ class ProjectManager:
 
 		path = join(self.root_dir, folder)
 		if exists(path):
-			raise IOError(f"""Folder "{folder}" already exists!""")
+			from task import error
+			error(f"""Folder "{folder}" already exists!""")
 		if not exists(self.config.get_path("../toolchain-mod")):
-			raise RuntimeError("Not found ../toolchain-mod template, nothing to do.")
+			from task import error
+			error("Not found ../toolchain-mod template, nothing to do.")
 
 		os.makedirs(path)
 		copy_directory(self.config.get_path("../toolchain-mod"), path, True)
@@ -65,7 +67,8 @@ class ProjectManager:
 
 	def remove_project(self, index = None, folder = None):
 		if len(self.__projects) == 0:
-			raise RuntimeError("Not found any project to remove.")
+			from task import error
+			error("Not found any project to remove.")
 
 		index, folder = self.get_folder(index, folder)
 

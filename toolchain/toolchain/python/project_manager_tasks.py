@@ -5,7 +5,8 @@ from project_manager import projectManager
 
 def create_project(returnFolder = False):
 	if not exists(projectManager.config.get_path("../toolchain-mod")):
-		raise RuntimeError("Not found ../toolchain-mod template, nothing to do.")
+		from task import error
+		error("Not found ../toolchain-mod template, nothing to do.")
 
 	name = input("Enter project name: ")
 

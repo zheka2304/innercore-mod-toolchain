@@ -8,7 +8,8 @@ from base_config import BaseConfig
 class MakeConfig(BaseConfig):
 	def __init__(self, filename):
 		if not isfile(filename):
-			raise RuntimeError(f"Not found {basename(filename)}, are you sure that project exists?")
+			from task import error
+			error(f"Not found {basename(filename)}, are you sure that selected project exists?")
 		self.filename = filename
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
@@ -52,7 +53,8 @@ class ToolchainConfig(MakeConfig):
 
 	def assure_project_selected(self):
 		if not hasattr(self, "project_dir"):
-			raise RuntimeError("Not found any opened project, nothing to do.")
+			from task import error
+			error("Not found any opened project, nothing to do.")
 
 	def get_project_value(self, name, fallback = None):
 		self.assure_project_selected()
