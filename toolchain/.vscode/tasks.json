@@ -519,19 +519,6 @@
 				"isDefault": true
 			},
 			"problemMatcher": []
-		},
-		{
-			"label": "TODO: Where am I?",
-			"icon": {
-				"id": "tools"
-			},
-			"type": "shell",
-			"command": "echo userHome: ${userHome}; echo execPath: ${execPath}; echo cwd: ${cwd}; echo defaultBuildTask: ${defaultBuildTask}; echo file: ${file}; echo lineNumber: ${lineNumber}; echo fileBasenameNoExtension: ${fileBasenameNoExtension}; echo fileDirname: ${fileDirname}; echo fileBasename: ${fileBasename}; echo fileExtname: ${fileExtname}; echo fileWorkspaceFolder: ${fileWorkspaceFolder}; echo relativeFileDirname: ${relativeFileDirname}; echo relativeFile: ${relativeFile}; echo workspaceFolder: ${workspaceFolder}; echo workspaceFolderBasename: ${workspaceFolderBasename}",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
 		}
 	]
 }
