@@ -102,9 +102,10 @@ def save_modified_classes_cache(cache_json, cache_dir):
 
 def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	d8_libs = []
-	for dirpath, dnames, fnames in os.walk(make_config.get_path("toolchain/classpath")):
-		for filename in fnames:
-			d8_libs += ["--lib", join(dirpath, filename)]
+	for dirpath, dirnames, filenames in os.walk(make_config.get_path("toolchain/classpath")):
+		for filename in filenames:
+			if filename.endswith(".jar"):
+				d8_libs += ["--lib", join(dirpath, filename)]
 
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	jar_dir = join(cache_dir, "classes", directory_name, "libs", directory_name + "-all.jar")
