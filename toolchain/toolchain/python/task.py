@@ -1,6 +1,6 @@
 import sys
 import os
-from os.path import join, exists, basename, isfile, isdir, splitext
+from os.path import join, exists, basename, isfile, isdir, splitext, relpath
 import platform
 import time
 
@@ -82,7 +82,7 @@ def task(name, lock = None):
 	return decorator
 
 @task("compileNativeDebug", lock=["native", "cleanup", "push"])
-def task_compile_native_debug():
+def task_compile_native_debug(args = None):
 	abi = get_make_config().get_value("debugAbi", None)
 	if abi is None:
 		abi = "armeabi-v7a"
@@ -91,7 +91,7 @@ def task_compile_native_debug():
 	return compile_all_using_make_config([abi])
 
 @task("compileNativeRelease", lock=["native", "cleanup", "push"])
-def task_compile_native_release():
+def task_compile_native_release(args = None):
 	abis = get_make_config().get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
 		error(f"ERROR: No abis value in config")
@@ -99,27 +99,27 @@ def task_compile_native_release():
 	return compile_all_using_make_config(abis)
 
 @task("compileJavaDebug", lock=["java", "cleanup", "push"])
-def task_compile_java_debug():
+def task_compile_java_debug(args = None):
 	from java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config()
 
 @task("compileJavaRelease", lock=["java", "cleanup", "push"])
-def task_compile_java_release():
+def task_compile_java_release(args = None): # TODO
 	from java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config()
 
 @task("buildScripts", lock=["script", "cleanup", "push"])
-def task_build_scripts():
+def task_build_scripts(args = None):
 	from script_build import build_all_scripts
 	return build_all_scripts()
 
 @task("buildResources", lock=["resource", "cleanup", "push"])
-def task_resources():
+def task_resources(args = None):
 	from script_build import build_all_resources
 	return build_all_resources()
 
 @task("buildInfo", lock=["cleanup", "push"])
-def task_build_info():
+def task_build_info(args = None):
 	import json
 	from utils import shortcodes
 	config = get_make_config()
@@ -144,7 +144,7 @@ def task_build_info():
 	return 0
 
 @task("buildAdditional", lock=["cleanup", "push"])
-def task_build_additional():
+def task_build_additional(args = None):
 	overall_result = 0
 	for additional_dir in get_make_config().get_project_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
@@ -166,17 +166,17 @@ def task_build_additional():
 	return overall_result
 
 @task("pushEverything", lock=["push"])
-def task_push_everything():
+def task_push_everything(args = None):
 	from device import push
 	return push(get_make_config().get_project_path("output"), get_make_config().get_value("pushUnchangedFiles", False))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
-def task_clear_output():
+def task_clear_output(args = None):
 	clear_directory(get_make_config().get_project_path("output"))
 	return 0
 
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"])
-def task_exclude_directories():
+def task_exclude_directories(args = None):
 	config = get_make_config()
 	for path in config.get_project_value("excludeFromRelease", []):
 		for exclude in config.get_project_paths(join("output", path)):
@@ -187,7 +187,7 @@ def task_exclude_directories():
 	return 0
 
 @task("buildPackage", lock=["push", "assemble", "native", "java"])
-def task_build_package():
+def task_build_package(args = None):
 	import shutil
 	config = get_make_config()
 	output_dir = config.get_project_path("output")
@@ -211,7 +211,7 @@ def task_build_package():
 	return 0
 
 @task("launchHorizon")
-def task_launch_horizon():
+def task_launch_horizon(args = None):
 	from subprocess import call
 	from device import adb_command
 	call(adb_command + [
@@ -228,7 +228,7 @@ def task_launch_horizon():
 	return 0
 
 @task("stopHorizon")
-def stop_horizon():
+def stop_horizon(args = None):
 	from subprocess import call
 	from device import adb_command
 	result = call(adb_command + [
@@ -242,7 +242,7 @@ def stop_horizon():
 	return result
 
 @task("loadDocs")
-def task_load_docs():
+def task_load_docs(args = None):
 	from urllib.request import urlopen
 	print("Downloading core-engine.d.ts")
 	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
@@ -255,7 +255,7 @@ def task_load_docs():
 	return 0
 
 @task("cleanupOutput")
-def task_cleanup_output():
+def task_cleanup_output(args = None):
 	def clean(p):
 		_walk = lambda: [f for f in list(os.walk(p))[1:] if exists(f[0])]
 		for folder in _walk():
@@ -273,7 +273,7 @@ def task_cleanup_output():
 	return 0
 
 @task("updateIncludes")
-def task_update_includes():
+def task_update_includes(args = None):
 	from functools import cmp_to_key
 	from mod_structure import mod_structure
 	from includes import Includes, temp_directory
@@ -322,40 +322,14 @@ def task_update_includes():
 			incl.create_tsconfig(join(temp_directory, basename(target_path)))
 	return 0
 
-@task("connectToADB")
-def task_connect_to_adb():
-	import re
-
-	ip = None
-	port = None
-	pattern = re.compile(r"(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}):(\d{4})")
-	for arg in sys.argv:
-		match = pattern.search(arg)
-		if match:
-			ip = match[0]
-			port = match[1]
-
-	if ip is None:
-		print("Incorrect IP-address")
-		return 1
-
-	print(f"Connecting to {ip}")
-
-	from subprocess import call
-	from device import adb_command
-	call(adb_command + [
-		"disconnect"
-	], stdout=devnull, stderr=devnull)
-	call(adb_command + [
-		"tcpip", port
-	], stdout=devnull, stderr=devnull)
-	result = call(adb_command + [
-		"connect", ip
-	])
+@task("configureADB")
+def task_configure_adb(args = None):
+	import device
+	device.setup_device_connection()
 	return result
 
 @task("createProject")
-def task_create_project():
+def task_create_project(args = None):
 	from project_manager import projectManager
 	from project_manager_tasks import create_project
 
@@ -376,11 +350,12 @@ def task_create_project():
 	return 0
 
 @task("removeProject")
-def task_remove_project():
+def task_remove_project(args = None):
 	from project_manager import projectManager
 	if projectManager.how_much() == 0:
 		error("Not found any project to remove.")
 
+	print("Selected project will be deleted forever, please think twice before removing anything!")
 	try:
 		who = projectManager.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	except KeyboardInterrupt:
@@ -404,10 +379,22 @@ def task_remove_project():
 	return 0
 
 @task("selectProject")
-def task_select_project():
+def task_select_project(args = None):
 	from project_manager import projectManager
+	if args is not None and len(args) > 0 and len(args[0]) > 0:
+		if exists(args[0]):
+			where = relpath(args[0], make_config.root_dir)
+			if where == ".":
+				error("Requested project path must be reference to mod, not toolchain itself.")
+			if not exists(join(args[0], "make.json")):
+				error("Not found make.json in requested folder, it not belongs to project yet.")
+			projectManager.select_project_folder(folder=where)
+			return 0
+		else:
+			error("Requested project path does not exists.")
+
 	if projectManager.how_much() == 0:
-		error("Not found any project to select.")
+		error("Not found any project to choice.")
 
 	who = projectManager.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
@@ -422,13 +409,13 @@ def task_select_project():
 	return 0
 
 @task("updateToolchain")
-def task_update_toolchain():
-	from update import update
-	update()
+def task_update_toolchain(args = None):
+	import update
+	update.update()
 	return 0
 
 @task("cleanup")
-def task_cleanup():
+def task_cleanup(args = None):
 	config = get_make_config()
 	clear_directory(config.get_path("toolchain/build/gcc"))
 	clear_directory(config.get_path("toolchain/build/gradle"))
@@ -443,11 +430,18 @@ def error(message, code=-1):
 
 
 if __name__ == "__main__":
-	if len(sys.argv[1:]) > 0:
-		for task_name in sys.argv[1:]:
+	argv = sys.argv[1:]
+	if "@" in argv:
+		where = argv.index("@")
+		args = argv[where + 1:]
+		argv = argv[:where]
+	else:
+		args = None
+	if len(argv) > 0:
+		for task_name in argv:
 			if task_name in registered_tasks:
 				try:
-					result = registered_tasks[task_name]()
+					result = registered_tasks[task_name](args)
 					if result != 0:
 						error(f"task {task_name} failed with result {result}", code=result)
 				except BaseException as err:

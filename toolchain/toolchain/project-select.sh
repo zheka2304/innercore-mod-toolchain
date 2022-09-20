@@ -1,1 +1,1 @@
-python3 task.py selectProject cleanup
+python3 task.py selectProject cleanup @ $1
