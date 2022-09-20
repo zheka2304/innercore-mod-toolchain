@@ -4,7 +4,6 @@
 	"java.project.outputPath": "toolchain/build/java",
 	"files.exclude": {
 		"**/__pycache__/**": true,
-		".vscode": true,
 		".settings/**": true,
 		".project": true,
 		".idea/**": true,
@@ -19,7 +18,7 @@
 		"toolchain/*.bat": true,
 		"toolchain/*.sh": true,
 		"innercore-mod-toolchain-master": true,
-		"update.zip": true,
+		"toolchain.zip": true,
 		".classpath": true,
 		".gitignore": true,
 		"**/*.log": true
