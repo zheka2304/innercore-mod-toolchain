@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  push:
+    branches: 
+      - deploy
+  workflow_run:
+    workflows:
+      - Inner Core Classpath
+    types:
+      - completed
+
+concurrency: deploy
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_MASTER: deploy
+      BRANCH_DEPLOY: master
+      BRANCH_DECLARATIONS: includes
+      BRANCH_STDINCLUDES: stdincludes
+      BRANCH_CLASSPATH: classpath
+    if: github.event.workflow_run.conclusion != 'failure'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ env.BRANCH_MASTER }}
+          path: ${{ env.BRANCH_DEPLOY }}
+      - name: Run trunc commit ref
+        working-directory: ${{ env.BRANCH_DEPLOY }}
+        run: |
+          git log --pretty=%H -1 . > toolchain/toolchain/bin/.commit
+          git log --pretty=%H -1 toolchain/toolchain/declarations > toolchain/toolchain/declarations/.commit
+          git log --pretty=%H -1 toolchain/toolchain/stdincludes > toolchain/toolchain/stdincludes/.commit
+          git log --pretty=%H -1 toolchain/toolchain/classpath > toolchain/toolchain/classpath/.commit
+      - name: Run mv optional dependencies to refs
+        run: |
+          mkdir $BRANCH_DECLARATIONS
+          mv $BRANCH_DEPLOY/toolchain/toolchain/declarations/.[!.]* \
+            $BRANCH_DEPLOY/toolchain/toolchain/declarations/* $BRANCH_DECLARATIONS
+          mkdir $BRANCH_STDINCLUDES
+          mv $BRANCH_DEPLOY/toolchain/toolchain/stdincludes/.[!.]* \
+            $BRANCH_DEPLOY/toolchain/toolchain/stdincludes/* $BRANCH_STDINCLUDES
+          mkdir $BRANCH_CLASSPATH
+          mv $BRANCH_DEPLOY/toolchain/toolchain/classpath/.[!.]* \
+            $BRANCH_DEPLOY/toolchain/toolchain/classpath/* $BRANCH_CLASSPATH
+      - name: Configure git
+        run: |
+          git config --global user.name "MaXFeeD"
+          git config --global user.email "maksfeed.mf@gmail.com"
+          git config --global push.autoSetupRemote true
+      - name: Push into master
+        working-directory: ${{ env.BRANCH_DEPLOY }}
+        run: |
+          git checkout -b $BRANCH_DEPLOY
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git push --force
+      - name: Push into includes
+        working-directory: ${{ env.BRANCH_DECLARATIONS }}
+        run: |
+          git config --global init.defaultBranch $BRANCH_DECLARATIONS
+          git init
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
+          git push --force -u origin $BRANCH_DECLARATIONS
+      - name: Push into stdincludes
+        working-directory: ${{ env.BRANCH_STDINCLUDES }}
+        run: |
+          git config --global init.defaultBranch $BRANCH_STDINCLUDES
+          git init
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
+          git push --force -u origin $BRANCH_STDINCLUDES
+      - name: Push into classpath
+        working-directory: ${{ env.BRANCH_CLASSPATH }}
+        run: |
+          git config --global init.defaultBranch $BRANCH_CLASSPATH
+          git init
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
+          git push --force -u origin $BRANCH_CLASSPATH
