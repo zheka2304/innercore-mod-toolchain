@@ -243,24 +243,6 @@ def task_load_docs(args = None):
 	print("Complete!")
 	return 0
 
-@task("cleanupOutput")
-def task_cleanup_output(args = None):
-	def clean(p):
-		_walk = lambda: [f for f in list(os.walk(p))[1:] if exists(f[0])]
-		for folder in _walk():
-			if len(folder[2]) > 0:
-				continue
-			if len(folder[1]) > 0:
-				for subfolder in folder[1]:
-					clean(join(folder[0], subfolder))
-				for folder2 in _walk():
-					if len(folder2[1]) == 0 and len(folder2[2]) == 0:
-						os.rmdir(folder2[0])
-	path = MAKE_CONFIG.get_project_path("output")
-	if exists(path):
-		clean(path)
-	return 0
-
 @task("updateIncludes")
 def task_update_includes(args = None):
 	from script_build import build_all_make_scripts
