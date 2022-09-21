@@ -13,10 +13,10 @@ from ansi_escapes import link
 def get_modpack_push_directory():
 	directory = make_config.get_value("pushTo")
 	if directory is None:
-		make_config.json["pushTo"] = setup_modpack_directory()
+		make_config.set("pushTo", setup_modpack_directory())
 		make_config.save()
 		return get_modpack_push_directory()
-	directory = join(directory, "mods", basename(make_config.get_value("currentProject")))
+	directory = join(directory, "mods", basename(make_config.current_project))
 	if "games/horizon/packs" not in directory and not make_config.get_value("device.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
@@ -33,9 +33,7 @@ def get_modpack_push_directory():
 			del make_config.json["pushTo"]
 			return get_modpack_push_directory()
 		elif which == 2:
-			if not "device" in make_config.json:
-				make_config.json["device"] = {}
-			make_config.json["device"]["pushAnyLocation"] = True
+			make_config.set("device.pushAnyLocation", True)
 			make_config.save()
 			print("This may be changed in your toolchain.json config.")
 		elif which == 3:
@@ -171,7 +169,7 @@ def which_state(what = None):
 			"device": STATE_DEVICE_CONNECTED,
 			"authorizing": STATE_DEVICE_AUTHORIZING
 		}[what]
-	except KeyError:
+	except KeyError: # offline
 		return STATE_DISCONNECTED
 
 def get_device_state():
@@ -227,11 +225,11 @@ def person_readable_device_name(device):
 				return f"{device['serial']} ({what[2]})"
 	return device["serial"]
 
-def which_device_will_be_connected(*devices, stateDoesntMatter = False):
+def which_device_will_be_connected(*devices, state_not_matter = False):
 	devices = [device for device in devices
 		if device["state"] == STATE_DEVICE_CONNECTED
 		or device["state"] == STATE_DEVICE_AUTHORIZING
-		or stateDoesntMatter]
+		or state_not_matter]
 	if len(devices) < 2:
 		return None if len(devices) == 0 else devices[0]
 	which = select_prompt("Which device will be used?", *[
@@ -265,16 +263,14 @@ def setup_device_connection():
 		"How connection will be performed?",
 		"I've connected device via cable",
 		"Over air/network will be best",
-		"Connect with pairing code",
 		"Everything already performed",
 		"Wha.. I don't understand!",
 		"It will be performed later"
 	)
-	return None if which == 5 else \
-		setup_how_to_use() if which == 4 else \
-		setup_externally() if which == 3 else \
-		setup_via_usb() if which == 0 else \
-		setup_via_network(which == 2)
+	return setup_via_usb() if which == 0 else \
+		setup_via_network() if which == 1 else \
+		setup_externally() if which == 2 else \
+		setup_how_to_use() if which == 3 else None
 
 def setup_via_usb():
 	try:
@@ -300,7 +296,7 @@ def setup_via_usb():
 		print()
 	return get_adb_command()
 
-def setup_via_network(withPairingCode = False):
+def setup_via_network(force_pairing_code = False):
 	return get_adb_command()
 
 def setup_externally():

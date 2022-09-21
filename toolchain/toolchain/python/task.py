@@ -191,7 +191,7 @@ def task_build_package(args = None):
 	import shutil
 	config = get_make_config()
 	output_dir = config.get_project_path("output")
-	name = basename(config.get_value("currentProject", "unknown"))
+	name = basename(config.current_project if config.current_project is not None else "unknown")
 	output_dir_root_tmp = config.get_path(
 		"toolchain/build/" + make_config.project_unique_name + "/package"
 	)
@@ -354,7 +354,7 @@ def task_create_project(args = None):
 
 	return 0
 
-@task("removeProject")
+@task("removeProject", lock=["cleanup"])
 def task_remove_project(args = None):
 	from project_manager import projectManager
 	if projectManager.how_much() == 0:
@@ -386,7 +386,7 @@ def task_remove_project(args = None):
 	print("Project permanently deleted.")
 	return 0
 
-@task("selectProject")
+@task("selectProject", lock=["cleanup"])
 def task_select_project(args = None):
 	from project_manager import projectManager
 	if args is not None and len(args) > 0 and len(args[0]) > 0:
@@ -426,7 +426,7 @@ def task_update_toolchain(args = None):
 def task_cleanup(args = None):
 	try:
 		from package import cleanup_relative_directory
-		if make_config.currentProject is not None:
+		if make_config.current_project is not None:
 			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n]: ").lower() != "n":
 				cleanup_relative_directory("toolchain/build/" + make_config.project_unique_name)
 				cleanup_relative_directory("output", True)
@@ -439,7 +439,7 @@ def task_cleanup(args = None):
 	return 0
 
 def error(message, code = -1):
-	sys.stderr.write(message + "\n")
+	print(message, file=sys.stderr)
 	unlock_all_tasks()
 	exit(code)
 
@@ -459,16 +459,16 @@ if __name__ == "__main__":
 					result = registered_tasks[task_name](args)
 					if result != 0:
 						print()
-						error(f"* Task {task_name} failed with result {result}", code=result)
+						error(f"* Task {task_name} failed with result {result}.", code=result)
 				except BaseException as err:
 					if isinstance(err, SystemExit):
 						raise err
 
 					import traceback
 					traceback.print_exc()
-					error(f"* Task {task_name} failed with above error")
+					error(f"* Task {task_name} failed with above error!")
 			else:
-				print(f"* No such task: {task_name}")
+				print(f"* No such task: {task_name}.")
 	else:
 		error("* No tasks to execute.")
 	unlock_all_tasks()

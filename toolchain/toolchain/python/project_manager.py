@@ -72,7 +72,7 @@ class ProjectManager:
 
 		index, folder = self.get_folder(index, folder)
 
-		if folder == self.config.get_value("currentProject"):
+		if folder == self.config.current_project:
 			self.select_project_folder()
 
 		clear_directory(self.config.get_path(folder))
@@ -87,29 +87,22 @@ class ProjectManager:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
 
 	def select_project_folder(self, folder = None):
-		if self.config.currentProject == folder:
+		if self.config.current_project == folder:
 			return
 
-		self.config.currentProject = folder
+		self.config.current_project = folder
 		if folder is None:
 			del self.config.project_dir
 			del self.config.project_make
 		else:
-			self.config.project_dir = join(self.root_dir, self.config.currentProject)
+			self.config.project_dir = join(self.root_dir, self.config.current_project)
 			self.config.project_make = MakeConfig(join(self.config.project_dir, "make.json"))
 
-		make_path = self.config.get_path("toolchain.json")
-
-		with open(make_path, "r", encoding="utf-8") as make_file:
-			make_obj = json.loads(make_file.read())
-
 		if folder is None:
-			del make_obj["currentProject"]
+			self.config.remove_value("currentProject")
 		else:
-			make_obj["currentProject"] = folder
-
-		with open(make_path, "w", encoding="utf-8") as make_file:
-			make_file.write(json.dumps(make_obj, indent="\t") + "\n")
+			self.config.set_value("current_project", folder)
+		self.config.save()
 
 	def select_project(self, index = None, folder =  None):
 		index, folder = self.get_folder(index, folder)
@@ -118,9 +111,8 @@ class ProjectManager:
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
-		last_project = self.config.get_value("currentProject")
-		if last_project != None:
-			vsc_settings_obj["files.exclude"][last_project] = True
+		if self.config.current_project != None:
+			vsc_settings_obj["files.exclude"][self.config.current_project] = True
 		vsc_settings_obj["files.exclude"][folder] = False
 
 		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
@@ -159,7 +151,7 @@ class ProjectManager:
 			who.append(dontWantAnymore)
 		else:
 			who = self.__projects
-		raw = select_project(who, prompt, self.config.currentProject)
+		raw = select_project(who, prompt, self.config.current_project)
 		return (raw if raw != dontWantAnymore else None)
 
 

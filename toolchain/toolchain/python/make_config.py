@@ -47,10 +47,10 @@ class MakeConfig(BaseConfig):
 class ToolchainConfig(MakeConfig):
 	def __init__(self, filename):
 		MakeConfig.__init__(self, filename)
-		self.currentProject = self.get_value("currentProject", None)
-		if self.currentProject != None:
-			self.project_dir = join(self.root_dir, self.currentProject)
-			self.project_unique_name = unique_folder_name(self.currentProject)
+		self.current_project = self.get_value("currentProject", None)
+		if self.current_project is not None:
+			self.project_dir = join(self.root_dir, self.current_project)
+			self.project_unique_name = unique_folder_name(self.current_project)
 			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
 
 	def assure_project_selected(self):

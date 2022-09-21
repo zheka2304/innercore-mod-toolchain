@@ -27,6 +27,19 @@ class BaseConfig:
 		if len(rawname[0]) > 0:
 			value[rawname.pop()] = what
 
+	def remove_value(self, name):
+		rawname = name.split(".")
+		value = self.json
+		while len(rawname) > 1 and len(rawname[0]) > 0:
+			key = rawname.pop(0)
+			if not key in value:
+				return
+			value = value[key]
+		if len(rawname[0]) > 0:
+			del value[rawname.pop()]
+			if value != self.json and len(value) == 0:
+				self.remove_value(name.rsplit(".", 1)[0])
+
 	def get_config(self, name, notNone = False):
 		value = self.get_value(name)
 		if isinstance(value, dict):
