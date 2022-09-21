@@ -4,7 +4,7 @@ Here is presented most common questions and problems encounted by users.
 
 ### How to connect a device/emulator via ADB
 
-If task **Connect to ADB** is not what you were looking for, try reading <https://developer.android.com/studio/command-line/adb>.
+If task **Configure ADB** is not what you were looking for, try reading <https://developer.android.com/studio/command-line/adb>.
 
 ### I cannot find pushed location
 
