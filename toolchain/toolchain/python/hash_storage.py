@@ -1,11 +1,10 @@
+import os
 from os.path import isfile, isdir, join, dirname
-from os import walk, remove, strerror, makedirs
 from errno import ENOENT
-
 import json
 
 from hashlib import md5
-from make_config import make_config
+from make_config import MAKE_CONFIG
 
 class HashStorage:
 	last_hashes = {}
@@ -27,7 +26,7 @@ class HashStorage:
 		elif isdir(path):
 			hash = HashStorage.get_directory_hash(path)
 		else:
-			raise FileNotFoundError(ENOENT, strerror(ENOENT), path)
+			raise FileNotFoundError(ENOENT, os.strerror(ENOENT), path)
 
 		self.hashes[key] = hash
 		return hash
@@ -35,9 +34,9 @@ class HashStorage:
 	@staticmethod
 	def get_directory_hash(directory):
 		total = md5()
-		for root, _, files in walk(directory):
-			for names in files:
-				filepath = join(root, names)
+		for dirpath, dirnames, filenames in os.walk(directory):
+			for filename in filenames:
+				filepath = join(dirpath, filename)
 				total.update(open(filepath, "rb").read())
 				"""
 				with open(filepath, "rb") as f:
@@ -51,7 +50,7 @@ class HashStorage:
 		return md5(open(file, "rb").read()).hexdigest()
 
 	def save(self):
-		makedirs(dirname(self.file), exist_ok=True)
+		os.makedirs(dirname(self.file), exist_ok=True)
 		with open(self.file, "w") as output:
 			json.dump(self.hashes, output, indent="\t")
 
@@ -63,14 +62,6 @@ class HashStorage:
 	def path_to_key(self, path):
 		return md5(path.encode("utf-8")).hexdigest()
 
-	def clear(self):
-		remove(self.file)
-		return
 
-
-build_storage = HashStorage(make_config.get_path(
-	"toolchain/build/" + make_config.project_unique_name + "/project/.buildhashes"
-))
-output_storage = HashStorage(make_config.get_path(
-	"toolchain/build/" + make_config.project_unique_name + "/project/.outputhashes"
-))
+build_storage = HashStorage(MAKE_CONFIG.get_project_build_path(".buildhashes"))
+output_storage = HashStorage(MAKE_CONFIG.get_project_build_path(".outputhashes"))

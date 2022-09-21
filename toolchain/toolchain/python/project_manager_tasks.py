@@ -1,10 +1,11 @@
 from os.path import exists, join
 
 from shell import SelectionShell
-from project_manager import projectManager
+from project_manager import PROJECT_MANAGER
+from make_config import MAKE_CONFIG
 
-def create_project(returnFolder = False):
-	if not exists(projectManager.config.get_path("../toolchain-mod")):
+def create_project(return_folder = False):
+	if not exists(MAKE_CONFIG.get_path("../toolchain-mod")):
 		from task import error
 		error("Not found ../toolchain-mod template, nothing to do.")
 
@@ -16,14 +17,14 @@ def create_project(returnFolder = False):
 
 	def_folder = name.replace(":", "-")
 	i = 1
-	while exists(projectManager.config.get_path(def_folder)):
+	while exists(MAKE_CONFIG.get_path(def_folder)):
 		def_folder = name.replace(":", "-") + str(i)
 		i += 1
 
 	folder = input("Enter project folder [" + def_folder + "]: ")
 	if folder == "":
 		folder = def_folder
-	while exists(projectManager.config.get_path(folder)):
+	while exists(MAKE_CONFIG.get_path(folder)):
 		print(f"""Folder "{folder}" already exists!""")
 		folder = input("Enter project folder [" + def_folder + "]: ")
 		if folder == "":
@@ -40,7 +41,7 @@ def create_project(returnFolder = False):
 		version = "1.0"
 	is_client = is_client.lower() == "y"
 
-	index = projectManager.create_project(
+	index = PROJECT_MANAGER.create_project(
 		name,
 		folder = folder,
 		author = author,
@@ -49,7 +50,7 @@ def create_project(returnFolder = False):
 		client = is_client
 	)
 
-	return folder if returnFolder else index
+	return folder if return_folder else index
 
 def setup_launcher_js(make_obj, path):
 	with open(join(path, "launcher.js"), "w") as file:

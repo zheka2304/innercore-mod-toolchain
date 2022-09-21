@@ -1,8 +1,9 @@
 import sys
-from os.path import exists, splitext, basename, isfile
+from os.path import exists, splitext, basename, isfile, isdir, join
+from functools import cmp_to_key
 
 from utils import clear_directory, copy_file, copy_directory
-from make_config import make_config
+from make_config import MAKE_CONFIG
 from mod_structure import mod_structure
 from includes import Includes
 
@@ -13,32 +14,26 @@ def build_source(source_path, target_path, language, includes_file):
 def build_all_scripts():
 	mod_structure.cleanup_build_target("script_source")
 	mod_structure.cleanup_build_target("script_library")
-	overall_result = 0
 
-	if not exists(make_config.get_path("toolchain/declarations")):
+	if not exists(MAKE_CONFIG.get_path("toolchain/declarations")):
 			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
 
-	from functools import cmp_to_key
+	return build_all_make_scripts()
 
-	def libraries_first(a, b):
-		la = a["type"] == "library"
-		lb = b["type"] == "library"
+def libraries_first(a, b):
+	la = a["type"] == "library"
+	lb = b["type"] == "library"
+	return 0 if la == lb else -1 if la else 1
 
-		if la == lb:
-			return 0
-		elif la:
-			return -1
-		else:
-			return 1
-
-	sources = make_config.get_project_value("sources", fallback=[])
+def build_all_make_scripts(only_tsconfig_rebuild = False):
+	overall_result = 0
+	sources = MAKE_CONFIG.get_project_value("sources", fallback=[])
 	sources = sorted(sources, key=cmp_to_key(libraries_first))
 
 	for item in sources:
 		_source = item["source"]
 		_target = item["target"] if "target" in item else None
 		_type = item["type"]
-		_language = item["language"]
 		_includes = item["includes"] if "includes" in item else ".includes"
 
 		if _type not in ("main", "launcher", "library", "preloader"):
@@ -46,7 +41,7 @@ def build_all_scripts():
 			overall_result = 1
 			continue
 
-		for source_path in make_config.get_project_paths(_source):
+		for source_path in MAKE_CONFIG.get_project_paths(_source):
 			if not exists(source_path):
 				print(f"Skipped non existing source {_source}")
 				overall_result = 1
@@ -74,18 +69,27 @@ def build_all_scripts():
 			except ValueError:
 				target_path += "{}"
 
-			destination_path = mod_structure.new_build_target(
-				target_type,
-				target_path,
-				source_type=_type,
-				declare=declare
-			)
+			if not only_tsconfig_rebuild:
+				destination_path = mod_structure.new_build_target(
+					target_type,
+					target_path,
+					source_type=_type,
+					declare=declare
+				)
 			mod_structure.update_build_config_list("compile")
-
-			if isfile(source_path):
-				copy_file(source_path, destination_path)
-			else:
-				overall_result += build_source(source_path, destination_path, _language, _includes)
+			if not only_tsconfig_rebuild:
+				if isfile(source_path):
+					copy_file(source_path, destination_path)
+				else:
+					overall_result += build_source(
+						source_path, destination_path,
+						item["language"] if "language" in item else "javascript",
+						_includes
+					)
+			elif isdir(source_path):
+				from includes import temp_directory
+				includes = Includes.invalidate(source_path, _includes)
+				includes.create_tsconfig(join(temp_directory, basename(target_path)))
 
 	return overall_result
 
@@ -96,12 +100,12 @@ def build_all_resources():
 	mod_structure.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 
-	for resource in make_config.get_project_value("resources", fallback=[]):
+	for resource in MAKE_CONFIG.get_project_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
 			print("Skipped invalid source json", resource, file=sys.stderr)
 			overall_result = 1
 			continue
-		for source_path in make_config.get_project_paths(resource["path"]):
+		for source_path in MAKE_CONFIG.get_project_paths(resource["path"]):
 			if not exists(source_path):
 				print("Skipped non existing resource", resource["path"], file=sys.stderr)
 				overall_result = 1

@@ -4,9 +4,9 @@ import glob
 import json
 import re
 
-from make_config import make_config
 from utils import move_file, copy_file
-from hash_storage import build_storage as storage
+from make_config import MAKE_CONFIG
+from hash_storage import build_storage
 
 params_list = {
 	"allowJs": False,
@@ -46,7 +46,7 @@ params_list = {
 	"tsBuildInfoFile": ".tsbuildinfo"
 }
 
-temp_directory = make_config.get_path("toolchain/build/" + make_config.project_unique_name + "/project/sources")
+temp_directory = MAKE_CONFIG.get_project_build_path("sources")
 
 class Includes:
 	def __init__(self, directory, includes_file):
@@ -159,7 +159,7 @@ class Includes:
 		result = 0
 		if language == "typescript":
 			self.create_tsconfig(temp_path)
-		if storage.is_path_changed(self.directory):
+		if build_storage.is_path_changed(self.directory):
 			import datetime
 
 			print(f"Building {basename(target_path)} from {self.includes_file}")
@@ -172,7 +172,7 @@ class Includes:
 			print(f"Completed {basename(target_path)} build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
 			if result != 0:
 				return result
-			storage.save()
+			build_storage.save()
 		else:
 			print(f"{basename(target_path)} is not changed")
 		copy_file(temp_path, target_path)
@@ -184,21 +184,19 @@ class Includes:
 
 	def create_tsconfig(self, temp_path):
 		declarations = []
-		if exists(make_config.get_path("toolchain/declarations")):
+		if exists(MAKE_CONFIG.get_path("toolchain/declarations")):
 			declarations.extend(glob.glob(
-				make_config.get_path("toolchain/declarations/**/*.d.ts"),
+				MAKE_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
 				recursive=True
 			))
 		declarations.extend(glob.glob(
-			make_config.get_path(
-				"toolchain/build/" + make_config.project_unique_name + "/project/declarations/**/*.d.ts"
-			),
+			MAKE_CONFIG.get_project_build_path("declarations/**/*.d.ts"),
 			recursive=True
 		))
 
-		currentName = splitext(basename(temp_path))[0]
+		current_name = splitext(basename(temp_path))[0]
 		for declaration in declarations:
-			if declaration.endswith(f"{currentName}.d.ts"):
+			if declaration.endswith(f"{current_name}.d.ts"):
 				declarations.remove(declaration)
 
 		template = {
@@ -238,8 +236,8 @@ class Includes:
 
 		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
 		if isfile(declaration_path):
-			move_file(declaration_path, join(make_config.get_path(
-				"toolchain/build/" + make_config.project_unique_name + "/project/declarations"
-			), basename(declaration_path)))
+			move_file(declaration_path, MAKE_CONFIG.get_project_build_path(
+				"declarations/" + basename(declaration_path)
+			))
 
 		return result

@@ -8,7 +8,7 @@ import zipfile
 import hashlib
 
 from utils import *
-from make_config import make_config
+from make_config import MAKE_CONFIG
 from mod_structure import mod_structure
 
 def get_classpath_from_directories(directories):
@@ -63,8 +63,8 @@ def update_modified_classes(directories, cache_dir):
 			"lib": []
 		}
 		modified_files_for_dir = modified_files[directory_name]["class"]
-		for dirpath, dnames, fnames in os.walk(classes_dir):
-			for filename in fnames:
+		for dirpath, dirnames, filenames in os.walk(classes_dir):
+			for filename in filenames:
 				if filename.endswith(".class"):
 					file = str(join(dirpath, filename))
 					modified_time = int(1000 * getmtime(file))
@@ -82,8 +82,8 @@ def update_modified_classes(directories, cache_dir):
 		was_libs_modified = False
 		library_files = []
 		for library_dir in manifest["library-dirs"]:
-			for dirpath, dnames, fnames in os.walk(join(directory, library_dir)):
-				for filename in fnames:
+			for dirpath, dirnames, filenames in os.walk(join(directory, library_dir)):
+				for filename in filenames:
 					if filename.endswith(".jar"):
 						file = join(dirpath, filename)
 						library_files.append(file)
@@ -102,7 +102,7 @@ def save_modified_classes_cache(cache_json, cache_dir):
 
 def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	d8_libs = []
-	classpath_dir = make_config.get_path("toolchain/classpath")
+	classpath_dir = MAKE_CONFIG.get_path("toolchain/classpath")
 	if exists(classpath_dir):
 		for dirpath, dirnames, filenames in os.walk(classpath_dir):
 			for filename in filenames:
@@ -119,11 +119,11 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	print("Dexing libraries")
 	result = subprocess.call([
 		"java",
-		"-cp", make_config.get_path("toolchain/bin/r8.jar"),
+		"-cp", MAKE_CONFIG.get_path("toolchain/bin/r8.jar"),
 		"com.android.tools.r8.D8"
-	] + modified_libs + d8_libs + [
+	] + modified_libs + d8_libs + ([
 		"--classpath", classpath_dir
-	] if exists(classpath_dir) else [] + [
+	] if exists(classpath_dir) else []) + [
 		"--min-api", "19",
 		"--lib", jar_dir,
 		"--intermediate",
@@ -139,11 +139,11 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 		modified_classes_span = modified_classes[index:min(index + max_span_size, len(modified_classes))]
 		result = subprocess.call([
 			"java",
-			"-cp", make_config.get_path("toolchain/bin/r8.jar"),
+			"-cp", MAKE_CONFIG.get_path("toolchain/bin/r8.jar"),
 			"com.android.tools.r8.D8"
-		] + modified_classes_span + d8_libs + [
+		] + modified_classes_span + d8_libs + ([
 			"--classpath", classpath_dir
-		] if exists(classpath_dir) else [] + [
+		] if exists(classpath_dir) else []) + [
 			"--min-api", "19",
 			"--lib", jar_dir,
 			"--intermediate",
@@ -158,8 +158,8 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	print("Compressing changed archives")
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	with zipfile.ZipFile(dex_zip_file, "w") as zip_ref:
-		for dirpath, dnames, fnames in os.walk(dex_classes_dir):
-			for filename in fnames:
+		for dirpath, dirnames, filenames in os.walk(dex_classes_dir):
+			for filename in filenames:
 				if filename.endswith(".dex"):
 					file = join(dirpath, filename)
 					zip_ref.write(file, arcname=file[len(dex_classes_dir) + 1:])
@@ -173,7 +173,7 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 	print("Merging dex")
 	return subprocess.call([
 		"java",
-		"-cp", make_config.get_path("toolchain/bin/r8.jar"),
+		"-cp", MAKE_CONFIG.get_path("toolchain/bin/r8.jar"),
 		"com.android.tools.r8.D8",
 		dex_zip_file,
 		"--min-api", "19",
@@ -186,7 +186,7 @@ def build_java_directories(directories, cache_dir, classpath):
 	ensure_directory(cache_dir)
 
 	targets = setup_gradle_project(cache_dir, directories, classpath)
-	gradle_executable = make_config.get_path("toolchain/bin/gradlew")
+	gradle_executable = MAKE_CONFIG.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
 		gradle_executable += ".bat"
 	result = subprocess.call([
@@ -248,13 +248,13 @@ def setup_gradle_project(cache_dir, directories, classpath):
 		ensure_directory(build_dir)
 		ensure_directory(dex_dir)
 
-		if make_config.get_value("gradle.keepLibraries", True):
+		if MAKE_CONFIG.get_value("gradle.keepLibraries", True):
 			for library_dir in library_dirs:
 				src_dir = join(directory, library_dir)
 				if isdir(src_dir):
 					copy_directory(src_dir, join(dex_dir, library_dir), clear_dst=True)
 
-		if make_config.get_value("gradle.keepSources", False):
+		if MAKE_CONFIG.get_value("gradle.keepSources", False):
 			for source_dir in source_dirs:
 				src_dir = join(directory, source_dir)
 				if isdir(src_dir):
@@ -303,20 +303,20 @@ def compile_all_using_make_config():
 	start_time = time.time()
 
 	overall_result = 0
-	cache_dir = make_config.get_path(
-		"toolchain/build/" + make_config.project_unique_name + "/gradle"
+	cache_dir = MAKE_CONFIG.get_path(
+		"toolchain/build/" + MAKE_CONFIG.project_unique_name + "/gradle"
 	)
 	ensure_directory(cache_dir)
 
 	directories = []
 	directory_names = []
-	for directory in make_config.get_project_filtered_list("compile", prop="type", values=("java",)):
+	for directory in MAKE_CONFIG.get_project_filtered_list("compile", prop="type", values=("java",)):
 		if "source" not in directory:
 			print("Skipped invalid java directory json", directory, file=sys.stderr)
 			overall_result = -1
 			continue
 
-		for path in make_config.get_project_paths(directory["source"]):
+		for path in MAKE_CONFIG.get_project_paths(directory["source"]):
 			if not isdir(path):
 				print("Skipped non existing java directory path", directory["source"], file=sys.stderr)
 				overall_result = -1
@@ -328,17 +328,17 @@ def compile_all_using_make_config():
 		return overall_result
 
 	if len(directories) > 0:
-		classpath_dir = make_config.get_path("toolchain/classpath")
+		classpath_dir = MAKE_CONFIG.get_path("toolchain/classpath")
 		if not exists(classpath_dir):
 			print("\x1b[93mNot found toolchain/classpath, in most cases build will be failed, please install it via tasks.\x1b[0m")
-		classpath_directories = [
+		classpath_directories = ([
 			classpath_dir
-		] if exists(classpath_dir) else [] + make_config.get_value("gradle.classpath", [])
+		] if exists(classpath_dir) else []) + MAKE_CONFIG.get_value("gradle.classpath", [])
 		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories))
 		if overall_result != 0:
 			print(f"Nope, clearing compiled directories {directories}")
 			for directory_name in directory_names:
-				clear_directory(make_config.get_project_path("output/" + directory_name))
+				clear_directory(MAKE_CONFIG.get_project_path("output/" + directory_name))
 	cleanup_gradle_scripts(directories)
 	mod_structure.update_build_config_list("javaDirs")
 

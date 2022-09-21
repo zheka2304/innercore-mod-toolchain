@@ -5,7 +5,7 @@ import shutil
 import urllib.request as request
 
 import utils
-from make_config import make_config
+from make_config import MAKE_CONFIG
 
 def download_and_extract_toolchain(directory):
 	import zipfile
@@ -62,7 +62,7 @@ def update():
 			change_timestamp() """
 		return 0
 
-	download_and_extract_toolchain(join(make_config.root_dir, ".."))
+	download_and_extract_toolchain(join(MAKE_CONFIG.root_dir, ".."))
 
 
 if __name__ == "__main__":

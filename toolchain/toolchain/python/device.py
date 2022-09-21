@@ -5,19 +5,19 @@ import re
 import subprocess
 from glob import glob
 
-from make_config import make_config
+from make_config import MAKE_CONFIG
 from hash_storage import output_storage
 from shell import print_progress_bar, select_prompt
 from ansi_escapes import link
 
 def get_modpack_push_directory():
-	directory = make_config.get_value("pushTo")
+	directory = MAKE_CONFIG.get_value("pushTo")
 	if directory is None:
-		make_config.set("pushTo", setup_modpack_directory())
-		make_config.save()
+		MAKE_CONFIG.set("pushTo", setup_modpack_directory())
+		MAKE_CONFIG.save()
 		return get_modpack_push_directory()
-	directory = join(directory, "mods", basename(make_config.current_project))
-	if "games/horizon/packs" not in directory and not make_config.get_value("device.pushAnyLocation", False):
+	directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
+	if "games/horizon/packs" not in directory and not MAKE_CONFIG.get_value("device.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
 			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
@@ -30,11 +30,11 @@ def get_modpack_push_directory():
 			"Nothing", fallback=3
 		)
 		if which == 0:
-			del make_config.json["pushTo"]
+			del MAKE_CONFIG.json["pushTo"]
 			return get_modpack_push_directory()
 		elif which == 2:
-			make_config.set("device.pushAnyLocation", True)
-			make_config.save()
+			MAKE_CONFIG.set("device.pushAnyLocation", True)
+			MAKE_CONFIG.save()
 			print("This may be changed in your toolchain.json config.")
 		elif which == 3:
 			print("Pushing aborted.")
@@ -91,8 +91,8 @@ def ls(path, *args):
 		return []
 	return pipe.stdout.rstrip().splitlines()
 
-def push(directory, pushUnchanged = False):
-	items = [relpath(path, directory) for path in glob(directory + "/*") if pushUnchanged or output_storage.is_path_changed(path)]
+def push(directory, push_unchanged = False):
+	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or output_storage.is_path_changed(path)]
 	if len(items) < 1:
 		print_progress_bar(1, 1, suffix = "Nothing to push.", length = 50)
 		return 0
@@ -125,7 +125,7 @@ def push(directory, pushUnchanged = False):
 			return result
 
 	print_progress_bar(progress, len(items), suffix = "Complete!" + (" " * 20), length = 50)
-	if not pushUnchanged:
+	if not push_unchanged:
 		output_storage.save()
 	return result
 
@@ -146,7 +146,7 @@ def make_locks(*locks):
 def ensure_server_running():
 	try:
 		subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"start-server"
 		], check=True)
 		return True
@@ -175,7 +175,7 @@ def which_state(what = None):
 def get_device_state():
 	try:
 		pipe = subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"get-state"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -188,7 +188,7 @@ def get_device_state():
 def get_device_serial():
 	try:
 		pipe = subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"get-serialno"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -199,7 +199,7 @@ def get_device_serial():
 def device_list():
 	try:
 		pipe = subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"devices", "-l"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -248,45 +248,45 @@ def get_adb_command():
 def get_adb_command_by_serial(serial):
 	ensure_server_running()
 	return [
-		make_config.get_adb(),
+		MAKE_CONFIG.get_adb(),
 		"-s", serial
 	]
 
 def setup_device_connection():
-	if not "device" in make_config.json or get_device_state() == STATE_NO_DEVICES:
+	if not "device" in MAKE_CONFIG.json:
 		print(
 			"Howdy! " +
 			"Before starting we're must set up your devices, don't you think so? " +
 			"Let's configure some connections."
 		)
-	which = select_prompt(
-		"How connection will be performed?",
+	which = select_prompt("How connection will be performed?", *[
 		"I've connected device via cable",
 		"Over air/network will be best",
-		"Everything already performed",
-		"Wha.. I don't understand!",
+		"Everything already performed"
+	] + (["Wha.. I don't understand!"] if not "device" in MAKE_CONFIG.json else []) + [
 		"It will be performed later"
-	)
+	])
 	return setup_via_usb() if which == 0 else \
 		setup_via_network() if which == 1 else \
 		setup_externally() if which == 2 else \
-		setup_how_to_use() if which == 3 else None
+		setup_how_to_use() if which == 3 \
+			and not "device" in MAKE_CONFIG.json else None
 
 def setup_via_usb():
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
 		subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"wait-for-usb-device"
 		], check=True, timeout=120.0)
 		serial = subprocess.run([
-			make_config.get_adb(),
+			MAKE_CONFIG.get_adb(),
 			"-d", "get-serialno"
 		], text=True, capture_output=True)
 		if serial.returncode != 0:
-			print("adb -d get-serialno failed with code", serial.returncode)
-			return get_adb_command()
+			print("adb get-serialno failed with code", serial.returncode)
+			return setup_device_connection()
 		return get_adb_command_by_serial(serial.stdout.rstrip())
 	except subprocess.CalledProcessError as err:
 		print("adb wait-for-usb-device failed with code", err.returncode)
@@ -294,10 +294,10 @@ def setup_via_usb():
 		print("Timeout")
 	except KeyboardInterrupt:
 		print()
-	return get_adb_command()
+	return setup_device_connection()
 
 def setup_via_network(force_pairing_code = False):
-	return get_adb_command()
+	return setup_device_connection()
 
 def setup_externally():
 	state = get_device_state()
@@ -309,7 +309,7 @@ def setup_externally():
 	list = device_list()
 	if list is None:
 		return get_adb_command()
-	device = which_device_will_be_connected(*list, stateDoesntMatter=True)
+	device = which_device_will_be_connected(*list, state_not_matter=True)
 	if device is None:
 		print("Nope, nothing to perform here.")
 		input()
@@ -324,10 +324,10 @@ def setup_how_to_use():
 	)
 	print(link("https://developer.android.com/studio/command-line/adb"))
 	input()
-	return get_adb_command()
+	return setup_device_connection()
 
 adb_command = get_adb_command()
 
 
 if __name__ == "__main__":
-	print(setup_modpack_directory())
+	print(setup_via_network())

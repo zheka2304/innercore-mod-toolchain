@@ -7,8 +7,8 @@ import platform
 from utils import clear_directory, copy_directory, ensure_directory, copy_file
 from base_config import BaseConfig
 from setup_commons import cleanup_if_required
-from project_manager import projectManager
-from make_config import make_config
+from project_manager import PROJECT_MANAGER
+from make_config import MAKE_CONFIG
 
 root_files = []
 
@@ -21,19 +21,19 @@ def import_mod_info(make_file, directory):
 	if not exists(mod_info):
 		from project_manager_tasks import create_project
 		folder = create_project(True)
-		projectManager.select_project(folder=folder)
+		PROJECT_MANAGER.select_project(folder=folder)
 		return folder
 
 	with open(mod_info, "r", encoding="utf-8") as info_file:
 		info_obj = json.loads(info_file.read())
-		index = projectManager.create_project(
+		index = PROJECT_MANAGER.create_project(
 	  		info_obj.get("name", "example-project"),
 			author = info_obj.get("author", ""),
 			version = info_obj.get("version", "1.0"),
 			description = info_obj.get("description", "")
    		)
-		projectManager.select_project(index=index)
-		return projectManager.get_folder(index=index)[1]
+		PROJECT_MANAGER.select_project(index=index)
+		return PROJECT_MANAGER.get_folder(index=index)[1]
 
 def import_build_config(make_file, folder, source, destination):
 	global root_files
@@ -162,7 +162,7 @@ def copy_additionals(source, folder, destination):
 
 destination = sys.argv[1]
 source = sys.argv[2]
-toolchain_path = make_config.filename
+toolchain_path = MAKE_CONFIG.filename
 
 if not (exists(toolchain_path) and exists(source)):
 	from task import error
@@ -178,13 +178,13 @@ else:
 
 print("Importing mod.info")
 folder = import_mod_info(make_obj, source)
-with open(projectManager.config.get_project_path("make.json"), "r", encoding="utf-8") as make_file:
+with open(PROJECT_MANAGER.config.get_project_path("make.json"), "r", encoding="utf-8") as make_file:
 	make_project_obj = json.loads(make_file.read())
 
 print("Importing build.config")
 import_build_config(make_project_obj, folder, source, destination)
 
-with open(projectManager.config.get_project_path("make.json"), "w", encoding="utf-8") as make_file:
+with open(PROJECT_MANAGER.config.get_project_path("make.json"), "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_project_obj, indent="\t") + "\n")
 
 print("Copying additional files and directories")

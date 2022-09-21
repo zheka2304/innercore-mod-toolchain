@@ -27,7 +27,7 @@ class MakeConfig(BaseConfig):
 	def get_path(self, relative_path):
 		return abspath(join(self.root_dir, relative_path))
 
-	def get_paths(self, relative_path, filter=None, paths=None):
+	def get_paths(self, relative_path, filter = None, paths = None):
 		if paths is None:
 			paths = []
 		if len(relative_path) > 0 and relative_path[-1] == "*":
@@ -57,6 +57,12 @@ class ToolchainConfig(MakeConfig):
 		if not hasattr(self, "project_dir"):
 			from task import error
 			error("Not found any opened project, nothing to do.")
+
+	def get_project_build_path(self, relative_path):
+		self.assure_project_selected()
+		return self.get_path(
+			"toolchain/build/" + self.project_unique_name + "/" + relative_path
+		)
 
 	def get_project_value(self, name, fallback = None):
 		self.assure_project_selected()
@@ -96,11 +102,11 @@ def unique_folder_name(path):
 
 
 # search for toolchain.json
-make_config = None
+MAKE_CONFIG = None
 for i in range(0, 4):
 	make_file = join("../" * i, "toolchain.json")
 	if isfile(make_file):
-		make_config = ToolchainConfig(make_file)
+		MAKE_CONFIG = ToolchainConfig(make_file)
 		break
-if make_config is None:
+if MAKE_CONFIG is None:
 	raise RuntimeError("Not found toolchain.json!")

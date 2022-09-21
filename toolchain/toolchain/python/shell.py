@@ -7,8 +7,8 @@ from ansi_escapes import *
 
 def print_progress_bar(iteration, total, prefix = "", suffix = "", decimals = 1, length = 100, fill = "\u2588"):
 	percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-	filledLength = int(length * iteration // total)
-	bar = fill * filledLength + "-" * (length - filledLength)
+	filled_length = int(length * iteration // total)
+	bar = fill * filled_length + "-" * (length - filled_length)
 	print(f"\r{prefix} |{bar}| {percent}% {suffix}", end = "\r")
 	if iteration == total: 
 		print()
@@ -76,20 +76,20 @@ class Shell():
 			self.offset += len(value)
 
 	def up(self, count):
-		self.write(cursorUp(count))
+		self.write(cursor_up(count))
 
 	def down(self, count):
-		self.write(cursorDown(count))
+		self.write(cursor_down(count))
 
 	def right(self, count):
-		self.write(cursorForward(count))
+		self.write(cursor_forward(count))
 
 	def left(self, count):
-		self.write(cursorBackward(count))
+		self.write(cursor_backward(count))
 
 	def clear(self):
 		if self.line > 0:
-			self.stdout.write(eraseLines(self.line + 1))
+			self.stdout.write(erase_lines(self.line + 1))
 			self.line = 0
 		self.offset = 0
 
@@ -121,10 +121,10 @@ class InteractiveShell(Shell):
 		return buffer
 
 	def hide_cursor(self):
-		self.write(cursorHide)
+		self.write(CURSOR_HIDE)
 
 	def show_cursor(self):
-		self.write(cursorShow)
+		self.write(CURSOR_SHOW)
 
 class SelectionShell(InteractiveShell):
 	def __init__(self, prompt = "Which you prefer?", arrow = "> ", arrow_offset = None):

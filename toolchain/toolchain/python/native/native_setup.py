@@ -6,7 +6,7 @@ import subprocess
 import re
 from zipfile import ZipFile
 
-from make_config import make_config
+from make_config import MAKE_CONFIG
 from shell import print_progress_bar
 from utils import clear_directory
 
@@ -36,7 +36,7 @@ def search_ndk_path(home_dir, contains_ndk = False):
 				return possible_ndk_dir
 
 def get_ndk_path():
-	path_from_config = make_config.get_value("ndkPath")
+	path_from_config = MAKE_CONFIG.get_value("ndkPath")
 	if path_from_config is not None:
 		return path_from_config
 	# Unix
@@ -50,13 +50,13 @@ def get_ndk_path():
 def search_for_gcc_executable(ndk_dir):
 	search_dir = join(ndk_dir, "bin")
 	if isdir(search_dir):
-		pattern = re.compile("[0-9A-Za-z]*-linux-android(eabi)*-g\\+\\+.*")
+		pattern = re.compile("[0-9A-Za-z]*-" + ("windows" if platform.system() == "Windows" else "linux") + "-android(eabi)*-g\\+\\+.*")
 		for file in listdir(search_dir):
 			if re.match(pattern, file):
 				return abspath(join(search_dir, file))
 
 def require_compiler_executable(arch, install_if_required = False):
-	ndk_dir = make_config.get_path("toolchain/ndk/" + str(arch))
+	ndk_dir = MAKE_CONFIG.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
 		if install(arch=arch, reinstall=False) == -1:
@@ -75,11 +75,10 @@ def require_compiler_executable(arch, install_if_required = False):
 		return file
 
 def check_installed(arch):
-	return isfile(make_config.get_path("toolchain/ndk/.installed-" + str(arch)))
+	return isfile(MAKE_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)))
 
 def install(arch = "arm", reinstall = False):
 	if not reinstall and check_installed(arch):
-		print("GCC for", arch, "is already installed, installation skipped")
 		return 0
 	else:
 		ndk_path = get_ndk_path()
@@ -88,7 +87,7 @@ def install(arch = "arm", reinstall = False):
 			print("Not found valid NDK installation.")
 			ans = input("Download android-ndk-r16b? (y/N) ")
 			if ans.lower() == "y":
-				archive_path = make_config.get_path("toolchain/temp/ndk.zip")
+				archive_path = MAKE_CONFIG.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
 
 				if not isfile(archive_path):
@@ -110,7 +109,7 @@ def install(arch = "arm", reinstall = False):
 								print_progress_bar(downloaded, length, suffix = "Downloading" if downloaded < length else "Complete!", length = 50)
 
 				print("Extracting NDK/GCC")
-				extract_path = make_config.get_path("toolchain/temp")
+				extract_path = MAKE_CONFIG.get_path("toolchain/temp")
 				with ZipFile(archive_path, "r") as archive:
 					archive.extractall(extract_path)
 
@@ -140,14 +139,14 @@ def install(arch = "arm", reinstall = False):
 			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 			"--arch", str(arch),
 			"--api", "19",
-			"--install-dir", make_config.get_path("toolchain/ndk/" + str(arch)),
+			"--install-dir", MAKE_CONFIG.get_path("toolchain/ndk/" + str(arch)),
 			"--force"
 		])
 
 		if result == 0:
-			open(make_config.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
+			open(MAKE_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
 			print("Removing temporary files")
-			clear_directory(make_config.get_path("toolchain/temp"))
+			clear_directory(MAKE_CONFIG.get_path("toolchain/temp"))
 			print("Complete!")
 			return 0
 		else:

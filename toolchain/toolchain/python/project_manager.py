@@ -1,19 +1,17 @@
 import os
-from os.path import join, exists, isfile
+from os.path import join, exists, isfile, isdir
 import json
 
 from utils import copy_directory, clear_directory
-from make_config import make_config, MakeConfig
+from make_config import MAKE_CONFIG, MakeConfig
 
 class ProjectManager:
-	def __init__(self, config):
-		self.config = config
-		self.root_dir = config.root_dir
-		self.__projects = []
-		locations = config.get_value("projectLocations", [config.root_dir])
+	def __init__(self):
+		self.projects = []
+		locations = MAKE_CONFIG.get_value("projectLocations", [MAKE_CONFIG.root_dir])
 		for location in locations:
-			realpath = join(config.root_dir, location)
-			if not exists(realpath):
+			realpath = join(MAKE_CONFIG.root_dir, location)
+			if not exists(realpath) or not isdir(realpath):
 				print(f"Not found project location {location}!")
 				continue
 			for next in os.listdir(realpath):
@@ -21,22 +19,22 @@ class ProjectManager:
 					continue
 				path = join(realpath, next, "make.json")
 				if exists(path) and isfile(path):
-					self.__projects.append(join(location, next))
+					self.projects.append(join(location, next))
 
 	def create_project(self, name, author = "", version = "1.0", description = "", folder = None, client = False):
 		if folder == None:
 			folder = name.replace(":", "-")
 
-		path = join(self.root_dir, folder)
+		path = join(MAKE_CONFIG.root_dir, folder)
 		if exists(path):
 			from task import error
 			error(f"""Folder "{folder}" already exists!""")
-		if not exists(self.config.get_path("../toolchain-mod")):
+		if not exists(MAKE_CONFIG.get_path("../toolchain-mod")):
 			from task import error
 			error("Not found ../toolchain-mod template, nothing to do.")
 
 		os.makedirs(path)
-		copy_directory(self.config.get_path("../toolchain-mod"), path, True)
+		copy_directory(MAKE_CONFIG.get_path("../toolchain-mod"), path, True)
 
 		make_path = join(path, "make.json")
 		with open(make_path, "r", encoding="utf-8") as make_file:
@@ -51,12 +49,12 @@ class ProjectManager:
 		with open(make_path, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
-		vsc_settings_path = self.config.get_path(".vscode/settings.json")
+		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
 		vsc_settings_obj["files.exclude"][folder] = True
-		self.__projects.append(folder)
+		self.projects.append(folder)
 		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
 
@@ -66,19 +64,19 @@ class ProjectManager:
 		return self.how_much() - 1
 
 	def remove_project(self, index = None, folder = None):
-		if len(self.__projects) == 0:
+		if len(self.projects) == 0:
 			from task import error
 			error("Not found any project to remove.")
 
 		index, folder = self.get_folder(index, folder)
 
-		if folder == self.config.current_project:
+		if folder == MAKE_CONFIG.current_project:
 			self.select_project_folder()
 
-		clear_directory(self.config.get_path(folder))
-		del self.__projects[index]
+		clear_directory(MAKE_CONFIG.get_path(folder))
+		del self.projects[index]
 
-		vsc_settings_path = self.config.get_path(".vscode/settings.json")
+		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
@@ -87,32 +85,32 @@ class ProjectManager:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
 
 	def select_project_folder(self, folder = None):
-		if self.config.current_project == folder:
+		if MAKE_CONFIG.current_project == folder:
 			return
 
-		self.config.current_project = folder
+		MAKE_CONFIG.current_project = folder
 		if folder is None:
-			del self.config.project_dir
-			del self.config.project_make
+			del MAKE_CONFIG.project_dir
+			del MAKE_CONFIG.project_make
 		else:
-			self.config.project_dir = join(self.root_dir, self.config.current_project)
-			self.config.project_make = MakeConfig(join(self.config.project_dir, "make.json"))
+			MAKE_CONFIG.project_dir = join(MAKE_CONFIG.root_dir, MAKE_CONFIG.current_project)
+			MAKE_CONFIG.project_make = MakeConfig(join(MAKE_CONFIG.project_dir, "make.json"))
 
 		if folder is None:
-			self.config.remove_value("currentProject")
+			MAKE_CONFIG.remove_value("currentProject")
 		else:
-			self.config.set_value("current_project", folder)
-		self.config.save()
+			MAKE_CONFIG.set_value("currentProject", folder)
+		MAKE_CONFIG.save()
 
 	def select_project(self, index = None, folder =  None):
 		index, folder = self.get_folder(index, folder)
 
-		vsc_settings_path = self.config.get_path(".vscode/settings.json")
+		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
-		if self.config.current_project != None:
-			vsc_settings_obj["files.exclude"][self.config.current_project] = True
+		if MAKE_CONFIG.current_project != None:
+			vsc_settings_obj["files.exclude"][MAKE_CONFIG.current_project] = True
 		vsc_settings_obj["files.exclude"][folder] = False
 
 		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
@@ -125,34 +123,34 @@ class ProjectManager:
 			if folder == None:
 				raise ValueError("Folder index must be specified!")
 			else:
-				index = next((i for i, x in enumerate(self.__projects)
+				index = next((i for i, x in enumerate(self.projects)
 					if x.lower() == folder.lower()
 				), -1)
 
-		folder = self.__projects[index]
+		folder = self.projects[index]
 
 		return index, folder
 
 	def how_much(self):
-		return len(self.__projects)
+		return len(self.projects)
 
-	def require_selection(self, prompt = None, promptWhenSingle = None, dontWantAnymore = None):
+	def require_selection(self, prompt = None, prompt_when_single = None, dont_want_anymore = None):
 		from project_manager_tasks import select_project
 		if self.how_much() == 1:
-			itwillbe = self.__projects[0]
-			if promptWhenSingle is None:
+			itwillbe = self.projects[0]
+			if prompt_when_single is None:
 				return itwillbe
 			else:
-				if input(promptWhenSingle.format(itwillbe) + " [Y/n]: ").lower() == "n":
+				if input(prompt_when_single.format(itwillbe) + " [Y/n]: ").lower() == "n":
 					return None
 				return itwillbe
-		if dontWantAnymore is not None:
-			who = self.__projects.copy()
-			who.append(dontWantAnymore)
+		if dont_want_anymore is not None:
+			who = self.projects.copy()
+			who.append(dont_want_anymore)
 		else:
-			who = self.__projects
-		raw = select_project(who, prompt, self.config.current_project)
-		return (raw if raw != dontWantAnymore else None)
+			who = self.projects
+		raw = select_project(who, prompt, MAKE_CONFIG.current_project)
+		return (raw if raw != dont_want_anymore else None)
 
 
-projectManager = ProjectManager(make_config)
+PROJECT_MANAGER = ProjectManager()

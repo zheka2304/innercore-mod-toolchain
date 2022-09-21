@@ -40,12 +40,12 @@ class BaseConfig:
 			if value != self.json and len(value) == 0:
 				self.remove_value(name.rsplit(".", 1)[0])
 
-	def get_config(self, name, notNone = False):
+	def get_config(self, name, not_none = False):
 		value = self.get_value(name)
 		if isinstance(value, dict):
 			return BaseConfig(value)
 		else:
-			return BaseConfig({}) if notNone else None
+			return BaseConfig({}) if not_none else None
 
 	def get_filtered_list(self, name, prop, values):
 		value = self.get_value(name)

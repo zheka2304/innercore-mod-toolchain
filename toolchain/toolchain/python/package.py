@@ -3,12 +3,12 @@ from os.path import isdir, join, basename
 import time
 
 from utils import clear_directory, copy_directory
-from make_config import make_config
+from make_config import MAKE_CONFIG
 
 def get_path_set(pathes, error_sensitive = False):
 	directories = []
 	for path in pathes:
-		for directory in make_config.get_paths(path):
+		for directory in MAKE_CONFIG.get_paths(path):
 			if isdir(directory):
 				directories.append(directory)
 			else:
@@ -20,9 +20,9 @@ def get_path_set(pathes, error_sensitive = False):
 	return directories
 
 def get_asset_directories(**kw):
-	main_assets = get_path_set(make_config.get_value("assets.main", []), error_sensitive=True)
+	main_assets = get_path_set(MAKE_CONFIG.get_value("assets.main", []), error_sensitive=True)
 	if main_assets is not None:
-		modified_assets = get_path_set(make_config.get_value("assets.modified", []), error_sensitive=True)
+		modified_assets = get_path_set(MAKE_CONFIG.get_value("assets.modified", []), error_sensitive=True)
 		if modified_assets is not None:
 			return main_assets + modified_assets
 	return None
@@ -33,7 +33,7 @@ def assemble_assets():
 		print("Some asset directories are invalid, nothing will happened")
 		return -1
 
-	output_dir = make_config.get_path("output/assets")
+	output_dir = MAKE_CONFIG.get_path("output/assets")
 	clear_directory(output_dir)
 	for asset_dir in asset_directories:
 		copy_directory(asset_dir, output_dir)
@@ -41,8 +41,8 @@ def assemble_assets():
 
 def assemble_additional_directories():
 	result = 0
-	output_dir = make_config.get_path("output")
-	for additional_dir in make_config.get_value("additional", []):
+	output_dir = MAKE_CONFIG.get_path("output")
+	for additional_dir in MAKE_CONFIG.get_value("additional", []):
 		if "sources" not in additional_dir or "pushTo" not in additional_dir:
 			print("Invalid formatted additional directory json", additional_dir)
 			result = -1
@@ -60,5 +60,5 @@ def assemble_additional_directories():
 
 def cleanup_relative_directory(path, project = False):
 	start_time = time.time()
-	clear_directory(make_config.get_project_path(path) if project else make_config.get_path(path))
+	clear_directory(MAKE_CONFIG.get_project_path(path) if project else MAKE_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")

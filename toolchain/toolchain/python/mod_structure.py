@@ -3,7 +3,7 @@ from os.path import join, isfile, isdir
 import json
 
 from utils import ensure_directory, clear_directory, ensure_file_dir
-from make_config import make_config
+from make_config import MAKE_CONFIG
 
 class BuildTargetType:
 	def __init__(self, directory = None, list_property = None, **kw):
@@ -24,7 +24,7 @@ BUILD_TARGETS = {
 
 class ModStructure:
 	def __init__(self, output_directory):
-		self.directory = make_config.get_project_path(output_directory)
+		self.directory = MAKE_CONFIG.get_project_path(output_directory)
 		self.targets = {}
 		self.build_config = None
 
@@ -114,7 +114,7 @@ class ModStructure:
 			self.build_config["defaultConfig"] = {}
 		default_config = self.build_config["defaultConfig"]
 		default_config["readme"] = "this build config is generated automatically by mod development toolchain"
-		default_config["api"] = make_config.get_project_value("info.api", fallback="CoreEngine")
+		default_config["api"] = MAKE_CONFIG.get_project_value("info.api", fallback="CoreEngine")
 		default_config["buildType"] = "develop"
 		self.write_build_config()
 

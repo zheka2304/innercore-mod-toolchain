@@ -23,13 +23,13 @@ def move_file(src, dst):
 	ensure_file_dir(dst)
 	shutil.move(src, dst)
 
-def indexOf(_list, _value):
+def index_of(_list, _value):
 	try:
 		return _list.index(_value)
 	except ValueError:
 		return -1
 
-def copy_directory(src, dst, clear_dst = False, replacement = True, ignore = [], ignore_list = [], ignoreEx = False):
+def copy_directory(src, dst, clear_dst = False, replacement = True, ignore = [], ignore_list = []):
 	ensure_directory(dst)
 	if clear_dst:
 		clear_directory(dst)
@@ -50,20 +50,20 @@ def copy_directory(src, dst, clear_dst = False, replacement = True, ignore = [],
 			continue
 
 		if isdir(s):
-			copy_directory(s, d, clear_dst, replacement, ignore_list=ignore_list, ignoreEx=ignoreEx)
-		elif indexOf(ignore_list, d) == -1:
+			copy_directory(s, d, clear_dst, replacement, ignore_list=ignore_list)
+		elif index_of(ignore_list, d) == -1:
 			shutil.copy2(s, d)
 
 def get_all_files(directory, extensions = ()):
 	all_files = []
-	for root, _, files in os.walk(directory):
-		for file in files:
+	for dirpath, dirnames, filenames in os.walk(directory):
+		for filename in filenames:
 			if len(extensions) == 0:
-				all_files.append(abspath(join(root, file)))
+				all_files.append(abspath(join(dirpath, filename)))
 			else:
 				for extension in extensions:
-					if len(file) >= len(extension) and file[-len(extension):] == extension:
-						all_files.append(abspath(join(root, file)))
+					if len(filename) >= len(extension) and filename[-len(extension):] == extension:
+						all_files.append(abspath(join(dirpath, filename)))
 						break
 	return all_files
 
@@ -75,10 +75,10 @@ def relative_path(directory, file):
 		while len(file) > 0 and file[0] in ("\\", "/"):
 			file = file[1:]
 		if len(file) == 0:
-			raise RuntimeError("file and directory are the same")
+			raise RuntimeError("File and directory are the same")
 		return file
 	else:
-		raise RuntimeError("file is not in a directory: file=" + file + " dir=" + directory)
+		raise RuntimeError("File is not in a directory: file=" + file + " dir=" + directory)
 
 def shortcodes(str):
 	from datetime import datetime

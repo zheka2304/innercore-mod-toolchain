@@ -1,12 +1,12 @@
 import os
-from os.path import join, basename, abspath, isfile, isdir
+from os.path import exists, join, basename, abspath, isfile, isdir
 import sys
 import subprocess
 import json
 
-from utils import *
+from utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files, relative_path
 import native.native_setup as native_setup
-from make_config import make_config, BaseConfig
+from make_config import MAKE_CONFIG, BaseConfig
 from mod_structure import mod_structure
 
 CODE_OK = 0
@@ -26,7 +26,7 @@ def prepare_compiler_executable(abi):
 	if abi in abi_map:
 		abi = abi_map[abi]
 	else:
-		print("WARNING: Unregistered abi", abi)
+		print(f"WARNING: Unregistered abi {abi}!")
 	return native_setup.require_compiler_executable(arch=abi, install_if_required=True)
 
 def get_manifest(directory):
@@ -41,14 +41,14 @@ def get_name_from_manifest(directory):
 		return None
 
 def search_directory(parent, name):
-	for root, dirs, _ in os.walk(parent):
-		for directory in dirs:
-			path = join(root, directory)
+	for dirpath, dirnames, filenames in os.walk(parent):
+		for dir in dirnames:
+			path = join(dirpath, dir)
 			if get_name_from_manifest(path) == name:
 				return path
 
 def get_fake_so_dir(abi):
-	fake_so_dir = make_config.get_path(join("toolchain/ndk/fakeso", abi))
+	fake_so_dir = MAKE_CONFIG.get_path(join("toolchain/ndk/fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 
@@ -57,7 +57,7 @@ def add_fake_so(gcc, abi, name):
 	if not isfile(file):
 		result = subprocess.call([
 			gcc, "-std=c++11",
-			make_config.get_path("toolchain/bin/fakeso.cpp"),
+			MAKE_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
 			"-shared", "-o", file
 		])
 		print("Created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
@@ -120,7 +120,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		for std_includes_dir in std_includes:
 			includes.append(f"-I{std_includes_dir}")
 		dependencies = [f"-L{get_fake_so_dir(abi)}", "-landroid", "-lm", "-llog"]
-		for link in rules.get_value("link", fallback=[]) + make_config.get_value("make.linkNative", fallback=[]) + ["horizon"]:
+		for link in rules.get_value("link", fallback=[]) + MAKE_CONFIG.get_value("make.linkNative", fallback=[]) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 		if "depends" in manifest:
@@ -188,9 +188,8 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 					os.remove(object_file)
 				overall_result = result
 
-		print()
 		if overall_result != CODE_OK:
-			print("Failed to compile", overall_result)
+			print("Failed to compile with result", overall_result)
 			return overall_result
 		else:
 			print(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
@@ -221,23 +220,23 @@ def compile_all_using_make_config(abis):
 	import time
 	start_time = time.time()
 
-	std_includes = make_config.get_path("toolchain/stdincludes")
+	std_includes = MAKE_CONFIG.get_path("toolchain/stdincludes")
 	if not exists(std_includes):
-		print("N\x1b[93mot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
-	cache_dir = make_config.get_path(
-		"toolchain/build/" + make_config.project_unique_name + "/gcc"
+		print("\x1b[93mNot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
+	cache_dir = MAKE_CONFIG.get_path(
+		"toolchain/build/" + MAKE_CONFIG.project_unique_name + "/gcc"
 	)
 	ensure_directory(cache_dir)
 	mod_structure.cleanup_build_target("native")
 
 	overall_result = CODE_OK
 
-	for native_dir in make_config.get_project_filtered_list("compile", prop="type", values=("native",)):
+	for native_dir in MAKE_CONFIG.get_project_filtered_list("compile", prop="type", values=("native",)):
 		if "source" not in native_dir:
 			print("Skipped invalid native directory json", native_dir, file=sys.stderr)
 			overall_result = CODE_INVALID_JSON
 			continue
-		for native_dir_path in make_config.get_project_paths(native_dir["source"]):
+		for native_dir_path in MAKE_CONFIG.get_project_paths(native_dir["source"]):
 			if isdir(native_dir_path):
 				directory_name = basename(native_dir_path)
 				result = build_native_dir(

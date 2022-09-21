@@ -1,25 +1,18 @@
 import sys
 import os
-from os.path import join, exists, basename, isfile, isdir, splitext, relpath
+from os.path import join, exists, basename, isfile, isdir, relpath
 import platform
 import time
 
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
+from make_config import MAKE_CONFIG
 
-make_config = None
 registered_tasks = {}
 locked_tasks = {}
 devnull = open(os.devnull, "w")
 
-def get_make_config():
-	global make_config
-	if make_config is None:
-		from make_config import make_config as config
-		make_config = config
-	return make_config
-
 def lock_task(name, silent = True):
-	path = get_make_config().get_path(f"toolchain/temp/lock/{name}.lock")
+	path = MAKE_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	ensure_file_dir(path)
 	await_message = False
 
@@ -50,7 +43,7 @@ def unlock_task(name):
 	if name in locked_tasks:
 		locked_tasks[name].close()
 		del locked_tasks[name]
-	path = get_make_config().get_path(f"toolchain/temp/lock/{name}.lock")
+	path = MAKE_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	if isfile(path):
 		os.remove(path)
 
@@ -83,18 +76,18 @@ def task(name, lock = None):
 
 @task("compileNativeDebug", lock=["native", "cleanup", "push"])
 def task_compile_native_debug(args = None):
-	abi = get_make_config().get_value("debugAbi", None)
+	abi = MAKE_CONFIG.get_value("debugAbi", None)
 	if abi is None:
 		abi = "armeabi-v7a"
-		print(f"WARNING: No debugAbi value in config, using {abi} as default")
+		print(f"* No 'debugAbi' value in toolchain.json config, using {abi} as default.")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
 @task("compileNativeRelease", lock=["native", "cleanup", "push"])
 def task_compile_native_release(args = None):
-	abis = get_make_config().get_value("abis", [])
+	abis = MAKE_CONFIG.get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
-		error(f"ERROR: No abis value in config")
+		error(f"No 'abis' value in toolchain.json config, nothing will happened.")
 	from native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
@@ -122,9 +115,10 @@ def task_resources(args = None):
 def task_build_info(args = None):
 	import json
 	from utils import shortcodes
-	config = get_make_config()
-	with open(config.get_project_path("output/mod.info"), "w") as info_file:
-		info = dict(config.get_project_value("info", fallback={"name": "Unnamed"}))
+	with open(MAKE_CONFIG.get_project_path("output/mod.info"), "w") as info_file:
+		info = dict(MAKE_CONFIG.get_project_value("info", fallback={
+			"name": "Unnamed"
+		}))
 		if "icon" in info:
 			del info["icon"]
 		if "api" in info:
@@ -134,26 +128,26 @@ def task_build_info(args = None):
 		info["description"] = shortcodes(info["description"])
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
-	icon_path = config.get_project_value("info.icon")
+	icon_path = MAKE_CONFIG.get_project_value("info.icon")
 	if icon_path is not None:
-		icon_path = config.get_project_path(icon_path)
+		icon_path = MAKE_CONFIG.get_project_path(icon_path)
 		if isfile(icon_path):
-			copy_file(icon_path, config.get_project_path("output/mod_icon.png"))
+			copy_file(icon_path, MAKE_CONFIG.get_project_path("output/mod_icon.png"))
 		else:
-			print("Icon", icon_path, "not found!")
+			print("In make.json icon", icon_path, "not found!")
 	return 0
 
 @task("buildAdditional", lock=["cleanup", "push"])
 def task_build_additional(args = None):
 	overall_result = 0
-	for additional_dir in get_make_config().get_project_value("additional", fallback=[]):
+	for additional_dir in MAKE_CONFIG.get_project_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
-			for additional_path in get_make_config().get_project_paths(additional_dir["source"]):
+			for additional_path in MAKE_CONFIG.get_project_paths(additional_dir["source"]):
 				if not exists(additional_path):
 					print("Non existing additional path: " + additional_path)
 					overall_result = 1
 					break
-				target = get_make_config().get_project_path(join(
+				target = MAKE_CONFIG.get_project_path(join(
 					"output",
 					additional_dir["targetDir"],
 					basename(additional_path)
@@ -168,18 +162,17 @@ def task_build_additional(args = None):
 @task("pushEverything", lock=["push"])
 def task_push_everything(args = None):
 	from device import push
-	return push(get_make_config().get_project_path("output"), get_make_config().get_value("pushUnchangedFiles", False))
+	return push(MAKE_CONFIG.get_project_path("output"), MAKE_CONFIG.get_value("pushUnchangedFiles", False))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output(args = None):
-	clear_directory(get_make_config().get_project_path("output"))
+	clear_directory(MAKE_CONFIG.get_project_path("output"))
 	return 0
 
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"])
 def task_exclude_directories(args = None):
-	config = get_make_config()
-	for path in config.get_project_value("excludeFromRelease", []):
-		for exclude in config.get_project_paths(join("output", path)):
+	for path in MAKE_CONFIG.get_project_value("excludeFromRelease", []):
+		for exclude in MAKE_CONFIG.get_project_paths(join("output", path)):
 			if isdir(exclude):
 				clear_directory(exclude)
 			elif isfile(exclude):
@@ -189,19 +182,16 @@ def task_exclude_directories(args = None):
 @task("buildPackage", lock=["push", "assemble", "native", "java"])
 def task_build_package(args = None):
 	import shutil
-	config = get_make_config()
-	output_dir = config.get_project_path("output")
-	name = basename(config.current_project if config.current_project is not None else "unknown")
-	output_dir_root_tmp = config.get_path(
-		"toolchain/build/" + make_config.project_unique_name + "/package"
-	)
+	output_dir = MAKE_CONFIG.get_project_path("output")
+	name = basename(MAKE_CONFIG.current_project if MAKE_CONFIG.current_project is not None else "unknown")
+	output_dir_root_tmp = MAKE_CONFIG.get_project_build_path("package")
 	output_dir_tmp = join(output_dir_root_tmp, name)
 	ensure_directory(output_dir)
 	if exists(output_dir_tmp):
 		shutil.rmtree(output_dir_tmp)
 	output_file_tmp = join(output_dir_root_tmp, "package.zip")
 	ensure_file_dir(output_file_tmp)
-	output_file = config.get_project_path(name + ".icmod")
+	output_file = MAKE_CONFIG.get_project_path(name + ".icmod")
 	if isfile(output_file):
 		os.remove(output_file)
 	if isfile(output_file_tmp):
@@ -220,28 +210,22 @@ def task_launch_horizon(args = None):
 		"shell", "touch",
 		"/storage/emulated/0/games/horizon/.flag_auto_launch"
 	], stdout=devnull, stderr=devnull)
-	result = call(adb_command + [
+	return call(adb_command + [
 		"shell", "monkey",
 		"-p", "com.zheka.horizon",
 		"-c", "android.intent.category.LAUNCHER", "1"
 	], stdout=devnull, stderr=devnull)
-	if result != 0:
-		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
-	return 0
 
 @task("stopHorizon")
 def stop_horizon(args = None):
 	from subprocess import call
 	from device import adb_command
-	result = call(adb_command + [
+	return call(adb_command + [
 		"shell",
 		"am",
 		"force-stop",
 		"com.zheka.horizon"
 	], stdout=devnull, stderr=devnull)
-	if result != 0:
-		print("\x1b[91mNo devices/emulators found, try to use task \"Connect to ADB\"\x1b[0m")
-	return result
 
 @task("loadDocs")
 def task_load_docs(args = None):
@@ -250,7 +234,7 @@ def task_load_docs(args = None):
 	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
 	content = response.read().decode("utf-8")
 
-	declaration_path = make_config.get_path("toolchain/declarations")
+	declaration_path = MAKE_CONFIG.get_path("toolchain/declarations")
 	if not exists(declaration_path):
 		os.mkdir(declaration_path)
 	with open(join(declaration_path, "core-engine.d.ts"), "w") as docs:
@@ -272,70 +256,25 @@ def task_cleanup_output(args = None):
 				for folder2 in _walk():
 					if len(folder2[1]) == 0 and len(folder2[2]) == 0:
 						os.rmdir(folder2[0])
-	path = make_config.get_project_path("output")
+	path = MAKE_CONFIG.get_project_path("output")
 	if exists(path):
 		clean(path)
 	return 0
 
 @task("updateIncludes")
 def task_update_includes(args = None):
-	from functools import cmp_to_key
-	from mod_structure import mod_structure
-	from includes import Includes, temp_directory
-
-	def libraries_first(a, b):
-		la = a["type"] == "library"
-		lb = b["type"] == "library"
-		if la == lb:
-			return 0
-		elif la:
-			return -1
-		else:
-			return 1
-
-	sources = sorted(make_config.get_value("sources", fallback=[]), key=cmp_to_key(libraries_first))
-	for item in sources:
-		_source = item["source"]
-		_target = item["target"] if "target" in item else None
-		_type = item["type"]
-		_includes = item["includes"] if "includes" in item else ".includes"
-		if _type not in ("main", "library", "preloader"):
-			print(f"Skipped invalid source with type {_type}")
-			continue
-		for source_path in make_config.get_paths(_source):
-			if not exists(source_path):
-				print(f"Skipped non existing source path {_source}")
-				continue
-			target_path = _target if _target is not None else f"{splitext(basename(source_path))[0]}.js"
-			declare = {
-				"sourceType": {
-					"main": "mod",
-					"launcher": "launcher",
-					"preloader": "preloader",
-					"library": "library"
-				}[_type]
-			}
-			if "api" in item:
-				declare["api"] = item["api"]
-			try:
-				dot_index = target_path.rindex(".")
-				target_path = target_path[:dot_index] + "{}" + target_path[dot_index:]
-			except ValueError:
-				target_path += "{}"
-			mod_structure.update_build_config_list("compile")
-			incl = Includes.invalidate(source_path, _includes)
-			incl.create_tsconfig(join(temp_directory, basename(target_path)))
-	return 0
+	from script_build import build_all_make_scripts
+	return build_all_make_scripts(only_tsconfig_rebuild=True)
 
 @task("configureADB")
 def task_configure_adb(args = None):
 	import device
 	device.setup_device_connection()
-	return result
+	return 0
 
 @task("createProject")
 def task_create_project(args = None):
-	from project_manager import projectManager
+	from project_manager import PROJECT_MANAGER
 	from project_manager_tasks import create_project
 
 	try:
@@ -345,30 +284,28 @@ def task_create_project(args = None):
 	print("Project created!")
 
 	try:
-		r = input("Choice this project? [Y/n]: ")
+		if input("Choice this project? [Y/n]: ").lower() != "n":
+			PROJECT_MANAGER.select_project(index = index)
+			print(f"Project {index} selected")
 	except KeyboardInterrupt:
 		return -1
-	if r.lower() != "n":
-		projectManager.select_project(index = index)
-		print(f"Project {index} selected")
-
 	return 0
 
 @task("removeProject", lock=["cleanup"])
 def task_remove_project(args = None):
-	from project_manager import projectManager
-	if projectManager.how_much() == 0:
+	from project_manager import PROJECT_MANAGER
+	if PROJECT_MANAGER.how_much() == 0:
 		error("Not found any project to remove.")
 
 	print("Selected project will be deleted forever, please think twice before removing anything!")
 	try:
-		who = projectManager.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
+		who = PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	except KeyboardInterrupt:
 		return -1
 	if who is None:
 		error("Deletion cancelled by user.")
 
-	if projectManager.how_much() > 1:
+	if PROJECT_MANAGER.how_much() > 1:
 		try:
 			if input("Do you really want to delete it? [Y/n]: ").lower() == "n":
 				error("Deletion cancelled by user.")
@@ -376,7 +313,7 @@ def task_remove_project(args = None):
 			return -1
 
 	try:
-		projectManager.remove_project(folder=who)
+		PROJECT_MANAGER.remove_project(folder=who)
 		from make_config import unique_folder_name
 		from package import cleanup_relative_directory
 		cleanup_relative_directory("toolchain/build/" + unique_folder_name(who))
@@ -388,28 +325,28 @@ def task_remove_project(args = None):
 
 @task("selectProject", lock=["cleanup"])
 def task_select_project(args = None):
-	from project_manager import projectManager
+	from project_manager import PROJECT_MANAGER
 	if args is not None and len(args) > 0 and len(args[0]) > 0:
 		if exists(args[0]):
-			where = relpath(args[0], make_config.root_dir)
+			where = relpath(args[0], MAKE_CONFIG.root_dir)
 			if where == ".":
 				error("Requested project path must be reference to mod, not toolchain itself.")
 			if not exists(join(args[0], "make.json")):
 				error("Not found make.json in requested folder, it not belongs to project yet.")
-			projectManager.select_project_folder(folder=where)
+			PROJECT_MANAGER.select_project_folder(folder=where)
 			return 0
 		else:
 			error("Requested project path does not exists.")
 
-	if projectManager.how_much() == 0:
+	if PROJECT_MANAGER.how_much() == 0:
 		error("Not found any project to choice.")
 
-	who = projectManager.require_selection("Which project do you choice?", "Do you want to select {}?")
+	who = PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
 		error("Selection cancelled by user.")
 
 	try:
-		projectManager.select_project(folder=who)
+		PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
 		error(f"Folder {who} not found!""")
 
@@ -424,11 +361,11 @@ def task_update_toolchain(args = None):
 
 @task("cleanup")
 def task_cleanup(args = None):
+	from package import cleanup_relative_directory
 	try:
-		from package import cleanup_relative_directory
-		if make_config.current_project is not None:
+		if MAKE_CONFIG.current_project is not None:
 			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n]: ").lower() != "n":
-				cleanup_relative_directory("toolchain/build/" + make_config.project_unique_name)
+				cleanup_relative_directory("toolchain/build/" + MAKE_CONFIG.project_unique_name)
 				cleanup_relative_directory("output", True)
 				return 0
 		elif input("Do you want to clear all project cache? [Y/n]: ").lower() == "n":
