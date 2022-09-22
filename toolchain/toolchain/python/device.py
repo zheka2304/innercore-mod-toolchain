@@ -3,7 +3,6 @@ import platform
 import re
 import subprocess
 from glob import glob
-from tkinter import TRUE
 
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from hash_storage import output_storage
@@ -353,7 +352,7 @@ def setup_via_usb():
 		print("Timeout")
 	except KeyboardInterrupt:
 		print()
-	return setup_externally(True)
+	return setup_device_connection()
 
 def setup_via_network():
 	which = select_prompt(
@@ -416,7 +415,7 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 		print("Timeout")
 	except KeyboardInterrupt:
 		print()
-	return setup_externally(True)
+	return setup_via_network()
 
 def setup_externally(skip_input = False):
 	state = get_device_state()
@@ -451,7 +450,3 @@ def setup_how_to_use():
 	return setup_device_connection()
 
 adb_command = get_adb_command()
-
-
-if __name__ == "__main__":
-	print(setup_via_network())
