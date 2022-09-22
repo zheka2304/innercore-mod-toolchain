@@ -9,7 +9,6 @@
 		"innercore",
 		"nativejs"
 	],
-	"pushUnchangedFiles": true,
 	"ndkPath": null,
 	"projectLocations": [
 		"",

@@ -9,8 +9,10 @@ from base_config import BaseConfig
 class MakeConfig(BaseConfig):
 	def __init__(self, filename, base = None):
 		if not isfile(filename):
-			from task import error
-			error(f"Not found {basename(filename)}, are you sure that selected project exists?")
+			from task import registered_tasks
+			print(f"Not found {basename(filename)}, are you sure that selected project exists?")
+			registered_tasks["selectProject"]()
+			return
 		self.filename = filename
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
@@ -66,8 +68,10 @@ class ToolchainMakeConfig(MakeConfig):
 
 	def assure_project_selected(self):
 		if self.current_project is None:
-			from task import error
-			error("Not found any opened project, nothing to do.")
+			from task import registered_tasks
+			print("Not found any opened project, nothing to do.")
+			registered_tasks["selectProject"]()
+			return MAKE_CONFIG.assure_project_selected()
 
 	def get_path(self, relative_path):
 		self.assure_project_selected()

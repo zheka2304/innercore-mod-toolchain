@@ -94,8 +94,11 @@ class ProjectManager:
 			TOOLCHAIN_CONFIG.set_value("currentProject", folder)
 		TOOLCHAIN_CONFIG.save()
 
-		TOOLCHAIN_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
-		MAKE_CONFIG.__init__(TOOLCHAIN_CONFIG.filename, TOOLCHAIN_CONFIG)
+		MAKE_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
+		if folder is None:
+			TOOLCHAIN_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
+		else:
+			TOOLCHAIN_CONFIG.__init__(MAKE_CONFIG.prototype.filename, MAKE_CONFIG.prototype)
 
 	def select_project(self, index = None, folder =  None):
 		index, folder = self.get_folder(index, folder)

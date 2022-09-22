@@ -162,7 +162,7 @@ def task_build_additional(args = None):
 @task("pushEverything", lock=["push"])
 def task_push_everything(args = None):
 	from device import push
-	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("pushUnchangedFiles", False))
+	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("adb.pushUnchangedFiles", True))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output(args = None):

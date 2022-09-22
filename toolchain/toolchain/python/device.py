@@ -1,9 +1,9 @@
-import os
 from os.path import join, relpath, basename
 import platform
 import re
 import subprocess
 from glob import glob
+from tkinter import TRUE
 
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from hash_storage import output_storage
@@ -17,7 +17,7 @@ def get_modpack_push_directory():
 		TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
 	directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
-	if "games/horizon/packs" not in directory and not MAKE_CONFIG.get_value("device.pushAnyLocation", False):
+	if "games/horizon/packs" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
 			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
@@ -33,7 +33,7 @@ def get_modpack_push_directory():
 			TOOLCHAIN_CONFIG.remove_value("pushTo")
 			return get_modpack_push_directory()
 		elif which == 2:
-			TOOLCHAIN_CONFIG.set("device.pushAnyLocation", True)
+			TOOLCHAIN_CONFIG.set("adb.pushAnyLocation", True)
 			TOOLCHAIN_CONFIG.save()
 			print("This may be changed in your toolchain.json config.")
 		elif which == 3:
@@ -145,10 +145,11 @@ def make_locks(*locks):
 
 def ensure_server_running():
 	try:
+		from task import devnull
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
-		], check=True)
+		], check=True, stdout=devnull, stderr=devnull)
 		return True
 	except subprocess.CalledProcessError as err:
 		print("adb start-server failed with code", err.returncode)
@@ -239,7 +240,33 @@ def which_device_will_be_connected(*devices, state_not_matter = False):
 
 def get_adb_command():
 	ensure_server_running()
-	which = setup_device_connection()
+	devices = MAKE_CONFIG.get_value("devices", [])
+	from task import devnull
+	if len(devices):
+		subprocess.run([
+			TOOLCHAIN_CONFIG.get_adb(),
+			"disconnect"
+		], stdout=devnull, stderr=devnull)
+	for device in devices:
+		if isinstance(device, object):
+			try:
+				subprocess.run([
+					TOOLCHAIN_CONFIG.get_adb(),
+					"connect",
+					f"{device['ip']}:{device['port']}" if "port" in device else device["ip"]
+				], timeout=3.0, stdout=devnull, stderr=devnull)
+			except subprocess.TimeoutExpired:
+				print("Timeout")
+	list = device_list()
+	if list is not None:
+		itwillbe = []
+		for device in list:
+			if device["serial"] in devices:
+				itwillbe.append(device)
+		device = which_device_will_be_connected(*(list if len(itwillbe) == 0 else itwillbe))
+		if device is not None:
+			return device
+	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
 		from task import error
 		error("Nothing will happened, adb set up interrupted.", 1)
@@ -247,13 +274,49 @@ def get_adb_command():
 
 def get_adb_command_by_serial(serial):
 	ensure_server_running()
+	devices = MAKE_CONFIG.get_value("devices", [])
+	if not serial in devices:
+		devices.append(serial)
+		TOOLCHAIN_CONFIG.set_value("devices", devices)
+		TOOLCHAIN_CONFIG.save()
 	return [
 		TOOLCHAIN_CONFIG.get_adb(),
 		"-s", serial
 	]
 
+def get_adb_command_by_tcp(ip, port = None):
+	ensure_server_running()
+	if get_adb_command_by_serialno_type("-e") is None:
+		if input("Are you sure want to save it? [N/y]").lower() != "y":
+			return None
+	device = {
+		"ip": ip
+	}
+	if port is not None:
+		device["port"] = port
+	devices = MAKE_CONFIG.get_value("devices", [])
+	if not device in devices:
+		devices.append(device)
+		TOOLCHAIN_CONFIG.set_value("devices", devices)
+		TOOLCHAIN_CONFIG.save()
+	return [
+		TOOLCHAIN_CONFIG.get_adb(),
+		"-e"
+	]
+
+def get_adb_command_by_serialno_type(which):
+	serial = subprocess.run([
+		TOOLCHAIN_CONFIG.get_adb(),
+		which, "get-serialno"
+	], text=True, capture_output=True)
+	if serial.returncode != 0:
+		print("adb get-serialno failed with code", serial.returncode)
+		return None
+	return get_adb_command_by_serial(serial.stdout.rstrip())
+
 def setup_device_connection():
-	if not "device" in TOOLCHAIN_CONFIG.json:
+	not_connected_any_device = len(MAKE_CONFIG.get_value("devices", [])) == 0
+	if not_connected_any_device:
 		print(
 			"Howdy! " +
 			"Before starting we're must set up your devices, don't you think so? " +
@@ -263,57 +326,118 @@ def setup_device_connection():
 		"I've connected device via cable",
 		"Over air/network will be best",
 		"Everything already performed"
-	] + (["Wha.. I don't understand!"] if not "device" in TOOLCHAIN_CONFIG.json else []) + [
+	] + (["Wha.. I don't understand!"] if not_connected_any_device else []) + [
 		"It will be performed later"
 	])
 	return setup_via_usb() if which == 0 else \
 		setup_via_network() if which == 1 else \
 		setup_externally() if which == 2 else \
-		setup_how_to_use() if which == 3 \
-			and not "device" in TOOLCHAIN_CONFIG.json else None
+		setup_how_to_use() if which == 3 and \
+			not_connected_any_device else None
 
 def setup_via_usb():
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
+		from task import devnull
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
-		], check=True, timeout=120.0)
-		serial = subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
-			"-d", "get-serialno"
-		], text=True, capture_output=True)
-		if serial.returncode != 0:
-			print("adb get-serialno failed with code", serial.returncode)
-			return setup_device_connection()
-		return get_adb_command_by_serial(serial.stdout.rstrip())
+		], check=True, timeout=90.0, stdout=devnull, stderr=devnull)
+		command = get_adb_command_by_serialno_type("-d")
+		if command is not None:
+			return command
 	except subprocess.CalledProcessError as err:
 		print("adb wait-for-usb-device failed with code", err.returncode)
 	except subprocess.TimeoutExpired:
 		print("Timeout")
 	except KeyboardInterrupt:
 		print()
-	return setup_device_connection()
+	return setup_externally(True)
 
-def setup_via_network(force_pairing_code = False):
-	return setup_device_connection()
+def setup_via_network():
+	which = select_prompt(
+		"Which network type must be used?",
+		"Just TCP by IP and Port",
+		# "Ping network automatically",
+		"Connect with pairing code",
+		"Turn back", fallback=2
+	)
+	# return setup_via_ping_localhost() if which == 1 else \
+	return setup_device_connection() if which == 2 else \
+		setup_via_tcp_network(with_pairing_code=which == 1)
 
-def setup_externally():
+def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pairing_code = False):
+	if ip is None:
+		try:
+			tcp = input("Specify address ip[:port]: ")
+			if len(tcp) == 0:
+				return setup_via_network()
+		except EOFError:
+			return setup_via_network()
+		tcp = tcp.split(":")
+		ip = tcp[0]
+		port = tcp[1] if len(tcp) > 1 else port
+	if with_pairing_code or pairing_code is not None:
+		if pairing_code is None:
+			try:
+				pairing_code = input("Specify pairing code: ")
+				if len(tcp) == 0:
+					return setup_via_tcp_network(ip, port)
+			except EOFError:
+				return setup_via_network()
+		try:
+			subprocess.run([
+				TOOLCHAIN_CONFIG.get_adb(),
+				"pair",
+				f"{ip}:{port}" if port is not None else ip,
+				pairing_code
+			], check=True)
+		except subprocess.CalledProcessError as err:
+			print("adb pair failed with code", err.errorcode)
+		except KeyboardInterrupt:
+			print()
+	from task import devnull
+	subprocess.run([
+		TOOLCHAIN_CONFIG.get_adb(),
+		"disconnect"
+	], stdout=devnull, stderr=devnull)
+	try:
+		subprocess.run([
+			TOOLCHAIN_CONFIG.get_adb(),
+			"connect",
+			f"{ip}:{port}" if port is not None else ip
+		], check=True, timeout=10.0, stdout=devnull, stderr=devnull)
+		command = get_adb_command_by_tcp(ip, port)
+		return command if command is not None else setup_via_tcp_network()
+	except subprocess.CalledProcessError as err:
+		print("adb connect failed with code", err.errorcode)
+	except subprocess.TimeoutExpired:
+		print("Timeout")
+	except KeyboardInterrupt:
+		print()
+	return setup_externally(True)
+
+def setup_externally(skip_input = False):
 	state = get_device_state()
 	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
 		serial = get_device_serial()
 		if serial is not None:
-			return get_adb_command_by_serial(serial)
-	print("Not found connected devices, resolving everything...")
+			if not serial in MAKE_CONFIG.get_value("devices", []):
+				return get_adb_command_by_serial(serial)
+			else:
+				print("Connected device already saved, maybe another available too.")
+	else:
+		print("Not found connected devices, resolving everything...")
 	list = device_list()
 	if list is None:
-		return get_adb_command()
+		return setup_device_connection()
 	device = which_device_will_be_connected(*list, state_not_matter=True)
 	if device is None:
 		print("Nope, nothing to perform here.")
-		input()
-		return get_adb_command()
+		if not skip_input:
+			input()
+		return setup_device_connection()
 	return get_adb_command_by_serial(device["serial"])
 
 def setup_how_to_use():
