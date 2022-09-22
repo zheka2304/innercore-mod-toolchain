@@ -63,5 +63,5 @@ class HashStorage:
 		return md5(path.encode("utf-8")).hexdigest()
 
 
-build_storage = HashStorage(MAKE_CONFIG.get_project_build_path(".buildhashes"))
-output_storage = HashStorage(MAKE_CONFIG.get_project_build_path(".outputhashes"))
+build_storage = HashStorage(MAKE_CONFIG.get_build_path(".buildhashes"))
+output_storage = HashStorage(MAKE_CONFIG.get_build_path(".outputhashes"))

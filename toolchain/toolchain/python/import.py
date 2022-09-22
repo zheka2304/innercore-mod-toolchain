@@ -178,13 +178,13 @@ else:
 
 print("Importing mod.info")
 folder = import_mod_info(make_obj, source)
-with open(PROJECT_MANAGER.config.get_project_path("make.json"), "r", encoding="utf-8") as make_file:
+with open(MAKE_CONFIG.get_path("make.json"), "r", encoding="utf-8") as make_file:
 	make_project_obj = json.loads(make_file.read())
 
 print("Importing build.config")
 import_build_config(make_project_obj, folder, source, destination)
 
-with open(PROJECT_MANAGER.config.get_project_path("make.json"), "w", encoding="utf-8") as make_file:
+with open(MAKE_CONFIG.get_path("make.json"), "w", encoding="utf-8") as make_file:
 	make_file.write(json.dumps(make_project_obj, indent="\t") + "\n")
 
 print("Copying additional files and directories")

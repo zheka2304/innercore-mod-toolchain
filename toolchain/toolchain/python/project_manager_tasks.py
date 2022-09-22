@@ -2,10 +2,10 @@ from os.path import exists, join
 
 from shell import SelectionShell
 from project_manager import PROJECT_MANAGER
-from make_config import MAKE_CONFIG
+from make_config import TOOLCHAIN_CONFIG
 
 def create_project(return_folder = False):
-	if not exists(MAKE_CONFIG.get_path("../toolchain-mod")):
+	if not exists(TOOLCHAIN_CONFIG.get_path("../toolchain-mod")):
 		from task import error
 		error("Not found ../toolchain-mod template, nothing to do.")
 
@@ -17,14 +17,14 @@ def create_project(return_folder = False):
 
 	def_folder = name.replace(":", "-")
 	i = 1
-	while exists(MAKE_CONFIG.get_path(def_folder)):
+	while exists(TOOLCHAIN_CONFIG.get_path(def_folder)):
 		def_folder = name.replace(":", "-") + str(i)
 		i += 1
 
 	folder = input("Enter project folder [" + def_folder + "]: ")
 	if folder == "":
 		folder = def_folder
-	while exists(MAKE_CONFIG.get_path(folder)):
+	while exists(TOOLCHAIN_CONFIG.get_path(folder)):
 		print(f"""Folder "{folder}" already exists!""")
 		folder = input("Enter project folder [" + def_folder + "]: ")
 		if folder == "":

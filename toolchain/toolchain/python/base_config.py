@@ -49,11 +49,9 @@ class BaseConfig:
 
 	def get_filtered_list(self, name, prop, values):
 		value = self.get_value(name)
+		filtered = []
 		if isinstance(value, list):
-			filtered = []
 			for obj in value:
 				if isinstance(obj, dict) and prop in obj and obj[prop] in values:
 					filtered.append(obj)
-			return filtered
-		else:
-			return []
+		return filtered

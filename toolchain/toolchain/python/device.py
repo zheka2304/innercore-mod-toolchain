@@ -5,7 +5,7 @@ import re
 import subprocess
 from glob import glob
 
-from make_config import MAKE_CONFIG
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from hash_storage import output_storage
 from shell import print_progress_bar, select_prompt
 from ansi_escapes import link
@@ -13,8 +13,8 @@ from ansi_escapes import link
 def get_modpack_push_directory():
 	directory = MAKE_CONFIG.get_value("pushTo")
 	if directory is None:
-		MAKE_CONFIG.set("pushTo", setup_modpack_directory())
-		MAKE_CONFIG.save()
+		TOOLCHAIN_CONFIG.set("pushTo", setup_modpack_directory())
+		TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
 	directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
 	if "games/horizon/packs" not in directory and not MAKE_CONFIG.get_value("device.pushAnyLocation", False):
@@ -30,11 +30,11 @@ def get_modpack_push_directory():
 			"Nothing", fallback=3
 		)
 		if which == 0:
-			del MAKE_CONFIG.json["pushTo"]
+			TOOLCHAIN_CONFIG.remove_value("pushTo")
 			return get_modpack_push_directory()
 		elif which == 2:
-			MAKE_CONFIG.set("device.pushAnyLocation", True)
-			MAKE_CONFIG.save()
+			TOOLCHAIN_CONFIG.set("device.pushAnyLocation", True)
+			TOOLCHAIN_CONFIG.save()
 			print("This may be changed in your toolchain.json config.")
 		elif which == 3:
 			print("Pushing aborted.")
@@ -146,7 +146,7 @@ def make_locks(*locks):
 def ensure_server_running():
 	try:
 		subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
 		], check=True)
 		return True
@@ -175,7 +175,7 @@ def which_state(what = None):
 def get_device_state():
 	try:
 		pipe = subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"get-state"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -188,7 +188,7 @@ def get_device_state():
 def get_device_serial():
 	try:
 		pipe = subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"get-serialno"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -199,7 +199,7 @@ def get_device_serial():
 def device_list():
 	try:
 		pipe = subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"devices", "-l"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -248,12 +248,12 @@ def get_adb_command():
 def get_adb_command_by_serial(serial):
 	ensure_server_running()
 	return [
-		MAKE_CONFIG.get_adb(),
+		TOOLCHAIN_CONFIG.get_adb(),
 		"-s", serial
 	]
 
 def setup_device_connection():
-	if not "device" in MAKE_CONFIG.json:
+	if not "device" in TOOLCHAIN_CONFIG.json:
 		print(
 			"Howdy! " +
 			"Before starting we're must set up your devices, don't you think so? " +
@@ -263,25 +263,25 @@ def setup_device_connection():
 		"I've connected device via cable",
 		"Over air/network will be best",
 		"Everything already performed"
-	] + (["Wha.. I don't understand!"] if not "device" in MAKE_CONFIG.json else []) + [
+	] + (["Wha.. I don't understand!"] if not "device" in TOOLCHAIN_CONFIG.json else []) + [
 		"It will be performed later"
 	])
 	return setup_via_usb() if which == 0 else \
 		setup_via_network() if which == 1 else \
 		setup_externally() if which == 2 else \
 		setup_how_to_use() if which == 3 \
-			and not "device" in MAKE_CONFIG.json else None
+			and not "device" in TOOLCHAIN_CONFIG.json else None
 
 def setup_via_usb():
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
 		subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
 		], check=True, timeout=120.0)
 		serial = subprocess.run([
-			MAKE_CONFIG.get_adb(),
+			TOOLCHAIN_CONFIG.get_adb(),
 			"-d", "get-serialno"
 		], text=True, capture_output=True)
 		if serial.returncode != 0:

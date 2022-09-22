@@ -1,8 +1,7 @@
 {
 	"info": {
 		"name": "Template Mod",
-		"version": "1.0",
-		"icon": "mod_icon.png"
+		"version": "1.0"
 	},
 	"api": "CoreEngine",
 	"resources": [

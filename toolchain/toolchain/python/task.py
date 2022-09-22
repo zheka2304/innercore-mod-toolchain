@@ -5,14 +5,14 @@ import platform
 import time
 
 from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
-from make_config import MAKE_CONFIG
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 registered_tasks = {}
 locked_tasks = {}
 devnull = open(os.devnull, "w")
 
 def lock_task(name, silent = True):
-	path = MAKE_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
+	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	ensure_file_dir(path)
 	await_message = False
 
@@ -43,7 +43,7 @@ def unlock_task(name):
 	if name in locked_tasks:
 		locked_tasks[name].close()
 		del locked_tasks[name]
-	path = MAKE_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
+	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	if isfile(path):
 		os.remove(path)
 
@@ -115,8 +115,8 @@ def task_resources(args = None):
 def task_build_info(args = None):
 	import json
 	from utils import shortcodes
-	with open(MAKE_CONFIG.get_project_path("output/mod.info"), "w") as info_file:
-		info = dict(MAKE_CONFIG.get_project_value("info", fallback={
+	with open(MAKE_CONFIG.get_path("output/mod.info"), "w") as info_file:
+		info = dict(MAKE_CONFIG.get_value("info", fallback={
 			"name": "Unnamed"
 		}))
 		if "icon" in info:
@@ -128,11 +128,11 @@ def task_build_info(args = None):
 		info["description"] = shortcodes(info["description"])
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
-	icon_path = MAKE_CONFIG.get_project_value("info.icon")
+	icon_path = MAKE_CONFIG.get_value("info.icon")
 	if icon_path is not None:
-		icon_path = MAKE_CONFIG.get_project_path(icon_path)
+		icon_path = MAKE_CONFIG.get_path(icon_path)
 		if isfile(icon_path):
-			copy_file(icon_path, MAKE_CONFIG.get_project_path("output/mod_icon.png"))
+			copy_file(icon_path, MAKE_CONFIG.get_path("output/mod_icon.png"))
 		else:
 			print("In make.json icon", icon_path, "not found!")
 	return 0
@@ -140,14 +140,14 @@ def task_build_info(args = None):
 @task("buildAdditional", lock=["cleanup", "push"])
 def task_build_additional(args = None):
 	overall_result = 0
-	for additional_dir in MAKE_CONFIG.get_project_value("additional", fallback=[]):
+	for additional_dir in MAKE_CONFIG.get_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
-			for additional_path in MAKE_CONFIG.get_project_paths(additional_dir["source"]):
+			for additional_path in MAKE_CONFIG.get_paths(additional_dir["source"]):
 				if not exists(additional_path):
 					print("Non existing additional path: " + additional_path)
 					overall_result = 1
 					break
-				target = MAKE_CONFIG.get_project_path(join(
+				target = MAKE_CONFIG.get_path(join(
 					"output",
 					additional_dir["targetDir"],
 					basename(additional_path)
@@ -162,17 +162,17 @@ def task_build_additional(args = None):
 @task("pushEverything", lock=["push"])
 def task_push_everything(args = None):
 	from device import push
-	return push(MAKE_CONFIG.get_project_path("output"), MAKE_CONFIG.get_value("pushUnchangedFiles", False))
+	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("pushUnchangedFiles", False))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"])
 def task_clear_output(args = None):
-	clear_directory(MAKE_CONFIG.get_project_path("output"))
+	clear_directory(MAKE_CONFIG.get_path("output"))
 	return 0
 
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"])
 def task_exclude_directories(args = None):
-	for path in MAKE_CONFIG.get_project_value("excludeFromRelease", []):
-		for exclude in MAKE_CONFIG.get_project_paths(join("output", path)):
+	for path in MAKE_CONFIG.get_value("excludeFromRelease", []):
+		for exclude in MAKE_CONFIG.get_paths(join("output", path)):
 			if isdir(exclude):
 				clear_directory(exclude)
 			elif isfile(exclude):
@@ -182,16 +182,16 @@ def task_exclude_directories(args = None):
 @task("buildPackage", lock=["push", "assemble", "native", "java"])
 def task_build_package(args = None):
 	import shutil
-	output_dir = MAKE_CONFIG.get_project_path("output")
-	name = basename(MAKE_CONFIG.current_project if MAKE_CONFIG.current_project is not None else "unknown")
-	output_dir_root_tmp = MAKE_CONFIG.get_project_build_path("package")
+	output_dir = MAKE_CONFIG.get_path("output")
+	name = basename(MAKE_CONFIG.current_project) if MAKE_CONFIG.current_project is not None else "unknown"
+	output_dir_root_tmp = MAKE_CONFIG.get_build_path("package")
 	output_dir_tmp = join(output_dir_root_tmp, name)
 	ensure_directory(output_dir)
 	if exists(output_dir_tmp):
 		shutil.rmtree(output_dir_tmp)
 	output_file_tmp = join(output_dir_root_tmp, "package.zip")
 	ensure_file_dir(output_file_tmp)
-	output_file = MAKE_CONFIG.get_project_path(name + ".icmod")
+	output_file = MAKE_CONFIG.get_path(name + ".icmod")
 	if isfile(output_file):
 		os.remove(output_file)
 	if isfile(output_file_tmp):
@@ -234,7 +234,7 @@ def task_load_docs(args = None):
 	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
 	content = response.read().decode("utf-8")
 
-	declaration_path = MAKE_CONFIG.get_path("toolchain/declarations")
+	declaration_path = TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
 	if not exists(declaration_path):
 		os.mkdir(declaration_path)
 	with open(join(declaration_path, "core-engine.d.ts"), "w") as docs:
@@ -296,9 +296,9 @@ def task_remove_project(args = None):
 
 	try:
 		PROJECT_MANAGER.remove_project(folder=who)
-		from make_config import unique_folder_name
+		from make_config import ToolchainMakeConfig
 		from package import cleanup_relative_directory
-		cleanup_relative_directory("toolchain/build/" + unique_folder_name(who))
+		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(who))
 	except ValueError:
 		error(f"""Folder "{who}" not found!""")
 
@@ -310,7 +310,7 @@ def task_select_project(args = None):
 	from project_manager import PROJECT_MANAGER
 	if args is not None and len(args) > 0 and len(args[0]) > 0:
 		if exists(args[0]):
-			where = relpath(args[0], MAKE_CONFIG.root_dir)
+			where = relpath(args[0], TOOLCHAIN_CONFIG.root_dir)
 			if where == ".":
 				error("Requested project path must be reference to mod, not toolchain itself.")
 			if not exists(join(args[0], "make.json")):

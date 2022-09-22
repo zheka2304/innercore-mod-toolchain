@@ -3,7 +3,7 @@ from os.path import isdir, join, basename
 import time
 
 from utils import clear_directory, copy_directory
-from make_config import MAKE_CONFIG
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 def get_path_set(pathes, error_sensitive = False):
 	directories = []
@@ -60,5 +60,5 @@ def assemble_additional_directories():
 
 def cleanup_relative_directory(path, project = False):
 	start_time = time.time()
-	clear_directory(MAKE_CONFIG.get_project_path(path) if project else MAKE_CONFIG.get_path(path))
+	clear_directory(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")

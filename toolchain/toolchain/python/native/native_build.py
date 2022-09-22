@@ -6,7 +6,7 @@ import json
 
 from utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files, relative_path
 import native.native_setup as native_setup
-from make_config import MAKE_CONFIG, BaseConfig
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
 from mod_structure import mod_structure
 
 CODE_OK = 0
@@ -48,7 +48,7 @@ def search_directory(parent, name):
 				return path
 
 def get_fake_so_dir(abi):
-	fake_so_dir = MAKE_CONFIG.get_path(join("toolchain/ndk/fakeso", abi))
+	fake_so_dir = TOOLCHAIN_CONFIG.get_path(join("toolchain/ndk/fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 
@@ -57,7 +57,7 @@ def add_fake_so(gcc, abi, name):
 	if not isfile(file):
 		result = subprocess.call([
 			gcc, "-std=c++11",
-			MAKE_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
+			TOOLCHAIN_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
 			"-shared", "-o", file
 		])
 		print("Created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
@@ -220,23 +220,21 @@ def compile_all_using_make_config(abis):
 	import time
 	start_time = time.time()
 
-	std_includes = MAKE_CONFIG.get_path("toolchain/stdincludes")
+	std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
 	if not exists(std_includes):
 		print("\x1b[93mNot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
-	cache_dir = MAKE_CONFIG.get_path(
-		"toolchain/build/" + MAKE_CONFIG.project_unique_name + "/gcc"
-	)
+	cache_dir = MAKE_CONFIG.get_build_path("gcc")
 	ensure_directory(cache_dir)
 	mod_structure.cleanup_build_target("native")
 
 	overall_result = CODE_OK
 
-	for native_dir in MAKE_CONFIG.get_project_filtered_list("compile", prop="type", values=("native",)):
+	for native_dir in MAKE_CONFIG.get_filtered_list("compile", prop="type", values=("native",)):
 		if "source" not in native_dir:
 			print("Skipped invalid native directory json", native_dir, file=sys.stderr)
 			overall_result = CODE_INVALID_JSON
 			continue
-		for native_dir_path in MAKE_CONFIG.get_project_paths(native_dir["source"]):
+		for native_dir_path in MAKE_CONFIG.get_paths(native_dir["source"]):
 			if isdir(native_dir_path):
 				directory_name = basename(native_dir_path)
 				result = build_native_dir(

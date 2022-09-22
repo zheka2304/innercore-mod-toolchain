@@ -5,7 +5,7 @@ import json
 import re
 
 from utils import move_file, copy_file
-from make_config import MAKE_CONFIG
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from hash_storage import build_storage
 
 params_list = {
@@ -46,7 +46,7 @@ params_list = {
 	"tsBuildInfoFile": ".tsbuildinfo"
 }
 
-temp_directory = MAKE_CONFIG.get_project_build_path("sources")
+temp_directory = MAKE_CONFIG.get_build_path("sources")
 
 class Includes:
 	def __init__(self, directory, includes_file):
@@ -184,13 +184,13 @@ class Includes:
 
 	def create_tsconfig(self, temp_path):
 		declarations = []
-		if exists(MAKE_CONFIG.get_path("toolchain/declarations")):
+		if exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 			declarations.extend(glob.glob(
-				MAKE_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
+				TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
 				recursive=True
 			))
 		declarations.extend(glob.glob(
-			MAKE_CONFIG.get_project_build_path("declarations/**/*.d.ts"),
+			MAKE_CONFIG.get_build_path("declarations/**/*.d.ts"),
 			recursive=True
 		))
 
@@ -236,7 +236,7 @@ class Includes:
 
 		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
 		if isfile(declaration_path):
-			move_file(declaration_path, MAKE_CONFIG.get_project_build_path(
+			move_file(declaration_path, MAKE_CONFIG.get_build_path(
 				"declarations/" + basename(declaration_path)
 			))
 

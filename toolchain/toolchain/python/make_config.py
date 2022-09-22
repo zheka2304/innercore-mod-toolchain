@@ -21,9 +21,6 @@ class MakeConfig(BaseConfig):
 		with open(self.filename, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(self.json, indent="\t") + "\n")
 
-	def get_root_dir(self):
-		return self.root_dir
-
 	def get_path(self, relative_path):
 		return abspath(join(self.root_dir, relative_path))
 
@@ -44,46 +41,6 @@ class MakeConfig(BaseConfig):
 				paths.append(path)
 		return paths
 
-class ToolchainConfig(MakeConfig):
-	def __init__(self, filename):
-		MakeConfig.__init__(self, filename)
-		self.current_project = self.get_value("currentProject", None)
-		if self.current_project is not None:
-			self.project_dir = join(self.root_dir, self.current_project)
-			self.project_unique_name = unique_folder_name(self.current_project)
-			self.project_make = MakeConfig(join(self.project_dir, "make.json"))
-
-	def assure_project_selected(self):
-		if not hasattr(self, "project_dir"):
-			from task import error
-			error("Not found any opened project, nothing to do.")
-
-	def get_project_build_path(self, relative_path):
-		self.assure_project_selected()
-		return self.get_path(
-			"toolchain/build/" + self.project_unique_name + "/" + relative_path
-		)
-
-	def get_project_value(self, name, fallback = None):
-		self.assure_project_selected()
-		return self.project_make.get_value(name, fallback)
-
-	def get_project_config(self, name, not_none = False):
-		self.assure_project_selected()
-		return self.project_make.get_config(name, not_none)
-
-	def get_project_filtered_list(self, name, prop, values):
-		self.assure_project_selected()
-		return self.project_make.get_filtered_list(name, prop, values)
-
-	def get_project_path(self, relative_path):
-		self.assure_project_selected()
-		return self.project_make.get_path(relative_path)
-
-	def get_project_paths(self, relative_path, filter = None, paths = None):
-		self.assure_project_selected()
-		return self.project_make.get_paths(relative_path, filter, paths)
-
 	def get_adb(self):
 		try:
 			import shutil
@@ -95,10 +52,42 @@ class ToolchainConfig(MakeConfig):
 			return self.get_path("toolchain/adb/adb.exe")
 		return self.get_path("toolchain/adb/adb")
 
-def unique_folder_name(path):
-	md5 = hashlib.md5()
-	md5.update(bytes(path, "utf-8"))
-	return basename(path) + "-" + md5.hexdigest()
+class ToolchainMakeConfig(MakeConfig):
+	def __init__(self, filename):
+		prototype = MakeConfig(filename)
+		self.current_project = prototype.get_value("currentProject", None)
+		if self.current_project is not None:
+			self.project_unique_name = self.unique_folder_name(self.current_project)
+			MakeConfig.__init__(self, join(
+				prototype.root_dir, self.current_project, "make.json"
+			), MakeConfig(filename))
+		else:
+			MakeConfig.__init__(self, filename)
+
+	def assure_project_selected(self):
+		if self.current_project is None:
+			from task import error
+			error("Not found any opened project, nothing to do.")
+
+	def get_path(self, relative_path):
+		self.assure_project_selected()
+		return MakeConfig.get_path(self, relative_path)
+
+	def get_paths(self, relative_path, filter = None, paths = None):
+		self.assure_project_selected()
+		return MakeConfig.get_paths(self, relative_path, filter, paths)
+
+	def get_build_path(self, relative_path):
+		self.assure_project_selected()
+		return self.prototype.get_path(join(
+			"toolchain", "build", self.project_unique_name, relative_path
+		))
+
+	@staticmethod
+	def unique_folder_name(path):
+		md5 = hashlib.md5()
+		md5.update(bytes(path, "utf-8"))
+		return basename(path) + "-" + md5.hexdigest()
 
 
 # search for toolchain.json
@@ -106,7 +95,9 @@ MAKE_CONFIG = None
 for i in range(0, 4):
 	make_file = join("../" * i, "toolchain.json")
 	if isfile(make_file):
-		MAKE_CONFIG = ToolchainConfig(make_file)
+		MAKE_CONFIG = ToolchainMakeConfig(make_file)
 		break
 if MAKE_CONFIG is None:
 	raise RuntimeError("Not found toolchain.json!")
+TOOLCHAIN_CONFIG = MakeConfig(MAKE_CONFIG.filename) \
+	if MAKE_CONFIG.current_project is None else MAKE_CONFIG.prototype

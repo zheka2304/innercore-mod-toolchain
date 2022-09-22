@@ -3,7 +3,7 @@ from os.path import exists, splitext, basename, isfile, isdir, join
 from functools import cmp_to_key
 
 from utils import clear_directory, copy_file, copy_directory
-from make_config import MAKE_CONFIG
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from mod_structure import mod_structure
 from includes import Includes
 
@@ -15,7 +15,7 @@ def build_all_scripts():
 	mod_structure.cleanup_build_target("script_source")
 	mod_structure.cleanup_build_target("script_library")
 
-	if not exists(MAKE_CONFIG.get_path("toolchain/declarations")):
+	if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
 
 	return build_all_make_scripts()
@@ -27,7 +27,7 @@ def libraries_first(a, b):
 
 def build_all_make_scripts(only_tsconfig_rebuild = False):
 	overall_result = 0
-	sources = MAKE_CONFIG.get_project_value("sources", fallback=[])
+	sources = MAKE_CONFIG.get_value("sources", fallback=[])
 	sources = sorted(sources, key=cmp_to_key(libraries_first))
 
 	for item in sources:
@@ -41,7 +41,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False):
 			overall_result = 1
 			continue
 
-		for source_path in MAKE_CONFIG.get_project_paths(_source):
+		for source_path in MAKE_CONFIG.get_paths(_source):
 			if not exists(source_path):
 				print(f"Skipped non existing source {_source}")
 				overall_result = 1
@@ -100,12 +100,12 @@ def build_all_resources():
 	mod_structure.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 
-	for resource in MAKE_CONFIG.get_project_value("resources", fallback=[]):
+	for resource in MAKE_CONFIG.get_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
 			print("Skipped invalid source json", resource, file=sys.stderr)
 			overall_result = 1
 			continue
-		for source_path in MAKE_CONFIG.get_project_paths(resource["path"]):
+		for source_path in MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
 				print("Skipped non existing resource", resource["path"], file=sys.stderr)
 				overall_result = 1

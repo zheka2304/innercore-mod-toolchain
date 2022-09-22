@@ -3,14 +3,14 @@ from os.path import join, exists, isfile, isdir
 import json
 
 from utils import copy_directory, clear_directory
-from make_config import MAKE_CONFIG, MakeConfig
+from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 class ProjectManager:
 	def __init__(self):
 		self.projects = []
-		locations = MAKE_CONFIG.get_value("projectLocations", [MAKE_CONFIG.root_dir])
+		locations = MAKE_CONFIG.get_value("projectLocations", [TOOLCHAIN_CONFIG.root_dir])
 		for location in locations:
-			realpath = join(MAKE_CONFIG.root_dir, location)
+			realpath = join(TOOLCHAIN_CONFIG.root_dir, location)
 			if not exists(realpath) or not isdir(realpath):
 				print(f"Not found project location {location}!")
 				continue
@@ -25,16 +25,16 @@ class ProjectManager:
 		if folder == None:
 			folder = name.replace(":", "-")
 
-		path = join(MAKE_CONFIG.root_dir, folder)
+		path = join(TOOLCHAIN_CONFIG.root_dir, folder)
 		if exists(path):
 			from task import error
 			error(f"""Folder "{folder}" already exists!""")
-		if not exists(MAKE_CONFIG.get_path("../toolchain-mod")):
+		if not exists(TOOLCHAIN_CONFIG.get_path("../toolchain-mod")):
 			from task import error
 			error("Not found ../toolchain-mod template, nothing to do.")
 
 		os.makedirs(path)
-		copy_directory(MAKE_CONFIG.get_path("../toolchain-mod"), path, True)
+		copy_directory(TOOLCHAIN_CONFIG.get_path("../toolchain-mod"), path, True)
 
 		make_path = join(path, "make.json")
 		with open(make_path, "r", encoding="utf-8") as make_file:
@@ -49,7 +49,7 @@ class ProjectManager:
 		with open(make_path, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
-		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
+		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
@@ -73,10 +73,10 @@ class ProjectManager:
 		if folder == MAKE_CONFIG.current_project:
 			self.select_project_folder()
 
-		clear_directory(MAKE_CONFIG.get_path(folder))
+		clear_directory(TOOLCHAIN_CONFIG.get_path(folder))
 		del self.projects[index]
 
-		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
+		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
@@ -88,24 +88,19 @@ class ProjectManager:
 		if MAKE_CONFIG.current_project == folder:
 			return
 
-		MAKE_CONFIG.current_project = folder
 		if folder is None:
-			del MAKE_CONFIG.project_dir
-			del MAKE_CONFIG.project_make
+			TOOLCHAIN_CONFIG.remove_value("currentProject")
 		else:
-			MAKE_CONFIG.project_dir = join(MAKE_CONFIG.root_dir, MAKE_CONFIG.current_project)
-			MAKE_CONFIG.project_make = MakeConfig(join(MAKE_CONFIG.project_dir, "make.json"))
+			TOOLCHAIN_CONFIG.set_value("currentProject", folder)
+		TOOLCHAIN_CONFIG.save()
 
-		if folder is None:
-			MAKE_CONFIG.remove_value("currentProject")
-		else:
-			MAKE_CONFIG.set_value("currentProject", folder)
-		MAKE_CONFIG.save()
+		TOOLCHAIN_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
+		MAKE_CONFIG.__init__(TOOLCHAIN_CONFIG.filename, TOOLCHAIN_CONFIG)
 
 	def select_project(self, index = None, folder =  None):
 		index, folder = self.get_folder(index, folder)
 
-		vsc_settings_path = MAKE_CONFIG.get_path(".vscode/settings.json")
+		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_obj = json.loads(vsc_settings_file.read())
 
