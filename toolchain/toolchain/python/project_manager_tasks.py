@@ -1,6 +1,6 @@
 from os.path import exists, join
 
-from shell import SelectionShell
+from shell import SelectiveShell, Entry
 from project_manager import PROJECT_MANAGER
 from make_config import TOOLCHAIN_CONFIG
 
@@ -64,11 +64,17 @@ Launch();
 """)
 
 def select_project(variants, prompt = "Which project do you want?", selected = None):
-	shell = SelectionShell(prompt)
+	if prompt is not None:
+		print(prompt, end="")
+	shell = SelectiveShell(infinite_scroll=True)
 	for variant in variants:
-		shell.variant(variant, variant if selected != variant else f"\x1b[2m{variant}\x1b[0m")
+		shell.interactables.append(Entry(variant, variant if selected != variant else f"\x1b[7m{variant}\x1b[0m"))
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
 		return None
+	try:
+		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + shell.get_interactable(shell.which()).placeholder() + "\x1b[0m")
+	except ValueError:
+		pass
 	return shell.what()

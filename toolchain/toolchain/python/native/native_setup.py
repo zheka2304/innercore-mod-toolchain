@@ -7,7 +7,7 @@ import re
 from zipfile import ZipFile
 
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from shell import print_progress_bar
+from shell import Notice, Progress, Shell
 from utils import clear_directory
 
 def list_subdirectories(path, max_depth = 5, dirs = None):
@@ -81,44 +81,57 @@ def install(arch = "arm", reinstall = False):
 	if not reinstall and check_installed(arch):
 		return 0
 	else:
+		shell = Shell()
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			from urllib import request
 			print("Not found valid NDK installation.")
 			ans = input("Download android-ndk-r16b? (y/N) ")
 			if ans.lower() == "y":
+				shell.enter()
 				archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
 
 				if not isfile(archive_path):
+					progress = Progress(text="Connecting")
+					shell.interactables.append(progress)
+					shell.render()
 					url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
 					with request.urlopen(url) as response:
 						with open(archive_path, "wb") as f:
 							info = response.info()
 							length = int(info["Content-Length"])
-
 							downloaded = 0
 							while True:
 								buffer = response.read(8192)
 								if not buffer:
 									break
-
 								downloaded += len(buffer)
+								progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
+								shell.render()
 								f.write(buffer)
+					progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
+					shell.render()
 
-								print_progress_bar(downloaded, length, suffix = "Downloading" if downloaded < length else "Complete!", length = 50)
-
-				print("Extracting NDK/GCC")
+				progress = Progress(text="Extracting NDK/GCC")
+				shell.interactables.append(progress)
+				shell.render()
 				extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 				with ZipFile(archive_path, "r") as archive:
 					archive.extractall(extract_path)
+				progress.seek(1, "Extracted into toolchain/temp")
+				shell.render()
 
 				ndk_path = search_ndk_path(extract_path, contains_ndk=True)
 			else:
 				print("Native compilation aborted.")
 				return -1
+		else:
+			shell.enter()
 
-		print("Installing")
+		progress = Progress(text="Installing")
+		shell.interactables.append(progress)
+		shell.render()
 		if platform.system() != "Windows":
 			try:
 				subprocess.call([
@@ -127,13 +140,16 @@ def install(arch = "arm", reinstall = False):
 					"+x",
 					ndk_path
 				])
-				print("chmod +x done")
 			except Exception as err:
 				if isinstance(err, SystemExit):
 					raise err
 				import traceback
 				traceback.print_exc()
-				print("chmod failed, maybe you are must run it manually")
+				notice = Notice("Run chmod failed, maybe you are must do it manually")
+				shell.interactables.append(notice)
+				shell.render()
+		progress.seek(0.1)
+		shell.render()
 		result = subprocess.call([
 			"python3" if platform.system() != "Windows" else "python",
 			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
@@ -145,13 +161,20 @@ def install(arch = "arm", reinstall = False):
 
 		if result == 0:
 			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
-			print("Removing temporary files")
+			progress.seek(0.9, "Removing temporary files")
+			shell.render()
 			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-			print("Complete!")
+			progress.seek(1, "Successfully installed")
+			shell.render()
+			shell.leave()
 			return 0
 		else:
-			print("Installation failed with result", result)
-			print("You are must extract it manually from toolchain/temp/ndk.zip")
+			progress.seek(0.5, f"Installation failed with result {str(result)}")
+			shell.render()
+			notice = Notice("You are must install it manually from toolchain/temp/ndk.zip")
+			shell.interactables.append(notice)
+			shell.render()
+			shell.leave()
 			return result
 
 

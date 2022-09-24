@@ -6,7 +6,7 @@ from glob import glob
 
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from hash_storage import output_storage
-from shell import print_progress_bar, select_prompt
+from shell import Progress, Shell, select_prompt
 from ansi_escapes import link
 
 def get_modpack_push_directory():
@@ -91,14 +91,20 @@ def ls(path, *args):
 	return pipe.stdout.rstrip().splitlines()
 
 def push(directory, push_unchanged = False):
+	shell = Shell()
+	progress = Progress("Pushing")
+	shell.interactables.append(progress)
+	shell.enter()
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or output_storage.is_path_changed(path)]
-	if len(items) < 1:
-		print_progress_bar(1, 1, suffix = "Nothing to push.", length = 50)
+	if len(items) == 0:
+		progress.seek(1, "Nothing to push")
+		shell.render()
+		shell.leave()
 		return 0
 
 	dst_root = get_modpack_push_directory()
 	if dst_root is None:
-		return -1
+		return 1
 
 	dst_root = dst_root.replace("\\", "/")
 	if not dst_root.startswith("/"):
@@ -110,7 +116,8 @@ def push(directory, push_unchanged = False):
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
-		print_progress_bar(progress, len(items), suffix = f"Pushing {filename}" + (" " * 20), length = 50)
+		progress.seek(progress / len(items), "Pushing " + filename)
+		shell.render()
 		subprocess.call(adb_command + [
 			"shell", "rm", "-r", dst
 		], stderr=devnull, stdout=devnull)
@@ -120,12 +127,16 @@ def push(directory, push_unchanged = False):
 		progress += 1
 
 		if result != 0:
-			print(f"Failed to push to directory {dst_root} with code {result}")
+			progress.seek(f"Failed pushing {filename} with code {result}")
+			shell.render()
+			shell.leave()
 			return result
 
-	print_progress_bar(progress, len(items), suffix = "Complete!" + (" " * 20), length = 50)
 	if not push_unchanged:
 		output_storage.save()
+	progress.seek(1, "Pushed")
+	shell.render()
+	shell.leave()
 	return result
 
 def make_locks(*locks):
