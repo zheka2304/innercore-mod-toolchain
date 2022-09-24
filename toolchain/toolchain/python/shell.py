@@ -97,8 +97,10 @@ class Shell():
 		pass
 
 class InteractiveShell(Shell):
-	def __init__(self):
-		Shell.__init__(self)
+	def __init__(self, stdin = sys.stdin, stdout = sys.stdout):
+		Shell.__init__(self, stdin, stdout)
+		self.eof_when_enter = False
+		self.interactables = []
 
 	def read_raw(self, count = 1):
 		return input_key(count)
@@ -109,22 +111,417 @@ class InteractiveShell(Shell):
 			raise KeyboardInterrupt()
 		return key
 
+	def observe(self, key):
+		if self.eof_when_enter and ord(key) in {10, 13}: # Enter
+			raise EOFError()
+		return False
+
 	def readline(self, count = 1):
 		buffer = ""
 		while count > 0:
 			key = self.read()
 			if ord(key) in {10, 13}: # Enter
-				buffer += "\n"
+				if count > 1:
+					buffer += "\n"
 				count -= 1
 			else:
 				buffer += key
 		return buffer
+
+	def draw(self, interactable):
+		interactable.render(self, self.offset, self.line)
+
+	def touch(self, interactable, key):
+		return interactable.observe_key(key)
+
+	def render(self):
+		self.clear()
+		self.write("\n")
+		for interactable in self.interactables:
+			self.draw(interactable, self.offset, self.line)
+
+	def loop(self):
+		self.hide_cursor()
+		self.render()
+		while True:
+			try:
+				key = self.read(1)
+				observed = False
+				for interactable in self.interactables:
+					observed = self.touch(interactable, key) or observed
+				if not observed:
+					observed = self.observe(key)
+				if observed:
+					self.render()
+			except EOFError:
+				break
+			except KeyboardInterrupt as err:
+				self.leave()
+				raise err
+		self.leave()
+
+	def leave(self):
+		self.clear()
+		self.show_cursor()
 
 	def hide_cursor(self):
 		self.write(CURSOR_HIDE)
 
 	def show_cursor(self):
 		self.write(CURSOR_SHOW)
+
+	class Interactable():
+		def __init__(self, key):
+			self.key = key
+
+		def observe_key(self, what):
+			return False
+
+		def render(self, shell, offset, line):
+			pass
+
+		def lines(self):
+			return 0
+
+class InteractivePagerShell(InteractiveShell):
+	page_buffer_offset = 0
+	global_buffer_offset = 0
+	page = 1
+
+	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6):
+		InteractiveShell.__init__(self, stdin, stdout)
+		self.infinite_scroll = infinite_scroll
+		self.lines_per_page = lines_per_page
+
+	def observe(self, raw):
+		observed = InteractiveShell.observe(self, raw)
+		if raw != "\x1b":
+			return observed
+		key = self.read_raw(1)
+		if key != "[":
+			return observed
+		joy = self.read_raw(1)
+		if joy == "C": # Right
+			self.turn_forward()
+		elif joy == "D": # Left
+			self.turn_backward()
+		else:
+			return observed
+		return True
+
+	def turn_forward(self):
+		if self.global_buffer_offset + self.page_buffer_offset >= len(self.interactables):
+			if self.infinite_scroll:
+				self.global_buffer_offset = self.page_buffer_offset = 0
+				self.page = 1
+			return
+		self.global_buffer_offset += self.page_buffer_offset
+		self.page_buffer_offset = 0
+		self.page += 1
+
+	def turn_backward(self):
+		index = self.global_buffer_offset
+		if index == 0:
+			if self.infinite_scroll:
+				page = 1
+				page_occupied_lines = 0
+				page_buffer_offset = 0
+				while index < len(self.interactables):
+					lines = self.interactables[index].lines()
+					if lines > self.lines_per_page or lines < 0:
+						raise BufferError()
+					if page_occupied_lines + lines > self.lines_per_page:
+						page_occupied_lines = page_buffer_offset = 0
+						page += 1
+						continue
+					page_occupied_lines += lines
+					page_buffer_offset += 1
+					index += 1
+				self.global_buffer_offset = index - page_buffer_offset
+				self.page_buffer_offset = 0
+				self.page = page
+			return
+		page_occupied_lines = 0
+		while index > 0:
+			lines = self.interactables[index - 1].lines()
+			if lines > self.lines_per_page or lines < 0:
+				raise BufferError()
+			if page_occupied_lines + lines > self.lines_per_page:
+				break
+			page_occupied_lines += lines
+			index -= 1
+		self.global_buffer_offset = index
+		self.page_buffer_offset = 0
+		self.page -= 1
+
+	def reset(self):
+		self.global_buffer_offset = self.page_buffer_offset = 0
+		self.page = 1
+
+	def draw(self, interactable, page, page_occupied_lines):
+		if isinstance(interactable, InteractivePagerShell.Interactable):
+			interactable.render(self, self.offset, self.line, page, self.page_buffer_offset, page_occupied_lines)
+		else:
+			InteractiveShell.draw(self, interactable)
+
+	def render(self):
+		self.clear()
+		if self.global_buffer_offset >= len(self.interactables):
+			raise IndexError()
+		self.write("\n")
+		page_occupied_lines = 0
+		self.page_buffer_offset = 0
+		while self.global_buffer_offset + self.page_buffer_offset < len(self.interactables):
+			interactable = self.interactables[self.global_buffer_offset + self.page_buffer_offset]
+			lines = interactable.lines()
+			if lines > self.lines_per_page or lines < 0:
+				raise BufferError()
+			if page_occupied_lines + lines > self.lines_per_page:
+				break
+			self.draw(interactable, self.page, page_occupied_lines)
+			page_occupied_lines += lines
+			self.page_buffer_offset += 1
+
+	def loop(self):
+		self.reset()
+		InteractiveShell.loop(self)
+
+	class Interactable(InteractiveShell.Interactable):
+		def __init__(self, key):
+			InteractiveShell.Interactable.__init__(self, key)
+
+		def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1):
+			pass
+
+class SelectiveShell(InteractivePagerShell):
+	page_cursor_offset = -1
+	pending_hover_offset = 0
+
+	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6):
+		InteractivePagerShell.__init__(self, stdin, stdout, infinite_scroll, lines_per_page)
+		self.eof_when_enter = True
+
+	def turn_backward(self):
+		InteractivePagerShell.turn_backward(self)
+		self.page_cursor_offset += 1
+		self.pending_hover_offset = -2
+
+	def turn_forward(self):
+		InteractivePagerShell.turn_forward(self)
+		self.page_cursor_offset -= 1
+		self.pending_hover_offset = 2
+
+	def turn_up(self):
+		if self.page_cursor_offset > 0 or self.infinite_scroll or self.global_buffer_offset > 0:
+			self.pending_hover_offset = -1
+
+	def turn_down(self):
+		if (self.page_cursor_offset < self.page_buffer_offset and self.global_buffer_offset + self.page_cursor_offset < len(self.interactables) - 1) or self.infinite_scroll:
+			self.pending_hover_offset = 1
+
+	def hover_previous(self):
+		cursor_offset = min(self.page_cursor_offset, self.page_buffer_offset) - 1
+		while cursor_offset >= 0:
+			try:
+				interactable = self.interactables[self.global_buffer_offset + cursor_offset]
+			except IndexError:
+				cursor_offset -= 1
+				continue
+			if isinstance(interactable, SelectiveShell.Selectable) and interactable.hoverable():
+				self.page_cursor_offset = cursor_offset
+				return True
+			cursor_offset -= 1
+		return False
+
+	def hover_next(self):
+		cursor_offset = max(self.page_cursor_offset, -1) + 1
+		while cursor_offset < self.page_buffer_offset:
+			try:
+				interactable = self.interactables[self.global_buffer_offset + cursor_offset]
+			except IndexError:
+				cursor_offset += 1
+				continue
+			if isinstance(interactable, SelectiveShell.Selectable) and interactable.hoverable():
+				self.page_cursor_offset = cursor_offset
+				return True
+			cursor_offset += 1
+		return False
+
+	def touch(self, interactable, key):
+		if isinstance(interactable, SelectiveShell.Selectable):
+			try:
+				return interactable.observe_key(key, self.interactables.index(interactable) == self.global_buffer_offset + self.page_cursor_offset)
+			except ValueError:
+				pass
+		return InteractivePagerShell.touch(self, interactable, key)
+
+	def render(self):
+		InteractivePagerShell.render(self)
+		if self.pending_hover_offset != 0:
+			if self.pending_hover_offset <= -1:
+				if not self.hover_previous():
+					if self.pending_hover_offset == -1:
+						if self.infinite_scroll or self.global_buffer_offset > 0:
+							self.page_cursor_offset = self.lines_per_page
+							InteractivePagerShell.turn_backward(self)
+							InteractivePagerShell.render(self)
+							if not self.hover_previous():
+								self.page_cursor_offset = -1
+					elif not self.hover_next():
+						self.page_cursor_offset = -1
+				InteractivePagerShell.render(self)
+			elif self.pending_hover_offset >= 1:
+				if not self.hover_next():
+					if self.pending_hover_offset == 1:
+						self.page_cursor_offset = -1
+						InteractivePagerShell.turn_forward(self)
+						InteractivePagerShell.render(self)
+						if not self.hover_next():
+							self.page_cursor_offset = -1
+					elif not self.hover_previous():
+						self.page_cursor_offset = -1
+				InteractivePagerShell.render(self)
+			self.pending_hover_offset = 0
+		self.write(f"Page {str(self.page)} offset {str(self.global_buffer_offset)} entry {str(self.page_cursor_offset)} of {str(self.page_buffer_offset)}\n")
+
+	def observe(self, raw):
+		observed = InteractiveShell.observe(self, raw)
+		if raw != "\x1b":
+			return observed
+		key = self.read_raw(1)
+		if key != "[":
+			return observed
+		joy = self.read_raw(1)
+		if joy == "A": # Up
+			self.turn_up()
+		elif joy == "B": # Down
+			self.turn_down()
+		elif joy == "C": # Right
+			self.turn_forward()
+		elif joy == "D": # Left
+			self.turn_backward()
+		else:
+			return observed
+		return True
+
+	def draw(self, interactable, page, page_occupied_lines):
+		if isinstance(interactable, SelectiveShell.Selectable):
+			interactable.render(self, self.offset, self.line, page, self.page_buffer_offset, page_occupied_lines, self.page_cursor_offset == self.page_buffer_offset)
+		else:
+			InteractivePagerShell.draw(self, interactable, page, page_occupied_lines)
+
+	def reset(self):
+		self.page_cursor_offset = -1
+		self.pending_hover_offset = 2
+
+	def which(self):
+		return self.global_buffer_offset + self.page_cursor_offset
+
+	def what(self):
+		try:
+			return self.interactables[self.which()].key
+		except IndexError:
+			return None
+
+	class Selectable(InteractivePagerShell.Interactable):
+		def __init__(self, key):
+			InteractivePagerShell.Interactable.__init__(self, key)
+
+		def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
+			pass
+
+		def hoverable(self):
+			return True
+
+		def placeholder(self, shell, offset, line):
+			pass
+
+		def observe_key(self, what, at_cursor = None):
+			return False
+
+class Separator(InteractiveShell.Interactable):
+	def __init__(self, key = "separator", size = 1):
+		InteractiveShell.Interactable.__init__(self, key)
+		self.size = size
+
+	def render(self, shell, offset, line):
+		shell.write("\n" * self.size)
+
+	def lines(self):
+		return self.size
+
+class Notice(InteractiveShell.Interactable):
+	def __init__(self, key, text = None):
+		InteractiveShell.Interactable.__init__(self, key)
+		self.text = text if text is not None else key
+
+	def render(self, shell, offset, line):
+		shell.write(str(self.text) + "\n")
+
+	def lines(self):
+		return str(self.text).count("\n") + 1
+
+class Entry(SelectiveShell.Selectable):
+	def __init__(self, key, text = None, arrow = "> "):
+		SelectiveShell.Selectable.__init__(self, key)
+		self.text = text if text is not None else key
+		self.arrow = arrow
+
+	def get_arrow(self, at_cursor = None):
+		return "" if at_cursor is None else \
+			str(self.arrow) if at_cursor else " " * len(self.arrow)
+
+	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
+		shell.write(self.get_arrow(at_cursor) + str(self.text) + "\n")
+
+	def placeholder(self, shell, offset, line):
+		return str(self.text).partition("\n")[0]
+
+	def lines(self):
+		return str(self.text).count("\n") + 1
+
+class Switch(Entry):
+	def __init__(self, key, text = None, checked = False, arrow = "> ", checked_arrow = "* ", hover_arrow = ">*"):
+		Entry.__init__(self, key, text, arrow)
+		self.checked_arrow = checked_arrow
+		self.checked = checked
+		self.hover_arrow = hover_arrow
+
+	def get_arrow(self, at_cursor = None):
+		return str(self.hover_arrow) if at_cursor and self.checked else \
+			str(self.arrow) if at_cursor else str(self.checked_arrow) if self.checked else " " * len(self.arrow)
+
+	def observe_key(self, what, at_cursor = None):
+		if at_cursor and ord(what) in {10, 13}:
+			self.checked = not self.checked
+			return True
+		return Entry.observe_key(self, what)
+
+class Input(Entry):
+	def __init__(self, key, hint = None, text = "", arrow = "> "):
+		Entry.__init__(self, key, text, arrow)
+		self.hovered = False
+		self.hint = hint
+
+	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
+		shell.write(self.get_arrow(at_cursor) + (str(self.hint) if self.hint is not None else "") +
+			("" if self.hovered else "\x1b[2m") + (self.text if len(self.text) > 0 or self.hovered else "...") + ("" if self.hovered else "\x1b[0m") + "\n")
+
+	def observe_key(self, what, at_cursor = None):
+		if at_cursor:
+			if ord(what) in {10, 13}:
+				self.hovered = not self.hovered
+				return True
+			if self.hovered:
+				if what == "\x7f":
+					if len(self.text) > 0:
+						self.text = self.text[::-1][1:][::-1]
+					else:
+						self.hovered = False
+				elif what.isprintable():
+					self.text += what
+				return True
+		return Entry.observe_key(self, what)
 
 class SelectionShell(InteractiveShell):
 	def __init__(self, prompt = "Which you prefer?", arrow = "> ", arrow_offset = None):
@@ -230,9 +627,26 @@ def select_prompt(prompt = None, *variants, fallback = None):
 		return fallback
 	return shell.which()
 
-
 if __name__ == "__main__":
-	while True:
+	shell = SelectiveShell(infinite_scroll=True)
+	shell.interactables += [
+		Notice("Hello there! You will be DELETED. Press Enter to accept your fate."),
+		Separator(),
+		Entry("Oh no, what are you doing"),
+		Entry("Well, It's your choice", arrow="? "),
+		Switch("Subscribe mailbox", checked=True),
+		Separator(),
+		Notice("\nPage with some detailed explanation.\nNo interactions, only simple text.\n\nYes.\n"),
+		Entry("nope", "Capture console input"),
+		Separator(size=2),
+		Input("section", hint="What will you do? "),
+		Switch("Force push")
+	]
+	print("What do you want?", end="")
+	shell.loop()
+	print(shell.which(), shell.what())
+
+	while shell.what() == "nope":
 		key = input_key()
 		if key == "\x03" or key == "\x1a":
 			break
