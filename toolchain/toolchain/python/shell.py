@@ -5,11 +5,11 @@ import tty
 
 from ansi_escapes import *
 
-def print_progress_bar(iteration, total, prefix = "", suffix = "", decimals = 1, length = 100, fill = "\u2588"):
+def print_progress_bar(iteration, total, suffix = "", decimals = 1, length = 50, fill = "\u2588"):
 	percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
 	filled_length = int(length * iteration // total)
-	bar = fill * filled_length + "-" * (length - filled_length)
-	print(f"\r{prefix} |{bar}| {percent}% {suffix}", end = "\r")
+	bar = fill * filled_length + "\x1b[2m" + fill * (length - filled_length) + "\x1b[0m"
+	print(f"\r {bar} {percent}% {suffix}", end = "\r")
 	if iteration == total: 
 		print()
 
@@ -128,6 +128,16 @@ class InteractiveShell(Shell):
 				buffer += key
 		return buffer
 
+	def get_interactable(self, criteria):
+		try:
+			return self.interactables[criteria]
+		except IndexError:
+			pass
+		for interactable in self.interactables:
+			if interactable.key == criteria:
+				return interactable
+		raise ValueError(criteria)
+
 	def draw(self, interactable):
 		interactable.render(self, self.offset, self.line)
 
@@ -138,7 +148,7 @@ class InteractiveShell(Shell):
 		self.clear()
 		self.write("\n")
 		for interactable in self.interactables:
-			self.draw(interactable, self.offset, self.line)
+			self.draw(interactable)
 
 	def loop(self):
 		self.hide_cursor()
@@ -411,6 +421,7 @@ class SelectiveShell(InteractivePagerShell):
 			InteractivePagerShell.draw(self, interactable, page, page_occupied_lines)
 
 	def reset(self):
+		InteractivePagerShell.reset(self)
 		self.page_cursor_offset = -1
 		self.pending_hover_offset = 2
 
@@ -523,6 +534,21 @@ class Input(Entry):
 				return True
 		return Entry.observe_key(self, what)
 
+class Progress(InteractiveShell.Interactable):
+	def __init__(self, key, progress = 0, weight = 49, text = None):
+		InteractiveShell.Interactable.__init__(self, key)
+		self.progress = max(min(progress, 100), 0)
+		self.weight = weight
+		self.text = text
+
+	def render(self, shell, offset, line):
+		text = (str(self.text) if self.text is not None else str(int(self.progress)) + "%").center(self.weight)
+		size = int(self.weight * self.progress // 100)
+		shell.write("\x1b[7m" + text[:size] + "\x1b[2m" + text[size:self.weight] + "\x1b[0m\n" + text[self.weight:])
+
+	def lines(self):
+		return (str(self.text).count("\n") if self.text is not None else 0) + 1
+
 class SelectionShell(InteractiveShell):
 	def __init__(self, prompt = "Which you prefer?", arrow = "> ", arrow_offset = None):
 		self.selected = -1
@@ -628,25 +654,7 @@ def select_prompt(prompt = None, *variants, fallback = None):
 	return shell.which()
 
 if __name__ == "__main__":
-	shell = SelectiveShell(infinite_scroll=True)
-	shell.interactables += [
-		Notice("Hello there! You will be DELETED. Press Enter to accept your fate."),
-		Separator(),
-		Entry("Oh no, what are you doing"),
-		Entry("Well, It's your choice", arrow="? "),
-		Switch("Subscribe mailbox", checked=True),
-		Separator(),
-		Notice("\nPage with some detailed explanation.\nNo interactions, only simple text.\n\nYes.\n"),
-		Entry("nope", "Capture console input"),
-		Separator(size=2),
-		Input("section", hint="What will you do? "),
-		Switch("Force push")
-	]
-	print("What do you want?", end="")
-	shell.loop()
-	print(shell.which(), shell.what())
-
-	while shell.what() == "nope":
+	while True:
 		key = input_key()
 		if key == "\x03" or key == "\x1a":
 			break
