@@ -101,10 +101,21 @@ def task_compile_java_release(args = None): # TODO
 	from java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config()
 
-@task("buildScripts", lock=["script", "cleanup", "push"])
-def task_build_scripts(args = None):
+@task("buildScriptsDebug", lock=["script", "cleanup", "push"])
+def task_build_scripts_debug(args = None):
 	from script_build import build_all_scripts
-	return build_all_scripts()
+	return build_all_scripts(debug_build=True)
+
+@task("buildScriptsRelease", lock=["script", "cleanup", "push"])
+def task_build_scripts_release(args = None):
+	from script_build import build_all_scripts
+	build_hashes = MAKE_CONFIG.get_build_path(".buildhashes")
+	if exists(build_hashes) and isfile(build_hashes):
+		os.remove(build_hashes)
+	output_hashes = MAKE_CONFIG.get_build_path(".outputhashes")
+	if exists(output_hashes) and isfile(output_hashes):
+		os.remove(output_hashes)
+	return build_all_scripts(debug_build=False)
 
 @task("buildResources", lock=["resource", "cleanup", "push"])
 def task_resources(args = None):
@@ -246,7 +257,7 @@ def task_load_docs(args = None):
 @task("updateIncludes")
 def task_update_includes(args = None):
 	from script_build import build_all_make_scripts
-	return build_all_make_scripts(only_tsconfig_rebuild=True)
+	return build_all_make_scripts(only_tsconfig_rebuild=True, debug_build=True)
 
 @task("configureADB")
 def task_configure_adb(args = None):

@@ -49,10 +49,11 @@ params_list = {
 temp_directory = MAKE_CONFIG.get_build_path("sources")
 
 class Includes:
-	def __init__(self, directory, includes_file):
+	def __init__(self, directory, includes_file, debug_build = False):
 		self.file = join(directory, includes_file)
 		self.includes_file = includes_file
 		self.directory = directory
+		self.debug_build = debug_build
 
 		self.include = []
 		self.exclude = []
@@ -104,8 +105,8 @@ class Includes:
 			includes.writelines(files)
 
 	@staticmethod
-	def create_from_directory(directory, includes_file):
-		includes = Includes(directory, includes_file)
+	def create_from_directory(directory, includes_file, debug_build = False):
+		includes = Includes(directory, includes_file, debug_build)
 		includes.files = [normpath(relpath(file, directory))
 			for file in glob.glob(f"{directory}/**/*", recursive=True)]
 		includes.params = {}
@@ -114,7 +115,7 @@ class Includes:
 		return includes
 
 	@staticmethod
-	def create_from_tsconfig(directory, includes_file):
+	def create_from_tsconfig(directory, includes_file, debug_build = False):
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
 
@@ -129,7 +130,7 @@ class Includes:
 			if "outFile" in params:
 				del params["outFile"]
 
-		includes = Includes(directory, includes_file)
+		includes = Includes(directory, includes_file, debug_build)
 		includes.include = include
 		includes.exclude = exclude
 		includes.params = params
@@ -138,20 +139,20 @@ class Includes:
 		return includes
 
 	@staticmethod
-	def invalidate(directory, includes_file):
+	def invalidate(directory, includes_file, debug_build = False):
 		if not isfile(join(directory, includes_file)):
 			tsconfig_path = join(directory, "tsconfig.json")
 			if isfile(tsconfig_path):
-				includes = Includes.create_from_tsconfig(directory, includes_file)
+				includes = Includes.create_from_tsconfig(directory, includes_file, debug_build)
 			else:
-				includes = Includes.create_from_directory(directory, includes_file)
+				includes = Includes.create_from_directory(directory, includes_file, debug_build)
 		else:
-			includes = Includes(directory, includes_file)
+			includes = Includes(directory, includes_file, debug_build)
 		includes.read()
 
 		return includes
 
-	def build(self, target_path, language="typescript"):
+	def build(self, target_path, language = "typescript"):
 		temp_path = join(temp_directory, basename(target_path))
 
 		result = 0
@@ -196,6 +197,12 @@ class Includes:
 		for declaration in declarations:
 			if declaration.endswith(f"{current_name}.d.ts"):
 				declarations.remove(declaration)
+
+		if self.debug_build:
+			for excluded in MAKE_CONFIG.get_value("debugIncludesExclude", []):
+				for declaration in declarations:
+					if declaration.endswith(excluded):
+						declarations.remove(declaration)
 
 		template = {
 			"compilerOptions": {

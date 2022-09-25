@@ -7,11 +7,11 @@ from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from mod_structure import mod_structure
 from includes import Includes
 
-def build_source(source_path, target_path, language, includes_file):
-	includes = Includes.invalidate(source_path, includes_file)
+def build_source(source_path, target_path, language, includes_file, debug_build = False):
+	includes = Includes.invalidate(source_path, includes_file, debug_build)
 	return includes.build(target_path, language)
 
-def build_all_scripts():
+def build_all_scripts(debug_build = False):
 	mod_structure.cleanup_build_target("script_source")
 	mod_structure.cleanup_build_target("script_library")
 
@@ -24,14 +24,14 @@ def build_all_scripts():
 			allowed_languages.append("typescript")
 	allowed_languages.append("javascript")
 
-	return build_all_make_scripts(allowed_languages=allowed_languages)
+	return build_all_make_scripts(allowed_languages=allowed_languages, debug_build=debug_build)
 
 def libraries_first(a, b):
 	la = a["type"] == "library"
 	lb = b["type"] == "library"
 	return 0 if la == lb else -1 if la else 1
 
-def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["typescript"]):
+def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["typescript"], debug_build = False):
 	overall_result = 0
 	sources = MAKE_CONFIG.get_value("sources", fallback=[])
 	sources = sorted(sources, key=cmp_to_key(libraries_first))
@@ -64,7 +64,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 			if "api" in item and _type != "preloader":
 				declare["api"] = item["api"]
 			if "optimizationLevel" in item:
-				declare["optimizationLevel"] = item["optimizationLevel"]
+				declare["optimizationLevel"] = min(max(int(item["optimizationLevel"]), -1), 9)
 			if "sourceName" in item:
 				declare["sourceName"] = item["sourceName"]
 
@@ -89,11 +89,11 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 					overall_result += build_source(
 						source_path, destination_path,
 						item["language"] if "language" in item and item["language"] in allowed_languages else allowed_languages[0],
-						_includes
+						_includes, debug_build
 					)
 			elif isdir(source_path):
 				from includes import temp_directory
-				includes = Includes.invalidate(source_path, _includes)
+				includes = Includes.invalidate(source_path, _includes, debug_build)
 				includes.create_tsconfig(join(temp_directory, basename(target_path)))
 
 	return overall_result
@@ -149,4 +149,4 @@ def build_all_resources():
 
 if __name__ == "__main__":
 	build_all_resources()
-	build_all_scripts()
+	build_all_scripts(debug_build=True)

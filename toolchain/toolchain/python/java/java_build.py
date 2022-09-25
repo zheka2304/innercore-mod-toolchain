@@ -100,7 +100,7 @@ def save_modified_classes_cache(cache_json, cache_dir):
 	with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
 		file.write(json.dumps(cache_json))
 
-def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
+def run_d8(directory_name, modified_files, cache_dir):
 	d8_libs = []
 	classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 	if exists(classpath_dir):
@@ -153,9 +153,12 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 		if result != 0:
 			return result
 		index += max_span_size
-		print("Dexing classes:", min(index, len(modified_classes)), "/", len(modified_classes), "completed")
+		print(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
+	return result
 
-	print("Compressing changed archives")
+def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
+	print("Compressing dex archives")
+	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	with zipfile.ZipFile(dex_zip_file, "w") as zip_ref:
 		for dirpath, dirnames, filenames in os.walk(dex_classes_dir):
@@ -163,12 +166,6 @@ def run_d8(directory_name, modified_files, cache_dir, output_dex_dir):
 				if filename.endswith(".dex"):
 					file = join(dirpath, filename)
 					zip_ref.write(file, arcname=file[len(dex_classes_dir) + 1:])
-
-	print("Cleaning output")
-	ensure_directory(output_dex_dir)
-	for filename in os.listdir(output_dex_dir):
-		if filename.endswith(".dex"):
-			os.remove(filename)
 
 	print("Merging dex")
 	return subprocess.call([
@@ -203,12 +200,16 @@ def build_java_directories(directories, cache_dir, classpath):
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
 			print(f"\x1b[1m\x1b[92m\n* Running d8 for {directory_name}\x1b[0m\n")
-			result = run_d8(directory_name, modified_files[directory_name], cache_dir, target)
+			result = run_d8(directory_name, modified_files[directory_name], cache_dir)
 			if result != 0:
 				print(f"Failed to dex {directory_name} with code {result}")
 				return result
 		else:
 			print(f"{directory_name} is not changed")
+		result = merge_compressed_dexes(directory_name, cache_dir, target)
+		if result != 0:
+			print(f"Failed to merge {directory_name} with code {result}")
+			return result
 
 	save_modified_classes_cache(cache_json, cache_dir)
 	print("\n\x1b[1m\x1b[92mJAVA BUILD COMPLETED\x1b[0m\n")

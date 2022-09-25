@@ -1,1 +1,1 @@
-python3 task.py clearOutput buildScripts buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
+python3 task.py clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage

@@ -9,7 +9,9 @@
 		"innercore",
 		"nativejs"
 	],
-	"ndkPath": null,
+	"debugIncludesExclude": [
+		"toolchain/declarations/android.d.ts"
+	],
 	"projectLocations": [
 		"",
 		"../"
