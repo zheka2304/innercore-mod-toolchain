@@ -27,7 +27,7 @@ def import_mod_info(make_file, directory):
 	with open(mod_info, "r", encoding="utf-8") as info_file:
 		info_obj = json.loads(info_file.read())
 		index = PROJECT_MANAGER.create_project(
-	  		info_obj.get("name", "example-project"),
+	  		info_obj.get("name", "Unknown Mod"),
 			author = info_obj.get("author", ""),
 			version = info_obj.get("version", "1.0"),
 			description = info_obj.get("description", "")
@@ -79,7 +79,6 @@ def import_build_config(make_file, folder, source, destination):
 				"path": "assets/" + path_stripped,
 				"type": res_dir["resourceType"]
 			})
-
 			root_files.append(path_parts[0])
 
 		make_file["resources"] = resources
@@ -113,14 +112,21 @@ def import_build_config(make_file, folder, source, destination):
 		ensure_directory(join(src_dir, "preloader"))
 
 		# import sources
-		for source_dir in config.get_filtered_list("compile", "sourceType", ("mod", "launcher")):
+		for source_dir in config.get_filtered_list("compile", "sourceType", ("mod", "launcher", "preloader", "instant", "custom", "library")):
 			if source_dir["sourceType"] == "mod":
 				source_dir["sourceType"] = "main"
 
-			sourceObj = {
+			toolchain_source = {
 				"type": source_dir["sourceType"],
 				"language": "javascript"
 			}
+
+			if "api" in source_dir:
+				toolchain_source["api"] = source_dir["api"]
+			if "optimizationLevel" in source_dir:
+				toolchain_source["optimizationLevel"] = source_dir["optimizationLevel"]
+			if "sourceName" in source_dir:
+				toolchain_source["sourceName"] = source_dir["sourceName"]
 
 			source_parts = source_dir["path"].split("/")
 			root_files.append(source_parts[0])
@@ -129,17 +135,15 @@ def import_build_config(make_file, folder, source, destination):
 			if len(build_dirs) > 0:
 				old_build_path = build_dirs[0]["dir"].strip("/")
 				old_path_parts = old_build_path.split("/")
-				sourceObj["source"] = old_build_path
-				sourceObj["target"] = source_dir["path"]
+				toolchain_source["source"] = old_build_path
+				toolchain_source["target"] = source_dir["path"]
 				root_files.append(old_path_parts[0])
-
 				copy_directory(join(source, *old_path_parts), join(src_dir, *old_path_parts), True)
-
 			else:
-				sourceObj["source"] = source_dir["path"]
+				toolchain_source["source"] = source_dir["path"]
 				copy_file(join(source, *source_parts), join(src_dir, *source_parts))
 
-			sources.append(sourceObj)
+			sources.append(toolchain_source)
 
 		make_file["sources"] = sources
 		return

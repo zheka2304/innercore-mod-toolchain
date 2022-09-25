@@ -11,15 +11,15 @@ class BuildTargetType:
 		self.list_property = list_property
 
 BUILD_TARGETS = {
-	"resource_directory": BuildTargetType(directory="resources", list_property="resources"),
-	"gui": BuildTargetType(directory="gui", list_property="resources"),
-	"minecraft_resource_pack": BuildTargetType(directory="minecraft_packs/resource", list_property="resources"),
-	"minecraft_behavior_pack": BuildTargetType(directory="minecraft_packs/behavior", list_property="resources"),
+	"resource_directory": BuildTargetType(directory=MAKE_CONFIG.get_value("target.resource_directory", "resources"), list_property="resources"),
+	"gui": BuildTargetType(directory=MAKE_CONFIG.get_value("target.gui", "gui"), list_property="resources"),
+	"minecraft_resource_pack": BuildTargetType(directory=MAKE_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), list_property="resources"),
+	"minecraft_behavior_pack": BuildTargetType(directory=MAKE_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), list_property="resources"),
 
-	"script_source": BuildTargetType(directory="source", list_property="compile"),
-	"script_library": BuildTargetType(directory="library", list_property="compile"),
-	"native": BuildTargetType(directory="native", list_property="nativeDirs"),
-	"java": BuildTargetType(directory="java", list_property="javaDirs")
+	"script_source": BuildTargetType(directory=MAKE_CONFIG.get_value("target.source", "script_source"), list_property="compile"),
+	"script_library": BuildTargetType(directory=MAKE_CONFIG.get_value("target.library", "script_library"), list_property="compile"),
+	"native": BuildTargetType(directory=MAKE_CONFIG.get_value("target.native", "native"), list_property="nativeDirs"),
+	"java": BuildTargetType(directory=MAKE_CONFIG.get_value("target.java", "java"), list_property="javaDirs")
 }
 
 class ModStructure:
@@ -106,7 +106,7 @@ class ModStructure:
 			os.remove(build_config_file)
 		ensure_file_dir(build_config_file)
 		with open(build_config_file, "w", encoding="utf-8") as build_config:
-			build_config.write(json.dumps(self.build_config, indent="\t") + "\n")
+			build_config.write(json.dumps(self.build_config, indent=" " * 2))
 
 	def setup_default_config(self):
 		self.read_or_create_build_config()
@@ -114,8 +114,16 @@ class ModStructure:
 			self.build_config["defaultConfig"] = {}
 		default_config = self.build_config["defaultConfig"]
 		default_config["readme"] = "this build config is generated automatically by mod development toolchain"
-		default_config["api"] = MAKE_CONFIG.get_value("info.api", fallback="CoreEngine")
+		default_config["api"] = MAKE_CONFIG.get_value("api", fallback="CoreEngine")
+		optimization_level = MAKE_CONFIG.get_value("optimizationLevel")
+		if optimization_level is not None:
+			default_config["optimizationLevel"] = min(max(int(optimization_level), -1), 9)
+		setup_script = MAKE_CONFIG.get_value("setupScript")
+		if setup_script is not None:
+			default_config["setupScript"] = setup_script
 		default_config["buildType"] = "develop"
+		if "buildDirs" not in self.build_config:
+			self.build_config["buildDirs"] = []
 		self.write_build_config()
 
 	def update_build_config_list(self, list_name):

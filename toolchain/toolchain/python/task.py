@@ -116,16 +116,16 @@ def task_build_info(args = None):
 	import json
 	from utils import shortcodes
 	with open(MAKE_CONFIG.get_path("output/mod.info"), "w") as info_file:
-		info = dict(MAKE_CONFIG.get_value("info", fallback={
-			"name": "Unnamed"
-		}))
+		info = dict(MAKE_CONFIG.get_value("info", fallback={"name": "Unknown Mod"}))
+
+		if "name" in info:
+			info["name"] = shortcodes(info["name"])
+		if "version" in info:
+			info["version"] = shortcodes(info["version"])
+		if "description" in info:
+			info["description"] = shortcodes(info["description"])
 		if "icon" in info:
 			del info["icon"]
-		if "api" in info:
-			del info["api"]
-
-		info["version"] = shortcodes(info["version"])
-		info["description"] = shortcodes(info["description"])
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
 	icon_path = MAKE_CONFIG.get_value("info.icon")
@@ -134,7 +134,7 @@ def task_build_info(args = None):
 		if isfile(icon_path):
 			copy_file(icon_path, MAKE_CONFIG.get_path("output/mod_icon.png"))
 		else:
-			print("In make.json icon", icon_path, "not found!")
+			print("Icon in make.json", icon_path, "not found!")
 	return 0
 
 @task("buildAdditional", lock=["cleanup", "push"])

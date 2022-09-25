@@ -16,7 +16,7 @@ def build_all_scripts():
 	mod_structure.cleanup_build_target("script_library")
 
 	if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
+		print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
 
 	return build_all_make_scripts()
 
@@ -36,7 +36,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False):
 		_type = item["type"]
 		_includes = item["includes"] if "includes" in item else ".includes"
 
-		if _type not in ("main", "launcher", "library", "preloader"):
+		if _type not in ("main", "launcher", "preloader", "instant", "custom", "library"):
 			print(f"Skipped invalid source with type {_type}")
 			overall_result = 1
 			continue
@@ -52,16 +52,15 @@ def build_all_make_scripts(only_tsconfig_rebuild = False):
 
 			# translate make.json source type to build.config source type
 			declare = {
-				"sourceType": {
-					"main": "mod",
-					"launcher": "launcher",
-					"preloader": "preloader",
-					"library": "library"
-				}[_type]
+				"sourceType": "mod" if _type == "main" else _type
 			}
 
-			if "api" in item:
+			if "api" in item and _type != "preloader":
 				declare["api"] = item["api"]
+			if "optimizationLevel" in item:
+				declare["optimizationLevel"] = item["optimizationLevel"]
+			if "sourceName" in item:
+				declare["sourceName"] = item["sourceName"]
 
 			try:
 				dot_index = target_path.rindex(".")
@@ -123,10 +122,7 @@ def build_all_resources():
 					resource_type,
 					resource_name,
 					declare={
-						"resourceType": {
-							"resource_directory": "resource",
-							"gui": "gui"
-						}[resource_type]
+						"resourceType": "resource_directory" if resource_type == "resource" else resource_type
 					}
 				)
 			else:
