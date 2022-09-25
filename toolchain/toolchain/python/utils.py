@@ -12,12 +12,10 @@ def ensure_file_dir(file):
 	ensure_directory(abspath(join(file, "..")))
 
 def clear_directory(directory):
-	import shutil
 	ensure_directory(directory)
 	shutil.rmtree(directory)
 
 def copy_file(src, dst):
-	import shutil
 	ensure_file_dir(dst)
 	try:
 		shutil.copy(src, dst)
@@ -25,15 +23,8 @@ def copy_file(src, dst):
 		pass
 
 def move_file(src, dst):
-	import shutil
 	ensure_file_dir(dst)
 	shutil.move(src, dst)
-
-def index_of(_list, _value):
-	try:
-		return _list.index(_value)
-	except ValueError:
-		return -1
 
 def copy_directory(path, destination, clear_dst = False, replacement = True, ignore_list = [], relative_path = None):
 	ensure_directory(destination)
@@ -74,22 +65,18 @@ def get_all_files(directory, extensions = ()):
 						break
 	return all_files
 
-def relative_path(directory, file):
-	directory = abspath(directory)
-	file = abspath(file)
-	if len(file) >= len(directory) and file[:len(directory)] == directory:
-		file = file[len(directory):]
-		while len(file) > 0 and file[0] in ("\\", "/"):
-			file = file[1:]
-		if len(file) == 0:
-			raise RuntimeError("File and directory are the same")
-		return file
-	else:
-		raise RuntimeError("File is not in a directory: file=" + file + " dir=" + directory)
-
 def shortcodes(str):
 	from datetime import datetime
 	date = datetime.now()
 	str = str.replace("{datestamp}", date.strftime("%Y%m%d"))
 	str = str.replace("{timestamp}", date.strftime("%H%M"))
 	return str
+
+def request_typescript():
+	if shutil.which("tsc") is not None:
+		return "typescript"
+	if input("Do you want to enable Typescript and ES6+ support (requires Node.js to build project)? [Y/n]: ").lower() == "n":
+		return "javascript"
+	print("Updating typescript version")
+	os.system("npm install -g typescript")
+	return request_typescript()

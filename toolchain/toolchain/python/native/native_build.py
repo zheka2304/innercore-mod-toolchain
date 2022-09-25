@@ -1,10 +1,10 @@
 import os
-from os.path import exists, join, basename, abspath, isfile, isdir
+from os.path import exists, join, basename, abspath, isfile, isdir, relpath
 import sys
 import subprocess
 import json
 
-from utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files, relative_path
+from utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files
 import native.native_setup as native_setup
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
 from mod_structure import mod_structure
@@ -151,8 +151,8 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		object_files = []
 		recompiled_count = 0
 		for file in source_files:
-			relative_file = relative_path(directory, file)
-			sys.stdout.write("Preprocessing " + relative_file + " " * 48 + "\r")
+			relative_file = relpath(file, directory)
+			print("Preprocessing " + relative_file + " " * 48, end="\r")
 
 			object_file = join(object_dir, relative_file) + ".o"
 			preprocessed_file = join(preprocessed_dir, relative_file)
@@ -173,7 +173,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 					if isfile(object_file):
 						os.remove(object_file)
 
-					sys.stdout.write("Compiling " + relative_file + " " * 96 + "\n")
+					print("Compiling " + relative_file + " " * 96)
 					result = max(result, subprocess.call(gcc + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))

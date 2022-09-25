@@ -4,7 +4,7 @@ from os.path import join, exists
 import shutil
 import urllib.request as request
 
-import utils
+from utils import copy_directory
 from make_config import TOOLCHAIN_CONFIG
 
 def download_and_extract_toolchain(directory):
@@ -25,7 +25,7 @@ def download_and_extract_toolchain(directory):
 
 	timestamp = "unknown"
 	try:
-		utils.copy_directory(join(directory, "innercore-mod-toolchain-master/toolchain/toolchain"), join(directory, "toolchain/toolchain"))
+		copy_directory(join(directory, "innercore-mod-toolchain-master/toolchain/toolchain"), join(directory, "toolchain/toolchain"))
 		shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
 	except Exception as err:
 		print(err, file=sys.stderr)

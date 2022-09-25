@@ -2,7 +2,7 @@ import sys
 from os.path import exists, splitext, basename, isfile, isdir, join
 from functools import cmp_to_key
 
-from utils import clear_directory, copy_file, copy_directory
+from utils import clear_directory, copy_file, copy_directory, request_typescript
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from mod_structure import mod_structure
 from includes import Includes
@@ -18,14 +18,20 @@ def build_all_scripts():
 	if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 		print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
 
-	return build_all_make_scripts()
+	allowed_languages = []
+	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0:
+		if request_typescript() == "typescript":
+			allowed_languages.append("typescript")
+	allowed_languages.append("javascript")
+
+	return build_all_make_scripts(allowed_languages=allowed_languages)
 
 def libraries_first(a, b):
 	la = a["type"] == "library"
 	lb = b["type"] == "library"
 	return 0 if la == lb else -1 if la else 1
 
-def build_all_make_scripts(only_tsconfig_rebuild = False):
+def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["typescript"]):
 	overall_result = 0
 	sources = MAKE_CONFIG.get_value("sources", fallback=[])
 	sources = sorted(sources, key=cmp_to_key(libraries_first))
@@ -82,7 +88,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False):
 				else:
 					overall_result += build_source(
 						source_path, destination_path,
-						item["language"] if "language" in item else "javascript",
+						item["language"] if "language" in item and item["language"] in allowed_languages else allowed_languages[0],
 						_includes
 					)
 			elif isdir(source_path):
