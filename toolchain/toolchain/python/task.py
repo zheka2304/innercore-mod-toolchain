@@ -268,7 +268,7 @@ def task_configure_adb(args = None):
 @task("createProject")
 def task_create_project(args = None):
 	from project_manager import PROJECT_MANAGER
-	from project_manager_tasks import create_project
+	from package import create_project
 
 	try:
 		index = create_project()

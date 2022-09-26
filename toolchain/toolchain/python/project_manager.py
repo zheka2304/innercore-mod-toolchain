@@ -58,7 +58,7 @@ class ProjectManager:
 		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
 
-		from project_manager_tasks import setup_launcher_js
+		from package import setup_launcher_js
 		setup_launcher_js(make_obj, path)
 
 		return self.how_much() - 1
@@ -133,7 +133,7 @@ class ProjectManager:
 		return len(self.projects)
 
 	def require_selection(self, prompt = None, prompt_when_single = None, dont_want_anymore = None):
-		from project_manager_tasks import select_project
+		from package import select_project
 		if self.how_much() == 1:
 			itwillbe = self.projects[0]
 			if prompt_when_single is None:
