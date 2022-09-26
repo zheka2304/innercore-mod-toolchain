@@ -109,12 +109,9 @@ def task_build_scripts_debug(args = None):
 @task("buildScriptsRelease", lock=["script", "cleanup", "push"])
 def task_build_scripts_release(args = None):
 	from script_build import build_all_scripts
-	build_hashes = MAKE_CONFIG.get_build_path(".buildhashes")
-	if exists(build_hashes) and isfile(build_hashes):
-		os.remove(build_hashes)
-	output_hashes = MAKE_CONFIG.get_build_path(".outputhashes")
-	if exists(output_hashes) and isfile(output_hashes):
-		os.remove(output_hashes)
+	from hash_storage import output_storage, build_storage
+	output_storage.last_hashes = {}
+	build_storage.last_hashes = {}
 	return build_all_scripts(debug_build=False)
 
 @task("buildResources", lock=["resource", "cleanup", "push"])

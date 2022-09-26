@@ -3,6 +3,7 @@ from os.path import join, exists, basename, isfile, normpath, splitext, relpath
 import glob
 import json
 import re
+import subprocess
 
 from utils import move_file, copy_file
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
@@ -173,7 +174,7 @@ class Includes:
 				return result
 			build_storage.save()
 		else:
-			print(f"{basename(target_path)} is not changed")
+			print(f"* Directory {basename(target_path)} is not changed")
 		copy_file(temp_path, target_path)
 
 		return result
@@ -235,7 +236,15 @@ class Includes:
 
 	def build_source(self, temp_path, language):
 		if language.lower() == "typescript":
-			result = os.system(f"tsc -p \"{self.get_tsconfig()}\" --noEmitOnError")
+			command = [
+				"tsc",
+				"-p", self.get_tsconfig(),
+				"--noEmitOnError"
+			]
+			if self.debug_build:
+				command.append("--skipLibCheck")
+				command.append("--noResolve")
+			result = subprocess.call(command)
 		else:
 			result = 0
 

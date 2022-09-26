@@ -50,6 +50,7 @@ def update_modified_classes(directories, cache_dir):
 	except Exception:
 		pass
 
+	print()
 	print("Recalculating class file hashes")
 	modified_files = {}
 	for directory in directories:
@@ -205,7 +206,7 @@ def build_java_directories(directories, cache_dir, classpath):
 				print(f"Failed to dex {directory_name} with code {result}")
 				return result
 		else:
-			print(f"{directory_name} is not changed")
+			print(f"* Directory {directory_name} is not changed")
 		result = merge_compressed_dexes(directory_name, cache_dir, target)
 		if result != 0:
 			print(f"Failed to merge {directory_name} with code {result}")

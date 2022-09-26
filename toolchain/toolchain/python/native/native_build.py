@@ -111,7 +111,6 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 	# compile for every abi
 	overall_result = CODE_OK
 	for abi in abis:
-		print()
 		print(f"* Compiling {basename(directory)} for {abi}")
 
 		executable = executables[abi]
