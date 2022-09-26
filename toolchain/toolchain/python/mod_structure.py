@@ -16,8 +16,8 @@ BUILD_TARGETS = {
 	"minecraft_resource_pack": BuildTargetType(directory=MAKE_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), list_property="resources"),
 	"minecraft_behavior_pack": BuildTargetType(directory=MAKE_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), list_property="resources"),
 
-	"script_source": BuildTargetType(directory=MAKE_CONFIG.get_value("target.source", "script_source"), list_property="compile"),
-	"script_library": BuildTargetType(directory=MAKE_CONFIG.get_value("target.library", "script_library"), list_property="compile"),
+	"script_source": BuildTargetType(directory=MAKE_CONFIG.get_value("target.source", "source"), list_property="compile"),
+	"script_library": BuildTargetType(directory=MAKE_CONFIG.get_value("target.library", "library"), list_property="compile"),
 	"native": BuildTargetType(directory=MAKE_CONFIG.get_value("target.native", "native"), list_property="nativeDirs"),
 	"java": BuildTargetType(directory=MAKE_CONFIG.get_value("target.java", "java"), list_property="javaDirs")
 }
