@@ -1,8 +1,8 @@
-import sys
-from os.path import exists, isdir, join, basename
+import os
+from os.path import exists, isdir, join, basename, relpath
 import time
 
-from utils import clear_directory, copy_directory, get_project_folder_by_name
+from utils import clear_directory, copy_directory, copy_file, get_all_files, get_project_folder_by_name, name_to_identifier
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch
 from project_manager import PROJECT_MANAGER
@@ -106,7 +106,7 @@ def new_project(template = "../toolchain-mod"):
 			Input("author", "Author: ", TOOLCHAIN_CONFIG.get_value("template.author", "")),
 			Input("version", "Version: ", TOOLCHAIN_CONFIG.get_value("template.version", "1.0")),
 			Input("description", "Description: ", TOOLCHAIN_CONFIG.get_value("template.description", "")),
-			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value("template.clientSide", False)),
+			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value("template.clientOnly", False)),
 			Separator(),
 			Progress(progress=progress_step * 2, text="<" + "Configure details".center(45) + ">")
 		]
@@ -132,20 +132,71 @@ def new_project(template = "../toolchain-mod"):
 		error("Not found `directory` property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
 	return PROJECT_MANAGER.create_project(
+		template, observer.directory,
 		shell.get_interactable("name").text,
 		shell.get_interactable("author").text,
 		shell.get_interactable("version").text,
 		shell.get_interactable("description").text,
-		shell.get_interactable("client_side").checked,
-		observer.directory
+		shell.get_interactable("client_side").checked
 	)
+
+def resolve_make_format_map(make_obj, path):
+	make_obj_info = make_obj["info"] if "info" in make_obj else {}
+	identifier = name_to_identifier(basename(path))
+	while len(identifier) > 0 and identifier[0].isdecimal():
+		identifier = identifier[1:]
+	package_prefix = name_to_identifier(make_obj_info["author"]) if "author" in make_obj_info else "icmods"
+	while len(package_prefix) > 0 and package_prefix[0].isdecimal():
+		package_prefix = package_prefix[1:]
+	package_suffix = name_to_identifier(make_obj_info["name"]) if "name" in make_obj_info else identifier
+	while len(package_suffix) > 0 and package_suffix[0].isdecimal():
+		package_suffix = package_suffix[1:]
+	return {
+		"identifier": identifier if len(identifier) > 0 else "whoami",
+		"package_suffix": package_suffix if len(package_suffix) > 0 else "mod",
+		"package_prefix": package_prefix,
+		"name": "Mod",
+		"author": "ICMods",
+		"version": "1.0",
+		"description": "My brand new mod.",
+		"clientOnly": False,
+		**make_obj_info
+	}
+
+def setup_project(make_obj, template, path):
+	makemap = resolve_make_format_map(make_obj, path)
+	dirmap = { template: "" }
+	for dirpath, dirnames, filenames in os.walk(template):
+		for dirname in dirnames:
+			dir = join(dirpath, dirname)
+			dirmap[dir] = relpath(dir, template)
+			try:
+				dirmap[dir] = dirmap[dir].format_map(makemap)
+			except BaseException:
+				print(f"Source {dirmap[dir]} contains malformed name!")
+			os.mkdir(join(path, dirmap[dir]))
+		for filename in filenames:
+			if dirpath == template and filename == "template.json":
+				continue
+			file = join(path, join(dirmap[dirpath], filename))
+			copy_file(join(dirpath, filename), file)
+	for source in get_all_files(path, extensions=(".json", ".js", ".ts", "manifest", ".java", ".cpp")):
+		with open(source, "r") as source_file:
+			lines = source_file.readlines()
+		for index in range(len(lines)):
+			try:
+				lines[index] = lines[index].format_map(makemap)
+			except BaseException:
+				pass
+		with open(source, "w") as source_file:
+			source_file.writelines(lines)
 
 def setup_launcher_js(make_obj, path):
 	with open(join(path, "launcher.js"), "w") as file:
 		file.write("""ConfigureMultiplayer({
 	name: \"""" + make_obj["info"]["name"] + """\",
 	version: \"""" + make_obj["info"]["version"] + """\",
-	isClientOnly: """ + ("true" if "clientSide" in make_obj["info"] and make_obj["info"]["clientSide"] else "false") + """
+	isClientOnly: """ + ("true" if "clientOnly" in make_obj["info"] and make_obj["info"]["clientOnly"] else "false") + """
 });
 
 Launch();

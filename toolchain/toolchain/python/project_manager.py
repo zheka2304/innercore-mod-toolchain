@@ -2,7 +2,7 @@ import os
 from os.path import join, exists, isfile, isdir
 import json
 
-from utils import copy_directory, clear_directory
+from utils import clear_directory
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 class ProjectManager:
@@ -15,39 +15,43 @@ class ProjectManager:
 				print(f"Not found project location {location}!")
 				continue
 			for next in os.listdir(realpath):
-				if next == "toolchain-mod":
-					continue
 				path = join(realpath, next, "make.json")
 				if exists(path) and isfile(path):
 					self.projects.append(join(location, next))
 
-	def create_project(self, name, author = "", version = "1.0", description = "", client = False, folder = None):
-		if folder == None or len(folder) == 0:
-			raise NotADirectoryError(folder)
-
-		path = join(TOOLCHAIN_CONFIG.root_dir, folder)
-		if exists(path):
+	def create_project(self, template, folder, name, author = "", version = "1.0", description = "", clientOnly = False):
+		location = TOOLCHAIN_CONFIG.get_path(folder)
+		if exists(location):
 			from task import error
-			error(f"""Folder "{folder}" already exists!""")
-		if not exists(TOOLCHAIN_CONFIG.get_path("../toolchain-mod")):
+			error(f"Folder '{folder}' already exists!")
+		template_path = TOOLCHAIN_CONFIG.get_path(template)
+		if not exists(template_path):
 			from task import error
-			error("Not found ../toolchain-mod template, nothing to do.")
+			error(f"Not found {template} template, nothing to do.")
+		template_make_path = TOOLCHAIN_CONFIG.get_path(template + "/template.json")
+		if not exists(template_make_path):
+			from task import error
+			error(f"Not found template.json in template {template}, nothing to do.")
 
-		os.makedirs(path)
-		copy_directory(TOOLCHAIN_CONFIG.get_path("../toolchain-mod"), path, True)
+		os.makedirs(location)
+		with open(template_make_path, "r", encoding="utf-8") as make_file:
+			template_obj = json.loads(make_file.read())
 
-		make_path = join(path, "make.json")
-		with open(make_path, "r", encoding="utf-8") as make_file:
-			make_obj = json.loads(make_file.read())
+		if not "info" in template_obj:
+			template_obj["info"] = {}
+		template_obj["info"]["name"] = name
+		template_obj["info"]["author"] = author
+		template_obj["info"]["version"] = version
+		template_obj["info"]["description"] = description
+		template_obj["info"]["clientOnly"] = clientOnly
 
-		make_obj["info"]["name"] = name
-		make_obj["info"]["author"] = author
-		make_obj["info"]["version"] = version
-		make_obj["info"]["description"] = description
-		make_obj["info"]["clientSide"] = client
+		from package import setup_launcher_js, setup_project
+		setup_project(template_obj, template_path, location)
+		setup_launcher_js(template_obj, location)
 
+		make_path = join(location, "make.json")
 		with open(make_path, "w", encoding="utf-8") as make_file:
-			make_file.write(json.dumps(make_obj, indent="\t") + "\n")
+			make_file.write(json.dumps(template_obj, indent="\t") + "\n")
 
 		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
 		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
@@ -57,9 +61,6 @@ class ProjectManager:
 		self.projects.append(folder)
 		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
 			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
-
-		from package import setup_launcher_js
-		setup_launcher_js(make_obj, path)
 
 		return self.how_much() - 1
 

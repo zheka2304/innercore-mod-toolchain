@@ -6,7 +6,7 @@ def ensure_directory(directory):
 	if isfile(directory):
 		os.remove(directory)
 	if not exists(directory):
-		os.makedirs(directory)
+		os.makedirs(directory, exist_ok=True)
 
 def ensure_file_dir(file):
 	ensure_directory(abspath(join(file, "..")))
@@ -31,7 +31,7 @@ def copy_directory(path, destination, clear_dst = False, replacement = True, ign
 	if clear_dst:
 		clear_directory(destination)
 	if not exists(destination):
-		os.makedirs(destination)
+		os.makedirs(destination, exist_ok=True)
 	for filename in os.listdir(path):
 		relative_file = join(relative_path, filename) if relative_path is not None else filename
 		if filename in ignore_list or relative_file in ignore_list:
@@ -65,20 +65,23 @@ def get_all_files(directory, extensions = ()):
 						break
 	return all_files
 
-def get_project_folder_by_name(directory, name):
+def name_to_identifier(name, delimiter = ""):
 	previous_char_lower = False
 	previous_chars_upper = 0
-	folder = ""
+	identifier = ""
 	for char in name:
 		if char.isalpha() or char.isdecimal():
 			if (char.isupper() and previous_char_lower) or (char.islower() and previous_chars_upper > 1):
-				folder += "-"
-			folder += char.lower()
-		elif not folder.endswith("-"):
-			folder += "-"
+				identifier += delimiter
+			identifier += char.lower()
+		elif len(delimiter) > 0 and not identifier.endswith(delimiter):
+			identifier += delimiter
 		previous_char_lower = char.islower()
 		previous_chars_upper = previous_chars_upper + 1 if char.isupper() else 0
-	folder = folder.strip("-")
+	return identifier
+
+def get_project_folder_by_name(directory, name):
+	folder = name_to_identifier(name, "-").strip("-")
 	return get_next_filename(directory, folder, "-") if len(folder) > 0 else None
 
 def get_next_filename(directory, name, delimiter = ""):
