@@ -9,10 +9,8 @@ from base_config import BaseConfig
 class MakeConfig(BaseConfig):
 	def __init__(self, filename, base = None):
 		if not isfile(filename):
-			from task import registered_tasks
-			print(f"Not found {basename(filename)}, are you sure that selected project exists?")
-			registered_tasks["selectProject"]()
-			return
+			from task import error
+			error(f"Not found {basename(filename)}, are you sure that selected project exists?")
 		self.filename = filename
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
@@ -57,14 +55,15 @@ class MakeConfig(BaseConfig):
 class ToolchainMakeConfig(MakeConfig):
 	def __init__(self, filename):
 		prototype = MakeConfig(filename)
-		self.current_project = prototype.get_value("currentProject", None)
+		self.current_project = prototype.get_value("currentProject")
 		if self.current_project is not None:
-			self.project_unique_name = self.unique_folder_name(self.current_project)
-			MakeConfig.__init__(self, join(
-				prototype.root_dir, self.current_project, "make.json"
-			), MakeConfig(filename))
-		else:
-			MakeConfig.__init__(self, filename)
+			make_path = join(prototype.root_dir, self.current_project, "make.json")
+			if isfile(make_path):
+				self.project_unique_name = self.unique_folder_name(self.current_project)
+				MakeConfig.__init__(self, make_path, MakeConfig(filename))
+				return
+			self.current_project = None
+		MakeConfig.__init__(self, filename)
 
 	def assure_project_selected(self):
 		if self.current_project is None:
