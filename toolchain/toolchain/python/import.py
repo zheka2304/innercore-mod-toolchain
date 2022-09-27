@@ -25,6 +25,8 @@ def load_mod_info(make_obj, directory):
 			mod_info_obj["author"] = mod_info_prototype["author"]
 		if "description" in mod_info_prototype:
 			mod_info_obj["description"] = mod_info_prototype["description"]
+		if "instantLaunch" in mod_info_prototype:
+			mod_info_obj["instantLaunch"] = mod_info_prototype["instantLaunch"]
 	make_obj["info"] = mod_info_obj
 
 def load_build_config(make_obj, source, destination):

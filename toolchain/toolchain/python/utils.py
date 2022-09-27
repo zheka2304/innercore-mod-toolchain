@@ -65,6 +65,30 @@ def get_all_files(directory, extensions = ()):
 						break
 	return all_files
 
+def get_project_folder_by_name(directory, name):
+	previous_char_lower = False
+	previous_chars_upper = 0
+	folder = ""
+	for char in name:
+		if char.isalpha() or char.isdecimal():
+			if (char.isupper() and previous_char_lower) or (char.islower() and previous_chars_upper > 1):
+				folder += "-"
+			folder += char.lower()
+		elif not folder.endswith("-"):
+			folder += "-"
+		previous_char_lower = char.islower()
+		previous_chars_upper = previous_chars_upper + 1 if char.isupper() else 0
+	folder = folder.strip("-")
+	return get_next_filename(directory, folder, "-") if len(folder) > 0 else None
+
+def get_next_filename(directory, name, delimiter = ""):
+	buffer_name = name
+	buffer_index = 0
+	while exists(join(directory, buffer_name)):
+		buffer_index += 1
+		buffer_name = f"{name}{delimiter}{buffer_index}"
+	return buffer_name
+
 def shortcodes(str):
 	from datetime import datetime
 	date = datetime.now()

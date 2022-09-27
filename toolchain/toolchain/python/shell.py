@@ -81,6 +81,8 @@ class Shell():
 			return self.interactables[criteria]
 		except IndexError:
 			pass
+		except TypeError:
+			pass
 		for interactable in self.interactables:
 			if interactable.key == criteria:
 				return interactable
@@ -145,7 +147,7 @@ class Shell():
 		def render(self, shell, offset, line):
 			pass
 
-		def lines(self):
+		def lines(self, shell):
 			return 0
 
 class InteractiveShell(Shell):
@@ -192,7 +194,7 @@ class InteractiveShell(Shell):
 				page_occupied_lines = 0
 				page_buffer_offset = 0
 				while index < len(self.interactables):
-					lines = self.interactables[index].lines()
+					lines = self.interactables[index].lines(self)
 					if lines > self.lines_per_page or lines < 0:
 						raise BufferError()
 					if page_occupied_lines + lines > self.lines_per_page:
@@ -208,7 +210,7 @@ class InteractiveShell(Shell):
 			return
 		page_occupied_lines = 0
 		while index > 0:
-			lines = self.interactables[index - 1].lines()
+			lines = self.interactables[index - 1].lines(self)
 			if lines > self.lines_per_page or lines < 0:
 				raise BufferError()
 			if page_occupied_lines + lines > self.lines_per_page:
@@ -233,7 +235,7 @@ class InteractiveShell(Shell):
 		self.page_buffer_offset = 0
 		while self.global_buffer_offset + self.page_buffer_offset < len(self.interactables):
 			interactable = self.interactables[self.global_buffer_offset + self.page_buffer_offset]
-			lines = interactable.lines()
+			lines = interactable.lines(self)
 			if lines > self.lines_per_page or lines < 0:
 				raise BufferError()
 			if page_occupied_lines + lines > self.lines_per_page:
@@ -415,7 +417,7 @@ class Separator(Shell.Interactable):
 	def render(self, shell, offset, line):
 		shell.write("\n" * self.size)
 
-	def lines(self):
+	def lines(self, shell):
 		return self.size
 
 class Notice(Shell.Interactable):
@@ -426,7 +428,7 @@ class Notice(Shell.Interactable):
 	def render(self, shell, offset, line):
 		shell.write(str(self.text) + "\n")
 
-	def lines(self):
+	def lines(self, shell):
 		return str(self.text).count("\n") + 1
 
 class Entry(SelectiveShell.Selectable):
@@ -445,7 +447,7 @@ class Entry(SelectiveShell.Selectable):
 	def placeholder(self):
 		return str(self.text).partition("\n")[0]
 
-	def lines(self):
+	def lines(self, shell):
 		return str(self.text).count("\n") + 1
 
 class Switch(Entry):
@@ -466,10 +468,11 @@ class Switch(Entry):
 		return Entry.observe_key(self, what)
 
 class Input(Entry):
-	def __init__(self, key, hint = None, text = "", arrow = "> "):
+	def __init__(self, key, hint = None, text = "", arrow = "> ", maximum_length = 40):
 		Entry.__init__(self, key, text, arrow)
 		self.hovered = False
 		self.hint = hint
+		self.maximum_length = maximum_length
 
 	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
 		shell.write(self.get_arrow(at_cursor) + (str(self.hint) if self.hint is not None else "") +
@@ -486,13 +489,13 @@ class Input(Entry):
 						self.text = self.text[::-1][1:][::-1]
 					else:
 						self.hovered = False
-				elif what.isprintable():
+				elif what.isprintable() and len(self.text + what) <= self.maximum_length:
 					self.text += what
 				return True
 		return Entry.observe_key(self, what)
 
 class Progress(Shell.Interactable):
-	def __init__(self, key, progress = 0, weight = 49, text = None):
+	def __init__(self, key = "progress", progress = 0, weight = 49, text = None):
 		Shell.Interactable.__init__(self, key)
 		self.progress = progress
 		self.weight = weight
@@ -508,8 +511,19 @@ class Progress(Shell.Interactable):
 		if text is not None:
 			self.text = text
 
-	def lines(self):
+	def lines(self, shell):
 		return (str(self.text).count("\n") if self.text is not None else 0) + 1
+
+class Interrupt(InteractiveShell.Interactable):
+	def __init__(self, key = "interrupt", occupied_page = True):
+		InteractiveShell.Interactable.__init__(self, key)
+		self.ocuppied_page = occupied_page
+
+	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1):
+		raise EOFError()
+
+	def lines(self, shell):
+		return shell.lines_per_page if self.ocuppied_page else 0
 
 def select_prompt(prompt = None, *variants, fallback = None):
 	if prompt is not None:

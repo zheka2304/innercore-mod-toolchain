@@ -107,17 +107,17 @@ def build_all_resources():
 
 	for resource in MAKE_CONFIG.get_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
-			print("Skipped invalid source json", resource, file=sys.stderr)
+			print("Skipped invalid source json", resource)
 			overall_result = 1
 			continue
 		for source_path in MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
-				print("Skipped non existing resource", resource["path"], file=sys.stderr)
+				print("Skipped non existing resource", resource["path"])
 				overall_result = 1
 				continue
 			resource_type = resource["type"]
 			if resource_type not in ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack"):
-				print("Skipped invalid resource with type", resource_type, file=sys.stderr)
+				print("Skipped invalid resource with type", resource_type)
 				overall_result = 1
 				continue
 			resource_name = resource["target"] if "target" in resource else basename(source_path)

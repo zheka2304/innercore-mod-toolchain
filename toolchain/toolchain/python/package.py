@@ -2,9 +2,9 @@ import sys
 from os.path import exists, isdir, join, basename
 import time
 
-from utils import clear_directory, copy_directory
+from utils import clear_directory, copy_directory, get_project_folder_by_name
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from shell import SelectiveShell, Entry
+from shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch
 from project_manager import PROJECT_MANAGER
 
 def get_path_set(pathes, error_sensitive = False):
@@ -15,7 +15,7 @@ def get_path_set(pathes, error_sensitive = False):
 				directories.append(directory)
 			else:
 				if error_sensitive:
-					print(f"Declared invalid directory {path}, task will be terminated", file=sys.stderr)
+					print(f"Declared invalid directory {path}, task will be terminated")
 					return None
 				else:
 					print(f"Declared invalid directory {path}, it will be skipped")
@@ -65,60 +65,87 @@ def cleanup_relative_directory(path, project = False):
 	clear_directory(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")
 
-def create_project(return_folder = False):
-	if not exists(TOOLCHAIN_CONFIG.get_path("../toolchain-mod")):
+def new_project(template = "../toolchain-mod"):
+	if not exists(TOOLCHAIN_CONFIG.get_path(template)):
 		from task import error
-		error("Not found ../toolchain-mod template, nothing to do.")
+		error(f"Not found {template} template, nothing to do.")
+	shell = SelectiveShell()
 
-	name = input("Enter project name: ")
+	have_template = TOOLCHAIN_CONFIG.get_value("template") is not None
+	always_skip_description = TOOLCHAIN_CONFIG.get_value("template.skipDescription", False)
+	progress_step = 0.5 if have_template and always_skip_description else 0.33 if have_template or always_skip_description else 0.25
+	print("Inner Core Mod Toolchain", end="")
 
-	if name == "":
+	class NameObserver(Shell.Interactable):
+		def __init__(self):
+			Shell.Interactable.__init__(self, "name_observer")
+
+		def observe_key(self, what):
+			input = shell.get_interactable("name")
+			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.root_dir, input.text)
+			header = shell.get_interactable("header")
+			header.size = 2 if self.directory is None else 1
+			location = shell.get_interactable("location")
+			location.text = "" if self.directory is None else "It will be in " + self.directory + "\n"
+			progress = shell.get_interactable("step")
+			progress.progress = 0 if self.directory is None else progress_step
+			progress.text = " " + "Specify name".center(45) + (" " if self.directory is None else ">")
+			return self.directory is None
+
+	shell.interactables += [
+		Notice("Create new project"),
+		Separator("header", size=2),
+		# Entry("template", "Choose template"),
+		Input("name", "Name: ", TOOLCHAIN_CONFIG.get_value("template.name", "")),
+		Notice("location", ""),
+		NameObserver(),
+		Progress("step")
+	]
+	if not always_skip_description:
+		shell.interactables += [
+			Input("author", "Author: ", TOOLCHAIN_CONFIG.get_value("template.author", "")),
+			Input("version", "Version: ", TOOLCHAIN_CONFIG.get_value("template.version", "1.0")),
+			Input("description", "Description: ", TOOLCHAIN_CONFIG.get_value("template.description", "")),
+			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value("template.clientSide", False)),
+			Separator(),
+			Progress(progress=progress_step * 2, text="<" + "Configure details".center(45) + ">")
+		]
+	if not have_template:
+		shell.interactables += [
+			Notice("You can override template by setting up `template`"),
+			Notice("property in your toolchain.json, it will be automatically"),
+			Notice("applied when new project is being created."),
+			Notice("Properties are still same make.json `info` property."),
+			Separator(),
+			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<" + "Set up notice".center(45) + ">")
+		]
+
+	shell.interactables.append(Interrupt())
+	observer = shell.get_interactable("name_observer")
+	observer.observe_key(None)
+	try:
+		shell.loop()
+	except KeyboardInterrupt:
+		return None
+	if not hasattr(observer, "directory") or observer.directory is None:
 		from task import error
-		error("New project will not be created.", 0)
-
-	def_folder = name.replace(":", "-")
-	i = 1
-	while exists(TOOLCHAIN_CONFIG.get_path(def_folder)):
-		def_folder = name.replace(":", "-") + str(i)
-		i += 1
-
-	folder = input("Enter project folder [" + def_folder + "]: ")
-	if folder == "":
-		folder = def_folder
-	while exists(TOOLCHAIN_CONFIG.get_path(folder)):
-		print(f"""Folder "{folder}" already exists!""")
-		folder = input("Enter project folder [" + def_folder + "]: ")
-		if folder == "":
-			folder = def_folder
-
-	author = input("Enter author name: ")
-	version = input("Enter project version [1.0]: ")
-	description = input("Enter project description: ")
-	is_client = input("It will be client side? [y/N]: ")
-
-	if folder == "":
-		folder = def_folder
-	if version == "":
-		version = "1.0"
-	is_client = is_client.lower() == "y"
-
-	index = PROJECT_MANAGER.create_project(
-		name,
-		folder = folder,
-		author = author,
-		version = version,
-		description = description,
-		client = is_client
+		error("Not found `directory` property in observer!")
+	print(f"Copying template '{template}' to '{observer.directory}'")
+	return PROJECT_MANAGER.create_project(
+		shell.get_interactable("name").text,
+		shell.get_interactable("author").text,
+		shell.get_interactable("version").text,
+		shell.get_interactable("description").text,
+		shell.get_interactable("client_side").checked,
+		observer.directory
 	)
-
-	return folder if return_folder else index
 
 def setup_launcher_js(make_obj, path):
 	with open(join(path, "launcher.js"), "w") as file:
 		file.write("""ConfigureMultiplayer({
 	name: \"""" + make_obj["info"]["name"] + """\",
 	version: \"""" + make_obj["info"]["version"] + """\",
-	isClientOnly: """ + ("true" if make_obj["info"]["client"] else "false") + """
+	isClientOnly: """ + ("true" if "clientSide" in make_obj["info"] and make_obj["info"]["clientSide"] else "false") + """
 });
 
 Launch();

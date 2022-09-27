@@ -21,9 +21,9 @@ class ProjectManager:
 				if exists(path) and isfile(path):
 					self.projects.append(join(location, next))
 
-	def create_project(self, name, author = "", version = "1.0", description = "", folder = None, client = False):
-		if folder == None:
-			folder = name.replace(":", "-")
+	def create_project(self, name, author = "", version = "1.0", description = "", client = False, folder = None):
+		if folder == None or len(folder) == 0:
+			raise NotADirectoryError(folder)
 
 		path = join(TOOLCHAIN_CONFIG.root_dir, folder)
 		if exists(path):
@@ -44,7 +44,7 @@ class ProjectManager:
 		make_obj["info"]["author"] = author
 		make_obj["info"]["version"] = version
 		make_obj["info"]["description"] = description
-		make_obj["info"]["client"] = client
+		make_obj["info"]["clientSide"] = client
 
 		with open(make_path, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(make_obj, indent="\t") + "\n")

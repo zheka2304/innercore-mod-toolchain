@@ -38,8 +38,8 @@ def download_and_extract_toolchain(directory):
         copy_directory(join(directory, "innercore-mod-toolchain-master"), "toolchain", False, ["toolchain-setup.py"])
         shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
     except Exception as err:
-        print(err, file=sys.stderr)
-        print("Inner Core Mod Toolchain installation not completed due to above error.", file=sys.stderr)
+        print(err)
+        print("Inner Core Mod Toolchain installation not completed due to above error.")
         exit(1)
     finally:
         os.remove(archive)

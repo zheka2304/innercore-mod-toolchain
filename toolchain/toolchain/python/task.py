@@ -265,20 +265,18 @@ def task_configure_adb(args = None):
 @task("createProject")
 def task_create_project(args = None):
 	from project_manager import PROJECT_MANAGER
-	from package import create_project
+	from package import new_project
+
+	index = new_project()
+	if index is None:
+		exit("Creation cancelled by user.")
+	print("Successfully completed!")
 
 	try:
-		index = create_project()
+		if input("Select this project? [Y/n]: ").lower() != "n":
+			PROJECT_MANAGER.select_project(index=index)
 	except KeyboardInterrupt:
-		return -1
-	print("Project created!")
-
-	try:
-		if input("Choice this project? [Y/n]: ").lower() != "n":
-			PROJECT_MANAGER.select_project(index = index)
-			print(f"Project {index} selected")
-	except KeyboardInterrupt:
-		return -1
+		return 0
 	return 0
 
 @task("removeProject", lock=["cleanup"])
@@ -368,6 +366,7 @@ def task_cleanup(args = None):
 def error(message, code = -1):
 	print(message, file=sys.stderr)
 	unlock_all_tasks()
+	print(message)
 	exit(code)
 
 

@@ -28,7 +28,7 @@ def download_and_extract_toolchain(directory):
 		copy_directory(join(directory, "innercore-mod-toolchain-master/toolchain/toolchain"), join(directory, "toolchain/toolchain"))
 		shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
 	except Exception as err:
-		print(err, file=sys.stderr)
+		print(err)
 		from task import error
 		error("Inner Core Mod Toolchain installation not completed due to above error.", 1)
 	finally:

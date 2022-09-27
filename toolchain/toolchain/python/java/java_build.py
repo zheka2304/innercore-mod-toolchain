@@ -312,19 +312,19 @@ def compile_all_using_make_config():
 	directory_names = []
 	for directory in MAKE_CONFIG.get_filtered_list("compile", prop="type", values=("java",)):
 		if "source" not in directory:
-			print("Skipped invalid java directory json", directory, file=sys.stderr)
+			print("Skipped invalid java directory json", directory)
 			overall_result = -1
 			continue
 
 		for path in MAKE_CONFIG.get_paths(directory["source"]):
 			if not isdir(path):
-				print("Skipped non existing java directory path", directory["source"], file=sys.stderr)
+				print("Skipped non existing java directory path", directory["source"])
 				overall_result = -1
 				continue
 			directories.append(path)
 
 	if overall_result != 0:
-		print("Failed to get java directories", file=sys.stderr)
+		print("Failed to get java directories")
 		return overall_result
 
 	if len(directories) > 0:

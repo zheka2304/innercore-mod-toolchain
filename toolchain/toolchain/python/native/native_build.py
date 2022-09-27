@@ -230,7 +230,7 @@ def compile_all_using_make_config(abis):
 
 	for native_dir in MAKE_CONFIG.get_filtered_list("compile", prop="type", values=("native",)):
 		if "source" not in native_dir:
-			print("Skipped invalid native directory json", native_dir, file=sys.stderr)
+			print("Skipped invalid native directory json", native_dir)
 			overall_result = CODE_INVALID_JSON
 			continue
 		for native_dir_path in MAKE_CONFIG.get_paths(native_dir["source"]):
@@ -249,7 +249,7 @@ def compile_all_using_make_config(abis):
 				if result != CODE_OK:
 					overall_result = result
 			else:
-				print("Skipped non existing native directory", native_dir["source"], file=sys.stderr)
+				print("Skipped non existing native directory", native_dir["source"])
 				overall_result = CODE_INVALID_PATH
 
 	mod_structure.update_build_config_list("nativeDirs")
