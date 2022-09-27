@@ -1,5 +1,7 @@
 ConfigureMultiplayer({
-	isClientOnly: false
+	name: "{name}",
+	version: "{version}",
+	isClientOnly: {clientOnly}
 });
 
 Launch();

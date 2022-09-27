@@ -1,7 +1,6 @@
 {
 	"info": {
-		"name": "Template Mod",
-		"version": "1.0"
+		"name": "Template Mod"
 	},
 	"api": "CoreEngine",
 	"resources": [
@@ -40,11 +39,11 @@
 			"language": "javascript"
 		}
 	],
+	"compile": [],
 	"additional": [
 		{
 			"source": "assets/root/*",
 			"targetDir": "."
 		}
-	],
-	"compile": []
+	]
 }
