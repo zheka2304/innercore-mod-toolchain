@@ -65,6 +65,9 @@ def get_all_files(directory, extensions = ()):
 						break
 	return all_files
 
+def ensure_not_whitespace(what, fallback = None):
+	return fallback if what is None or len(what) == 0 or what.isspace() else what
+
 def name_to_identifier(name, delimiter = ""):
 	previous_char_lower = False
 	previous_chars_upper = 0

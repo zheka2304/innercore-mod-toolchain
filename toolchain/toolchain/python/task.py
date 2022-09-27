@@ -262,12 +262,12 @@ def task_configure_adb(args = None):
 	device.setup_device_connection()
 	return 0
 
-@task("createProject")
-def task_create_project(args = None):
+@task("newProject")
+def task_new_project(args = None):
 	from project_manager import PROJECT_MANAGER
 	from package import new_project
 
-	index = new_project()
+	index = new_project(TOOLCHAIN_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
 		exit("Creation cancelled by user.")
 	print("Successfully completed!")

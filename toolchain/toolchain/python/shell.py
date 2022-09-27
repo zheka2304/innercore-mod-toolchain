@@ -263,28 +263,31 @@ class InteractiveShell(Shell):
 class SelectiveShell(InteractiveShell):
 	page_cursor_offset = -1
 	pending_hover_offset = 0
+	blocked_in_page = False
 
 	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6):
 		InteractiveShell.__init__(self, stdin, stdout, infinite_scroll, lines_per_page)
 		self.eof_when_enter = True
 
 	def turn_backward(self):
-		InteractiveShell.turn_backward(self)
+		if not self.blocked_in_page:
+			InteractiveShell.turn_backward(self)
 		self.page_cursor_offset += 1
 		self.pending_hover_offset = -2
 
 	def turn_forward(self):
-		InteractiveShell.turn_forward(self)
+		if not self.blocked_in_page:
+			InteractiveShell.turn_forward(self)
 		self.page_cursor_offset -= 1
 		self.pending_hover_offset = 2
 
 	def turn_up(self):
 		if self.page_cursor_offset > 0 or self.infinite_scroll or self.global_buffer_offset > 0:
-			self.pending_hover_offset = -1
+			self.pending_hover_offset = -1 if not self.blocked_in_page else -2
 
 	def turn_down(self):
 		if (self.page_cursor_offset < self.page_buffer_offset and self.which() < len(self.interactables) - 1) or self.infinite_scroll:
-			self.pending_hover_offset = 1
+			self.pending_hover_offset = 1 if not self.blocked_in_page else 2
 
 	def hover_previous(self):
 		cursor_offset = min(self.page_cursor_offset, self.page_buffer_offset) - 1
@@ -334,7 +337,7 @@ class SelectiveShell(InteractiveShell):
 							InteractiveShell.render(self)
 							if not self.hover_previous():
 								self.page_cursor_offset = -1
-					elif not self.hover_next():
+					elif not self.hover_next() and not self.hovered():
 						self.page_cursor_offset = -1
 				InteractiveShell.render(self)
 			elif self.pending_hover_offset >= 1:
@@ -345,7 +348,7 @@ class SelectiveShell(InteractiveShell):
 						InteractiveShell.render(self)
 						if not self.hover_next():
 							self.page_cursor_offset = -1
-					elif not self.hover_previous():
+					elif not self.hover_previous() and not self.hovered():
 						self.page_cursor_offset = -1
 				InteractiveShell.render(self)
 			self.pending_hover_offset = 0
@@ -383,6 +386,10 @@ class SelectiveShell(InteractiveShell):
 		self.page_cursor_offset = -1
 		self.pending_hover_offset = 2
 		InteractiveShell.enter(self)
+
+	def hovered(self):
+		interactable = self.get_interactable(self.which())
+		return interactable.hoverable() if isinstance(interactable, SelectiveShell.Selectable) else False
 
 	def which(self):
 		return self.global_buffer_offset + self.page_cursor_offset if self.page_cursor_offset != -1 else -1
@@ -468,15 +475,20 @@ class Switch(Entry):
 		return Entry.observe_key(self, what)
 
 class Input(Entry):
-	def __init__(self, key, hint = None, text = "", arrow = "> ", maximum_length = 40):
+	def __init__(self, key, hint = None, text = "", arrow = "> ", template = None, maximum_length = 40):
 		Entry.__init__(self, key, text, arrow)
 		self.hovered = False
 		self.hint = hint
+		self.template = template
 		self.maximum_length = maximum_length
 
 	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
 		shell.write(self.get_arrow(at_cursor) + (str(self.hint) if self.hint is not None else "") +
-			("" if self.hovered else "\x1b[2m") + (self.text if len(self.text) > 0 or self.hovered else "...") + ("" if self.hovered else "\x1b[0m") + "\n")
+			("" if self.hovered else "\x1b[2m") + (self.text if len(self.text) > 0 or self.hovered else \
+				"..." if self.template is None else self.template) + ("" if self.hovered else "\x1b[0m") + "\n")
+
+	def read(self):
+		return self.template if not self.hovered and len(self.text) == 0 and self.template is not None else self.text
 
 	def observe_key(self, what, at_cursor = None):
 		if at_cursor:
@@ -525,7 +537,17 @@ class Interrupt(InteractiveShell.Interactable):
 	def lines(self, shell):
 		return shell.lines_per_page if self.ocuppied_page else 0
 
-def select_prompt(prompt = None, *variants, fallback = None):
+class Debugger(SelectiveShell.Selectable):
+	def __init__(self, key = "debugger"):
+		SelectiveShell.Selectable.__init__(self, key)
+
+	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
+		shell.write(f"Page {page}:{shell.global_buffer_offset}, offset {offset}/{shell.page_buffer_offset}, cursor {shell.page_cursor_offset}\n")
+
+	def hoverable(self):
+		return False
+
+def select_prompt(prompt = None, *variants, fallback = None, what_not_which = False):
 	if prompt is not None:
 		print(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True)
@@ -536,11 +558,12 @@ def select_prompt(prompt = None, *variants, fallback = None):
 		result = shell.which()
 	except KeyboardInterrupt:
 		result = fallback
+	interactable = shell.get_interactable(result)
 	try:
-		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + shell.get_interactable(result).placeholder() + "\x1b[0m")
+		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + interactable.placeholder() + "\x1b[0m")
 	except ValueError:
 		pass
-	return result
+	return result if not what_not_which else interactable.key if interactable is not None else None
 
 if __name__ == "__main__":
 	shell = Shell()

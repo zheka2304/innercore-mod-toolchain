@@ -1,10 +1,12 @@
+import json
 import os
 from os.path import exists, isdir, join, basename, relpath
 import time
 
-from utils import clear_directory, copy_directory, copy_file, get_all_files, get_project_folder_by_name, name_to_identifier
+from utils import clear_directory, copy_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
+from base_config import BaseConfig
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch
+from shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch, select_prompt
 from project_manager import PROJECT_MANAGER
 
 def get_path_set(pathes, error_sensitive = False):
@@ -65,11 +67,32 @@ def cleanup_relative_directory(path, project = False):
 	clear_directory(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")
 
+def select_template():
+	if len(PROJECT_MANAGER.templates) <= 1:
+		if len(PROJECT_MANAGER.templates) == 0:
+			print("Please, ensure that `projectLocations` property in your toolchain.json contains any folder with template.json.")
+			from task import error
+			error("Not found any templates, nothing to do.")
+		return PROJECT_MANAGER.templates[0]
+	return select_prompt(
+		"Which template do you want?",
+		*PROJECT_MANAGER.templates,
+		fallback=0, what_not_which=True
+	)
+
 def new_project(template = "../toolchain-mod"):
-	if not exists(TOOLCHAIN_CONFIG.get_path(template)):
+	if template is None or not exists(TOOLCHAIN_CONFIG.get_path(template)):
+		return new_project(template=select_template())
+	template_make_path = TOOLCHAIN_CONFIG.get_path(template + "/template.json")
+	try:
+		with open(template_make_path) as template_make:
+			template_config = BaseConfig(json.loads(template_make.read()))
+	except BaseException as err:
+		print(err)
+		if len(PROJECT_MANAGER.templates) > 1:
+			return new_project(None)
 		from task import error
-		error(f"Not found {template} template, nothing to do.")
-	shell = SelectiveShell()
+		error(f"Malformed {template}/template.json, nothing to do.")
 
 	have_template = TOOLCHAIN_CONFIG.get_value("template") is not None
 	always_skip_description = TOOLCHAIN_CONFIG.get_value("template.skipDescription", False)
@@ -82,33 +105,48 @@ def new_project(template = "../toolchain-mod"):
 
 		def observe_key(self, what):
 			input = shell.get_interactable("name")
-			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.root_dir, input.text)
+			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.root_dir, input.read())
 			header = shell.get_interactable("header")
-			header.size = 2 if self.directory is None else 1
+			header.size = (1 if self.directory is None else 0) + (0 if len(PROJECT_MANAGER.templates) > 1 else 1)
 			location = shell.get_interactable("location")
 			location.text = "" if self.directory is None else "It will be in " + self.directory + "\n"
 			progress = shell.get_interactable("step")
 			progress.progress = 0 if self.directory is None else progress_step
-			progress.text = " " + "Specify name".center(45) + (" " if self.directory is None else ">")
-			return self.directory is None
+			progress.text = " " + "Name your creation".center(45) + (" " if self.directory is None else ">")
+			shell.blocked_in_page = self.directory is None
+			return False
 
+	shell = SelectiveShell()
+	shell.interactables.append(Notice("Create new project"))
+	if len(PROJECT_MANAGER.templates) > 1:
+		shell.interactables += [
+			Separator("header"),
+			Entry("template", "Choose template")
+		]
+	else:
+		shell.interactables.append(Separator("header", size=2))
 	shell.interactables += [
-		Notice("Create new project"),
-		Separator("header", size=2),
-		# Entry("template", "Choose template"),
-		Input("name", "Name: ", TOOLCHAIN_CONFIG.get_value("template.name", "")),
-		Notice("location", ""),
+		Input("name", "Name: ", TOOLCHAIN_CONFIG.get_value("template.name", ""), template=template_config.get_value("info.name")),
+		Notice("location"),
 		NameObserver(),
 		Progress("step")
 	]
 	if not always_skip_description:
 		shell.interactables += [
-			Input("author", "Author: ", TOOLCHAIN_CONFIG.get_value("template.author", "")),
-			Input("version", "Version: ", TOOLCHAIN_CONFIG.get_value("template.version", "1.0")),
-			Input("description", "Description: ", TOOLCHAIN_CONFIG.get_value("template.description", "")),
-			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value("template.clientOnly", False)),
+			Input("author", "Author: ", TOOLCHAIN_CONFIG.get_value(
+				"template.author", template_config.get_value("info.author", "")
+			)),
+			Input("version", "Version: ", TOOLCHAIN_CONFIG.get_value(
+				"template.version", template_config.get_value("info.version", "1.0")
+			)),
+			Input("description", "Description: ", TOOLCHAIN_CONFIG.get_value(
+				"template.description", template_config.get_value("info.description", "")
+			)),
+			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value(
+				"template.clientOnly", template_config.get_value("info.clientOnly", False)
+			)),
 			Separator(),
-			Progress(progress=progress_step * 2, text="<" + "Configure details".center(45) + ">")
+			Progress(progress=progress_step * 2, text="<" + "Configure details".center(45) + (">" if not have_template else "+"))
 		]
 	if not have_template:
 		shell.interactables += [
@@ -117,7 +155,7 @@ def new_project(template = "../toolchain-mod"):
 			Notice("applied when new project is being created."),
 			Notice("Properties are still same make.json `info` property."),
 			Separator(),
-			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<" + "Set up notice".center(45) + ">")
+			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<" + "Friendly advice".center(45) + "+")
 		]
 
 	shell.interactables.append(Interrupt())
@@ -127,16 +165,18 @@ def new_project(template = "../toolchain-mod"):
 		shell.loop()
 	except KeyboardInterrupt:
 		return None
+	if shell.what() == "template":
+		return new_project(None)
 	if not hasattr(observer, "directory") or observer.directory is None:
 		from task import error
 		error("Not found `directory` property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
 	return PROJECT_MANAGER.create_project(
 		template, observer.directory,
-		shell.get_interactable("name").text,
-		shell.get_interactable("author").text,
-		shell.get_interactable("version").text,
-		shell.get_interactable("description").text,
+		shell.get_interactable("name").read(),
+		shell.get_interactable("author").read(),
+		shell.get_interactable("version").read(),
+		shell.get_interactable("description").read(),
 		shell.get_interactable("client_side").checked
 	)
 
@@ -152,15 +192,11 @@ def resolve_make_format_map(make_obj, path):
 	while len(package_suffix) > 0 and package_suffix[0].isdecimal():
 		package_suffix = package_suffix[1:]
 	return {
-		"identifier": identifier if len(identifier) > 0 else "whoami",
-		"package_suffix": package_suffix if len(package_suffix) > 0 else "mod",
-		"package_prefix": package_prefix,
-		"name": "Mod",
-		"author": "ICMods",
-		"version": "1.0",
-		"description": "My brand new mod.",
-		"clientOnly": False,
-		**make_obj_info
+		"identifier": ensure_not_whitespace(identifier, "whoami"),
+		"packageSuffix": ensure_not_whitespace(package_suffix, "mod"),
+		"packagePrefix": package_prefix,
+		**make_obj_info,
+		"clientOnly": "true" if "clientOnly" in make_obj_info and make_obj_info["clientOnly"] else "false"
 	}
 
 def setup_project(make_obj, template, path):
@@ -190,17 +226,6 @@ def setup_project(make_obj, template, path):
 				pass
 		with open(source, "w") as source_file:
 			source_file.writelines(lines)
-
-def setup_launcher_js(make_obj, path):
-	with open(join(path, "launcher.js"), "w") as file:
-		file.write("""ConfigureMultiplayer({
-	name: \"""" + make_obj["info"]["name"] + """\",
-	version: \"""" + make_obj["info"]["version"] + """\",
-	isClientOnly: """ + ("true" if "clientOnly" in make_obj["info"] and make_obj["info"]["clientOnly"] else "false") + """
-});
-
-Launch();
-""")
 
 def select_project(variants, prompt = "Which project do you want?", selected = None):
 	if prompt is not None:

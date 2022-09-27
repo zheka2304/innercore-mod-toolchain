@@ -2,24 +2,28 @@ import os
 from os.path import join, exists, isfile, isdir
 import json
 
-from utils import clear_directory
+from utils import clear_directory, ensure_not_whitespace
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 class ProjectManager:
 	def __init__(self):
 		self.projects = []
+		self.templates = []
 		locations = MAKE_CONFIG.get_value("projectLocations", [TOOLCHAIN_CONFIG.root_dir])
 		for location in locations:
 			realpath = join(TOOLCHAIN_CONFIG.root_dir, location)
 			if not exists(realpath) or not isdir(realpath):
 				print(f"Not found project location {location}!")
 				continue
-			for next in os.listdir(realpath):
-				path = join(realpath, next, "make.json")
-				if exists(path) and isfile(path):
+			for next in [""] + os.listdir(realpath):
+				make_path = join(realpath, next, "make.json")
+				if exists(make_path) and isfile(make_path):
 					self.projects.append(join(location, next))
+				template_path = join(realpath, next, "template.json")
+				if exists(template_path) and isfile(template_path):
+					self.templates.append(join(location, next))
 
-	def create_project(self, template, folder, name, author = "", version = "1.0", description = "", clientOnly = False):
+	def create_project(self, template, folder, name = None, author = None, version = None, description = None, clientOnly = False):
 		location = TOOLCHAIN_CONFIG.get_path(folder)
 		if exists(location):
 			from task import error
@@ -33,21 +37,30 @@ class ProjectManager:
 			from task import error
 			error(f"Not found template.json in template {template}, nothing to do.")
 
-		os.makedirs(location)
 		with open(template_make_path, "r", encoding="utf-8") as make_file:
 			template_obj = json.loads(make_file.read())
 
 		if not "info" in template_obj:
 			template_obj["info"] = {}
-		template_obj["info"]["name"] = name
-		template_obj["info"]["author"] = author
-		template_obj["info"]["version"] = version
-		template_obj["info"]["description"] = description
-		template_obj["info"]["clientOnly"] = clientOnly
+		template_info = template_obj["info"]
+		template_info["name"] = ensure_not_whitespace(name, ensure_not_whitespace(
+			template_info["name"] if "name" in template_info else None, "Mod"
+		))
+		template_info["author"] = ensure_not_whitespace(author, ensure_not_whitespace(
+			template_info["author"] if "author" in template_info else None, "ICMods"
+		))
+		template_info["version"] = ensure_not_whitespace(version, ensure_not_whitespace(
+			template_info["version"] if "version" in template_info else None, "1.0"
+		))
+		template_info["description"] = description if description is not None else ensure_not_whitespace(
+			template_info["description"] if "description" in template_info else None, "My brand new mod."
+		)
+		template_info["clientOnly"] = clientOnly if clientOnly is not None else \
+			template_info["clientOnly"] if "clientOnly" in template_info else False
 
-		from package import setup_launcher_js, setup_project
+		os.makedirs(location)
+		from package import setup_project
 		setup_project(template_obj, template_path, location)
-		setup_launcher_js(template_obj, location)
 
 		make_path = join(location, "make.json")
 		with open(make_path, "w", encoding="utf-8") as make_file:
