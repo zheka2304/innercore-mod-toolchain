@@ -310,12 +310,12 @@
 				"id": "new-folder"
 			},
 			"type": "shell",
-			"command": "../project-create.sh",
+			"command": "../new-project.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "..\\project-create.bat",
+				"command": "..\\new-project.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
@@ -335,12 +335,12 @@
 				"id": "root-folder-opened"
 			},
 			"type": "shell",
-			"command": "../project-remove.sh",
+			"command": "../remove-project.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "..\\project-remove.bat",
+				"command": "..\\remove-project.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
@@ -360,12 +360,12 @@
 				"id": "folder-opened"
 			},
 			"type": "shell",
-			"command": "../project-select.sh",
+			"command": "../select-project.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "..\\project-select.bat",
+				"command": "..\\select-project.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
@@ -386,12 +386,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../project-select.sh",
+			"command": "../select-project.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "..\\project-select.bat",
+				"command": "..\\select-project.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
