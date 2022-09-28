@@ -310,7 +310,7 @@ def compile_all_using_make_config():
 
 	directories = []
 	directory_names = []
-	for directory in MAKE_CONFIG.get_filtered_list("compile", prop="type", values=("java",)):
+	for directory in MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
 		if "source" not in directory:
 			print("Skipped invalid java directory json", directory)
 			overall_result = -1

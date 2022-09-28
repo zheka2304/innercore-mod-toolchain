@@ -228,7 +228,7 @@ def compile_all_using_make_config(abis):
 
 	overall_result = CODE_OK
 
-	for native_dir in MAKE_CONFIG.get_filtered_list("compile", prop="type", values=("native",)):
+	for native_dir in MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
 		if "source" not in native_dir:
 			print("Skipped invalid native directory json", native_dir)
 			overall_result = CODE_INVALID_JSON

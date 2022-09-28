@@ -238,7 +238,7 @@ def select_project(variants, prompt = "Which project do you want?", selected = N
 	except KeyboardInterrupt:
 		return None
 	try:
-		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + shell.get_interactable(shell.which()).placeholder() + "\x1b[0m")
+		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + shell.what() + "\x1b[0m")
 	except ValueError:
 		pass
 	return shell.what()
