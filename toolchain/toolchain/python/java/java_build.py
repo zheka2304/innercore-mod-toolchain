@@ -1,4 +1,3 @@
-import sys
 import os
 from os.path import join, basename, isfile, isdir, getmtime
 import platform
@@ -49,10 +48,10 @@ def update_modified_classes(directories, cache_dir):
 			cache_json = json.load(file)
 	except Exception:
 		pass
-
 	print()
 	print("Recalculating class file hashes")
 	modified_files = {}
+
 	for directory in directories:
 		directory_name = basename(directory)
 		classes_dir = join(cache_dir, "classes", directory_name, "classes")
@@ -155,9 +154,7 @@ def run_d8(directory_name, modified_files, cache_dir):
 			return result
 		index += max_span_size
 		print(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
-	return result
 
-def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
 	print("Compressing dex archives")
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
@@ -168,6 +165,10 @@ def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
 					file = join(dirpath, filename)
 					zip_ref.write(file, arcname=file[len(dex_classes_dir) + 1:])
 
+	return result
+
+def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
+	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	print("Merging dex")
 	return subprocess.call([
 		"java",
