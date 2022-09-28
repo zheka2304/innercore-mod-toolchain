@@ -1,9 +1,10 @@
 import os
-from os.path import join, exists, isfile, isdir
+from os.path import join, exists, isfile, isdir, basename
 import json
 
 from utils import clear_directory, ensure_not_whitespace
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from workspace import CODE_WORKSPACE, CODE_SETTINGS
 
 class ProjectManager:
 	def __init__(self):
@@ -66,15 +67,19 @@ class ProjectManager:
 		with open(make_path, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(template_obj, indent="\t") + "\n")
 
-		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
-		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_obj = json.loads(vsc_settings_file.read())
+		if CODE_WORKSPACE.available():
+			location = CODE_WORKSPACE.get_toolchain_path(folder)
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
+				self.append_workspace_folder(folder, template_info["name"])
 
-		vsc_settings_obj["files.exclude"][folder] = True
+		if CODE_SETTINGS.available():
+			exclude = CODE_SETTINGS.json["files.exclude"] if "files.exclude" in CODE_SETTINGS.json else {}
+			if not folder.startswith("../"):
+				exclude[folder] = True
+				CODE_SETTINGS.json["files.exclude"] = exclude
+				CODE_SETTINGS.save()
+
 		self.projects.append(folder)
-		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
-
 		return self.how_much() - 1
 
 	def remove_project(self, index = None, folder = None):
@@ -87,16 +92,40 @@ class ProjectManager:
 		if folder == MAKE_CONFIG.current_project:
 			self.select_project_folder()
 
+		if CODE_WORKSPACE.available():
+			location = CODE_WORKSPACE.get_toolchain_path(folder)
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) > 0:
+				folders = CODE_WORKSPACE.get_value("folders", [])
+				for entry in folders:
+					if isinstance(entry, dict) and "path" in entry and entry["path"] == location:
+						folders.remove(entry)
+				CODE_WORKSPACE.set_value("folders", folders)
+				CODE_WORKSPACE.save()
+
+		if CODE_SETTINGS.available():
+			exclude = CODE_SETTINGS.json["files.exclude"] if "files.exclude" in CODE_SETTINGS.json else {}
+			if folder in exclude:
+				del exclude[folder]
+				CODE_SETTINGS.json["files.exclude"] = exclude
+				CODE_SETTINGS.save()
+
 		clear_directory(TOOLCHAIN_CONFIG.get_path(folder))
 		del self.projects[index]
 
-		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
-		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_obj = json.loads(vsc_settings_file.read())
-
-		del vsc_settings_obj["files.exclude"][folder]
-		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
+	def append_workspace_folder(self, folder, name = "Mod"):
+		if CODE_WORKSPACE.available():
+			folders = CODE_WORKSPACE.get_value("folders", [])
+			if len(folders) == 0:
+				folders.append({
+					"path": CODE_WORKSPACE.get_toolchain_path(),
+					"name": "Inner Core Mod Toolchain"
+				})
+			folders.append({
+				"path": CODE_WORKSPACE.get_toolchain_path(folder),
+				"name": str(name)
+			})
+			CODE_WORKSPACE.set_value("folders", folders)
+			CODE_WORKSPACE.save()
 
 	def select_project_folder(self, folder = None):
 		if MAKE_CONFIG.current_project == folder:
@@ -114,19 +143,28 @@ class ProjectManager:
 		else:
 			TOOLCHAIN_CONFIG.__init__(MAKE_CONFIG.prototype.filename, MAKE_CONFIG.prototype)
 
-	def select_project(self, index = None, folder =  None):
+	def select_project(self, index = None, folder = None):
 		index, folder = self.get_folder(index, folder)
 
-		vsc_settings_path = TOOLCHAIN_CONFIG.get_path(".vscode/settings.json")
-		with open(vsc_settings_path, "r", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_obj = json.loads(vsc_settings_file.read())
+		if folder is not None and CODE_WORKSPACE.available():
+			location = CODE_WORKSPACE.get_toolchain_path(folder)
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
+				make_path = TOOLCHAIN_CONFIG.get_path(folder + "/make.json")
+				if not exists(make_path):
+					from task import error
+					error(f"Not found make.json in project {folder}, nothing to do.")
+				with open(make_path, "r", encoding="utf-8") as make_file:
+					make_obj = json.loads(make_file.read())
+				self.append_workspace_folder(folder, make_obj["info"]["name"] if "info" in make_obj and "name" in make_obj["info"] else basename(folder))
 
-		if MAKE_CONFIG.current_project != None:
-			vsc_settings_obj["files.exclude"][MAKE_CONFIG.current_project] = True
-		vsc_settings_obj["files.exclude"][folder] = False
-
-		with open(vsc_settings_path, "w", encoding="utf-8") as vsc_settings_file:
-			vsc_settings_file.write(json.dumps(vsc_settings_obj, indent="\t") + "\n")
+		if folder is not None and CODE_SETTINGS.available():
+			exclude = CODE_SETTINGS.json["files.exclude"] if "files.exclude" in CODE_SETTINGS.json else {}
+			if MAKE_CONFIG.current_project is not None and not MAKE_CONFIG.current_project.startswith("../"):
+				exclude[MAKE_CONFIG.current_project] = True
+			if not folder.startswith("../"):
+				exclude[folder] = False
+			CODE_SETTINGS.json["files.exclude"] = exclude
+			CODE_SETTINGS.save()
 
 		self.select_project_folder(folder)
 
@@ -140,7 +178,6 @@ class ProjectManager:
 				), -1)
 
 		folder = self.projects[index]
-
 		return index, folder
 
 	def how_much(self):

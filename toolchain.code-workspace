@@ -11,14 +11,13 @@
 	],
 	"settings": {
 		"java.project.referencedLibraries": [
-			"${workspaceFolder}/toolchain/classpath/**/*.jar",
 			"../toolchain/toolchain/classpath/**/*.jar",
 			"toolchain/toolchain/classpath/**/*.jar",
 			"../toolchain/classpath/**/*.jar",
 			"toolchain/classpath/**/*.jar"
 		],
 		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
-		"window.titleSeparator": " — ",
+		"window.titleSeparator": " \u2014 ",
 		"search.useParentIgnoreFiles": true,
 		"C_Cpp.errorSquiggles": "Disabled"
 	},
