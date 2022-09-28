@@ -94,12 +94,12 @@ def task_compile_native_release(args = None):
 @task("compileJavaDebug", lock=["java", "cleanup", "push"])
 def task_compile_java_debug(args = None):
 	from java.java_build import compile_all_using_make_config
-	return compile_all_using_make_config()
+	return compile_all_using_make_config(debug_build=True)
 
 @task("compileJavaRelease", lock=["java", "cleanup", "push"])
-def task_compile_java_release(args = None): # TODO
+def task_compile_java_release(args = None):
 	from java.java_build import compile_all_using_make_config
-	return compile_all_using_make_config()
+	return compile_all_using_make_config(debug_build=False)
 
 @task("buildScriptsDebug", lock=["script", "cleanup", "push"])
 def task_build_scripts_debug(args = None):

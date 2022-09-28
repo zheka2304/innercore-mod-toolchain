@@ -100,7 +100,7 @@ def save_modified_classes_cache(cache_json, cache_dir):
 	with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
 		file.write(json.dumps(cache_json))
 
-def run_d8(directory_name, modified_files, cache_dir):
+def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 	d8_libs = []
 	classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 	if exists(classpath_dir):
@@ -126,6 +126,7 @@ def run_d8(directory_name, modified_files, cache_dir):
 	] if exists(classpath_dir) else []) + [
 		"--min-api", "19",
 		"--lib", jar_dir,
+		"--debug" if debug_build else "--release",
 		"--intermediate",
 		"--output", dex_classes_dir
 	])
@@ -146,6 +147,7 @@ def run_d8(directory_name, modified_files, cache_dir):
 		] if exists(classpath_dir) else []) + [
 			"--min-api", "19",
 			"--lib", jar_dir,
+			"--debug" if debug_build else "--release",
 			"--intermediate",
 			"--file-per-class",
 			"--output", dex_classes_dir
@@ -167,7 +169,7 @@ def run_d8(directory_name, modified_files, cache_dir):
 
 	return result
 
-def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
+def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir, debug_build = False):
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	print("Merging dex")
 	return subprocess.call([
@@ -176,12 +178,12 @@ def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir):
 		"com.android.tools.r8.D8",
 		dex_zip_file,
 		"--min-api", "19",
-		"--debug",
+		"--debug" if debug_build else "--release",
 		"--intermediate",
 		"--output", output_dex_dir
 	])
 
-def build_java_directories(directories, cache_dir, classpath):
+def build_java_directories(directories, cache_dir, classpath, debug_build = False):
 	ensure_directory(cache_dir)
 
 	targets = setup_gradle_project(cache_dir, directories, classpath)
@@ -202,18 +204,17 @@ def build_java_directories(directories, cache_dir, classpath):
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
 			print(f"\x1b[1m\x1b[92m\n* Running d8 for {directory_name}\x1b[0m\n")
-			result = run_d8(directory_name, modified_files[directory_name], cache_dir)
+			result = run_d8(directory_name, modified_files[directory_name], cache_dir, debug_build)
 			if result != 0:
 				print(f"Failed to dex {directory_name} with code {result}")
 				return result
 		else:
 			print(f"* Directory {directory_name} is not changed")
-		result = merge_compressed_dexes(directory_name, cache_dir, target)
+		result = merge_compressed_dexes(directory_name, cache_dir, target, debug_build)
 		if result != 0:
 			print(f"Failed to merge {directory_name} with code {result}")
 			return result
 
-	save_modified_classes_cache(cache_json, cache_dir)
 	print("\n\x1b[1m\x1b[92mJAVA BUILD COMPLETED\x1b[0m\n")
 	return result
 
@@ -301,7 +302,7 @@ def cleanup_gradle_scripts(directories):
 		if isfile(gradle_script):
 			os.remove(gradle_script)
 
-def compile_all_using_make_config():
+def compile_all_using_make_config(debug_build = False):
 	import time
 	start_time = time.time()
 
@@ -335,7 +336,7 @@ def compile_all_using_make_config():
 		classpath_directories = ([
 			classpath_dir
 		] if exists(classpath_dir) else []) + MAKE_CONFIG.get_value("gradle.classpath", [])
-		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories))
+		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories), debug_build)
 		if overall_result != 0:
 			print(f"Nope, clearing compiled directories {directories}")
 			for directory_name in directory_names:
@@ -348,4 +349,4 @@ def compile_all_using_make_config():
 
 
 if __name__ == "__main__":
-	compile_all_using_make_config()
+	compile_all_using_make_config(debug_build=True)
