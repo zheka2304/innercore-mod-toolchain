@@ -1,6 +1,6 @@
 import hashlib
 import os
-from os.path import join, basename, abspath, isfile, isdir
+from os.path import join, basename, abspath, exists, isfile, isdir
 import platform
 import json
 
@@ -20,6 +20,10 @@ class MakeConfig(BaseConfig):
 	def save(self):
 		with open(self.filename, "w", encoding="utf-8") as make_file:
 			make_file.write(json.dumps(self.json, indent="\t") + "\n")
+
+	def get_absolute_path(self, path):
+		relative_path = self.get_path(path)
+		return relative_path if exists(relative_path) else abspath(path) if exists(abspath(path)) else relative_path
 
 	def get_path(self, relative_path):
 		return abspath(join(self.root_dir, relative_path))
@@ -57,10 +61,10 @@ class ToolchainMakeConfig(MakeConfig):
 		prototype = MakeConfig(filename)
 		self.current_project = prototype.get_value("currentProject")
 		if self.current_project is not None:
-			make_path = join(prototype.root_dir, self.current_project, "make.json")
+			make_path = prototype.get_absolute_path(self.current_project + "/make.json")
 			if isfile(make_path):
-				self.project_unique_name = self.unique_folder_name(self.current_project)
 				MakeConfig.__init__(self, make_path, MakeConfig(filename))
+				self.project_unique_name = self.unique_folder_name(self.root_dir)
 				return
 			self.current_project = None
 		MakeConfig.__init__(self, filename)
@@ -75,6 +79,10 @@ class ToolchainMakeConfig(MakeConfig):
 	def get_path(self, relative_path):
 		self.assure_project_selected()
 		return MakeConfig.get_path(self, relative_path)
+
+	def get_absolute_path(self, path):
+		self.assure_project_selected()
+		return MakeConfig.get_absolute_path(self, path)
 
 	def get_paths(self, relative_path, filter = None, paths = None):
 		self.assure_project_selected()

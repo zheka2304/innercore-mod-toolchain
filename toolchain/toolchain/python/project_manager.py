@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isfile, isdir, basename
+from os.path import join, exists, isfile, isdir, basename, abspath
 import json
 
 from utils import clear_directory, ensure_not_whitespace
@@ -10,30 +10,30 @@ class ProjectManager:
 	def __init__(self):
 		self.projects = []
 		self.templates = []
-		locations = MAKE_CONFIG.get_value("projectLocations", [TOOLCHAIN_CONFIG.root_dir])
-		for location in locations:
-			realpath = join(TOOLCHAIN_CONFIG.root_dir, location)
-			if not exists(realpath) or not isdir(realpath):
+		locations = MAKE_CONFIG.get_value("projectLocations", [])
+		for location in ["", *locations]:
+			path = TOOLCHAIN_CONFIG.get_absolute_path(location)
+			if not exists(path) or not isdir(path):
 				print(f"Not found project location {location}!")
 				continue
-			for next in [""] + os.listdir(realpath):
-				make_path = join(realpath, next, "make.json")
+			for entry in ["", *os.listdir(path)]:
+				make_path = join(path, entry, "make.json")
 				if exists(make_path) and isfile(make_path):
-					self.projects.append(join(location, next))
-				template_path = join(realpath, next, "template.json")
+					self.projects.append(join(location, entry))
+				template_path = join(path, entry, "template.json")
 				if exists(template_path) and isfile(template_path):
-					self.templates.append(join(location, next))
+					self.templates.append(join(location, entry))
 
 	def create_project(self, template, folder, name = None, author = None, version = None, description = None, clientOnly = False):
 		location = TOOLCHAIN_CONFIG.get_path(folder)
 		if exists(location):
 			from task import error
 			error(f"Folder '{folder}' already exists!")
-		template_path = TOOLCHAIN_CONFIG.get_path(template)
+		template_path = TOOLCHAIN_CONFIG.get_absolute_path(template)
 		if not exists(template_path):
 			from task import error
 			error(f"Not found {template} template, nothing to do.")
-		template_make_path = TOOLCHAIN_CONFIG.get_path(template + "/template.json")
+		template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 		if not exists(template_make_path):
 			from task import error
 			error(f"Not found template.json in template {template}, nothing to do.")
@@ -109,7 +109,7 @@ class ProjectManager:
 				CODE_SETTINGS.json["files.exclude"] = exclude
 				CODE_SETTINGS.save()
 
-		clear_directory(TOOLCHAIN_CONFIG.get_path(folder))
+		clear_directory(TOOLCHAIN_CONFIG.get_absolute_path(folder))
 		del self.projects[index]
 
 	def append_workspace_folder(self, folder, name = "Mod"):
@@ -149,7 +149,7 @@ class ProjectManager:
 		if folder is not None and CODE_WORKSPACE.available():
 			location = CODE_WORKSPACE.get_toolchain_path(folder)
 			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
-				make_path = TOOLCHAIN_CONFIG.get_path(folder + "/make.json")
+				make_path = TOOLCHAIN_CONFIG.get_absolute_path(folder + "/make.json")
 				if not exists(make_path):
 					from task import error
 					error(f"Not found make.json in project {folder}, nothing to do.")
@@ -159,7 +159,7 @@ class ProjectManager:
 
 		if folder is not None and CODE_SETTINGS.available():
 			exclude = CODE_SETTINGS.json["files.exclude"] if "files.exclude" in CODE_SETTINGS.json else {}
-			if MAKE_CONFIG.current_project is not None and not MAKE_CONFIG.current_project.startswith("../"):
+			if MAKE_CONFIG.current_project is not None and not MAKE_CONFIG.current_project.startswith("../") and not exists(abspath(MAKE_CONFIG.current_project)):
 				exclude[MAKE_CONFIG.current_project] = True
 			if not folder.startswith("../"):
 				exclude[folder] = False

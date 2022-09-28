@@ -37,5 +37,5 @@ class CodeWorkspace(BaseConfig):
 		return MakeConfig.save(self)
 
 
-CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_path(TOOLCHAIN_CONFIG.get_value("workspaceFile")))
+CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(TOOLCHAIN_CONFIG.get_value("workspaceFile")))
 CODE_SETTINGS = CodeWorkspace(TOOLCHAIN_CONFIG.get_path(".vscode/settings.json"))

@@ -81,9 +81,9 @@ def select_template():
 	)
 
 def new_project(template = "../toolchain-mod"):
-	if template is None or not exists(TOOLCHAIN_CONFIG.get_path(template)):
+	if template is None or not exists(TOOLCHAIN_CONFIG.get_absolute_path(template)):
 		return new_project(template=select_template())
-	template_make_path = TOOLCHAIN_CONFIG.get_path(template + "/template.json")
+	template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 	try:
 		with open(template_make_path) as template_make:
 			template_config = BaseConfig(json.loads(template_make.read()))

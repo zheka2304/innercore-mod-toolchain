@@ -138,7 +138,7 @@ def task_build_info(args = None):
 		info_file.write(json.dumps(info, indent="\t") + "\n")
 	icon_path = MAKE_CONFIG.get_value("info.icon")
 	if icon_path is not None:
-		icon_path = MAKE_CONFIG.get_path(icon_path)
+		icon_path = MAKE_CONFIG.get_absolute_path(icon_path)
 		if isfile(icon_path):
 			copy_file(icon_path, MAKE_CONFIG.get_path("output/mod_icon.png"))
 		else:
@@ -301,10 +301,11 @@ def task_remove_project(args = None):
 			return -1
 
 	try:
+		location = TOOLCHAIN_CONFIG.get_absolute_path(who)
 		PROJECT_MANAGER.remove_project(folder=who)
 		from make_config import ToolchainMakeConfig
 		from package import cleanup_relative_directory
-		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(who))
+		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(location))
 	except ValueError:
 		error(f"""Folder "{who}" not found!""")
 

@@ -13,8 +13,8 @@
 		"toolchain/declarations/android.d.ts"
 	],
 	"projectLocations": [
-		"",
 		"../"
 	],
-	"workspaceFile": "../toolchain.code-workspace"
+	"workspaceFile": "../toolchain.code-workspace",
+	"currentProject": "../toolchain-sample-mod"
 }
