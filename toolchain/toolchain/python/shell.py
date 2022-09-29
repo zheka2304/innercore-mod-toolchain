@@ -565,6 +565,7 @@ def select_prompt(prompt = None, *variants, fallback = None, what_not_which = Fa
 		pass
 	return result if not what_not_which else interactable.key if interactable is not None else None
 
+
 if __name__ == "__main__":
 	shell = Shell()
 	while True:

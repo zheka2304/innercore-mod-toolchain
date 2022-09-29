@@ -36,8 +36,8 @@ def search_ndk_path(home_dir, contains_ndk = False):
 				return possible_ndk_dir
 
 def get_ndk_path():
-	path_from_config = MAKE_CONFIG.get_value("ndkPath")
-	if path_from_config is not None:
+	path_from_config = MAKE_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("ndkPath"))
+	if path_from_config is not None and isdir(path_from_config):
 		return path_from_config
 	# Unix
 	try:
@@ -85,9 +85,9 @@ def install(arch = "arm", reinstall = False):
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			from urllib import request
-			print("Not found valid NDK installation.")
-			ans = input("Download android-ndk-r16b? (y/N) ")
-			if ans.lower() == "y":
+			if not reinstall:
+				print("Not found valid NDK installation.")
+			if reinstall or input("Download android-ndk-r16b? (y/N) ").lower() == "y":
 				shell.enter()
 				archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
@@ -179,6 +179,9 @@ def install(arch = "arm", reinstall = False):
 
 
 if __name__ == "__main__":
+	if "--help" in sys.argv:
+		print("Usage: native/native-setup.py [arch]")
+		exit(0)
 	if len(sys.argv) >= 2:
 		install(sys.argv[1])
 	else:

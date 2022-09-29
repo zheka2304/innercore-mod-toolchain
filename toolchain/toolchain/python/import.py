@@ -169,7 +169,8 @@ def copy_tuple_directories(tuples, source, destination):
 if __name__ == "__main__":
 	if len(sys.argv) <= 1 or sys.argv[1] == "--help":
 		print("Usage: import.py <destination> [path]")
-		print("Performs conversion between mod.info, build.config and make.json, merges directories if few configurations exists.")
+		print("Performs conversion between mod.info, build.config and make.json,")
+		print("merges directories if few configurations exists.")
 		exit(0)
 
 	destination = sys.argv[1]

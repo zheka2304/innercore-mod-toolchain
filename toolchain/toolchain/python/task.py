@@ -372,6 +372,10 @@ def error(message, code = -1):
 
 
 if __name__ == "__main__":
+	if "--help" in sys.argv:
+		print("Usage: task.py <tasks> @ [arguments]")
+		print("Executes declared by @task annotation required tasks.")
+		exit(0)
 	argv = sys.argv[1:]
 	if "@" in argv:
 		where = argv.index("@")
