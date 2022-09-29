@@ -119,7 +119,7 @@ def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 	print("Dexing libraries")
 	result = subprocess.call([
 		"java",
-		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8.jar"),
+		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8"
 	] + modified_libs + d8_libs + ([
 		"--classpath", classpath_dir
@@ -140,7 +140,7 @@ def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 		modified_classes_span = modified_classes[index:min(index + max_span_size, len(modified_classes))]
 		result = subprocess.call([
 			"java",
-			"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8.jar"),
+			"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 			"com.android.tools.r8.D8"
 		] + modified_classes_span + d8_libs + ([
 			"--classpath", classpath_dir
@@ -174,7 +174,7 @@ def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir, debug_buil
 	print("Merging dex")
 	return subprocess.call([
 		"java",
-		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8.jar"),
+		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8",
 		dex_zip_file,
 		"--min-api", "19",
