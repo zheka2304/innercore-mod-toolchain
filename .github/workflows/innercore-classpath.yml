@@ -7,7 +7,7 @@ jobs:
   classpath:
     runs-on: ubuntu-latest
     env:
-      BRANCH_MASTER: deploy
+      BRANCH_MASTER: develop
     steps:
       - uses: actions/checkout@v3
         with:
@@ -101,7 +101,7 @@ jobs:
         run: |
           cd $(ls -d dex2jar/* | head -n 1)
           ./d2j-dex2jar.sh --force --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
-      - name: Run mv innercore-test.jar to deploy
+      - name: Run mv innercore-test.jar to develop
         run: |
           mv innercore-test/innercore-test.jar $BRANCH_MASTER/toolchain/toolchain/classpath
           echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_MASTER/toolchain/toolchain/classpath/.labcommit
@@ -110,7 +110,7 @@ jobs:
           git config --global user.name "MaXFeeD"
           git config --global user.email "maksfeed.mf@gmail.com"
           git config --global push.autoSetupRemote true
-      - name: Push into deploy
+      - name: Push into develop
         working-directory: ${{ env.BRANCH_MASTER }}
         run: |
           git add --all .

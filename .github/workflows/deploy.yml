@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches: 
-      - deploy
+      - develop
   workflow_run:
     workflows:
       - Inner Core Classpath
@@ -16,11 +16,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      BRANCH_MASTER: deploy
+      BRANCH_MASTER: develop
       BRANCH_DEPLOY: master
+      BRANCH_ADB: adb
       BRANCH_DECLARATIONS: includes
       BRANCH_STDINCLUDES: stdincludes
       BRANCH_CLASSPATH: classpath
+      BRANCH_R8: r8
     if: github.event.workflow_run.conclusion != 'failure'
     steps:
       - uses: actions/checkout@v3
@@ -31,11 +33,16 @@ jobs:
         working-directory: ${{ env.BRANCH_DEPLOY }}
         run: |
           git log --pretty=%H -1 . > toolchain/toolchain/bin/.commit
+          git log --pretty=%H -1 toolchain/toolchain/adb > toolchain/toolchain/adb/.commit
           git log --pretty=%H -1 toolchain/toolchain/declarations > toolchain/toolchain/declarations/.commit
           git log --pretty=%H -1 toolchain/toolchain/stdincludes > toolchain/toolchain/stdincludes/.commit
           git log --pretty=%H -1 toolchain/toolchain/classpath > toolchain/toolchain/classpath/.commit
+          git log --pretty=%H -1 toolchain/toolchain/bin/r8 > toolchain/toolchain/bin/r8/.commit
       - name: Run mv optional dependencies to refs
         run: |
+          mkdir $BRANCH_ADB
+          mv $BRANCH_DEPLOY/toolchain/toolchain/adb/.[!.]* \
+            $BRANCH_DEPLOY/toolchain/toolchain/adb/* $BRANCH_ADB
           mkdir $BRANCH_DECLARATIONS
           mv $BRANCH_DEPLOY/toolchain/toolchain/declarations/.[!.]* \
             $BRANCH_DEPLOY/toolchain/toolchain/declarations/* $BRANCH_DECLARATIONS
@@ -45,6 +52,9 @@ jobs:
           mkdir $BRANCH_CLASSPATH
           mv $BRANCH_DEPLOY/toolchain/toolchain/classpath/.[!.]* \
             $BRANCH_DEPLOY/toolchain/toolchain/classpath/* $BRANCH_CLASSPATH
+          mkdir $BRANCH_R8
+          mv $BRANCH_DEPLOY/toolchain/toolchain/bin/r8/.[!.]* \
+            $BRANCH_DEPLOY/toolchain/toolchain/bin/r8/* $BRANCH_R8
       - name: Configure git
         run: |
           git config --global user.name "MaXFeeD"
@@ -57,6 +67,15 @@ jobs:
           git add --all .
           git commit -m "Deploy" --quiet --no-verify
           git push --force
+      - name: Push into adb
+        working-directory: ${{ env.BRANCH_ADB }}
+        run: |
+          git config --global init.defaultBranch $BRANCH_ADB
+          git init
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
+          git push --force -u origin $BRANCH_ADB
       - name: Push into includes
         working-directory: ${{ env.BRANCH_DECLARATIONS }}
         run: |
@@ -84,3 +103,12 @@ jobs:
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_CLASSPATH
+      - name: Push into r8
+        working-directory: ${{ env.BRANCH_R8 }}
+        run: |
+          git config --global init.defaultBranch $BRANCH_R8
+          git init
+          git add --all .
+          git commit -m "Deploy" --quiet --no-verify
+          git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
+          git push --force -u origin $BRANCH_R8
