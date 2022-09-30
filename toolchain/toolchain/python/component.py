@@ -112,6 +112,8 @@ def extract_component(component, shell, progress):
 	os.remove(archive_path)
 
 def install_components(components):
+	if len(components) == 0:
+		return
 	shell = InteractiveShell(lines_per_page=max(len(components), 9))
 	shell.enter()
 	for componentname in components:
@@ -168,6 +170,16 @@ def fetch_component(component):
 
 def perform_diff(a, b):
 	return str(a).strip() == str(b).strip()
+
+def fetch_components():
+	upgradable = []
+	for componentname in which_installed():
+		if not componentname in COMPONENTS:
+			print(f"Not found component {componentname}!")
+			continue
+		if fetch_component(COMPONENTS[componentname]):
+			upgradable.append(componentname)
+	return upgradable
 
 def get_username():
 	try:

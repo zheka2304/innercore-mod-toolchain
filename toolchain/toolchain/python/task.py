@@ -346,8 +346,17 @@ def task_select_project(args = None):
 def task_update_toolchain(args = None):
 	from update import update_toolchain
 	update_toolchain()
-	from component import install_components, which_installed
-	install_components(which_installed())
+	from component import fetch_components, install_components
+	upgradable = fetch_components()
+	if len(upgradable) > 0:
+		print("Found new updates for components ", ", ".join(upgradable), ".", sep="")
+		try:
+			if input("Do you want to upgrade it? [Y/n]: ").lower() == "n":
+				return 0
+		except KeyboardInterrupt:
+			print("Installation cancelled by user.")
+			return 1
+		install_components(upgradable)
 	return 0
 
 @task("componentIntegrity")
