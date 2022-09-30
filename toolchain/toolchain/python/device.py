@@ -276,6 +276,9 @@ def get_adb_command():
 		device = which_device_will_be_connected(*(list if len(itwillbe) == 0 else itwillbe))
 		if device is not None:
 			return device
+	if MAKE_CONFIG.get_value("device.doNothingIfDisconnected", False):
+		from task import error
+		error("Not found connected devices, nothing to do.", 0)
 	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
 		from task import error
