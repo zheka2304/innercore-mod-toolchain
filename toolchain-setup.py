@@ -20,7 +20,7 @@ def download_and_extract_toolchain(directory):
 			return
 
 	if not exists(archive):
-		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
+		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
 		print("Downloading Inner Core Mod Toolchain: " + url)
 		try:
 			request.urlretrieve(url, archive)
@@ -41,18 +41,18 @@ def download_and_extract_toolchain(directory):
 
 	commit = "unknown"
 	try:
-		shutil.copytree(join(directory, "innercore-mod-toolchain-master"), directory, dirs_exist_ok=True)
+		shutil.copytree(join(directory, "innercore-mod-toolchain-deploy"), directory, dirs_exist_ok=True)
 		if isfile(join(directory, "toolchain/toolchain/bin/.commit")):
 			with open(join(directory, "toolchain/toolchain/bin/.commit")) as file:
 				commit = file.read()
-		shutil.rmtree(join(directory, "innercore-mod-toolchain-master"))
+		shutil.rmtree(join(directory, "innercore-mod-toolchain-deploy"))
 	except BaseException as err:
 		print(err)
 		print("Inner Core Mod Toolchain installation not completed due to above error.")
 		exit(2)
 	finally:
 		if not exists(join(directory, "toolchain")):
-			print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-master' folder not found.")
+			print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
 			print("Retry operation or extract 'toolchain.zip' manually.")
 			exit(3)
 		else:

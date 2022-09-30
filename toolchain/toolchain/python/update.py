@@ -13,7 +13,7 @@ def download_toolchain(directory):
 	archive = join(directory, "toolchain.zip")
 
 	if not exists(archive):
-		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
+		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
 		print("Downloading Inner Core Mod Toolchain: " + url)
 		try:
 			request.urlretrieve(url, archive)
@@ -34,7 +34,7 @@ def might_be_updated(directory = None):
 		return True
 	try:
 		with open(join(commit_path)) as commit_file:
-			response = request.urlopen("https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain/toolchain/bin/.commit")
+			response = request.urlopen("https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/deploy/toolchain/toolchain/bin/.commit")
 			return perform_diff(response.read().decode("utf-8"), commit_file.read())
 	except URLError:
 		return False
@@ -50,9 +50,9 @@ def extract_toolchain(directory):
 	with zipfile.ZipFile(archive, "r") as zip_ref:
 		zip_ref.extractall(directory)
 
-	branch = join(directory, "innercore-mod-toolchain-master")
+	branch = join(directory, "innercore-mod-toolchain-deploy")
 	if not exists(branch):
-		print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-master' folder not found.")
+		print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
 		from task import error
 		error("Retry operation or extract 'toolchain.zip' manually.", 3)
 	toolchain = TOOLCHAIN_CONFIG.get_path("..")

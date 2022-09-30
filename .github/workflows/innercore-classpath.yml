@@ -7,15 +7,15 @@ jobs:
   classpath:
     runs-on: ubuntu-latest
     env:
-      BRANCH_MASTER: develop
+      BRANCH_DEVELOP: develop
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: ${{ env.BRANCH_MASTER }}
-          path: ${{ env.BRANCH_MASTER }}
+          ref: ${{ env.BRANCH_DEVELOP }}
+          path: ${{ env.BRANCH_DEVELOP }}
       - name: Fetch repository commit
         id: github-commit-hash
-        working-directory: ${{ env.BRANCH_MASTER }}
+        working-directory: ${{ env.BRANCH_DEVELOP }}
         run: |
           if test -f toolchain/toolchain/classpath/.labcommit; then
             read result < toolchain/toolchain/classpath/.labcommit
@@ -103,15 +103,15 @@ jobs:
           ./d2j-dex2jar.sh --force --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
       - name: Run mv innercore-test.jar to develop
         run: |
-          mv innercore-test/innercore-test.jar $BRANCH_MASTER/toolchain/toolchain/classpath
-          echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_MASTER/toolchain/toolchain/classpath/.labcommit
+          mv innercore-test/innercore-test.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
+          echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_DEVELOP/toolchain/toolchain/classpath/.labcommit
       - name: Configure git
         run: |
           git config --global user.name "MaXFeeD"
           git config --global user.email "maksfeed.mf@gmail.com"
           git config --global push.autoSetupRemote true
       - name: Push into develop
-        working-directory: ${{ env.BRANCH_MASTER }}
+        working-directory: ${{ env.BRANCH_DEVELOP }}
         run: |
           git add --all .
           git commit -m "${{ steps.that-commit-name.outputs.result }}" --quiet
