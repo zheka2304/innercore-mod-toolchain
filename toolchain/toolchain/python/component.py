@@ -55,7 +55,7 @@ def which_installed():
 		if component.keyword == "cpp":
 			installed.append("cpp")
 			continue
-		if isfile(join(path, ".commit")):
+		if isfile(join(path, ".commit")) or TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
 			installed.append(component.keyword)
 	return installed
 
@@ -162,7 +162,12 @@ def fetch_component(component):
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
 	if component.keyword == "cpp":
 		return isdir(TOOLCHAIN_CONFIG.get_path("toolchain/ndk"))
-	if not isdir(output) or not isfile(join(output, ".commit")):
+	if isdir(output):
+		if TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
+			return True
+		if not isfile(join(output, ".commit")):
+			return False
+	else:
 		return False
 	if not hasattr(component, "commiturl"):
 		return True

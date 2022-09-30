@@ -54,6 +54,8 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 				print(f"Skipped non existing source {_source}")
 				overall_result = 1
 				continue
+			if not (isdir(source_path) or source_path.endswith(".js") or source_path.endswith(".ts")):
+				continue
 
 			target_type = "script_library" if _type == "library" else "script_source"
 			target_path = _target if _target is not None else f"{splitext(basename(source_path))[0]}.js"
@@ -130,7 +132,7 @@ def build_all_resources():
 					resource_type,
 					resource_name,
 					declare={
-						"resourceType": "resource_directory" if resource_type == "resource" else resource_type
+						"resourceType": "resource" if resource_type == "resource_directory" else resource_type
 					}
 				)
 			else:

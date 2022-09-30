@@ -331,11 +331,11 @@ def compile_all_using_make_config(debug_build = False):
 		return overall_result
 
 	if len(directories) > 0:
-		if "r8" not in which_installed():
-			install_components(["r8"])
-			if "r8" not in which_installed():
+		if "java" not in which_installed():
+			install_components(["java"])
+			if "java" not in which_installed():
 				from task import error
-				error("Component r8 required for java compilation, nothing to do.")
+				error("Component java (r8) required for java compilation, nothing to do.")
 		classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 		if not exists(classpath_dir):
 			print("\x1b[93mNot found toolchain/classpath, in most cases build will be failed, please install it via tasks.\x1b[0m")

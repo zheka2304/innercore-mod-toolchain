@@ -1,6 +1,5 @@
 import os
 from os.path import exists, join, basename, abspath, isfile, isdir, relpath
-import sys
 import subprocess
 import json
 
@@ -31,7 +30,7 @@ def prepare_compiler_executable(abi):
 	arch = abi_to_arch(abi)
 	if arch is None:
 		print(f"WARNING: Unregistered abi {abi}!")
-	return native_setup.require_compiler_executable(arch=abi, install_if_required=True)
+	return native_setup.require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
 
 def get_manifest(directory):
 	with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
@@ -110,7 +109,9 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 	std_includes = []
 	if exists(std_includes_path):
 		for std_includes_dir in os.listdir(std_includes_path):
-			std_includes.append(abspath(join(std_includes_path, std_includes_dir)))
+			std_includes_dirpath = join(std_includes_path, std_includes_dir)
+			if isdir(std_includes_dirpath):
+				std_includes.append(abspath(std_includes_dirpath))
 
 	# compile for every abi
 	overall_result = CODE_OK
