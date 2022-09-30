@@ -201,9 +201,14 @@ class Includes:
 
 		if self.debug_build:
 			for excluded in MAKE_CONFIG.get_value("debugIncludesExclude", []):
-				for declaration in declarations:
-					if declaration.endswith(excluded):
-						declarations.remove(declaration)
+				if exists(str(excluded).lstrip("/").partition("/")[0]):
+					for declaration in glob.glob(excluded, recursive=True):
+						if declaration in declarations:
+							declarations.remove(declaration)
+				else:
+					for declaration in glob.glob(TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
+						if declaration in declarations:
+							declarations.remove(declaration)
 
 		template = {
 			"compilerOptions": {

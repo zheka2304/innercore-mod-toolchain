@@ -1,4 +1,3 @@
-import sys
 from os.path import exists, splitext, basename, isfile, isdir, join
 from functools import cmp_to_key
 
@@ -15,15 +14,18 @@ def build_all_scripts(debug_build = False):
 	mod_structure.cleanup_build_target("script_source")
 	mod_structure.cleanup_build_target("script_library")
 
-	if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-		print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
-
 	allowed_languages = []
 	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0:
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
-	allowed_languages.append("javascript")
+		if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
+			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
+	if not MAKE_CONFIG.get_value("denyJavaScript", True):
+		allowed_languages.append("javascript")
 
+	if len(allowed_languages) == 0:
+		from task import error
+		error("TypeScript is required by default, if you want to build legacy JavaScript, change `denyJavaScript` property in your make.json or toolchain.json config.")
 	return build_all_make_scripts(allowed_languages=allowed_languages, debug_build=debug_build)
 
 def libraries_first(a, b):

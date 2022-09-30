@@ -134,6 +134,8 @@ def task_build_info(args = None):
 			info["description"] = shortcodes(info["description"])
 		if "icon" in info:
 			del info["icon"]
+		if "instantLaunch" in info:
+			info["instantLaunch"] = info["instantLaunch"]
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
 	icon_path = MAKE_CONFIG.get_value("info.icon")

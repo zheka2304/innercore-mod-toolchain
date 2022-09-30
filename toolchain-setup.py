@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isfile, basename
+from os.path import join, exists, isfile, isdir, basename
 from platform import platform
 import shutil
 import sys
@@ -41,6 +41,13 @@ def download_and_extract_toolchain(directory):
 
 	commit = "unknown"
 	try:
+		if isdir(join(directory, "toolchain-mod/toolchain")):
+			dirname = "toolchain-mod"
+			index = 0
+			while exists(join(directory, dirname)):
+				index += 1
+				dirname = "toolchain-mod-" + str(index)
+			shutil.move(join(directory, "toolchain-mod"), join(directory, dirname))
 		shutil.copytree(join(directory, "innercore-mod-toolchain-deploy"), directory, dirs_exist_ok=True)
 		if isfile(join(directory, "toolchain/toolchain/bin/.commit")):
 			with open(join(directory, "toolchain/toolchain/bin/.commit")) as file:

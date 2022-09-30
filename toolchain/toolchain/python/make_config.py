@@ -15,6 +15,21 @@ class MakeConfig(BaseConfig):
 		self.root_dir = abspath(join(self.filename, ".."))
 		with open(filename, encoding="utf-8") as file:
 			self.json = json.load(file)
+		if base is not None:
+			if "global" in self.json:
+				globalconfig = self.get_value("global", {})
+				for entry in globalconfig:
+					self.set_value(entry, globalconfig[entry])
+				self.remove_value("global")
+				self.save()
+			if "make" in self.json:
+				makeconfig = self.get_value("make", {})
+				if "linkNative" in makeconfig:
+					self.set_value("linkNative", makeconfig["linkNative"])
+				if "excludeFromRelease" in makeconfig:
+					self.set_value("excludeFromRelease", makeconfig["excludeFromRelease"])
+				self.remove_value("make")
+				self.save()
 		BaseConfig.__init__(self, self.json, base)
 
 	def save(self):

@@ -119,7 +119,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		for std_includes_dir in std_includes:
 			includes.append(f"-I{std_includes_dir}")
 		dependencies = [f"-L{get_fake_so_dir(abi)}", "-landroid", "-lm", "-llog"]
-		for link in rules.get_value("link", fallback=[]) + MAKE_CONFIG.get_value("make.linkNative", fallback=[]) + ["horizon"]:
+		for link in rules.get_value("link", fallback=[]) + MAKE_CONFIG.get_value("linkNative", fallback=[]) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 		if "depends" in manifest:
