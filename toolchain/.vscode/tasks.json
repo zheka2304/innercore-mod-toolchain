@@ -277,6 +277,9 @@
 					"cwd": ".\\toolchain\\python"
 				}
 			},
+			"presentation": {
+				"focus": true
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -445,9 +448,6 @@
 					"cwd": ".\\toolchain\\python"
 				}
 			},
-			"presentation": {
-				"focus": true
-			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -470,6 +470,9 @@
 					"cwd": ".\\toolchain\\python"
 				}
 			},
+			"presentation": {
+				"focus": true
+			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -491,6 +494,9 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			},
+			"presentation": {
+				"focus": true
 			},
 			"group": {
 				"kind": "build",
