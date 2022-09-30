@@ -413,12 +413,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../update-includes.sh",
+			"command": "../rebuild-declarations.sh",
 			"options": {
 				"cwd": "./toolchain/python"
 			},
 			"windows": {
-				"command": "..\\update-includes.bat",
+				"command": "..\\rebuild-declarations.bat",
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
