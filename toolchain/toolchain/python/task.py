@@ -344,9 +344,16 @@ def task_select_project(args = None):
 
 @task("updateToolchain")
 def task_update_toolchain(args = None):
-	import update
-	update.update()
+	from update import update_toolchain
+	update_toolchain()
+	from component import install_components, which_installed
+	install_components(which_installed())
 	return 0
+
+@task("componentIntegrity")
+def task_component_integrity(args = None):
+	from component import foreign
+	return foreign()
 
 @task("cleanup")
 def task_cleanup(args = None):

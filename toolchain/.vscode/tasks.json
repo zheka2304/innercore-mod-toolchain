@@ -477,6 +477,28 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Integrity Components",
+			"icon": {
+				"id": "package"
+			},
+			"type": "shell",
+			"command": "../component-integrity.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\component-integrity.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Toolchain: Download Declarations",
 			"icon": {
 				"id": "symbol-type-parameter"
