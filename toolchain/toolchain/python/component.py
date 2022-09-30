@@ -194,13 +194,14 @@ def startup():
 		Separator(),
 		Progress(progress=0.5, text="<" + "Who are you?".center(45) + ">")
 	]
-	components = put_components(["adb", "declarations", "java"])
+	preffered = ["declarations", "java"]
 	try:
 		import shutil
 		if shutil.which("adb") is None:
-			components.append("adb")
+			preffered.append("adb")
 	except BaseException:
 		pass
+	components = put_components(preffered)
 	interactables = [
 		Notice("Which components will be installed?")
 	]
@@ -235,7 +236,7 @@ def startup():
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
-		pass
+		return shell.leave()
 	print()
 	username = shell.get_interactable("user").read()
 	if ensure_not_whitespace(username) is not None:
@@ -254,11 +255,15 @@ def foreign():
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
-		pass
+		shell.leave()
+		return 1
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:
 		print("Which components will be upgraded?", f"\x1b[2m{', '.join(installation)}\x1b[0m")
 		install_components(installation)
+	else:
+		print("Nothing to perform.")
+	return 0
 
 
 if __name__ == "__main__":

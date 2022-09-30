@@ -52,6 +52,28 @@ def copy_directory(path, destination, clear_dst = False, replacement = True, ign
 			except shutil.SameFileError:
 				pass
 
+def merge_directory(src, dst, accept_squash = True, ignore_list = [], only_parent_ignore = False, accept_replace = True):
+	if ((isdir(src) and isfile(dst)) or (isdir(dst) and isfile(src))) and accept_squash:
+		if isfile(dst + ".bak"):
+			os.remove(dst + ".bak")
+		elif isdir(dst + ".bak"):
+			shutil.rmtree(dst + ".bak")
+		shutil.move(dst, dst + ".bak")
+	if not isdir(src):
+		if not exists(dst):
+			shutil.move(src, dst)
+		return
+	for filename in os.listdir(src):
+		if filename in ignore_list:
+			continue
+		above = join(src, filename)
+		behind = join(dst, filename)
+		if isfile(above) and (not exists(behind) or (isfile(behind) and accept_replace)):
+			os.remove(behind)
+			shutil.move(above, behind)
+		elif isdir(above) or accept_squash:
+			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else [], only_parent_ignore, accept_replace)
+
 def get_all_files(directory, extensions = ()):
 	all_files = []
 	for dirpath, dirnames, filenames in os.walk(directory):
