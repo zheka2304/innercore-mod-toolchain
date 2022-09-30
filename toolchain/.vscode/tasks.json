@@ -120,7 +120,7 @@
 			},
 			"hide": true,
 			"dependsOn": [
-				"Project: Select by Active File",
+				"Select Project by Active File",
 				"Build"
 			],
 			"dependsOrder": "sequence",
@@ -162,7 +162,7 @@
 			},
 			"hide": true,
 			"dependsOn": [
-				"Project: Select by Active File",
+				"Select Project by Active File",
 				"Build Java"
 			],
 			"dependsOrder": "sequence",
@@ -204,7 +204,7 @@
 			},
 			"hide": true,
 			"dependsOn": [
-				"Project: Select by Active File",
+				"Select Project by Active File",
 				"Build Native"
 			],
 			"dependsOrder": "sequence",
@@ -246,7 +246,7 @@
 			},
 			"hide": true,
 			"dependsOn": [
-				"Project: Select by Active File",
+				"Select Project by Active File",
 				"Build Scripts and Resources"
 			],
 			"dependsOrder": "sequence",
@@ -284,7 +284,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Assemble",
+			"label": "Assemble Mod for Release",
 			"icon": {
 				"id": "archive"
 			},
@@ -305,7 +305,7 @@
 			}
 		},
 		{
-			"label": "Project: New",
+			"label": "New Project",
 			"icon": {
 				"id": "new-folder"
 			},
@@ -330,7 +330,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Remove",
+			"label": "Remove Project",
 			"icon": {
 				"id": "root-folder-opened"
 			},
@@ -355,7 +355,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Select",
+			"label": "Select Project",
 			"icon": {
 				"id": "folder-opened"
 			},
@@ -380,7 +380,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Select by Active File",
+			"label": "Select Project by Active File",
 			"icon": {
 				"id": "repo-force-push"
 			},
@@ -407,7 +407,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Project: Update Includes",
+			"label": "Rebuild Declarations",
 			"icon": {
 				"id": "milestone"
 			},
@@ -455,7 +455,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Toolchain: Check for Updates",
+			"label": "Check for Updates",
 			"icon": {
 				"id": "cloud"
 			},
@@ -499,7 +499,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Toolchain: Download Declarations",
+			"label": "Download Declarations",
 			"icon": {
 				"id": "symbol-type-parameter"
 			},
@@ -521,7 +521,7 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Toolchain: Remove Cache",
+			"label": "Remove Cache",
 			"icon": {
 				"id": "flame"
 			},

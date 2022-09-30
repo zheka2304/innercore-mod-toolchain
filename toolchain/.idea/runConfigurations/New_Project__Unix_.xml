@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Project: New" type="ShConfigurationType">
+  <configuration default="false" name="New Project" type="ShConfigurationType">
     <option name="INDEPENDENT_SCRIPT_PATH" value="false" />
-    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/new-project.bat" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/new-project.sh" />
     <option name="SCRIPT_OPTIONS" value="" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="false" />
     <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/toolchain/python" />
