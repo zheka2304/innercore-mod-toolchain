@@ -91,7 +91,9 @@ def startup():
 	index = len(interactables)
 	while True:
 		if index % shell.lines_per_page == shell.lines_per_page - 1:
-			interactables.append(Progress(progress=0.75, text="<" + "Configure your toolchain".center(45) + ">"))
+			interactables.append(Progress(progress=0.75, text="<" + "Configure your toolchain".center(45) + (
+				">" if component < len(components) + 3 else "+"
+			)))
 			if component == len(components) + 3:
 				break
 		elif component < len(components) + 3:
