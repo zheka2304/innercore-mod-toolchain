@@ -63,12 +63,12 @@ def require_compiler_executable(arch, install_if_required = False):
 			return None
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
-			print("NDK installation for " + arch + " is broken, trying to re-install")
+			print("NDK installation for " + arch + " is broken, trying to re-install.")
 			if install(arch=arch, reinstall=True) == -1:
 				return None
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
-				print("Reinstallation doesn't help, please, retry setup manually")
+				print("Reinstallation doesn't help, please, retry setup manually.")
 				return None
 		return file
 	else:
@@ -87,13 +87,13 @@ def install(arch = "arm", reinstall = False):
 			from urllib import request
 			if not reinstall:
 				print("Not found valid NDK installation.")
-			if reinstall or input("Download android-ndk-r16b? (y/N) ").lower() == "y":
+			if reinstall or input("Download android-ndk-r16b? [N/y]: ").lower() == "y":
 				shell.enter()
 				archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 				makedirs(dirname(archive_path), exist_ok=True)
 
 				if not isfile(archive_path):
-					progress = Progress(text="Connecting")
+					progress = Progress(text="C++ GCC Compiler (NDK)")
 					shell.interactables.append(progress)
 					shell.render()
 					url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"

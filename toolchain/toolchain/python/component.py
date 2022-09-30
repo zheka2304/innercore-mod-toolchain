@@ -1,5 +1,9 @@
 import os
+from os.path import join, isfile, isdir
+import shutil
 import sys
+from urllib import request
+from zipfile import ZipFile
 
 from make_config import TOOLCHAIN_CONFIG
 from utils import ensure_not_whitespace
@@ -11,8 +15,9 @@ class Component():
 		self.name = name
 		self.location = location
 		if branch is not None:
-			self.packurl = ""
-			self.commiturl = ""
+			self.packurl = f"https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/" + branch
+			self.commiturl = f"https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/" + branch + "/.commit"
+			self.branch = branch
 		if packurl is not None:
 			self.packurl = packurl
 		if commiturl is not None:
@@ -39,8 +44,76 @@ def resolve_components(interactables):
 			keywords.append(interactable.key.partition(":")[2])
 	return keywords
 
+def which_installed():
+	installed = []
+	for component in COMPONENTS:
+		path = TOOLCHAIN_CONFIG.get_path(component.location)
+		if not isdir(path):
+			continue
+		if component.keyword == "ndk":
+			installed.append("ndk")
+			continue
+		if isfile(join(path, ".commit")):
+			installed.append(component.keyword)
+	return installed
+
+def download_component(component, shell, progress):
+	if not hasattr(component, "packurl") or component.packurl is None:
+		progress.seek(0, f"Component {component.keyword} packurl property must be defined!")
+		shell.render()
+		return 1
+	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
+	if isfile(path):
+		return 0
+	with request.urlopen(component.packurl) as response:
+		with open(path, "wb") as f:
+			info = response.info()
+			length = int(info["Content-Length"])
+			print(length)
+			downloaded = 0
+			while True:
+				buffer = response.read(8192)
+				if not buffer:
+					break
+				downloaded += len(buffer)
+				progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
+				shell.render()
+				f.write(buffer)
+	progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
+	shell.render()
+	return 0
+
+def extract_component(component, shell, progress):
+	temp = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	archive_path = join(temp, component.keyword + ".zip")
+	if not isfile(archive_path):
+		progress.seek(0, f"Component {component.keyword} downloaded nothing to extract!")
+		shell.render()
+		return 1
+	progress.seek(0.5, f"Extracting to {component.location}")
+	extract_to = temp if hasattr(component, "branch") else join(temp, component.keyword)
+	with ZipFile(archive_path, "r") as archive:
+		archive.extractall(extract_to)
+	if hasattr(component, "branch"):
+		extract_to = join(extract_to, "innercore-mod-toolchain-" + component.branch)
+	if not isdir(extract_to):
+		progress.seek(0, f"Component {component.keyword} does not contain any content!")
+		shell.render()
+		return 2
+	output = TOOLCHAIN_CONFIG.get_path(component.location)
+	if isdir(output):
+		shutil.rmtree(output, ignore_errors=True)
+	elif isfile(output):
+		shutil.move(output, output + ".bak")
+	os.makedirs(output, exist_ok=True)
+	shutil.copytree(extract_to, output, dirs_exist_ok=True)
+	progress.seek(1, "Cleaning up")
+	shutil.rmtree(extract_to)
+	os.remove(archive_path)
+
 def install_components(components):
 	shell = InteractiveShell(lines_per_page=max(len(components), 9))
+	shell.enter()
 	for componentname in components:
 		if not componentname in COMPONENTS:
 			print(f"Not found component {componentname}!")
@@ -48,9 +121,53 @@ def install_components(components):
 		if componentname == "ndk":
 			continue
 		component = COMPONENTS[componentname]
-		print()
+		progress = Progress(text=component.name)
+		shell.interactables.append(progress)
+		shell.render()
+		if fetch_component(component):
+			progress.seek(1)
+			shell.render()
+			continue
+		try:
+			if download_component(component, shell, progress) == 0:
+				if extract_component(component, shell, progress) == 0:
+					progress.seek(1, component.name)
+		except BaseException as err:
+			progress.seek(0, f"{component.keyword}: {err}")
+		shell.render()
 	if "ndk" in components:
-		print()
+		abis = TOOLCHAIN_CONFIG.get_value("abis", [])
+		if not isinstance(abis, list):
+			abis = []
+		abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
+		if abi is None and len(abis) == 0:
+			from task import error
+			error("Please describe options 'abis' or 'debugAbi' in your toolchain.json before install NDK!")
+		if abi is not None and not abi in abis:
+			abis.append(abi)
+		from native.native_setup import check_installed, install
+		for arch in abis:
+			if not check_installed(arch):
+				install(arch, reinstall=True)
+	shell.interactables.append(Interrupt())
+
+def fetch_component(component):
+	output = TOOLCHAIN_CONFIG.get_path(component.location)
+	if component.keyword == "ndk":
+		return isdir(TOOLCHAIN_CONFIG.get_path("toolchain/ndk"))
+	if not isdir(output) or not isfile(join(output, ".commit")):
+		return False
+	if not hasattr(component, "commiturl"):
+		return True
+	try:
+		with open(join(output, ".commit")) as commit_file:
+			response = request.urlopen(component.commiturl)
+			return perform_diff(response.read().decode("utf-8"), commit_file.read())
+	except BaseException:
+		return True
+
+def perform_diff(a, b):
+	return str(a).strip() == str(b).strip()
 
 def get_username():
 	try:
@@ -132,7 +249,7 @@ def startup():
 def foreign():
 	print("Which components will be upgraded?", end="")
 	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
-	shell.interactables += put_components()
+	shell.interactables += put_components(which_installed())
 	shell.interactables.append(Interrupt())
 	try:
 		shell.loop()

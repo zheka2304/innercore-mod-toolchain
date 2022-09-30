@@ -228,6 +228,8 @@ class InteractiveShell(Shell):
 
 	def render(self):
 		self.clear()
+		if len(self.interactables) == 0:
+			return
 		if self.global_buffer_offset >= len(self.interactables):
 			raise IndexError()
 		self.write("\n")
