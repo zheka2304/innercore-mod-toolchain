@@ -7,6 +7,7 @@ import zipfile
 import hashlib
 
 from utils import *
+from component import which_installed, install_components
 from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from mod_structure import mod_structure
 
@@ -315,21 +316,26 @@ def compile_all_using_make_config(debug_build = False):
 	for directory in MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
 		if "source" not in directory:
 			print("Skipped invalid java directory json", directory)
-			overall_result = -1
+			overall_result += 1
 			continue
 
 		for path in MAKE_CONFIG.get_paths(directory["source"]):
 			if not isdir(path):
 				print("Skipped non existing java directory path", directory["source"])
-				overall_result = -1
+				overall_result += 1
 				continue
 			directories.append(path)
 
 	if overall_result != 0:
-		print("Failed to get java directories")
+		print("Java directories not found due to above error.")
 		return overall_result
 
 	if len(directories) > 0:
+		if "r8" not in which_installed():
+			install_components(["r8"])
+			if "r8" not in which_installed():
+				from task import error
+				error("Component r8 required for java compilation, nothing to do.")
 		classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 		if not exists(classpath_dir):
 			print("\x1b[93mNot found toolchain/classpath, in most cases build will be failed, please install it via tasks.\x1b[0m")
