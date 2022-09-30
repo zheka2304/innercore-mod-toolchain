@@ -36,9 +36,11 @@ def search_ndk_path(home_dir, contains_ndk = False):
 				return possible_ndk_dir
 
 def get_ndk_path():
-	path_from_config = MAKE_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("ndkPath"))
-	if path_from_config is not None and isdir(path_from_config):
-		return path_from_config
+	path_from_config = MAKE_CONFIG.get_value("ndkPath")
+	if path_from_config is not None:
+		path_from_config = MAKE_CONFIG.get_absolute_path(path_from_config)
+		if isdir(path_from_config):
+			return path_from_config
 	# Unix
 	try:
 		return search_ndk_path(environ["HOME"])
@@ -86,7 +88,7 @@ def install(arch = "arm", reinstall = False):
 		if ndk_path is None:
 			from urllib import request
 			if not reinstall:
-				print("Not found valid NDK installation.")
+				print("Not found valid NDK installation for ", arch, ".", sep="")
 			if reinstall or input("Download android-ndk-r16b? [N/y]: ").lower() == "y":
 				shell.enter()
 				archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")

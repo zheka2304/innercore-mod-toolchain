@@ -3,6 +3,7 @@ from os.path import join, isfile, isdir
 import shutil
 import sys
 from urllib import request
+from urllib.error import URLError
 from zipfile import ZipFile
 
 from make_config import TOOLCHAIN_CONFIG
@@ -46,12 +47,13 @@ def resolve_components(interactables):
 
 def which_installed():
 	installed = []
-	for component in COMPONENTS:
+	for componentname in COMPONENTS:
+		component = COMPONENTS[componentname]
 		path = TOOLCHAIN_CONFIG.get_path(component.location)
 		if not isdir(path):
 			continue
-		if component.keyword == "ndk":
-			installed.append("ndk")
+		if component.keyword == "cpp":
+			installed.append("cpp")
 			continue
 		if isfile(join(path, ".commit")):
 			installed.append(component.keyword)
@@ -120,7 +122,7 @@ def install_components(components):
 		if not componentname in COMPONENTS:
 			print(f"Not found component {componentname}!")
 			continue
-		if componentname == "ndk":
+		if componentname == "cpp":
 			continue
 		component = COMPONENTS[componentname]
 		progress = Progress(text=component.name)
@@ -134,10 +136,12 @@ def install_components(components):
 			if download_component(component, shell, progress) == 0:
 				if extract_component(component, shell, progress) == 0:
 					progress.seek(1, component.name)
+		except URLError:
+			continue
 		except BaseException as err:
 			progress.seek(0, f"{component.keyword}: {err}")
 		shell.render()
-	if "ndk" in components:
+	if "cpp" in components:
 		abis = TOOLCHAIN_CONFIG.get_value("abis", [])
 		if not isinstance(abis, list):
 			abis = []
@@ -147,15 +151,16 @@ def install_components(components):
 			error("Please describe options 'abis' or 'debugAbi' in your toolchain.json before install NDK!")
 		if abi is not None and not abi in abis:
 			abis.append(abi)
+		from native.native_build import abi_to_arch
 		from native.native_setup import check_installed, install
 		for arch in abis:
-			if not check_installed(arch):
-				install(arch, reinstall=True)
+			if not check_installed(abi_to_arch(arch)):
+				install(abi_to_arch(arch), reinstall=True)
 	shell.interactables.append(Interrupt())
 
 def fetch_component(component):
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
-	if component.keyword == "ndk":
+	if component.keyword == "cpp":
 		return isdir(TOOLCHAIN_CONFIG.get_path("toolchain/ndk"))
 	if not isdir(output) or not isfile(join(output, ".commit")):
 		return False
@@ -206,10 +211,14 @@ def startup():
 		Separator(),
 		Progress(progress=0.5, text="<" + "Who are you?".center(45) + ">")
 	]
-	preffered = ["declarations", "java"]
+	preffered = which_installed()
+	if not "declarations" in preffered:
+		preffered.append("declarations")
+	if not "java" in preffered:
+		preffered.append("java")
 	try:
 		import shutil
-		if shutil.which("adb") is None:
+		if shutil.which("adb") is None and not "adb" in preffered:
 			preffered.append("adb")
 	except BaseException:
 		pass

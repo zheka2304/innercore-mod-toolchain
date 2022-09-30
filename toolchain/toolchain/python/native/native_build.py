@@ -16,7 +16,7 @@ CODE_DUPLICATE_NAME = 1003
 CODE_INVALID_JSON = 1004
 CODE_INVALID_PATH = 1005
 
-def prepare_compiler_executable(abi):
+def abi_to_arch(abi):
 	abi_map = {
 		"armeabi-v7a": "arm",
 		"arm64-v8a": "arm64",
@@ -24,8 +24,12 @@ def prepare_compiler_executable(abi):
 		"x86_64": "x86_64"
 	}
 	if abi in abi_map:
-		abi = abi_map[abi]
-	else:
+		return abi_map[abi]
+	return None
+
+def prepare_compiler_executable(abi):
+	arch = abi_to_arch(abi)
+	if arch is None:
 		print(f"WARNING: Unregistered abi {abi}!")
 	return native_setup.require_compiler_executable(arch=abi, install_if_required=True)
 
