@@ -113,6 +113,6 @@ jobs:
       - name: Push into develop
         working-directory: ${{ env.BRANCH_DEVELOP }}
         run: |
-          git add --all .
+          git add --force --all .
           git commit -m "${{ steps.that-commit-name.outputs.result }}" --quiet
           git push

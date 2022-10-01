@@ -30,6 +30,7 @@ jobs:
         with:
           ref: ${{ env.BRANCH_DEVELOP }}
           path: ${{ env.BRANCH_MASTER }}
+          fetch-depth: 0
       - name: Run trunc commit ref
         working-directory: ${{ env.BRANCH_MASTER }}
         run: |
