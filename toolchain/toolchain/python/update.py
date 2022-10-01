@@ -86,9 +86,9 @@ def update_toolchain():
 			with open(commit_path) as file:
 				branch_commit = file.read().strip()
 			if commit is not None:
-				print(f"Successfully installed '{branch_commit[:7]}' above '{commit[:7]}' revision!")
+				print(f"Successfully installed {branch_commit[:7]} above {commit[:7]} revision!")
 			else:
-				print(f"Successfully installed under '{branch_commit[:7]}' revision!")
+				print(f"Successfully installed under {branch_commit[:7]} revision!")
 
 
 if __name__ == "__main__":

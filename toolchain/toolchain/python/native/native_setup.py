@@ -36,9 +36,9 @@ def search_ndk_path(home_dir, contains_ndk = False):
 				return possible_ndk_dir
 
 def get_ndk_path():
-	path_from_config = MAKE_CONFIG.get_value("ndkPath")
+	path_from_config = TOOLCHAIN_CONFIG.get_value("ndkPath")
 	if path_from_config is not None:
-		path_from_config = MAKE_CONFIG.get_absolute_path(path_from_config)
+		path_from_config = TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
 		if isdir(path_from_config):
 			return path_from_config
 	# Unix
@@ -99,10 +99,10 @@ def download(shell):
 					if not buffer:
 						break
 					downloaded += len(buffer)
-					progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
+					progress.seek(downloaded / length, f"Downloading ({(downloaded / 1048576):.1f}/{(length / 1048576):.1f}MiB)")
 					shell.render()
 					f.write(buffer)
-		progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
+		progress.seek(1, f"Downloaded {(length / 1024):.1f}MiB")
 		shell.render()
 
 	progress = Progress(text="Extracting NDK/GCC")

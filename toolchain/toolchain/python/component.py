@@ -7,7 +7,7 @@ from urllib.error import URLError
 from zipfile import ZipFile
 
 from make_config import TOOLCHAIN_CONFIG
-from utils import ensure_not_whitespace
+from utils import ensure_file_dir, ensure_not_whitespace
 from shell import *
 
 class Component():
@@ -65,23 +65,21 @@ def download_component(component, shell, progress):
 		shell.render()
 		return 1
 	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
+	ensure_file_dir(path)
 	if isfile(path):
 		return 0
 	with request.urlopen(component.packurl) as response:
 		with open(path, "wb") as f:
-			info = response.info()
-			length = int(info["Content-Length"])
-			print(length)
 			downloaded = 0
 			while True:
 				buffer = response.read(8192)
 				if not buffer:
 					break
 				downloaded += len(buffer)
-				progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
+				progress.seek(0.5, f"Downloading ({(downloaded / 1048576):.1f}MiB)")
 				shell.render()
 				f.write(buffer)
-	progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
+	progress.seek(1, f"Downloaded {(downloaded / 1048576):.1f}MiB")
 	shell.render()
 	return 0
 
@@ -110,8 +108,10 @@ def extract_component(component, shell, progress):
 	os.makedirs(output, exist_ok=True)
 	shutil.copytree(extract_to, output, dirs_exist_ok=True)
 	progress.seek(1, "Cleaning up")
+	shell.render()
 	shutil.rmtree(extract_to)
 	os.remove(archive_path)
+	return 0
 
 def install_components(components):
 	if len(components) == 0:
@@ -262,7 +262,8 @@ def startup():
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
-		return shell.leave()
+		shell.leave()
+		return print()
 	print()
 	username = shell.get_interactable("user").read()
 	if ensure_not_whitespace(username) is not None:
@@ -283,6 +284,7 @@ def foreign():
 		shell.loop()
 	except KeyboardInterrupt:
 		shell.leave()
+		print()
 		return 0
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:

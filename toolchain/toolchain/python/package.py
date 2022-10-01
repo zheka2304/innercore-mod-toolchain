@@ -164,6 +164,7 @@ def new_project(template = "../toolchain-mod"):
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
+		shell.leave()
 		return None
 	if shell.what() == "template":
 		return new_project(None)
@@ -236,6 +237,8 @@ def select_project(variants, prompt = "Which project do you want?", selected = N
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
+		shell.leave()
+		print()
 		return None
 	try:
 		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + shell.what() + "\x1b[0m")

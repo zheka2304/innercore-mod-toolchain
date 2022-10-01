@@ -68,7 +68,7 @@ def download_and_extract_toolchain(directory):
 		else:
 			os.remove(archive)
 
-	print("Installed into '" + directory + "' under '" + commit.strip()[:7] + "' revision.")
+	print("Installed into '" + directory + "' under " + commit.strip()[:7] + " revision.")
 
 def print_placeholder(which):
 	layer = 0
@@ -127,7 +127,7 @@ elif not "--no-startup" in sys.argv:
 	], cwd=join(location, "toolchain/toolchain/python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
-	if len(sys.argv) < where + 1 and not sys.argv[where + 1].startswith("--"):
+	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
 		print("Not found import path, nothing will happened.")
 		exit(5)
 	folder = sys.argv[where + 1]
