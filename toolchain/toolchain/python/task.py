@@ -271,14 +271,16 @@ def task_new_project(args = None):
 
 	index = new_project(TOOLCHAIN_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
-		exit("Creation cancelled by user.")
+		print("Abort.")
+		exit(0)
 	print("Successfully completed!")
 
 	try:
-		if input("Select this project? [Y/n]: ").lower() != "n":
-			PROJECT_MANAGER.select_project(index=index)
+		if input("Select this project? [Y/n] ")[:1].lower() == "n":
+			return 0
 	except KeyboardInterrupt:
-		return 0
+		pass
+	PROJECT_MANAGER.select_project(index=index)
 	return 0
 
 @task("removeProject", lock=["cleanup"])
@@ -288,19 +290,17 @@ def task_remove_project(args = None):
 		error("Not found any project to remove.")
 
 	print("Selected project will be deleted forever, please think twice before removing anything!")
-	try:
-		who = PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
-	except KeyboardInterrupt:
-		return -1
+	who = PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	if who is None:
-		error("Deletion cancelled by user.")
+		exit(0)
 
 	if PROJECT_MANAGER.how_much() > 1:
 		try:
-			if input("Do you really want to delete it? [Y/n]: ").lower() == "n":
-				error("Deletion cancelled by user.")
+			if input("Do you really want to delete it? [Y/n] ")[:1].lower() == "n":
+				print("Abort.")
+				return 0
 		except KeyboardInterrupt:
-			return -1
+			pass
 
 	try:
 		location = TOOLCHAIN_CONFIG.get_absolute_path(who)
@@ -334,7 +334,7 @@ def task_select_project(args = None):
 
 	who = PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
-		error("Selection cancelled by user.")
+		exit(0)
 
 	try:
 		PROJECT_MANAGER.select_project(folder=who)
@@ -353,11 +353,11 @@ def task_update_toolchain(args = None):
 	if len(upgradable) > 0:
 		print("Found new updates for components ", ", ".join(upgradable), ".", sep="")
 		try:
-			if input("Do you want to upgrade it? [Y/n]: ").lower() == "n":
+			if input("Do you want to upgrade it? [Y/n] ")[:1].lower() == "n":
+				print("Abort.")
 				return 0
 		except KeyboardInterrupt:
-			print("Installation cancelled by user.")
-			return 1
+			pass
 		install_components(upgradable)
 	return 0
 
@@ -369,17 +369,24 @@ def task_component_integrity(args = None):
 @task("cleanup")
 def task_cleanup(args = None):
 	from package import cleanup_relative_directory
-	try:
-		if MAKE_CONFIG.current_project is not None:
-			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n]: ").lower() != "n":
-				cleanup_relative_directory("toolchain/build/" + MAKE_CONFIG.project_unique_name)
-				cleanup_relative_directory("output", True)
+	if MAKE_CONFIG.current_project is not None:
+		try:
+			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n] ")[:1].lower() == "n":
+				cleanup_relative_directory("toolchain/build")
 				return 0
-		elif input("Do you want to clear all project cache? [Y/n]: ").lower() == "n":
-			error("Cleaning cancelled by user.")
-		cleanup_relative_directory("toolchain/build")
-	except KeyboardInterrupt:
-		return -1
+		except KeyboardInterrupt:
+			pass
+		cleanup_relative_directory("toolchain/build/" + MAKE_CONFIG.project_unique_name)
+		cleanup_relative_directory("output", True)
+		return 0
+	else:
+		try:
+			if input("Do you want to clear all projects cache? [Y/n] ")[:1].lower() == "n":
+				print("Abort.")
+				return 0
+		except KeyboardInterrupt:
+			pass
+	cleanup_relative_directory("toolchain/build")
 	return 0
 
 def error(message, code = -1):

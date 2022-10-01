@@ -209,8 +209,15 @@ if __name__ == "__main__":
 	with open(make_project, "w", encoding="utf-8") as make_file:
 		make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
-	if destination != path or input("Do you want to copy reassigned directories in directory itself? [N/y]: ").lower() == "y":
-		print("Copying files and directories")
-		copy_tuple_directories(tuples, path, destination)
+	try:
+		if destination == path and input("Do you want to copy reassigned directories in directory itself? [N/y] ")[:1].lower() != "y":
+			print("Abort.")
+			exit(0)
+	except KeyboardInterrupt:
+		print("Abort.")
+		exit(0)
+
+	print("Copying files and directories")
+	copy_tuple_directories(tuples, path, destination)
 
 	print("Project successfully imported!")

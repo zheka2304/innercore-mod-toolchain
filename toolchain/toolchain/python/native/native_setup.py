@@ -79,6 +79,43 @@ def require_compiler_executable(arch, install_if_required = False):
 def check_installed(arch):
 	return isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)))
 
+def download(shell):
+	from urllib import request
+	archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
+	makedirs(dirname(archive_path), exist_ok=True)
+
+	if not isfile(archive_path):
+		progress = Progress(text="C++ GCC Compiler (NDK)")
+		shell.interactables.append(progress)
+		shell.render()
+		url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
+		with request.urlopen(url) as response:
+			with open(archive_path, "wb") as f:
+				info = response.info()
+				length = int(info["Content-Length"])
+				downloaded = 0
+				while True:
+					buffer = response.read(8192)
+					if not buffer:
+						break
+					downloaded += len(buffer)
+					progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
+					shell.render()
+					f.write(buffer)
+		progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
+		shell.render()
+
+	progress = Progress(text="Extracting NDK/GCC")
+	shell.interactables.append(progress)
+	shell.render()
+	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	with ZipFile(archive_path, "r") as archive:
+		archive.extractall(extract_path)
+	progress.seek(1, "Extracted into toolchain/temp")
+	shell.render()
+
+	return search_ndk_path(extract_path, contains_ndk=True)
+
 def install(arch = "arm", reinstall = False):
 	if not reinstall and check_installed(arch):
 		return 0
@@ -86,47 +123,17 @@ def install(arch = "arm", reinstall = False):
 		shell = Shell()
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
-			from urllib import request
 			if not reinstall:
 				print("Not found valid NDK installation for ", arch, ".", sep="")
-			if reinstall or input("Download android-ndk-r16b? [N/y]: ").lower() == "y":
-				shell.enter()
-				archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
-				makedirs(dirname(archive_path), exist_ok=True)
-
-				if not isfile(archive_path):
-					progress = Progress(text="C++ GCC Compiler (NDK)")
-					shell.interactables.append(progress)
-					shell.render()
-					url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
-					with request.urlopen(url) as response:
-						with open(archive_path, "wb") as f:
-							info = response.info()
-							length = int(info["Content-Length"])
-							downloaded = 0
-							while True:
-								buffer = response.read(8192)
-								if not buffer:
-									break
-								downloaded += len(buffer)
-								progress.seek(downloaded / length, f"Downloading ({int(downloaded / 8192)}/{int(length / 8192)}MiB)")
-								shell.render()
-								f.write(buffer)
-					progress.seek(1, f"Downloaded {int(length / 8192)}MiB")
-					shell.render()
-
-				progress = Progress(text="Extracting NDK/GCC")
-				shell.interactables.append(progress)
-				shell.render()
-				extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-				with ZipFile(archive_path, "r") as archive:
-					archive.extractall(extract_path)
-				progress.seek(1, "Extracted into toolchain/temp")
-				shell.render()
-
-				ndk_path = search_ndk_path(extract_path, contains_ndk=True)
-			else:
-				print("Native compilation aborted.")
+			try:
+				if reinstall or input("Download android-ndk-r16b-x86_64? [N/y] ")[:1].lower() == "y":
+					shell.enter()
+					ndk_path = download(shell)
+				else:
+					print("Abort.")
+					return -1
+			except KeyboardInterrupt:
+				print("Abort.")
 				return -1
 		else:
 			shell.enter()

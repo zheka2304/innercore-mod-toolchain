@@ -127,8 +127,11 @@ def shortcodes(str):
 def request_typescript():
 	if shutil.which("tsc") is not None:
 		return "typescript"
-	if input("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)? [Y/n]: ").lower() == "n":
-		return "javascript"
+	try:
+		if input("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)? [Y/n] ")[:1].lower() == "n":
+			return "javascript"
+	except KeyboardInterrupt:
+		pass
 	print("Updating TypeScript globally via npm...")
 	os.system("npm install -g typescript")
 	return request_typescript()

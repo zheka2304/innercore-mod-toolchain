@@ -190,8 +190,8 @@ class ProjectManager:
 			if prompt_when_single is None:
 				return itwillbe
 			else:
-				if input(prompt_when_single.format(itwillbe) + " [Y/n]: ").lower() == "n":
-					return None
+				if input(prompt_when_single.format(itwillbe) + " [Y/n] ")[:1].lower() == "n":
+					return print("Abort.")
 				return itwillbe
 		if dont_want_anymore is not None:
 			who = self.projects.copy()

@@ -300,8 +300,11 @@ def get_adb_command_by_serial(serial):
 def get_adb_command_by_tcp(ip, port = None):
 	ensure_server_running()
 	if get_adb_command_by_serialno_type("-e") is None:
-		if input("Are you sure want to save it? [N/y]").lower() != "y":
-			return None
+		try:
+			if input("Are you sure want to save it? [N/y] ")[:1].lower() != "y":
+				return print("Abort.")
+		except KeyboardInterrupt:
+			return print("Abort.")
 	device = {
 		"ip": ip
 	}
@@ -383,10 +386,10 @@ def setup_via_network():
 def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pairing_code = False):
 	if ip is None:
 		try:
-			tcp = input("Specify address ip[:port]: ")
+			tcp = input("Specify address: IP[:PORT] ")
 			if len(tcp) == 0:
 				return setup_via_network()
-		except EOFError:
+		except KeyboardInterrupt:
 			return setup_via_network()
 		tcp = tcp.split(":")
 		ip = tcp[0]
@@ -397,7 +400,7 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 				pairing_code = input("Specify pairing code: ")
 				if len(tcp) == 0:
 					return setup_via_tcp_network(ip, port)
-			except EOFError:
+			except KeyboardInterrupt:
 				return setup_via_network()
 		try:
 			subprocess.run([
@@ -449,7 +452,10 @@ def setup_externally(skip_input = False):
 	if device is None:
 		print("Nope, nothing to perform here.")
 		if not skip_input:
-			input()
+			try:
+				input()
+			except KeyboardInterrupt:
+				pass
 		return setup_device_connection()
 	return get_adb_command_by_serial(device["serial"])
 
@@ -460,7 +466,10 @@ def setup_how_to_use():
 		"and it provides access to a Unix shell that you can use to run a variety of commands on a device."
 	)
 	print(link("https://developer.android.com/studio/command-line/adb"))
-	input()
+	try:
+		input()
+	except KeyboardInterrupt:
+		pass
 	return setup_device_connection()
 
 adb_command = get_adb_command()

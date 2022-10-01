@@ -16,8 +16,11 @@ def download_and_extract_toolchain(directory):
 		print("Inner Core Mod Toolchain already installed in '" + directory + "'.")
 		print("Newly installed files will be merged with your installation.")
 		print("It's handly to restore necessary removed script or template.")
-		if input("Do you want to download it again? [N/y]: ").lower() != "y":
-			return
+		try:
+			if input("Do you want to download it again? [N/y] ")[:1].lower() != "y":
+				return print("Abort.")
+		except KeyboardInterrupt:
+			return print("Abort.")
 
 	if not exists(archive):
 		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
