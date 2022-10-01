@@ -115,6 +115,8 @@ jobs:
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_CLASSPATH
+      - name: Run rm .git in deploy
+        run: rm -frd $BRANCH_MASTER/.git
       - name: Push into deploy
         working-directory: ${{ env.BRANCH_MASTER }}
         run: |
