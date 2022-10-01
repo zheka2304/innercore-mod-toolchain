@@ -151,8 +151,7 @@ def install_components(components):
 			error("Please describe options 'abis' or 'debugAbi' in your toolchain.json before install NDK!")
 		if abi is not None and not abi in abis:
 			abis.append(abi)
-		from native.native_build import abi_to_arch
-		from native.native_setup import check_installed, install
+		from native.native_setup import abi_to_arch, check_installed, install
 		for arch in abis:
 			if not check_installed(abi_to_arch(arch)):
 				install(abi_to_arch(arch), reinstall=True)

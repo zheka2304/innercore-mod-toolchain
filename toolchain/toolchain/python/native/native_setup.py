@@ -6,9 +6,20 @@ import subprocess
 import re
 from zipfile import ZipFile
 
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from make_config import TOOLCHAIN_CONFIG
 from shell import Notice, Progress, Shell
 from utils import clear_directory
+
+def abi_to_arch(abi):
+	abi_map = {
+		"armeabi-v7a": "arm",
+		"arm64-v8a": "arm64",
+		"x86": "x86",
+		"x86_64": "x86_64"
+	}
+	if abi in abi_map:
+		return abi_map[abi]
+	return None
 
 def list_subdirectories(path, max_depth = 5, dirs = None):
 	if dirs is None:

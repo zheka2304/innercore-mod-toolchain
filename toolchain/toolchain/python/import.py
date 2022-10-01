@@ -3,7 +3,7 @@ from os.path import exists, join, basename, isfile, isdir, relpath
 import sys
 import json
 
-from utils import copy_directory, copy_file, ensure_directory
+from utils import copy_directory, copy_file, ensure_directory, get_next_filename
 from base_config import BaseConfig
 
 def load_mod_info(make_obj, directory):
@@ -178,7 +178,8 @@ if __name__ == "__main__":
 		destination = sys.argv[2]
 	else:
 		from make_config import TOOLCHAIN_CONFIG
-		destination = TOOLCHAIN_CONFIG.get_path(basename(path))
+		toolchain = TOOLCHAIN_CONFIG.root_dir
+		destination = join(toolchain, get_next_filename(toolchain, basename(path), "-"))
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")
