@@ -487,7 +487,7 @@ class Input(Entry):
 	def render(self, shell, offset, line, page = 0, index = -1, lines_before = -1, at_cursor = None):
 		shell.write(self.get_arrow(at_cursor) + (str(self.hint) if self.hint is not None else "") +
 			("" if self.hovered else "\x1b[2m") + (self.text if len(self.text) > 0 or self.hovered else \
-				"..." if self.template is None else self.template) + ("" if self.hovered else "\x1b[0m") + "\n")
+				"..." if self.template is None else self.template) + ("\x1b[7m " if self.hovered else "") + "\x1b[0m\n")
 
 	def read(self):
 		return self.template if not self.hovered and len(self.text) == 0 and self.template is not None else self.text
