@@ -47,6 +47,8 @@ jobs:
           mkdir $BRANCH_CLASSPATH
           mv $BRANCH_MASTER/toolchain/toolchain/classpath/.[!.]* \
             $BRANCH_MASTER/toolchain/toolchain/classpath/* $BRANCH_CLASSPATH
+      - name: Run rm .github/workflows in deploy
+        run: rm -frd $BRANCH_MASTER/.github/workflows
       - name: Configure git
         run: |
           git config --global user.name "MaXFeeD"
@@ -56,7 +58,7 @@ jobs:
         working-directory: ${{ env.BRANCH_MASTER }}
         run: |
           git checkout -b $BRANCH_MASTER
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git push --force
       - name: Run mv preffered components to refs
@@ -75,7 +77,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_ADB
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_ADB
@@ -84,7 +86,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_DECLARATIONS
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_DECLARATIONS
@@ -93,7 +95,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_R8
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_R8
@@ -102,7 +104,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_STDINCLUDES
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_STDINCLUDES
@@ -111,7 +113,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_CLASSPATH
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_CLASSPATH
@@ -122,7 +124,7 @@ jobs:
         run: |
           git config --global init.defaultBranch $BRANCH_DEPLOY
           git init
-          git add --all .
+          git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.git
           git push --force -u origin $BRANCH_DEPLOY
