@@ -180,6 +180,7 @@ if __name__ == "__main__":
 		from make_config import TOOLCHAIN_CONFIG
 		toolchain = TOOLCHAIN_CONFIG.root_dir
 		destination = join(toolchain, get_next_filename(toolchain, basename(path), "-"))
+	print(f"Importing {basename(path)} into '{destination}'")
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")

@@ -69,7 +69,8 @@ def merge_directory(src, dst, accept_squash = True, ignore_list = [], only_paren
 		above = join(src, filename)
 		behind = join(dst, filename)
 		if isfile(above) and (not exists(behind) or (isfile(behind) and accept_replace)):
-			os.remove(behind)
+			if exists(behind):
+				os.remove(behind)
 			shutil.move(above, behind)
 		elif isdir(above) or accept_squash:
 			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else [], only_parent_ignore, accept_replace)

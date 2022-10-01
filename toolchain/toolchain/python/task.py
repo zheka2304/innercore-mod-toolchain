@@ -351,7 +351,7 @@ def task_update_toolchain(args = None):
 	from component import fetch_components, install_components
 	upgradable = fetch_components()
 	if len(upgradable) > 0:
-		print("Found new updates for components ", ", ".join(upgradable), ".", sep="")
+		print("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
 		try:
 			if input("Do you want to upgrade it? [Y/n] ")[:1].lower() == "n":
 				print("Abort.")

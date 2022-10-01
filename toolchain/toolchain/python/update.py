@@ -27,7 +27,7 @@ def download_toolchain(directory):
 		print("'toolchain.zip' already exists in '" + directory + "'.")
 
 def might_be_updated(directory = None):
-	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/toolchain/bin/.commit")
+	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if not isfile(commit_path):
 		return True
 	if directory is not None and isfile(join(directory, "toolchain.zip")):
@@ -35,7 +35,7 @@ def might_be_updated(directory = None):
 	try:
 		with open(join(commit_path)) as commit_file:
 			response = request.urlopen("https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/deploy/toolchain/toolchain/bin/.commit")
-			return perform_diff(response.read().decode("utf-8"), commit_file.read())
+			return not perform_diff(response.read().decode("utf-8"), commit_file.read())
 	except URLError:
 		return False
 	except BaseException as err:
@@ -57,7 +57,8 @@ def extract_toolchain(directory):
 		error("Retry operation or extract 'toolchain.zip' manually.", 3)
 	toolchain = TOOLCHAIN_CONFIG.get_path("..")
 
-	merge_directory(join(branch, ".github"), join(toolchain, ".github"))
+	if exists(join(branch, ".github")):
+		merge_directory(join(branch, ".github"), join(toolchain, ".github"))
 	for filename in os.listdir(branch):
 		above = join(branch, filename)
 		if not isfile(above):
@@ -70,10 +71,13 @@ def extract_toolchain(directory):
 		shutil.rmtree(join(toolchain, "toolchain-sample-mod"))
 		shutil.move(join(branch, "toolchain-sample-mod"), join(toolchain, "toolchain-sample-mod"))
 
+	shutil.rmtree(branch, ignore_errors=True)
+	os.remove(archive)
+
 def update_toolchain():
 	directory = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if might_be_updated(directory):
+		commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 		download_toolchain(directory)
 		commit = None
 		if isfile(commit_path):

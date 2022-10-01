@@ -16,8 +16,8 @@ class Component():
 		self.name = name
 		self.location = location
 		if branch is not None:
-			self.packurl = f"https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/" + branch
-			self.commiturl = f"https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/" + branch + "/.commit"
+			self.packurl = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/" + branch
+			self.commiturl = "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/" + branch + "/.commit"
 			self.branch = branch
 		if packurl is not None:
 			self.packurl = packurl
@@ -109,7 +109,7 @@ def extract_component(component, shell, progress):
 	shutil.copytree(extract_to, output, dirs_exist_ok=True)
 	progress.seek(1, "Cleaning up")
 	shell.render()
-	shutil.rmtree(extract_to)
+	shutil.rmtree(extract_to, ignore_errors=True)
 	os.remove(archive_path)
 	return 0
 
@@ -160,7 +160,7 @@ def install_components(components):
 def fetch_component(component):
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
 	if component.keyword == "cpp":
-		return isdir(TOOLCHAIN_CONFIG.get_path("toolchain/ndk"))
+		return isdir(output)
 	if isdir(output):
 		if TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
 			return True
@@ -186,7 +186,7 @@ def fetch_components():
 		if not componentname in COMPONENTS:
 			print(f"Not found component {componentname}!")
 			continue
-		if fetch_component(COMPONENTS[componentname]):
+		if not fetch_component(COMPONENTS[componentname]):
 			upgradable.append(componentname)
 	return upgradable
 
