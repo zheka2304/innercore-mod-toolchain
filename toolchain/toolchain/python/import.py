@@ -168,13 +168,17 @@ def copy_tuple_directories(tuples, source, destination):
 
 if __name__ == "__main__":
 	if len(sys.argv) <= 1 or sys.argv[1] == "--help":
-		print("Usage: import.py <destination> [path]")
+		print("Usage: import.py <path> [destination]")
 		print("Performs conversion between mod.info, build.config and make.json,")
 		print("merges directories if few configurations exists.")
 		exit(0)
 
-	destination = sys.argv[1]
-	path = sys.argv[2] if len(sys.argv) > 2 else sys.argv[1]
+	path = sys.argv[1]
+	if len(sys.argv) > 2:
+		destination = sys.argv[2]
+	else:
+		from make_config import TOOLCHAIN_CONFIG
+		destination = TOOLCHAIN_CONFIG.get_path(basename(path))
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")

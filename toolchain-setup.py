@@ -33,7 +33,7 @@ def download_and_extract_toolchain(directory):
 		except BaseException as err:
 			print(err)
 			print("Inner Core Mod Toolchain installation not completed due to above error.")
-			exit(1)
+			exit(2)
 	else:
 		print("'toolchain.zip' already exists in '" + directory + "'.")
 
@@ -59,12 +59,12 @@ def download_and_extract_toolchain(directory):
 	except BaseException as err:
 		print(err)
 		print("Inner Core Mod Toolchain installation not completed due to above error.")
-		exit(2)
+		exit(3)
 	finally:
 		if not exists(join(directory, "toolchain")):
 			print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
 			print("Retry operation or extract 'toolchain.zip' manually.")
-			exit(3)
+			exit(4)
 		else:
 			os.remove(archive)
 
@@ -123,21 +123,15 @@ if "--foreign" in sys.argv:
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform() == "Windows" else "python3",
-		"component.py",
-		"--startup"
+		"component.py", "--startup"
 	], cwd=join(location, "toolchain/toolchain/python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 and not sys.argv[where + 1].startswith("--"):
 		print("Not found import path, nothing will happened.")
-		exit(1)
+		exit(5)
 	folder = sys.argv[where + 1]
-	if len(sys.argv) < where + 2 and not sys.argv[where + 2].startswith("--"):
-		location = sys.argv[where + 2]
-	else:
-		location = join("..", "..")
 	subprocess.run([
 		"python" if platform() == "Windows" else "python3",
-		"import.py",
-		join(location, basename(folder)), folder
+		"import.py", folder
 	], cwd=join(location, "toolchain/toolchain/python"))

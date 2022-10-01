@@ -268,9 +268,10 @@ def startup():
 	if ensure_not_whitespace(username) is not None:
 		print("Who are you?", f"\x1b[2m{username}\x1b[0m")
 		TOOLCHAIN_CONFIG.set_value("template.author", username)
+		TOOLCHAIN_CONFIG.save()
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:
-		print("Which components will be installed?", f"\x1b[2m{', '.join(installation)}\x1b[0m")
+		print("Which components will be installed? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")
 		install_components(installation)
 
 def foreign():
@@ -282,10 +283,10 @@ def foreign():
 		shell.loop()
 	except KeyboardInterrupt:
 		shell.leave()
-		return 1
+		return 0
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:
-		print("Which components will be upgraded?", f"\x1b[2m{', '.join(installation)}\x1b[0m")
+		print("Which components will be upgraded? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")
 		install_components(installation)
 	else:
 		print("Nothing to perform.")
