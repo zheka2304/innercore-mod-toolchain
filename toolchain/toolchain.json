@@ -15,6 +15,5 @@
 	"projectLocations": [
 		"../"
 	],
-	"workspaceFile": "../toolchain.code-workspace",
-	"currentProject": "../toolchain-sample-mod"
+	"workspaceFile": "../toolchain.code-workspace"
 }
