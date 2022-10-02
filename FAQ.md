@@ -8,7 +8,7 @@ If task **Configure ADB** is not what you were looking for, try reading <https:/
 
 ### I cannot find pushed location
 
-Check `pushTo` property in *toolchain.json* file at the root of toolchain, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
+Check `pushTo` property in your configuration files, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
 
 ### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor
 
@@ -19,12 +19,6 @@ One of most convenient and advantageous ways to find out which folder you are in
 All path paths in multi-root workspace become relative, however, folders outside main *toolchain/* folder are converted from root folders (../) to an extension-safe format (_/). This error does not need to be fixed if you are building a mod using the toolchain, easiest way to avoid this error is to move your mod to any of the loochain subfolders where it belongs, or change your environment settings by manually adding the necessary paths to the settings instead of using **.classpath*.
 
 ## Issues you may encounter in terminal
-
-### tsc: command not found
-
-```sh
-npm -g install typescript
-```
 
 ### npm: command not found
 
@@ -50,7 +44,7 @@ Android dex compiler requires JDK 8 (identifier 1.8). Set it as default if neede
 
 ### ./gradlew: Permission denied
 
-For some unknown reason, your *gradlew* file did not have executable flag applied. Open `innercore-mod-toolchain` folder in terminal and type `chmod +x gradlew`.
+For some unknown reason, your *gradlew* file did not have executable flag applied. Open `toolchain/toolchain/bin/gradle` folder in terminal and type `chmod +x gradlew`.
 
 ### error trying to exec 'cc1plus': execvp: No such file or directory
 

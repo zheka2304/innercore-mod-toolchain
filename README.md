@@ -4,110 +4,103 @@
 [![Windows](https://img.shields.io/badge/windows-compatible-blue?style=for-the-badge&logo=windows&logoColor=white)](README.md)
 [![Linux](https://img.shields.io/badge/linux-compatible-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)](README.md)
 
+**Inner Core Mod Toolchain for Horizon** is a toolchain that allows you to efficiently develop and build modifications for mobile Minecraft: Bedrock Edition directly from your PC.
+
 ## Requirements
 
-**Inner Core Mod Toolchain for Horizon** is a toolchain that can be used to efficiently develop and build Minecraft: Bedrock mods from your PC.
-
-To work properly this toolchain requires:
+To work correctly, this toolchain requires:
 
 - [Python](https://www.python.org/) 3.6 or higher
-- [node.js](https://nodejs.org/en/) 10.15.1 or higher (for typescript modding), you need to have `tsc` installed (to install run `npm install -g tsc`)
-- Valid [Android NDK](https://developer.android.com/ndk/downloads/older_releases) installation (for native modding), it will be installed by toolchain when needed otherwise; preferred version is r16b
-- [Java Development Kit 1.8](https://www.oracle.com/java/technologies/javase/javase-jdk8-downloads.html) (for Java modding)
+- [node.js](https://nodejs.org/en/) 10.15.1 or higher (for TypeScript modding), `tsc` must also be installed (to do this, run `npm install -g tsc`)
+- [Android NDK](https://github.com/android/ndk/wiki/Unsupported-Downloads#r16b) version r16b (for C++ modding), otherwise it can be installed by toolchain when needed
+- [Java Development Kit 1.8](https://adoptium.net/temurin/releases/?version=8) (for Java modding)
 
-It is also highly recommended you install Visual Studio Code code editor. This editor is highly customizable and this toolchain contains all required settings and files to set up the environment. For the best user experience also install the following plugins for VS Code:
+It is obligatory to install only first component, the rest can be installed when necessary.
+
+[![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
+
+## Installation
+
+You can simply download repository, however we recommend using install script. It will help you install all necessary components for more efficient use. Open a terminal in the folder that will be used to install toolchain and enter command following the information from interactive console.
+
+```sh
+python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
+```
+
+Alternatively, save [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) for more installation and import options. Run the following command for more details.
+
+```sh
+python3 toolchain-setup.py --help
+```
+
+### Modding with Visual Studio Code
+
+For the best user experience, it is recommended to install [Visual Studio Code](https://code.visualstudio.com/download). This environment is great for modding and can be easily improved with extensions and toolchain itself. This repository already contains all necessary files for easy interaction with this editor.
+
+It is also recommended to install the following extensions:
 
 - ESLint (Microsoft), TSLint now deprecated
 - C/C++ Extension Pack (Microsoft)
 - Extension Pack for Java (Microsoft)
 
- Also, IntelliJ supported, but some multiproject operations more harder than in Visual Studio Code.
+Just clone or [download this repository](https://github.com/zheka2304/innercore-mod-toolchain/archive/refs/heads/master.zip) and open [toolchain.code-workspace](toolchain.code-workspace), it contains everything you need to start your journey! Use *Ctrl+Shift+B* to access all available options.
 
-### Setting up with Visual Studio Code
+### Modding with IntelliJ IDEA
 
-Just clone or [download this repository](https://github.com/zheka2304/innercore-mod-toolchain/archive/refs/heads/master.zip) and open [toolchain.code-workspace](toolchain.code-workspace), it contains everything that needed and will be set up automatically!
+Most of the features are also implemented to work with [IntelliJ IDEA](https://www.jetbrains.com/idea/download/). Use build menu to access the available scripts, or use console for more information.
 
-[![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
+### Modding with a third party editor
 
-## Setting up with console
+Inner Core Mod Toolchain does not require an installed editor, much less an environment, to develop mods. You can run build and configuration scripts directly from console or by opening files located in *toolchain/toolchain* folder. We recommend checking out the *toolchain/toolchain/python/task.py* script for details.
 
-To keep your device clean you may copy and run *toolchain-setup.py*. It should be placed to directory where toolchain will be used and run using python in Windows:
+## Multiproject? I really want it?
 
-```cmd
-python .\toolchain-setup.py <project_folder>
-```
+Now toolchain works with projects as separate components. We've just made things easier for you by separating the settings of toolchain from most build.
 
-or in Linux shell:
+Use the imports below to simply copy your *make.json* project into updated toolchain, and if you don't like something, you can always revert to old one. Shall we try?
 
-```sh
-python3 ./toolchain-setup.py <project_folder>
-```
+## First build
 
-## Installing Android NDK
+To start the first build, use `Build` task or run `./build-all.bat` or `./build-all.sh` from console. You will be prompted to select a project, install additional components, and connect to the device. Most of these operations will no longer be required.
 
-To install Android NDK of any version on you computer, you should first download it from the archive: <https://developer.android.com/ndk/downloads/older_releases>. Preferred version is **16b**. Unpack the archive to *%appdata%/../Local/Android* (on Windows) or to */home/Android* (on Linux). When you open the directory "*Android/android-ndk-r16b*", you should see a list of directories. Run the build to see if everything is OK.
+## Configuration files
 
-## First Build
+There are three types of configurations for managing projects, builds, and the toolchain itself. They describe complete process of building your project.
 
-To run your first build, run (*Ctrl+Shift+B*) **Build and Push Everything** task. This task performs the required setup and builds the whole project. If your project contains native code, local NDK installation will be created. This can take some time.
+- make.json - to control the assembly of projects
+- toolchain.json - toolchain configuration and basic properties for *make.json*
+- template.json - template for subsequent generation *make.json*
 
-## make.json
+A detailed description of each of the files can be found in [article](FAQ.md).
 
-*make.json* is the main configuration file of the every project. In this file you can specify everything you need to build a mod for Inner Core. Most of the work, such as scripts generation and *build.config* creation is done under the hood.
+## Importing, creating and removing projects
 
-Here's a description of some of the key properties you can specify in your *make.json*:
+For each of the operations, tasks `Import Project`, `New Project` and `Remove Project` are provided, respectively, as well as commands `./import-project.bat`, `./import-project.sh`, `./new- project.bat`, `./new-project.sh`, `./remove-project.bat` and `./remove-project.sh`. All operations are accompanied by interactions in console, which means that a detailed description of each of them is not required.
 
-- **info** contains information about the mod name, author, version and description. The information is stored in the corresponding fields
-- **api** specifies what JavaScript API is used in the mod by default
-- **resources** specifies what resources should be included in the output mod. There are currently four resource types available:
-  - *resource_directory* contains textures to use in Minecraft
-  - *gui* contains all the gui textures
-  - *minecraft_resource_pack* contains vanilla resource packs to be used with the mod
-  - *minecraft_behavior_pack* contains vanilla behavior packs to be used with the mod
-- **sources** specifies what JavaScript files should be included (or built) into the mod build. Every source can be a file, a list of files specified by wildcards or a directory containing .includes file. There are currently four types of sources:
-  - *main* contains main mod logic
-  - *launcher* contains mod launching logics
-  - *preloader* is run before resources injection. This is useful to generate resources programmatically before Minecraft loads them
-  - *lib* contains reusable mod libraries
-- There are also two supported languages:
-  - *javascript* is used for pure javascript project using ES5 language standart. These folders are not compiled and are just built 'as is'.
-  - *typescript* is used for typescript language and ESNext version of Javascript. These folders are built using typescript compiler.
-- **compile** specifies all the source code that should be compiled. This toolchain currently supports two compilation types:
-  - *native* is used to compile C/C++ sources. Note that Android NDK is required to run this type of compilation
-  - *java* is used to compile Java sources. Note that you have to install JDK of version 1.8 or higher to run this type of compilation
-- **additional** contains additional directories that should be copied to the mod build. In this example, root directory is copied to the root of the mod
+## Selection between your projects
 
-## toolchain.json
+Use the `Select Project` task or `./select-project.bat` or `./select-project.sh` command to open selection menu. In case you can't find your project, check `projectLocations` property in your *toolchain.json* or import the project using toolchain.
 
-*toolchain.json* located in toolchain folder. It contains information about what libraries should be linked and what ABIs should the project target. Projects basic configuration can be changed here.
+In addition, for Visual Studio Code tasks `Select Project by Active File`, `Build by Active File`, e.g. are provided. They are hidden from *Ctrl+P > Tasks: Run Task* menu by default, but are available from the build menu *Ctrl+Shift+B* and can be displayed by changing *.vscode/tasks.json* manually.
 
-### Working with Android Debug Bridge
+## Distribution update
 
-Android Debug Bridge allows this toolchain to push mod files to the remote device and to launch Horizon via USB cable. You can specify push path in `pushTo` property in your *toolchain.json*. When you run the appropriate build task (*Ctrl+Shift+B*), only the files that were changed are being pushed.
+Run the `Check for Updates` task or `./update-toolchain.bat` or `./update-toolchain.sh` command. Local components and toolchain itself will be rechecked for updates. When updating, only the folder of toolchain itself is affected, only configuration files and scripts are changed. The rest of files cannot be deleted under any circumstances, or they will be moved to a copy with *.bak* suffix.
 
-## Documentation and Further Resources
+### Component management
 
-All the documentation is available at <https://docs.mineprogramming.org>.
+Components can be installed using `Integrity Components` or commands `./component-integrity.bat` or `./component-integrity.sh`. You can install or update them at any time using the same command, there is no uninstallation for components.
 
-Some of the old (but mostly still applicable) information can be found at <https://wiki.mineprogramming.org>.
+## Publishing project
 
-To update your local typescript header files (used for hints in JavaScript files), go to <https://github.com/zheka2304/innercore-mod-toolchain>, download everything from *toolchain/declarations* and unpack to your local *toolchain/declarations* folder. The documentation is a subject to regular updates, so be sure to use the latest features it provides 😉
+Once development is complete, the next step is to publish to [Mod Browser](https://icmods.mineprogramming.org/). Execute the `Assemble Mod for Release` task or `./assemble-release.bat` or `./assemble-release.sh` command. An archive *<folder_name>.icmod* will be created at the root of folder. It is already completely ready for publication to site. Read [article](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md) for details.
 
-## Adding Java directories
+## Documentation and futher steps
 
-To add a new one module, create a directory in *java* folder and add it to *.classpath* file in project folder as a new entry:
+All documentation is available at <https://docs.mineprogramming.org>. Here you can find information about available APIs, learn the basics of modding and get acquainted with existing projects.
 
-```xml
-<classpathentry kind="src" path="java/<module_name>/src" />
-```
+Slightly outdated, but no less useful information can be found at <https://wiki.mineprogramming.org>.
 
-To add *.jar* libraries to classpath and to the compiler, move your library file
-to the *libs* directory and add a new entry to the *.classpath* file:
+## Contribution
 
-```xml
-<classpathentry kind="lib" path="java/<module_name>/lib/<lib_name>.jar" />
-```
-
-## Building and Publishing a Release Version of the Mod
-
-To build a release version of the mod, run **Assemble Mod for Release** task. An *<project_name>.icmod* archive is being generated and is ready for upload. You can find out what to do next by following the steps described in <https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md>.
+Yes, and yes again! Fork repository to yourself, we will all be happy with the new functionality. Development is done on [develop branch](https://github.com/zheka2304/innercore-mod-toolchain/tree/develop), any pull requests outside this branch will be rejected.
