@@ -266,21 +266,37 @@ def task_configure_adb(args = None):
 
 @task("newProject")
 def task_new_project(args = None):
-	from project_manager import PROJECT_MANAGER
 	from package import new_project
 
 	index = new_project(TOOLCHAIN_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
+		print()
 		print("Abort.")
 		exit(0)
 	print("Successfully completed!")
 
+	from project_manager import PROJECT_MANAGER
 	try:
 		if input("Select this project? [Y/n] ")[:1].lower() == "n":
 			return 0
 	except KeyboardInterrupt:
 		pass
 	PROJECT_MANAGER.select_project(index=index)
+	return 0
+
+@task("importProject")
+def task_import_project(args = None):
+	module = __import__("import")
+	path = module.import_project(args[0] if args is not None and len(args) > 0 else None, args[1] if args is not None and len(args) > 1 else None)
+	print("Project successfully imported!")
+
+	from project_manager import PROJECT_MANAGER
+	try:
+		if input("Select this project? [Y/n] ")[:1].lower() == "n":
+			return 0
+	except KeyboardInterrupt:
+		pass
+	PROJECT_MANAGER.select_project(folder=relpath(path, TOOLCHAIN_CONFIG.root_dir))
 	return 0
 
 @task("removeProject", lock=["cleanup"])
@@ -309,7 +325,7 @@ def task_remove_project(args = None):
 		from package import cleanup_relative_directory
 		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(location))
 	except ValueError:
-		error(f"""Folder "{who}" not found!""")
+		error(f"Folder '{who}' not found!")
 
 	print("Project permanently deleted.")
 	return 0
@@ -339,9 +355,7 @@ def task_select_project(args = None):
 	try:
 		PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
-		error(f"Folder {who} not found!""")
-
-	print(f"Project {who} selected.")
+		error(f"Folder '{who}' not found!")
 	return 0
 
 @task("updateToolchain")

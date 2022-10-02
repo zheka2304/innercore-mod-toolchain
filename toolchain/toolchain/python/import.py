@@ -1,3 +1,4 @@
+from glob import glob
 import os
 from os.path import exists, join, basename, isfile, isdir, relpath
 import sys
@@ -137,7 +138,7 @@ def load_build_config(make_obj, source, destination):
 	return destination_copy_tuples
 
 def copy_tuple_directories(tuples, source, destination):
-	ignore_list = ["make.json", "mod_icon.png", "mod.info", "build.config", "assets/root"]
+	ignore_list = [".dex", "make.json", "mod_icon.png", "mod.info", "build.config", "assets/root"]
 	for path, output in tuples:
 		if path == output:
 			continue
@@ -150,11 +151,31 @@ def copy_tuple_directories(tuples, source, destination):
 				print("Merging", basename(output))
 			copy_directory(path, output)
 		else:
-			print("Destination and input", basename(input), "pathes conflicts!")
+			print("Destination and input", basename(path), "pathes conflicts!")
 		ignore_list.append(relpath(path, source))
 	mod_icon = join(source, "mod_icon.png")
 	if exists(mod_icon) and isfile(mod_icon):
 		copy_file(mod_icon, join(destination, "mod_icon.png"))
+	for file in glob(join(source, "**/*.md")):
+		if exists(file) and isfile(file):
+			relative_path = relpath(file, source)
+			copy_file(file, join(destination, relative_path))
+			ignore_list.append(relative_path)
+	git = join(source, "LICENSE")
+	if exists(git) and isfile(git):
+		copy_file(git, join(destination, "LICENSE"))
+		ignore_list.append("LICENSE")
+	git = join(source, ".gitignore")
+	if exists(git) and isfile(git):
+		copy_file(git, join(destination, ".gitignore"))
+	git = join(source, ".git")
+	if exists(git) and isdir(git):
+		copy_directory(git, join(destination, ".git"))
+		ignore_list.append(".git")
+	github = join(source, ".github")
+	if exists(github) and isdir(github):
+		copy_directory(github, join(destination, ".github"))
+		ignore_list.append(".github")
 	additional_path = join(destination, "assets", "root")
 	copy_directory(source, additional_path, ignore_list=ignore_list)
 	for dirpath, dirnames, filenames in os.walk(additional_path, False):
@@ -165,44 +186,54 @@ def copy_tuple_directories(tuples, source, destination):
 	if len(os.listdir(additional_path)) == 0:
 		os.removedirs(additional_path)
 
+def merge_json(left, right):
+	if not isinstance(right, dict):
+		return right
+	for key in right:
+		if isinstance(left[key], list) and isinstance(right[key], list):
+			left[key].extend(right[key])
+			continue
+		left[key] = merge_json(left[key], right[key])
+	return right
 
-if __name__ == "__main__":
-	if len(sys.argv) <= 1 or sys.argv[1] == "--help":
-		print("Usage: import.py <path> [destination]")
-		print("Performs conversion between mod.info, build.config and make.json,")
-		print("merges directories if few configurations exists.")
-		exit(0)
-
-	path = sys.argv[1]
-	if len(sys.argv) > 2:
-		destination = sys.argv[2]
-	else:
+def import_project(path = None, destination = None):
+	if path is None:
+		print("Specify absolute or relative path to toolchain folder that must be imported as project, it may be Inner Core mod or already exists Mod Toolchain folder.")
+		try:
+			path = input("Which directory will be imported? ")
+		except KeyboardInterrupt:
+			print("Abort.")
+			exit(0)
+	if destination is None:
 		from make_config import TOOLCHAIN_CONFIG
 		toolchain = TOOLCHAIN_CONFIG.root_dir
 		destination = join(toolchain, get_next_filename(toolchain, basename(path), "-"))
-	print(f"Importing {basename(path)} into '{destination}'")
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")
-	if not exists(path):
+	if not exists(path) or not isdir(path):
 		print("Input path not exists or specified!")
 		exit(1)
 	if exists(destination) and isfile(destination):
 		print("Destination path is file!")
 		exit(2)
+	if not (exists(join(path, "build.config")) or exists(join(path, "make.json"))):
+		print("Not found build.config or make.json entry to import, nothing to do!")
+		exit(3)
+	print(f"Importing '{path}' into {basename(destination)}")
 	make_obj = {}
 
 	make_project = join(destination, "make.json")
 	if exists(make_project) and isfile(make_project):
-		print("Merging with output make.json")
+		print("Reading output make.json")
 		with open(make_project, "r", encoding="utf-8") as make_file:
 			make_obj = json.loads(make_file.read())
 
 	make = join(path, "make.json")
 	if exists(make) and isfile(make):
-		print("Reading existing make.json")
+		print("Merging with existing make.json")
 		with open(make, "r", encoding="utf-8") as make_file:
-			make_obj = json.loads(make_file.read())
+			make_obj = merge_json(make_obj, json.loads(make_file.read()))
 
 	print("Resolving mod.info")
 	load_mod_info(make_obj, path)
@@ -226,4 +257,15 @@ if __name__ == "__main__":
 	print("Copying files and directories")
 	copy_tuple_directories(tuples, path, destination)
 
+	return destination
+
+
+if __name__ == "__main__":
+	if "--help" in sys.argv:
+		print("Usage: import.py <path> [destination]")
+		print("Performs conversion between mod.info, build.config and make.json,")
+		print("merges directories if few configurations exists.")
+		exit(0)
+
+	import_project(sys.argv[1] if len(sys.argv) > 1 else None, sys.argv[2] if len(sys.argv) > 2 else None)
 	print("Project successfully imported!")

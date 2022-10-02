@@ -333,6 +333,31 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Import Project",
+			"icon": {
+				"id": "repo-pull"
+			},
+			"type": "shell",
+			"command": "../import-project.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": "..\\import-project.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Remove Project",
 			"icon": {
 				"id": "root-folder-opened"

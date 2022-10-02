@@ -167,6 +167,7 @@ class ProjectManager:
 			CODE_SETTINGS.save()
 
 		self.select_project_folder(folder)
+		print(f"Project '{folder}' selected.")
 
 	def get_folder(self, index = None, folder = None):
 		if index == None:
