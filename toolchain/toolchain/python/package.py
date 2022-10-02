@@ -23,26 +23,6 @@ def get_path_set(pathes, error_sensitive = False):
 					print(f"Declared invalid directory {path}, it will be skipped")
 	return directories
 
-def get_asset_directories(**kw):
-	main_assets = get_path_set(MAKE_CONFIG.get_value("assets.main", []), error_sensitive=True)
-	if main_assets is not None:
-		modified_assets = get_path_set(MAKE_CONFIG.get_value("assets.modified", []), error_sensitive=True)
-		if modified_assets is not None:
-			return main_assets + modified_assets
-	return None
-
-def assemble_assets():
-	asset_directories = get_asset_directories()
-	if asset_directories is None:
-		print("Some asset directories are invalid, nothing will happened")
-		return -1
-
-	output_dir = MAKE_CONFIG.get_path("output/assets")
-	clear_directory(output_dir)
-	for asset_dir in asset_directories:
-		copy_directory(asset_dir, output_dir)
-	return 0
-
 def assemble_additional_directories():
 	result = 0
 	output_dir = MAKE_CONFIG.get_path("output")

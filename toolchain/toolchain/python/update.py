@@ -65,7 +65,7 @@ def extract_toolchain(directory):
 			continue
 		merge_directory(above, join(toolchain, filename))
 	accept_squash_and_replace = TOOLCHAIN_CONFIG.get_value("updateAcceptReplaceConfiguration", True)
-	merge_directory(join(branch, "toolchain"), join(toolchain, "toolchain"), accept_squash_and_replace, ["toolchain"], True, accept_squash_and_replace)
+	merge_directory(join(branch, "toolchain"), join(toolchain, "toolchain"), accept_squash_and_replace, ["toolchain", "toolchain.json"], True, accept_squash_and_replace)
 	merge_directory(join(branch, "toolchain/toolchain"), join(toolchain, "toolchain/toolchain"))
 	if isdir(join(toolchain, "toolchain-sample-mod")) and isdir(join(branch, "toolchain-sample-mod")):
 		shutil.rmtree(join(toolchain, "toolchain-sample-mod"))

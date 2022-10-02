@@ -1,7 +1,7 @@
 from os.path import isfile, abspath, relpath, join
 import json
 
-from make_config import MakeConfig, TOOLCHAIN_CONFIG
+from make_config import MakeConfig, MAKE_CONFIG, TOOLCHAIN_CONFIG
 from base_config import BaseConfig
 
 class WorkspaceNotAvailable(RuntimeError):
@@ -37,5 +37,5 @@ class CodeWorkspace(BaseConfig):
 		return MakeConfig.save(self)
 
 
-CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(TOOLCHAIN_CONFIG.get_value("workspaceFile")))
+CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("workspaceFile")))
 CODE_SETTINGS = CodeWorkspace(TOOLCHAIN_CONFIG.get_path(".vscode/settings.json"))

@@ -124,7 +124,7 @@ def task_build_info(args = None):
 	import json
 	from utils import shortcodes
 	with open(MAKE_CONFIG.get_path("output/mod.info"), "w") as info_file:
-		info = dict(MAKE_CONFIG.get_value("info", fallback={"name": "Unknown Mod"}))
+		info = dict(MAKE_CONFIG.get_value("info", fallback={}))
 
 		if "name" in info:
 			info["name"] = shortcodes(info["name"])
@@ -268,7 +268,7 @@ def task_configure_adb(args = None):
 def task_new_project(args = None):
 	from package import new_project
 
-	index = new_project(TOOLCHAIN_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
+	index = new_project(MAKE_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
 		print()
 		print("Abort.")

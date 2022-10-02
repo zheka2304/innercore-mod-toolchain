@@ -250,7 +250,7 @@ def which_device_will_be_connected(*devices, state_not_matter = False):
 
 def get_adb_command():
 	ensure_server_running()
-	devices = MAKE_CONFIG.get_value("devices", [])
+	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	from task import devnull
 	if len(devices):
 		subprocess.run([
@@ -287,7 +287,7 @@ def get_adb_command():
 
 def get_adb_command_by_serial(serial):
 	ensure_server_running()
-	devices = MAKE_CONFIG.get_value("devices", [])
+	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not serial in devices:
 		devices.append(serial)
 		TOOLCHAIN_CONFIG.set_value("devices", devices)
@@ -310,7 +310,7 @@ def get_adb_command_by_tcp(ip, port = None):
 	}
 	if port is not None:
 		device["port"] = port
-	devices = MAKE_CONFIG.get_value("devices", [])
+	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not device in devices:
 		devices.append(device)
 		TOOLCHAIN_CONFIG.set_value("devices", devices)
@@ -331,7 +331,7 @@ def get_adb_command_by_serialno_type(which):
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
 def setup_device_connection():
-	not_connected_any_device = len(MAKE_CONFIG.get_value("devices", [])) == 0
+	not_connected_any_device = len(TOOLCHAIN_CONFIG.get_value("devices", [])) == 0
 	if not_connected_any_device:
 		print(
 			"Howdy! " +
@@ -439,7 +439,7 @@ def setup_externally(skip_input = False):
 	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
 		serial = get_device_serial()
 		if serial is not None:
-			if not serial in MAKE_CONFIG.get_value("devices", []):
+			if not serial in TOOLCHAIN_CONFIG.get_value("devices", []):
 				return get_adb_command_by_serial(serial)
 			else:
 				print("Connected device already saved, maybe another available too.")
