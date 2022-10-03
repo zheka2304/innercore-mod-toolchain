@@ -15,7 +15,7 @@ def build_all_scripts(debug_build = False):
 	mod_structure.cleanup_build_target("script_library")
 
 	allowed_languages = []
-	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0:
+	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or MAKE_CONFIG.get_value("denyJavaScript", True):
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
 		if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
