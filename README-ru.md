@@ -10,7 +10,7 @@
 
 Для корректной работы этот тулчейн требует:
 
-- [Python](https://www.python.org/) 3.6 или выше
+- [Python](https://www.python.org/) 3.7 или выше
 - [node.js](https://nodejs.org/en/) 10.15.1 или выше (для TypeScript моддинга), также должен быть установлен `tsc` (для этого запустите `npm install -g tsc`)
 - [Android NDK](https://github.com/android/ndk/wiki/Unsupported-Downloads#r16b) версии r16b (для C++ моддинга), в противном случае он может быть установлен тулчейном когда это будет необходимо
 - [Java Development Kit 1.8](https://adoptium.net/temurin/releases/?version=8) (для Java моддинга)
@@ -71,7 +71,7 @@ python3 toolchain-setup.py --help
 - toolchain.json — основная конфигурация тулчейна и базовые свойства для *make.json*
 - template.json — шаблон для последующей генерации *make.json*
 
-Подробное описание каждого из файлов можно найти в [статье](FAQ-ru.md).
+Подробное описание каждого из файлов можно найти в [статье](CONFIG-ru.md).
 
 ## Импортирование, создание и удаление проектов
 

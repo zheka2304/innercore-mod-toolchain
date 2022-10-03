@@ -10,7 +10,7 @@
 
 To work correctly, this toolchain requires:
 
-- [Python](https://www.python.org/) 3.6 or higher
+- [Python](https://www.python.org/) 3.7 or higher
 - [node.js](https://nodejs.org/en/) 10.15.1 or higher (for TypeScript modding), `tsc` must also be installed (to do this, run `npm install -g tsc`)
 - [Android NDK](https://github.com/android/ndk/wiki/Unsupported-Downloads#r16b) version r16b (for C++ modding), otherwise it can be installed by toolchain when needed
 - [Java Development Kit 1.8](https://adoptium.net/temurin/releases/?version=8) (for Java modding)
@@ -71,7 +71,7 @@ There are three types of configurations for managing projects, builds, and the t
 - toolchain.json - toolchain configuration and basic properties for *make.json*
 - template.json - template for subsequent generation *make.json*
 
-A detailed description of each of the files can be found in [article](FAQ.md).
+A detailed description of each of the files can be found in [article](CONFIG.md).
 
 ## Importing, creating and removing projects
 
