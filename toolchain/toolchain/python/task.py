@@ -26,7 +26,7 @@ def lock_task(name, silent = True):
 				if not await_message:
 					await_message = True
 					if not silent:
-						sys.stdout.write(f"Task {name} is locked by another process, waiting for it to unlock.")
+						sys.stdout.write(f"* Task {name} is locked by another process, waiting for it to unlock.")
 					if name in locked_tasks:
 						error("ERROR: Dead lock detected", code=-2)
 				if not silent:
