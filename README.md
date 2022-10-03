@@ -17,21 +17,21 @@ To work correctly, this toolchain requires:
 
 It is obligatory to install only first component, the rest can be installed when necessary.
 
-[![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
-
 ## Installation
 
 You can simply download repository, however we recommend using install script. It will help you install all necessary components for more efficient use. Open a terminal in the folder that will be used to install toolchain and enter command following the information from interactive console.
 
 ```sh
-python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
+python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
 Alternatively, save [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) for more installation and import options. Run the following command for more details.
 
 ```sh
-python3 toolchain-setup.py --help
+python toolchain-setup.py --help
 ```
+
+[![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
 
 ### Modding with Visual Studio Code
 
@@ -67,9 +67,9 @@ To start the first build, use `Build` task or run `./build-all.bat` or `./build-
 
 There are three types of configurations for managing projects, builds, and the toolchain itself. They describe complete process of building your project.
 
-- make.json - to control the assembly of projects
-- toolchain.json - toolchain configuration and basic properties for *make.json*
-- template.json - template for subsequent generation *make.json*
+- make.json — to control the assembly of projects
+- toolchain.json — toolchain configuration and basic properties for *make.json*
+- template.json — template for subsequent generation *make.json*
 
 A detailed description of each of the files can be found in [article](CONFIG.md).
 

@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isfile, isdir, basename
+from os.path import join, exists, isfile, isdir
 import platform
 import shutil
 import sys
@@ -114,18 +114,18 @@ if platform.system() != "Windows":
 		[0, 0, 196, 196, 0, 196, 196, 214, 220, 2, 7, 7, " T", "oo", "lc", "ha", "in", 7, 7, 7, 2, 214, 196, 196, 196, 196, 196, 196, 0],
 		[0, 160, 196, 0, 196, 196, 124, 226, 220, 2, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 2, 214, 196, 202, 0, 196, 196, 0, 0]
 	])
-	print()
+print()
 
 if "--foreign" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"component.py"
-	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"component.py", "--startup"
-	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
@@ -135,4 +135,4 @@ if "--import" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"import.py", folder
-	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))

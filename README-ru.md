@@ -17,21 +17,21 @@
 
 Обязательна установка лишь первого компонента, остальные могут быть установлены когда это будет необходимо.
 
-[![Inner Core/Horizon Mods Development | Настройка среды](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
-
 ## Установка
 
 Вы можете просто загрузить репозиторий, однако мы рекомендуем использовать именно скрипт установки. Он поможет вам установить все необходимые компоненты для более эффективного использования. Откройте терминал в папке, которая будет использована для установки тулчейна, и введите команду, следуя информации из интерактивной консоли.
 
 ```sh
-python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
+python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
 Либо же сохраните [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) для получения доступа к дополнительным опциям установки и импорта. Вызовите следующую команду для получения подробней.
 
 ```sh
-python3 toolchain-setup.py --help
+python toolchain-setup.py --help
 ```
+
+[![Inner Core/Horizon Mods Development | Настройка среды](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
 
 ### Моддинг с Visual Studio Code
 
