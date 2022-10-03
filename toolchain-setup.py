@@ -1,6 +1,6 @@
 import os
 from os.path import join, exists, isfile, isdir, basename
-from platform import platform
+import platform
 import shutil
 import sys
 import subprocess
@@ -94,7 +94,7 @@ if "--help" in sys.argv:
 location = sys.argv[len(sys.argv) - 1] if len(sys.argv) > 1 and not sys.argv[len(sys.argv) - 1].startswith("--") else "."
 download_and_extract_toolchain(location)
 
-if platform() != "Windows":
+if platform.system() != "Windows":
 	print()
 	print_placeholder([
 		[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -118,14 +118,14 @@ if platform() != "Windows":
 
 if "--foreign" in sys.argv:
 	subprocess.run([
-		"python" if platform() == "Windows" else "python3",
+		"python" if platform.system() == "Windows" else "python3",
 		"component.py"
-	], cwd=join(location, r".\toolchain\toolchain\python") if platform() == "Windows" else join(location, "./toolchain/toolchain/python"))
+	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
-		"python" if platform() == "Windows" else "python3",
+		"python" if platform.system() == "Windows" else "python3",
 		"component.py", "--startup"
-	], cwd=join(location, r".\toolchain\toolchain\python") if platform() == "Windows" else join(location, "./toolchain/toolchain/python"))
+	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
@@ -133,6 +133,6 @@ if "--import" in sys.argv:
 		exit(5)
 	folder = sys.argv[where + 1]
 	subprocess.run([
-		"python" if platform() == "Windows" else "python3",
+		"python" if platform.system() == "Windows" else "python3",
 		"import.py", folder
-	], cwd=join(location, r".\toolchain\toolchain\python") if platform() == "Windows" else join(location, "./toolchain/toolchain/python"))
+	], cwd=join(location, r"toolchain\toolchain\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
