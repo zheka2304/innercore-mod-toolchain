@@ -1,6 +1,9 @@
 import sys
-import termios
-import tty
+try:
+	import termios
+	import tty
+except ImportError:
+	import msvcrt
 
 from ansi_escapes import *
 
@@ -21,13 +24,26 @@ class Shell():
 		return self.stdin.readline(count)
 
 	def input_raw(self, count = 1):
-		fd = self.stdin.fileno()
-		term_attrs = termios.tcgetattr(fd)
 		try:
-			tty.setraw(fd)
-			key = self.stdin.read(count)
+			fd = self.stdin.fileno()
+			term_attrs = termios.tcgetattr(fd)
+		except NameError:
+			pass
+		try:
+			try:
+				tty.setraw(fd)
+				key = self.stdin.read(count)
+			except NameError:
+				key = msvcrt.getwch()
+				count -= 1
+				while count > 0:
+					key += msvcrt.getwch()
+					count -= 1
 		finally:
-			termios.tcsetattr(fd, termios.TCSADRAIN, term_attrs)
+			try:
+				termios.tcsetattr(fd, termios.TCSADRAIN, term_attrs)
+			except NameError:
+				pass
 		return key
 
 	def input(self, count = 1):
@@ -162,9 +178,17 @@ class InteractiveShell(Shell):
 
 	def observe(self, raw):
 		observed = Shell.observe(self, raw)
-		if raw != "\x1b":
+		if raw != "\x1b" and raw != "\xe0":
 			return observed
 		key = self.input_raw(1)
+		if raw == "\xe0":
+			if key == "M": # Right
+				self.turn_forward()
+			elif key == "K": # Left
+				self.turn_backward()
+			else:
+				return observed
+			return True
 		if key != "[":
 			return observed
 		joy = self.input_raw(1)
@@ -361,9 +385,21 @@ class SelectiveShell(InteractiveShell):
 				return False
 			raise EOFError()
 		observed = Shell.observe(self, raw)
-		if raw != "\x1b":
+		if raw != "\x1b" and raw != "\xe0":
 			return observed
 		key = self.input_raw(1)
+		if raw == "\xe0":
+			if key == "H": # Up
+				self.turn_up()
+			elif key == "P": # Down
+				self.turn_down()
+			elif key == "M": # Right
+				self.turn_forward()
+			elif key == "K": # Left
+				self.turn_backward()
+			else:
+				return observed
+			return True
 		if key != "[":
 			return observed
 		joy = self.input_raw(1)
