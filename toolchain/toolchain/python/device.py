@@ -1,6 +1,8 @@
+import os
 from os.path import join, relpath, basename
 import platform
 import re
+import socket
 import subprocess
 from glob import glob
 
@@ -131,7 +133,7 @@ def push(directory, push_unchanged = False):
 		percent += 1
 
 		if result != 0:
-			progress.seek(f"Failed pushing {filename} with code {result}")
+			progress.seek(0.5, f"Failed {filename} with code {result}")
 			shell.render()
 			shell.leave()
 			return result
@@ -254,6 +256,18 @@ def which_device_will_be_connected(*devices, state_not_matter = False):
 	] + ["I don't see my device"])
 	return None if which is None or which == len(devices) else devices[which]
 
+def get_ip():
+	make = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	make.settimeout(0)
+	try:
+		make.connect(("10.253.254.255", 1))
+		ip = make.getsockname()[0]
+	except Exception:
+		ip = "127.0.0.1"
+	finally:
+		make.close()
+	return ip
+
 def get_adb_command():
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
@@ -295,17 +309,23 @@ def get_adb_command_by_serial(serial):
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not serial in devices:
-		devices.append(serial)
-		TOOLCHAIN_CONFIG.set_value("devices", devices)
-		TOOLCHAIN_CONFIG.save()
+		try:
+			from ipaddress import ip_address
+			ip_address(serial.partition(":")[0])
+		except ValueError:
+			devices.append(serial)
+			TOOLCHAIN_CONFIG.set_value("devices", devices)
+			TOOLCHAIN_CONFIG.save()
 	return [
 		TOOLCHAIN_CONFIG.get_adb(),
 		"-s", serial
 	]
 
-def get_adb_command_by_tcp(ip, port = None):
+def get_adb_command_by_tcp(ip, port = None, skip_error = False):
 	ensure_server_running()
 	if get_adb_command_by_serialno_type("-e") is None:
+		if skip_error:
+			return None
 		try:
 			if input("Are you sure want to save it? [N/y] ")[:1].lower() != "y":
 				return print("Abort.")
@@ -380,17 +400,110 @@ def setup_via_usb():
 def setup_via_network():
 	which = select_prompt(
 		"Which network type must be used?",
-		"Just TCP by IP and Port",
-		# "Ping network automatically",
+		"Just TCP by IP and PORT",
+		"Ping network automatically",
 		"Connect with pairing code",
 		"Turn back", fallback=2
 	)
-	# return setup_via_ping_localhost() if which == 1 else \
-	return setup_device_connection() if which == 2 else \
-		setup_via_tcp_network(with_pairing_code=which == 1)
+	return setup_device_connection() if which == 3 else \
+		setup_via_ping_localhost() if which == 1 else \
+		setup_via_tcp_network(with_pairing_code=which == 2)
+
+def setup_via_ping_localhost():
+	ip = get_ip().rpartition(".")
+	if len(ip[2]) == 0:
+		print("Not availabled right now.")
+		return setup_via_network()
+	shell = Shell()
+	progress = Progress(text="Connecting")
+	shell.interactables.append(progress)
+	shell.enter()
+	accepted = []
+	try:
+		import asyncio
+		asyncio.run(ping_async(ip, shell, progress, accepted))
+	except ImportError:
+		for index in range(256):
+			if str(index) == ip[2]:
+				continue
+			next_ip = "{}.{}".format(ip[0], index)
+			if ping_via_shell(next_ip, shell, progress, index):
+				accepted.append(next_ip)
+	shell.leave()
+	from task import devnull
+	subprocess.run([
+		TOOLCHAIN_CONFIG.get_adb(),
+		"disconnect"
+	], stdout=devnull, stderr=devnull)
+	latest = None
+	for next in accepted:
+		try:
+			subprocess.run([
+				TOOLCHAIN_CONFIG.get_adb(),
+				"connect", next
+			], check=True, timeout=5.0, stdout=devnull, stderr=devnull)
+			command = get_adb_command_by_tcp(next, skip_error=True)
+			if command is not None:
+				latest = command
+		except subprocess.CalledProcessError as err:
+			print("adb connect failed with code", err.errorcode)
+		except subprocess.TimeoutExpired:
+			print("Timeout")
+		except KeyboardInterrupt:
+			print()
+	if latest is not None:
+		return latest
+	if len(accepted) > 0:
+		print("Found several variants to connection, default port not worked otherwise.")
+		print("\n".join(accepted))
+		print("You can try reconnect to one of it with specified port.")
+		try:
+			input()
+		except KeyboardInterrupt:
+			pass
+	return setup_via_network()
+
+def ping_via_shell(ip, shell, progress, index):
+	progress.text = "Pinging " + ip
+	progress.progress = index / 255
+	shell.render()
+
+	from task import devnull
+	return subprocess.call([
+		"ping",
+		"-n" if platform.system() == "Windows" else "-c", "1",
+		ip
+	], stdout=devnull, stderr=devnull) == 0
+
+async def ping(ip, shell, progress, index, accepted):
+	progress.text = "Pinging " + ip
+	progress.progress = index / 255
+	shell.render()
+
+	from task import devnull
+	import asyncio
+	coroutine = await asyncio.create_subprocess_shell(
+		"ping " + ("-n" if platform.system() == "Windows" else "-c") + " 1 " + ip, stdout=devnull, stderr=devnull
+	)
+	await coroutine.wait()
+
+	if coroutine.returncode == 0:
+		accepted.append(ip)
+
+async def ping_async(ip, shell, progress, accepted):
+	import asyncio
+	tasks = []
+	for index in range(256):
+		if str(index) == ip[2]:
+			continue
+		next_ip = "{}.{}".format(ip[0], index)
+		task = asyncio.ensure_future(ping(next_ip, shell, progress, index, accepted))
+		tasks.append(task)
+	await asyncio.gather(*tasks, return_exceptions=True)
 
 def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pairing_code = False):
 	if ip is None:
+		print("You are connected via", get_ip())
 		try:
 			tcp = input("Specify address: IP[:PORT] ")
 			if len(tcp) == 0:
@@ -414,7 +527,7 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 				"pair",
 				f"{ip}:{port}" if port is not None else ip,
 				pairing_code
-			], check=True)
+			], check=True, stderr=devnull, stdout=devnull)
 		except subprocess.CalledProcessError as err:
 			print("adb pair failed with code", err.errorcode)
 		except KeyboardInterrupt:
