@@ -1,0 +1,1 @@
+python3 task.py stopHorizon pushEverything launchHorizon

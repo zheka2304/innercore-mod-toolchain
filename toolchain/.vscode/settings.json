@@ -1,0 +1,30 @@
+{
+	"java.dependency.packagePresentation": "flat",
+	"java.dependency.syncWithFolderExplorer": true,
+	"java.project.outputPath": "toolchain/build/java",
+	"files.exclude": {
+		"**/__pycache__/": true,
+		".settings/": true,
+		".idea/": true,
+		"toolchain/adb/": true,
+		"toolchain/bin/": true,
+		"toolchain/ndk/": true,
+		"toolchain/build/*/gcc/": true,
+		"toolchain/build/*/gradle/": true,
+		"toolchain/temp/": true,
+		"toolchain/**/.*commit": true,
+		"toolchain/*.bat": true,
+		"toolchain/*.sh": true,
+		".gitignore": true,
+		".classpath": true,
+		".project": true,
+		"**/*.log": true
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"**/*.code-search": true,
+		"toolchain/**/*": true
+	},
+	"C_Cpp.errorSquiggles": "Disabled"
+}

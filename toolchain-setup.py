@@ -1,70 +1,137 @@
-import shutil
 import os
-import os.path
+from os.path import join, exists, isfile, isdir, basename
+from platform import platform
+import shutil
 import sys
-
-from distutils.dir_util import copy_tree
-from subprocess import call
-import platform
-
-
-def get_python():
-    if platform.system() == "Windows":
-        return "python"
-    else:
-        return "python3"
-
-
-def copytree(src, dst, symlinks=False, ignore=None):
-    if not os.path.exists(src) or os.path.isfile(src):
-        raise Exception()
-    for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.exists(d):
-            continue
-        if os.path.isdir(s):
-            shutil.copytree(s, d, symlinks, ignore)
-        else:
-            shutil.copy2(s, d)
-
+import subprocess
+import urllib.request as request
+from urllib.error import URLError
+import zipfile
 
 def download_and_extract_toolchain(directory):
-    import urllib.request
-    import zipfile
-    archive = os.path.join(directory, 'toolchain.zip')
+	os.makedirs(directory, exist_ok=True)
+	archive = join(directory, "toolchain.zip")
 
-    if not os.path.exists(archive):
-        url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/master"
-        print("downloading toolchain archive from " + url)
-        urllib.request.urlretrieve(url, archive)
-    else: 
-        print("toolchain archive already exists in " + directory)
+	if exists(join(directory, "toolchain")):
+		print("Inner Core Mod Toolchain already installed in '" + directory + "'.")
+		print("Newly installed files will be merged with your installation.")
+		print("It's handly to restore necessary removed script or template.")
+		try:
+			if input("Do you want to download it again? [N/y] ")[:1].lower() != "y":
+				return print("Abort.")
+		except KeyboardInterrupt:
+			return print("Abort.")
 
-    print("extracting toolchain to " + directory)
+	if not exists(archive):
+		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
+		print("Downloading Inner Core Mod Toolchain: " + url)
+		try:
+			request.urlretrieve(url, archive)
+		except URLError:
+			print("Check your network connection!")
+			exit(1)
+		except BaseException as err:
+			print(err)
+			print("Inner Core Mod Toolchain installation not completed due to above error.")
+			exit(2)
+	else:
+		print("'toolchain.zip' already exists in '" + directory + "'.")
 
-    with zipfile.ZipFile(archive, 'r') as zip_ref:
-        zip_ref.extractall(directory)
+	print("Extracting into '" + directory + "'...")
 
-    try:
-        copytree(os.path.join(directory, "innercore-mod-toolchain-master/toolchain-mod"), directory)
-        shutil.rmtree(os.path.join(directory, "innercore-mod-toolchain-master"))
-    except Exception as ex: 
-        pass
-    finally:
-        if not os.path.exists(os.path.join(directory, "toolchain")):
-            print("an error occured while extracting toolchain archive, please, retry the operation")
-            os.remove(archive)
-            exit()
+	with zipfile.ZipFile(archive, "r") as zip_ref:
+		zip_ref.extractall(directory)
+
+	commit = "unknown"
+	try:
+		if isdir(join(directory, "toolchain-mod/toolchain")):
+			dirname = "toolchain-mod"
+			index = 0
+			while exists(join(directory, dirname)):
+				index += 1
+				dirname = "toolchain-mod-" + str(index)
+			shutil.move(join(directory, "toolchain-mod"), join(directory, dirname))
+		shutil.copytree(join(directory, "innercore-mod-toolchain-deploy"), directory, dirs_exist_ok=True)
+		if isfile(join(directory, "toolchain/toolchain/bin/.commit")):
+			with open(join(directory, "toolchain/toolchain/bin/.commit")) as file:
+				commit = file.read()
+		shutil.rmtree(join(directory, "innercore-mod-toolchain-deploy"))
+	except BaseException as err:
+		print(err)
+		print("Inner Core Mod Toolchain installation not completed due to above error.")
+		exit(3)
+	finally:
+		if not exists(join(directory, "toolchain")):
+			print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
+			print("Retry operation or extract 'toolchain.zip' manually.")
+			exit(4)
+		else:
+			os.remove(archive)
+
+	print("Installed into '" + directory + "' under " + commit.strip()[:7] + " revision.")
+
+def print_placeholder(which):
+	layer = 0
+	while layer < len(which):
+		for symbol in which[layer]:
+			print("\x1b[", "" if symbol == 0 or symbol == 7 else "7m" if not isinstance(symbol, int) else "7m\x1b[" if symbol == 2 else "48;5;", symbol, "m  " if isinstance(symbol, int) else "", sep="", end="\x1b[0m")
+		print()
+		layer += 1
 
 
-if(len(sys.argv) > 1):
-    directory = sys.argv[1]
-    os.makedirs(directory)
-else: 
-    directory = '.'
+if "--help" in sys.argv:
+	print("Usage: toolchain-setup.py <options> [directory]")
+	print(" " * 2 + "--no-startup: Skip startup stage for configuring author")
+	print(" " * 4 + "identity and installing additional components.")
+	print(" " * 2 + "--import <folder> [destination]:")
+	print(" " * 4 + "Run import after installation completion in specified")
+	print(" " * 4 + "location, toolchain destination used by default.")
+	print(" " * 2 + "--foreign: Skip startup stage, install components instead.")
+	print("Download toolchain deploy branch, run startup script to complete")
+	print("components installation and setup defaults.")
+	exit(0)
 
-download_and_extract_toolchain(directory)
+location = sys.argv[len(sys.argv) - 1] if len(sys.argv) > 1 and not sys.argv[len(sys.argv) - 1].startswith("--") else "."
+download_and_extract_toolchain(location)
 
-setup_script = os.path.join(directory, "toolchain", "python", "setup.py")
-call(get_python() + " " + setup_script + " " + directory + " " + os.path.join(directory, "project.back"), shell=True)
+print()
+print_placeholder([
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 124, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 196, 160, 196, 196, 196, 196, 0, 0, 0, 0, 0, 0, 196, 160, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 196, 196, 196, 196, 160, 0, 0, 0, 0, 196, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 196, 196, 196, 196, 0, 0, 0, 196, 196, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 160, 196, 196, 160, 196, 160, 160, 0, 160, 0, 0, 196, 196, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 160, 196, 196, 196, 196, 0, 0, 160, 196, 196, 196, 0, 220, 0, 160, 196, 0, 196, 196, 0, 0, 0, 0, 0],
+	[0, 0, 0, 160, 196, 196, 196, 196, 196, 0, 0, 0, 226, 220, 196, 196, 196, 214, 220, 0, 196, 160, 196, 196, 196, 0, 0, 0, 0],
+	[0, 0, 196, 196, 196, 160, 0, 196, 196, 196, 202, 208, 220, 226, 226, 202, 202, 196, 226, 226, 196, 196, 196, 196, 196, 0, 0, 0, 160],
+	[0, 196, 196, 0, 0, 160, 196, 196, 196, 196, 196, 208, 214, 214, 214, 220, 2, 214, 220, 226, 196, 196, 0, 160, 196, 0, 0, 0, 196],
+	[160, 160, 0, 0, 160, 196, 160, 172, 202, 214, 214, 2, 2, 7, 7, 7, 2, 7, 2, 214, 196, 196, 0, 0, 196, 0, 0, 0, 196],
+	[0, 0, 0, 0, 0, 0, 0, 0, 226, 226, 2, 7, 7, 7, 7, 7, 7, 7, 7, 2, 214, 196, 0, 0, 0, 160, 0, 160, 196],
+	[0, 0, 0, 160, 196, 0, 0, 166, 208, 226, 2, 7, 7, 7, 7, 7, 7, 7, 7, 2, 220, 208, 226, 0, 196, 196, 0, 196, 196],
+	[0, 0, 0, 196, 196, 0, 196, 196, 214, 226, 7, 7, " I", "nn", "er", " C", "or", "e ", 7, 7, 214, 226, 226, 124, 196, 196, 0, 196, 160],
+	[0, 0, 196, 196, 196, 160, 196, 196, 214, 2, 7, 7, " M", "od", 7, 7, 7, 7, 7, 7, 2, 226, 208, 196, 196, 0, 196, 196, 0],
+	[0, 0, 196, 196, 0, 196, 196, 214, 220, 2, 7, 7, " T", "oo", "lc", "ha", "in", 7, 7, 7, 2, 214, 196, 196, 196, 196, 196, 196, 0],
+	[0, 160, 196, 0, 196, 196, 124, 226, 220, 2, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 2, 214, 196, 202, 0, 196, 196, 0, 0]
+])
+print()
+
+if "--foreign" in sys.argv:
+	subprocess.run([
+		"python" if platform() == "Windows" else "python3",
+		"component.py"
+	], cwd=join(location, "toolchain/toolchain/python"))
+elif not "--no-startup" in sys.argv:
+	subprocess.run([
+		"python" if platform() == "Windows" else "python3",
+		"component.py", "--startup"
+	], cwd=join(location, "toolchain/toolchain/python"))
+if "--import" in sys.argv:
+	where = sys.argv.index("--import")
+	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
+		print("Not found import path, nothing will happened.")
+		exit(5)
+	folder = sys.argv[where + 1]
+	subprocess.run([
+		"python" if platform() == "Windows" else "python3",
+		"import.py", folder
+	], cwd=join(location, "toolchain/toolchain/python"))

@@ -1,0 +1,34 @@
+{
+	"folders": [
+		{
+			"path": "toolchain",
+			"name": "Inner Core Mod Toolchain"
+		},
+		{
+			"path": "toolchain-sample-mod",
+			"name": "Sample Mod"
+		}
+	],
+	"settings": {
+		"java.project.referencedLibraries": [
+			"../toolchain/toolchain/classpath/**/*.jar",
+			"toolchain/toolchain/classpath/**/*.jar",
+			"../toolchain/classpath/**/*.jar",
+			"toolchain/classpath/**/*.jar"
+		],
+		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
+		"window.titleSeparator": " \u2014 ",
+		"search.useParentIgnoreFiles": true,
+		"C_Cpp.errorSquiggles": "Disabled"
+	},
+	"extensions": {
+		"recommendations": [
+			"dbaeumer.vscode-eslint",
+			"ms-vscode.cpptools-extension-pack",
+			"vscjava.vscode-java-pack"
+		],
+		"unwantedRecommendations": [
+			"ms-vscode.vscode-typescript-tslint-plugin"
+		]
+	}
+}

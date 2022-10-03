@@ -1,0 +1,3 @@
+@echo off
+cd python
+python task.py clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
