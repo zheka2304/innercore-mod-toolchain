@@ -3,14 +3,14 @@ class BaseConfig:
 		self.json = json
 		self.prototype = base
 
-	def get_value(self, name, fallback = None):
+	def get_value(self, name, fallback = None, accept_prototype = True):
 		rawname = name.split(".")
 		value = self.json
 		while len(rawname) > 0 and len(rawname[0]) > 0:
 			key = rawname.pop(0)
 			if key in value:
 				value = value[key]
-			elif self.prototype is not None:
+			elif accept_prototype and self.prototype is not None:
 				return self.prototype.get_value(name, fallback)
 			else:
 				return fallback

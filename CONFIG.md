@@ -94,7 +94,7 @@ Properties marked with \* can have absolute file paths.
 ├─ abis: [] // "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
 ├─ debugAbi: "armeabi-v7" // main architecture for compiling native code at development stage
 │
-├─ pushTo // output modpack folder on device, selected on anything connection
+├─ pushTo // output modpack folder on device, selected on anything connection; modpack path in toolchain config, mod itself in make
 ├─ adb: {} // additional ADB settings
 │  ├─ pushAnyLocation: false // by default, if the pushTo property does not specify installation of Inner Core pack, a warning will be issued for pushing to a strange location; this setting disables it
 │  ├─ pushUnchangedFiles: true // whether all files should be pushed to the device, or only modified ones

@@ -12,7 +12,11 @@ from shell import Progress, Shell, select_prompt
 from ansi_escapes import link
 
 def get_modpack_push_directory():
-	directory = MAKE_CONFIG.get_value("pushTo")
+	directory = MAKE_CONFIG.get_value("pushTo", accept_prototype=False)
+	if directory is None:
+		directory = TOOLCHAIN_CONFIG.get_value("pushTo")
+		if directory is not None:
+			directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
 	if directory is None:
 		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
 		TOOLCHAIN_CONFIG.save()
@@ -20,7 +24,6 @@ def get_modpack_push_directory():
 			from task import error
 			error("Nothing may be selected in modpack, nothing to do.")
 		return get_modpack_push_directory()
-	directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
 	if "/horizon/packs/" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
