@@ -156,7 +156,7 @@ def copy_tuple_directories(tuples, source, destination):
 	mod_icon = join(source, "mod_icon.png")
 	if exists(mod_icon) and isfile(mod_icon):
 		copy_file(mod_icon, join(destination, "mod_icon.png"))
-	for file in glob(join(source, "**/*.md")):
+	for file in glob(join(source, "*.md")):
 		if exists(file) and isfile(file):
 			relative_path = relpath(file, source)
 			copy_file(file, join(destination, relative_path))
