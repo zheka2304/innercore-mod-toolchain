@@ -12,11 +12,14 @@ from ansi_escapes import link
 def get_modpack_push_directory():
 	directory = MAKE_CONFIG.get_value("pushTo")
 	if directory is None:
-		TOOLCHAIN_CONFIG.set("pushTo", setup_modpack_directory())
+		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
 		TOOLCHAIN_CONFIG.save()
+		if MAKE_CONFIG.get_value("pushTo") is None:
+			from task import error
+			error("Nothing may be selected in modpack, nothing to do.")
 		return get_modpack_push_directory()
 	directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
-	if "games/horizon/packs" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
+	if "/horizon/packs/" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
 			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
@@ -30,9 +33,10 @@ def get_modpack_push_directory():
 		)
 		if which == 0:
 			TOOLCHAIN_CONFIG.remove_value("pushTo")
+			MAKE_CONFIG.remove_value("pushTo")
 			return get_modpack_push_directory()
 		elif which == 2:
-			TOOLCHAIN_CONFIG.set("adb.pushAnyLocation", True)
+			TOOLCHAIN_CONFIG.set_value("adb.pushAnyLocation", True)
 			TOOLCHAIN_CONFIG.save()
 			print("This may be changed in your toolchain.json config.")
 		elif which == 3:
@@ -94,11 +98,10 @@ def push(directory, push_unchanged = False):
 	shell = Shell()
 	progress = Progress("Pushing")
 	shell.interactables.append(progress)
-	shell.enter()
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or output_storage.is_path_changed(path)]
 	if len(items) == 0:
 		progress.seek(1, "Nothing to push")
-		shell.render()
+		shell.enter()
 		shell.leave()
 		return 0
 
@@ -106,17 +109,18 @@ def push(directory, push_unchanged = False):
 	if dst_root is None:
 		return 1
 
+	shell.enter()
 	dst_root = dst_root.replace("\\", "/")
 	if not dst_root.startswith("/"):
 		dst_root = "/" + dst_root
 	src_root = directory.replace("\\", "/")
 
-	progress = 0
+	percent = 0
 	from task import devnull
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
-		progress.seek(progress / len(items), "Pushing " + filename)
+		progress.seek(percent / len(items), "Pushing " + filename)
 		shell.render()
 		subprocess.call(adb_command + [
 			"shell", "rm", "-r", dst
@@ -124,7 +128,7 @@ def push(directory, push_unchanged = False):
 		result = subprocess.call(adb_command + [
 			"push", src, dst
 		], stderr=devnull, stdout=devnull)
-		progress += 1
+		percent += 1
 
 		if result != 0:
 			progress.seek(f"Failed pushing {filename} with code {result}")
@@ -153,7 +157,7 @@ def make_locks(*locks):
 			return result
 	return 0
 
-def ensure_server_running():
+def ensure_server_running(retry = 0):
 	try:
 		from task import devnull
 		subprocess.run([
@@ -162,8 +166,10 @@ def ensure_server_running():
 		], check=True, stdout=devnull, stderr=devnull)
 		return True
 	except subprocess.CalledProcessError as err:
-		print("adb start-server failed with code", err.returncode)
-		return False
+		if retry >= 3:
+			print("adb start-server failed with code", err.returncode)
+			return False
+		return ensure_server_running(retry + 1)
 
 STATE_UNKNOWN = -1
 STATE_DEVICE_CONNECTED = 0
@@ -252,13 +258,13 @@ def get_adb_command():
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	from task import devnull
-	if len(devices):
+	if len(devices) > 0:
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"disconnect"
 		], stdout=devnull, stderr=devnull)
 	for device in devices:
-		if isinstance(device, object):
+		if isinstance(device, dict):
 			try:
 				subprocess.run([
 					TOOLCHAIN_CONFIG.get_adb(),
@@ -275,7 +281,7 @@ def get_adb_command():
 				itwillbe.append(device)
 		device = which_device_will_be_connected(*(list if len(itwillbe) == 0 else itwillbe))
 		if device is not None:
-			return device
+			return get_adb_command_by_serial(device["serial"])
 	if MAKE_CONFIG.get_value("adb.doNothingIfDisconnected", False):
 		from task import error
 		error("Not found connected devices, nothing to do.", 0)
