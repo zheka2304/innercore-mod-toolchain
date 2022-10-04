@@ -3,3 +3,12 @@ toolchain/build
 toolchain/temp
 toolchain/ndk
 !.idea/runConfigurations
+
+.vscode/.ropeproject
+output
+**/__pycache__
+**/tsconfig.json
+
+*.log
+*.icmod
+.*commit
