@@ -4,7 +4,7 @@ from os.path import exists, join, basename, isfile, isdir, relpath
 import sys
 import json
 
-from utils import copy_directory, copy_file, ensure_directory, get_next_filename
+from utils import copy_directory, copy_file, ensure_directory, get_project_folder_by_name
 from base_config import BaseConfig
 
 def load_mod_info(make_obj, directory):
@@ -12,7 +12,7 @@ def load_mod_info(make_obj, directory):
 	mod_info_obj = {
 		"name": basename(directory if directory != "." else os.getcwd())
 	} if not "info" in make_obj else make_obj["info"]
-	if not exists(mod_info) or not isfile(mod_info):
+	if not isfile(mod_info):
 		make_obj["info"] = mod_info_obj
 		return
 
@@ -33,7 +33,7 @@ def load_mod_info(make_obj, directory):
 def load_build_config(make_obj, source, destination):
 	build_config = join(source, "build.config")
 	destination_copy_tuples = []
-	if not exists(build_config) or not isfile(build_config):
+	if not isfile(build_config):
 		return destination_copy_tuples
 
 	with open(build_config, "r", encoding="utf-8") as build_config_file:
@@ -204,39 +204,58 @@ def import_project(path = None, destination = None):
 		except KeyboardInterrupt:
 			print("Abort.")
 			exit(0)
-	if destination is None:
+	destination_may_changed = destination is None
+	if destination_may_changed:
 		from make_config import TOOLCHAIN_CONFIG
 		toolchain = TOOLCHAIN_CONFIG.root_dir
-		destination = join(toolchain, get_next_filename(toolchain, basename(path), "-"))
+		destination = join(toolchain, get_project_folder_by_name(toolchain, basename(path)))
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")
-	if not exists(path) or not isdir(path):
+	if not isdir(path):
 		print("Input path not exists or specified!")
 		exit(1)
 	if exists(destination) and isfile(destination):
 		print("Destination path is file!")
 		exit(2)
-	if not (exists(join(path, "build.config")) or exists(join(path, "make.json"))):
+	if not (isfile(join(path, "build.config")) or isfile(join(path, "make.json"))):
 		print("Not found build.config or make.json entry to import, nothing to do!")
 		exit(3)
 	print(f"Importing '{path}' into {basename(destination)}")
 	make_obj = {}
 
+	if destination_may_changed:
+		make = join(path, "make.json")
+		if exists(make) and isfile(make):
+			print("Reading make.json to resolve destination")
+			with open(make, "r", encoding="utf-8") as make_file:
+				make_obj = json.loads(make_file.read())
+
+		print("Resolving mod.info to resolve destination")
+		load_mod_info(make_obj, path)
+
+		potential_name = make_obj["info"]["name"] if "info" in make_obj and "name" in make_obj["info"] else None
+		if potential_name is not None:
+			potential_name = get_project_folder_by_name(toolchain, potential_name)
+			if potential_name != basename(destination):
+				destination = join(toolchain, potential_name)
+				print(f"Output directory changed to {potential_name}")
+
 	make_project = join(destination, "make.json")
-	if exists(make_project) and isfile(make_project):
+	if isfile(make_project):
 		print("Reading output make.json")
 		with open(make_project, "r", encoding="utf-8") as make_file:
 			make_obj = json.loads(make_file.read())
 
-	make = join(path, "make.json")
-	if exists(make) and isfile(make):
-		print("Merging with existing make.json")
-		with open(make, "r", encoding="utf-8") as make_file:
-			make_obj = merge_json(make_obj, json.loads(make_file.read()))
+	if not destination_may_changed or isfile(make_project):
+		make = join(path, "make.json")
+		if exists(make) and isfile(make):
+			print("Merging with existing make.json")
+			with open(make, "r", encoding="utf-8") as make_file:
+				make_obj = merge_json(make_obj, json.loads(make_file.read()))
 
-	print("Resolving mod.info")
-	load_mod_info(make_obj, path)
+		print("Resolving mod.info")
+		load_mod_info(make_obj, path)
 
 	print("Resolving build.config")
 	tuples = load_build_config(make_obj, path, destination)
