@@ -174,7 +174,7 @@ class Includes:
 				return result
 			build_storage.save()
 		else:
-			print(f"* Directory {basename(target_path)} is not changed")
+			print(f"* Build target {basename(target_path)} is not changed")
 		copy_file(temp_path, target_path)
 
 		return result

@@ -1,5 +1,5 @@
 import os
-from os.path import join, isfile, isdir
+from os.path import join, isfile, isdir, relpath
 import json
 
 from utils import ensure_directory, clear_directory, ensure_file_dir
@@ -34,6 +34,10 @@ class ModStructure:
 		if target_type.directory == "":
 			return
 		directory = join(self.directory, target_type.directory)
+		reldir = relpath(directory, self.directory)
+		if reldir[:2] == "..":
+			print(f"WARNING: Output target {target_type_name} is not relative to output, it will be not cleaned!")
+			return
 		clear_directory(directory)
 		ensure_directory(directory)
 

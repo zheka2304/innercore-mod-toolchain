@@ -58,7 +58,13 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 				continue
 
 			target_type = "script_library" if _type == "library" else "script_source"
-			target_path = _target if _target is not None else f"{splitext(basename(source_path))[0]}.js"
+			if _target is None:
+				target_path = basename(source_path)
+				if isfile(source_path):
+					target_path = splitext(target_path)[0]
+				target_path += ".js"
+			else:
+				target_path = _target
 
 			# translate make.json source type to build.config source type
 			declare = {
