@@ -39,8 +39,9 @@ def download_and_extract_toolchain(directory):
 	os.makedirs(directory, exist_ok=True)
 	archive = join(directory, "toolchain.zip")
 
+	readable_name = "current directory" if directory in (".", "") else "'" + directory + "'"
 	if exists(join(directory, "toolchain")):
-		print("Inner Core Mod Toolchain already installed in '" + directory + "'.")
+		print("Inner Core Mod Toolchain already installed in " + readable_name + ".")
 		print("Newly installed files will be merged with your installation.")
 		print("It's handly to restore necessary removed script or template.")
 		try:
@@ -62,9 +63,9 @@ def download_and_extract_toolchain(directory):
 			print("Inner Core Mod Toolchain installation not completed due to above error.")
 			exit(2)
 	else:
-		print("'toolchain.zip' already exists in '" + directory + "'.")
+		print("'toolchain.zip' already exists in " + readable_name + ".")
 
-	print("Extracting into '" + directory + "'...")
+	print("Extracting into " + readable_name)
 	with AttributeZipFile(archive, "r") as zip_ref:
 		zip_ref.extractall(directory)
 
@@ -94,7 +95,7 @@ def download_and_extract_toolchain(directory):
 		else:
 			os.remove(archive)
 
-	print("Installed into '" + directory + "' under " + commit.strip()[:7] + " revision.")
+	print("Installed into " + readable_name + " under " + commit.strip()[:7] + " revision.")
 
 def print_placeholder(which):
 	layer = 0

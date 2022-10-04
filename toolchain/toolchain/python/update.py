@@ -24,7 +24,7 @@ def download_toolchain(directory):
 			print(err)
 			error("Inner Core Mod Toolchain installation not completed due to above error.", 2)
 	else:
-		print("'toolchain.zip' already exists in '" + directory + "'.")
+		print("'toolchain.zip' already exists in temporary directory.")
 
 def might_be_updated(directory = None):
 	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
