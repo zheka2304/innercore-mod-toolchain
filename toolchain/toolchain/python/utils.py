@@ -1,6 +1,8 @@
 import os
 from os.path import join, exists, abspath, isfile, isdir
 import shutil
+import sys
+from zipfile import ZipFile, ZipInfo
 
 def ensure_directory(directory):
 	if isfile(directory):
@@ -136,3 +138,30 @@ def request_typescript():
 	print("Updating TypeScript globally via npm...")
 	os.system("npm install -g typescript")
 	return request_typescript()
+
+class AttributeZipFile(ZipFile):
+	if sys.version_info < (3, 6):
+		def extract(self, member, path = None, pwd = None):
+			if not isinstance(member, ZipInfo):
+				member = self.getinfo(member)
+
+			if path is None:
+				path = os.getcwd()
+
+			targetpath = self._extract_member(member, path, pwd)
+
+			attr = member.external_attr >> 16
+			os.chmod(targetpath, attr)
+			return targetpath
+
+	else:
+		def _extract_member(self, member, targetpath, pwd):
+			if not isinstance(member, ZipInfo):
+				member = self.getinfo(member)
+
+			targetpath = super()._extract_member(member, targetpath, pwd)
+
+			attr = member.external_attr >> 16
+			if attr != 0:
+				os.chmod(targetpath, attr)
+			return targetpath

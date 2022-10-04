@@ -6,7 +6,34 @@ import sys
 import subprocess
 import urllib.request as request
 from urllib.error import URLError
-import zipfile
+from zipfile import ZipFile, ZipInfo
+
+class AttributeZipFile(ZipFile):
+	if sys.version_info < (3, 6):
+		def extract(self, member, path = None, pwd = None):
+			if not isinstance(member, ZipInfo):
+				member = self.getinfo(member)
+
+			if path is None:
+				path = os.getcwd()
+
+			targetpath = self._extract_member(member, path, pwd)
+
+			attr = member.external_attr >> 16
+			os.chmod(targetpath, attr)
+			return targetpath
+
+	else:
+		def _extract_member(self, member, targetpath, pwd):
+			if not isinstance(member, ZipInfo):
+				member = self.getinfo(member)
+
+			targetpath = super()._extract_member(member, targetpath, pwd)
+
+			attr = member.external_attr >> 16
+			if attr != 0:
+				os.chmod(targetpath, attr)
+			return targetpath
 
 def download_and_extract_toolchain(directory):
 	os.makedirs(directory, exist_ok=True)
@@ -38,8 +65,7 @@ def download_and_extract_toolchain(directory):
 		print("'toolchain.zip' already exists in '" + directory + "'.")
 
 	print("Extracting into '" + directory + "'...")
-
-	with zipfile.ZipFile(archive, "r") as zip_ref:
+	with AttributeZipFile(archive, "r") as zip_ref:
 		zip_ref.extractall(directory)
 
 	commit = "unknown"

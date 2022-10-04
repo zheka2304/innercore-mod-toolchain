@@ -4,11 +4,10 @@ from os.path import isfile, isdir, join, abspath, dirname
 import platform
 import subprocess
 import re
-from zipfile import ZipFile
 
 from make_config import TOOLCHAIN_CONFIG
 from shell import Notice, Progress, Shell
-from utils import clear_directory
+from utils import clear_directory, AttributeZipFile
 
 def abi_to_arch(abi):
 	abi_map = {
@@ -120,7 +119,7 @@ def download(shell):
 	shell.interactables.append(progress)
 	shell.render()
 	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-	with ZipFile(archive_path, "r") as archive:
+	with AttributeZipFile(archive_path, "r") as archive:
 		archive.extractall(extract_path)
 	progress.seek(1, "Extracted into toolchain/temp")
 	shell.render()
@@ -151,24 +150,6 @@ def install(arch = "arm", reinstall = False):
 
 		progress = Progress(text="Installing")
 		shell.interactables.append(progress)
-		shell.render()
-		if platform.system() != "Windows":
-			try:
-				subprocess.call([
-					"chmod",
-					"-R",
-					"+x",
-					ndk_path
-				])
-			except Exception as err:
-				if isinstance(err, SystemExit):
-					raise err
-				import traceback
-				traceback.print_exc()
-				notice = Notice("Run chmod failed, maybe you are must do it manually")
-				shell.interactables.append(notice)
-				shell.render()
-		progress.seek(0.1)
 		shell.render()
 		result = subprocess.call([
 			"python3" if platform.system() != "Windows" else "python",

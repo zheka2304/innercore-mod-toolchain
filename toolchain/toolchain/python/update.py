@@ -3,7 +3,7 @@ from os.path import join, exists, isfile, isdir
 import shutil
 from urllib import request
 from urllib.error import URLError
-import zipfile
+from utils import AttributeZipFile
 
 from make_config import TOOLCHAIN_CONFIG
 from utils import merge_directory
@@ -47,7 +47,7 @@ def perform_diff(a, b):
 
 def extract_toolchain(directory):
 	archive = join(directory, "toolchain.zip")
-	with zipfile.ZipFile(archive, "r") as zip_ref:
+	with AttributeZipFile(archive, "r") as zip_ref:
 		zip_ref.extractall(directory)
 
 	branch = join(directory, "innercore-mod-toolchain-deploy")

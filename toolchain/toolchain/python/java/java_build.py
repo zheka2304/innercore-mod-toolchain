@@ -3,8 +3,8 @@ from os.path import join, basename, isfile, isdir, getmtime
 import platform
 import subprocess
 import json
-import zipfile
 import hashlib
+from zipfile import ZipFile
 
 from utils import *
 from component import which_installed, install_components
@@ -32,7 +32,7 @@ def rebuild_library_cache(directory, library_files, cache_dir):
 
 	for lib_file in library_files:
 		print("Extracting library classes:", basename(lib_file))
-		with zipfile.ZipFile(lib_file, "r") as zip_ref:
+		with AttributeZipFile(lib_file, "r") as zip_ref:
 			zip_ref.extractall(lib_cache_dir)
 	print("Zipping")
 
@@ -161,7 +161,7 @@ def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 	print("Compressing dex archives")
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
-	with zipfile.ZipFile(dex_zip_file, "w") as zip_ref:
+	with ZipFile(dex_zip_file, "w") as zip_ref:
 		for dirpath, dirnames, filenames in os.walk(dex_classes_dir):
 			for filename in filenames:
 				if filename.endswith(".dex"):

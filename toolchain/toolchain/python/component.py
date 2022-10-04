@@ -4,10 +4,9 @@ import shutil
 import sys
 from urllib import request
 from urllib.error import URLError
-from zipfile import ZipFile
 
 from make_config import TOOLCHAIN_CONFIG
-from utils import ensure_file_dir, ensure_not_whitespace
+from utils import ensure_file_dir, ensure_not_whitespace, AttributeZipFile
 from shell import *
 
 class Component():
@@ -92,7 +91,7 @@ def extract_component(component, shell, progress):
 		return 1
 	progress.seek(0.5, f"Extracting to {component.location}")
 	extract_to = temp if hasattr(component, "branch") else join(temp, component.keyword)
-	with ZipFile(archive_path, "r") as archive:
+	with AttributeZipFile(archive_path, "r") as archive:
 		archive.extractall(extract_to)
 	if hasattr(component, "branch"):
 		extract_to = join(extract_to, "innercore-mod-toolchain-" + component.branch)
