@@ -1,0 +1,4 @@
+output
+tsconfig.json
+*.log
+*.icmod
