@@ -275,7 +275,7 @@ def startup():
 
 def foreign():
 	print("Which components will be upgraded?", end="")
-	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
+	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9), implicit_page_indicator=True)
 	shell.interactables += put_components(which_installed())
 	shell.interactables.append(Interrupt())
 	try:

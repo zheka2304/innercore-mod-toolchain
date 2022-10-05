@@ -211,7 +211,7 @@ def setup_project(make_obj, template, path):
 def select_project(variants, prompt = "Which project do you want?", selected = None):
 	if prompt is not None:
 		print(prompt, end="")
-	shell = SelectiveShell(infinite_scroll=True)
+	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
 	for variant in variants:
 		shell.interactables.append(Entry(variant, variant if selected != variant else f"\x1b[7m{variant}\x1b[0m"))
 	try:

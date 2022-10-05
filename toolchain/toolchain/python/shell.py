@@ -171,10 +171,11 @@ class InteractiveShell(Shell):
 	global_buffer_offset = 0
 	page = 1
 
-	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6):
+	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6, implicit_page_indicator = False):
 		Shell.__init__(self, stdin, stdout)
 		self.infinite_scroll = infinite_scroll
 		self.lines_per_page = lines_per_page
+		self.implicit_page_indicator = implicit_page_indicator
 
 	def observe(self, raw):
 		observed = Shell.observe(self, raw)
@@ -250,6 +251,16 @@ class InteractiveShell(Shell):
 			return interactable.render(self, self.offset, self.line, page, self.page_buffer_offset, page_occupied_lines)
 		return Shell.draw(self, interactable)
 
+	def write_implicit_indicator(self):
+		if self.implicit_page_indicator and (self.global_buffer_offset > 0 or self.global_buffer_offset + self.page_buffer_offset < len(self.interactables)):
+			self.write(
+				"\n" * (self.lines_per_page + 1 - self.line) +
+				(".." if self.global_buffer_offset > 0 else " " * 2)
+				+ " " * 45 +
+				(".." if self.global_buffer_offset + self.page_buffer_offset < len(self.interactables) else " " * 2)
+				+ "\n"
+			)
+
 	def render(self):
 		self.clear()
 		if len(self.interactables) == 0:
@@ -269,6 +280,7 @@ class InteractiveShell(Shell):
 			self.draw(interactable, self.page, page_occupied_lines)
 			page_occupied_lines += lines
 			self.page_buffer_offset += 1
+		self.write_implicit_indicator()
 
 	def enter(self):
 		self.global_buffer_offset = self.page_buffer_offset = 0
@@ -291,8 +303,8 @@ class SelectiveShell(InteractiveShell):
 	pending_hover_offset = 0
 	blocked_in_page = False
 
-	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6):
-		InteractiveShell.__init__(self, stdin, stdout, infinite_scroll, lines_per_page)
+	def __init__(self, stdin = sys.stdin, stdout = sys.stdout, infinite_scroll = False, lines_per_page = 6, implicit_page_indicator = False):
+		InteractiveShell.__init__(self, stdin, stdout, infinite_scroll, lines_per_page, implicit_page_indicator)
 		self.eof_when_enter = True
 
 	def turn_backward(self):
@@ -588,7 +600,7 @@ class Debugger(SelectiveShell.Selectable):
 def select_prompt(prompt = None, *variants, fallback = None, what_not_which = False):
 	if prompt is not None:
 		print(prompt, end="")
-	shell = SelectiveShell(infinite_scroll=True)
+	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
 	for variant in variants:
 		shell.interactables.append(Entry(variant))
 	try:
