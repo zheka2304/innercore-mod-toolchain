@@ -48,8 +48,6 @@ jobs:
           mkdir $BRANCH_CLASSPATH
           mv $BRANCH_MASTER/toolchain/toolchain/classpath/.[!.]* \
             $BRANCH_MASTER/toolchain/toolchain/classpath/* $BRANCH_CLASSPATH
-      - name: Run rm .github/workflows in deploy
-        run: rm -frd $BRANCH_MASTER/.github/workflows
       - name: Configure git
         run: |
           git config --global user.name "MaXFeeD"
@@ -62,6 +60,8 @@ jobs:
           git add --force --all .
           git commit -m "Deploy" --quiet --no-verify
           git push --force
+      - name: Run rm .github/workflows in deploy
+        run: rm -frd $BRANCH_MASTER/.github/workflows
       - name: Run mv preffered components to refs
         run: |
           mkdir $BRANCH_ADB
