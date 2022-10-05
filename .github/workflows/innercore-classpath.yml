@@ -39,7 +39,7 @@ jobs:
         with:
           script: |
             if ("${{ steps.github-commit-hash.outputs.result }}" == "${{ steps.gitlab-commit-hash.outputs.result }}") {
-              core.setFailed("Triggered when same commit already used!")
+              core.warning("Triggered when same commit already used!")
             }
       - name: Fetch curl raw manifest
         run: |
@@ -100,7 +100,7 @@ jobs:
       - name: Run dex2jar on innercore-test.apk
         run: |
           cd $(ls -d dex2jar/* | head -n 1)
-          ./d2j-dex2jar.sh --force --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
+          ./d2j-dex2jar.sh --force --no-code --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
       - name: Run mv innercore-test.jar to develop
         run: |
           mv innercore-test/innercore-test.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
