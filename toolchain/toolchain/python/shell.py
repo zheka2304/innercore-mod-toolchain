@@ -1,3 +1,5 @@
+import os
+import platform
 import sys
 try:
 	import termios
@@ -6,6 +8,9 @@ except ImportError:
 	import msvcrt
 
 from ansi_escapes import *
+
+if platform.system() == "Windows":
+	os.system("color")
 
 class Shell():
 	offset = 0
@@ -546,7 +551,7 @@ class Input(Entry):
 				self.hovered = not self.hovered
 				return True
 			if self.hovered:
-				if what == "\x7f":
+				if what in ("\x7f", "\x08"):
 					if len(self.text) > 0:
 						self.text = self.text[::-1][1:][::-1]
 					else:
