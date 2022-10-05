@@ -212,8 +212,14 @@ def select_project(variants, prompt = "Which project do you want?", selected = N
 	if prompt is not None:
 		print(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
+	binding = {}
 	for variant in variants:
-		shell.interactables.append(Entry(variant, variant if selected != variant else f"\x1b[7m{variant}\x1b[0m"))
+		if not variant in binding:
+			binding[variant] = PROJECT_MANAGER.resolve_mod_name(variant) + " (" + variant + ")"
+	names = list(binding.keys())
+	names.sort()
+	for variant in names:
+		shell.interactables.append(Entry(variant, binding[variant][:59] if selected != variant else f"\x1b[7m{binding[variant][:59]}\x1b[0m"))
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
