@@ -77,11 +77,15 @@ python toolchain-setup.py --help
 
 Для каждой из операций предусмотрены таски `Import Project`, `New Project` и `Remove Project` соответственно, а также команды `./import-project.bat`, `./import-project.sh`, `./new-project.bat`, `./new-project.sh`, `./remove-project.bat` и `./remove-project.sh`. Все операции сопровождаются взаимодействиями в консоли, а значит, и подробное описание каждой из них не требуется.
 
+![Взаимодействие с проектами в Visual Studio Code](.github/project-management.jpg)
+
 ## Выборка между проектами
 
 Используйте таск `Select Project` или команду `./select-project.bat` или `./select-project.sh` для открытия меню выборки. В случае если вам не удается найти свой проект, проверьте свойство `projectLocations` в вашем *toolchain.json* или импортируйте проект с помощью тулчейна.
 
 Помимо этого, для Visual Studio Code предусмотрены таски `Select Project by Active File`, `Build by Active File` и подобные. Они по умолчанию скрыты из меню *Ctrl+P > Tasks: Run Task*, однако доступны из меню сборки *Ctrl+Shift+B* и могут быть отображены изменением *.vscode/tasks.json* вручную.
+
+![Выборка проекта в Visual Studio Code](.github/project-selection.jpg)
 
 ## Обновление дистрьюбутива
 

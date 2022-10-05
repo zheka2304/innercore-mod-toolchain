@@ -77,11 +77,15 @@ A detailed description of each of the files can be found in [article](CONFIG.md)
 
 For each of the operations, tasks `Import Project`, `New Project` and `Remove Project` are provided, respectively, as well as commands `./import-project.bat`, `./import-project.sh`, `./new- project.bat`, `./new-project.sh`, `./remove-project.bat` and `./remove-project.sh`. All operations are accompanied by interactions in console, which means that a detailed description of each of them is not required.
 
+![Project management with Visual Studio Code](.github/project-management.jpg)
+
 ## Selection between your projects
 
 Use the `Select Project` task or `./select-project.bat` or `./select-project.sh` command to open selection menu. In case you can't find your project, check `projectLocations` property in your *toolchain.json* or import the project using toolchain.
 
 In addition, for Visual Studio Code tasks `Select Project by Active File`, `Build by Active File`, e.g. are provided. They are hidden from *Ctrl+P > Tasks: Run Task* menu by default, but are available from the build menu *Ctrl+Shift+B* and can be displayed by changing *.vscode/tasks.json* manually.
+
+![Project selection with Visual Studio Code](.github/project-selection.jpg)
 
 ## Distribution update
 
