@@ -208,7 +208,7 @@ def setup_project(make_obj, template, path):
 		with open(source, "w") as source_file:
 			source_file.writelines(lines)
 
-def select_project(variants, prompt = "Which project do you want?", selected = None):
+def select_project(variants, prompt = "Which project do you want?", selected = None, *additionals):
 	if prompt is not None:
 		print(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
@@ -220,6 +220,8 @@ def select_project(variants, prompt = "Which project do you want?", selected = N
 	names.sort()
 	for variant in names:
 		shell.interactables.append(Entry(variant, binding[variant][:59] if selected != variant else f"\x1b[7m{binding[variant][:59]}\x1b[0m"))
+	for variant in additionals:
+		shell.interactables.append(Entry(variant))
 	try:
 		shell.loop()
 	except KeyboardInterrupt:

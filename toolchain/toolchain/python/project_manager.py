@@ -206,12 +206,7 @@ class ProjectManager:
 				if input(prompt_when_single.format(itwillbe) + " [Y/n] ")[:1].lower() == "n":
 					return print("Abort.")
 				return itwillbe
-		if dont_want_anymore is not None:
-			who = self.projects.copy()
-			who.append(dont_want_anymore)
-		else:
-			who = self.projects
-		raw = select_project(who, prompt, MAKE_CONFIG.current_project)
+		raw = select_project(self.projects, prompt, MAKE_CONFIG.current_project, dont_want_anymore)
 		return (raw if raw != dont_want_anymore else None)
 
 
