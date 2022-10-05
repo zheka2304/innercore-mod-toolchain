@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py importProject
+python python/task.py importProject

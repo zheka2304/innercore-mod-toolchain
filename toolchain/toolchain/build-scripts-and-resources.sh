@@ -1,1 +1,1 @@
-python3 task.py clearOutput buildScriptsDebug buildResources buildAdditional buildInfo
+python3 python/task.py clearOutput buildScriptsDebug buildResources buildAdditional buildInfo

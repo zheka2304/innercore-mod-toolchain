@@ -1,1 +1,1 @@
-python3 task.py componentIntegrity
+python3 python/task.py componentIntegrity

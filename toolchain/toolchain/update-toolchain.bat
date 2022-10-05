@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py updateToolchain
+python python/task.py updateToolchain

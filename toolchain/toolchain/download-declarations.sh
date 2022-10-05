@@ -1,1 +1,1 @@
-python3 task.py loadDocs
+python3 python/task.py loadDocs

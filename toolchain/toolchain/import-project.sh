@@ -1,1 +1,1 @@
-python3 task.py importProject
+python3 python/task.py importProject

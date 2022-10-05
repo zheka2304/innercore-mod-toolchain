@@ -1,1 +1,1 @@
-python3 task.py configureADB
+python3 python/task.py configureADB

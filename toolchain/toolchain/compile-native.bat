@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py compileNativeDebug buildInfo
+python python/task.py compileNativeDebug buildInfo

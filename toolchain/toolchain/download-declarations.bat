@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py loadDocs
+python python/task.py loadDocs

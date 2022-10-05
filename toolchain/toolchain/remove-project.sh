@@ -1,1 +1,1 @@
-python3 task.py removeProject
+python3 python/task.py removeProject

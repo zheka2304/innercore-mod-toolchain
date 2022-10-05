@@ -1,1 +1,1 @@
-python3 task.py newProject
+python3 python/task.py newProject

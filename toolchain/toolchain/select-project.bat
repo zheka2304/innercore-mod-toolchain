@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py selectProject @ %1
+python python/task.py selectProject @ %1

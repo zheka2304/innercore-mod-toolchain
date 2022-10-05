@@ -1,1 +1,1 @@
-python3 task.py compileJavaDebug buildInfo
+python3 python/task.py compileJavaDebug buildInfo

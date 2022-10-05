@@ -1,1 +1,1 @@
-python3 task.py updateIncludes
+python3 python/task.py updateIncludes

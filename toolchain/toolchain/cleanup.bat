@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py cleanup
+python python/task.py cleanup

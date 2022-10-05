@@ -1,3 +1,2 @@
 @echo off
-cd python
-python task.py removeProject
+python python/task.py removeProject

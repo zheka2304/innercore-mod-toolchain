@@ -1,1 +1,1 @@
-python3 task.py compileNativeDebug buildInfo
+python3 python/task.py compileNativeDebug buildInfo
