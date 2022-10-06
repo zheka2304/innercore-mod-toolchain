@@ -1,1 +1,1 @@
-python3 -m python.task configureADB
+python3 -m innercoremodtoolchain.task configureADB

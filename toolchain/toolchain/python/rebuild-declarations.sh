@@ -1,1 +1,1 @@
-python3 -m python.task updateIncludes
+python3 -m innercoremodtoolchain.task updateIncludes

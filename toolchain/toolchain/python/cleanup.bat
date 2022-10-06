@@ -1,2 +1,2 @@
 @echo off
-python -m python.task cleanup
+python -m innercoremodtoolchain.task cleanup

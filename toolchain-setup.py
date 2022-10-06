@@ -149,13 +149,13 @@ print()
 if "--foreign" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "python.component"
-	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))
+		"-m", "innercoremodtoolchain.component"
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "python.component", "--startup"
-	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))
+		"-m", "innercoremodtoolchain.component", "--startup"
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
@@ -164,5 +164,5 @@ if "--import" in sys.argv:
 	folder = sys.argv[where + 1]
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "python.import", folder
-	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))
+		"-m", "innercoremodtoolchain.import", folder
+	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))

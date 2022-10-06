@@ -1,2 +1,2 @@
 @echo off
-python -m python.task clearOutput buildScriptsDebug buildResources buildAdditional buildInfo
+python -m innercoremodtoolchain.task clearOutput buildScriptsDebug buildResources buildAdditional buildInfo

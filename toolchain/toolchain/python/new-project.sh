@@ -1,1 +1,1 @@
-python3 -m python.task newProject
+python3 -m innercoremodtoolchain.task newProject

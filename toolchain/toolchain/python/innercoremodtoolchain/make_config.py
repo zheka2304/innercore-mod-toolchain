@@ -1,7 +1,8 @@
 import hashlib
 import os
-from os.path import join, basename, abspath, exists, isfile, isdir
+from os.path import join, basename, abspath, exists, isfile, isdir, realpath
 import platform
+import sys
 import json
 
 from .base_config import BaseConfig
@@ -116,14 +117,24 @@ class ToolchainMakeConfig(MakeConfig):
 		return basename(path) + "-" + md5.hexdigest()
 
 
+def find_config(path, filename):
+	working_path = path.split(os.sep)
+	while len(working_path) > 1:
+		config_path = join(os.sep.join(working_path), filename)
+		if isfile(config_path):
+			return ToolchainMakeConfig(config_path)
+		working_path.pop()
+
 # search for toolchain.json
-MAKE_CONFIG = None
-for i in range(0, 4):
-	make_file = join("../" * i, "toolchain.json")
-	if isfile(make_file):
-		MAKE_CONFIG = ToolchainMakeConfig(make_file)
-		break
+MAKE_CONFIG = find_config(os.getcwd(), "toolchain.json")
+if MAKE_CONFIG is None and len(sys.argv[0]) > 0:
+	MAKE_CONFIG = find_config(join(sys.argv[0], ".."), "toolchain.json")
 if MAKE_CONFIG is None:
-	raise RuntimeError("Not found toolchain.json!")
+	try:
+		MAKE_CONFIG = find_config(realpath(join(__file__, "..")), "toolchain.json")
+	except NameError:
+		pass
+if MAKE_CONFIG is None:
+	raise RuntimeError("Not found toolchain.json! Please, make sure that it appears in your working directory or any of it parents.")
 TOOLCHAIN_CONFIG = MakeConfig(MAKE_CONFIG.filename) \
 	if MAKE_CONFIG.current_project is None else MAKE_CONFIG.prototype

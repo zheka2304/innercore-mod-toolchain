@@ -1,2 +1,2 @@
 @echo off
-python -m python.task configureADB
+python -m innercoremodtoolchain.task configureADB

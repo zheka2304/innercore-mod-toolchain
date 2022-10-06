@@ -21,14 +21,22 @@ It is obligatory to install only first component, the rest can be installed when
 
 You can simply download repository, however we recommend using install script. It will help you install all necessary components for more efficient use. Open a terminal in the folder that will be used to install toolchain and enter command following the information from interactive console.
 
-```sh
+```bat
 python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
+```
+
+```sh
+python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
 Alternatively, save [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) for more installation and import options. Run the following command for more details.
 
-```sh
+```bat
 python toolchain-setup.py --help
+```
+
+```sh
+python3 toolchain-setup.py --help
 ```
 
 [![Inner Core/Horizon Mods Development | Setting up the Environment](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
@@ -51,7 +59,7 @@ Most of the features are also implemented to work with [IntelliJ IDEA](https://w
 
 ### Modding with a third party editor
 
-Inner Core Mod Toolchain does not require an installed editor, much less an environment, to develop mods. You can run build and configuration scripts directly from console or by opening files located in *toolchain/toolchain* folder. We recommend checking out the *toolchain/toolchain/python/task.py* script for details.
+Inner Core Mod Toolchain does not require an installed editor, much less an environment, to develop mods. You can run build and configuration scripts directly from console or by opening files located in *toolchain/toolchain/python* folder. We recommend checking out the [Working with CLI](#working-with-cli) for details.
 
 ## Multiproject? I really want it?
 
@@ -98,6 +106,27 @@ Components can be installed using `Integrity Components` or commands `./componen
 ## Publishing project
 
 Once development is complete, the next step is to publish to [Mod Browser](https://icmods.mineprogramming.org/). Execute the `Assemble Mod for Release` task or `./assemble-release.bat` or `./assemble-release.sh` command. An archive *<folder_name>.icmod* will be created at the root of folder. It is already completely ready for publication to site. Read [article](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md) for details.
+
+## Working with CLI
+
+There are several options for using toolchain through the console or terminal. The first, and easiest, is to open the *toolchain/toolchain/python* folder in the console, manually running scripts there. You can add the same folder to `PATH` environment variable, how to do it on your platform can be found [here](https://www.java.com/en/download/help/path.html).
+
+If one of the tasks `python -m innercoremodtoolchain.task --list` or `python3 -m innercoremodtoolchain.task --list` is of interest to you, a great option is to integrate toolchain as a module for Python. Extend `PYTHONPATH` to use `innercoremodtoolchain.*` imports or run commands with `python -m innercoremodtoolchain.*` or `python3 -m innercoremodtoolchain.*` regardless of the working directory.
+
+```bat
+set PYTHONPATH=%PYTHONPATH%;<path to your toolchain installation>\toolchain\toolchain\python
+```
+
+```sh
+export PYTHONPATH="<path to your toolchain installation>/toolchain/toolchain/python":$PYTHONPATH
+```
+
+Now you can use scripts from the console without changing your working directory, if *toolchain.json* configuration is present in it or any folder above, it will be used instead of the global one. Use imports from your code, this is also now possible.
+
+```py
+from innercoremodtoolchain import device
+device.setup_device_connection()
+```
 
 ## Documentation and futher steps
 

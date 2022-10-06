@@ -1,2 +1,2 @@
 @echo off
-python -m python.task componentIntegrity
+python -m innercoremodtoolchain.task componentIntegrity

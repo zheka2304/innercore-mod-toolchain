@@ -622,7 +622,6 @@ def select_prompt(prompt = None, *variants, fallback = None, what_not_which = Fa
 
 
 if __name__ == "__main__":
-	print(sys.argv)
 	shell = Shell()
 	while True:
 		try:

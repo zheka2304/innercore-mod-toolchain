@@ -2,6 +2,8 @@
 
 Here is presented most common questions and problems encounted by users.
 
+## Issues in editor itself
+
 ### How to connect a device/emulator via ADB
 
 If task **Configure ADB** is not what you were looking for, try reading <https://developer.android.com/studio/command-line/adb>.
@@ -14,9 +16,9 @@ Check `pushTo` property in your configuration files, it probably contains wrong 
 
 One of most convenient and advantageous ways to find out which folder you are interacting with is to open any file in the project that you want to act on. By default, the last opened folder is used, if it does not exist, you will be prompted to create a new project.
 
-### Project 'toolchain_<hash>' is missing required source folder: '_/<folder_name>/java/<module>/src'
+### Project 'toolchain_\<hash>' is missing required source folder: '_/<folder_name>/java/\<module>/src'
 
-All path paths in multi-root workspace become relative, however, folders outside main *toolchain/* folder are converted from root folders (../) to an extension-safe format (_/). This error does not need to be fixed if you are building a mod using the toolchain, easiest way to avoid this error is to move your mod to any of the loochain subfolders where it belongs, or change your environment settings by manually adding the necessary paths to the settings instead of using **.classpath*.
+All path paths in multi-root workspace become relative, however, folders outside main *toolchain/* folder are converted from root folders (../) to an extension-safe format (_/). This error does not need to be fixed if you are building a mod using the toolchain, easiest way to avoid this error is to move your mod to any of the loochain subfolders where it belongs, or change your environment settings by manually adding the necessary paths to the settings instead of using *.classpath*.
 
 ## Issues you may encounter in terminal
 

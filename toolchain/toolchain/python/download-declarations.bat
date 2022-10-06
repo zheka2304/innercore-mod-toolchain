@@ -1,2 +1,2 @@
 @echo off
-python -m python.task loadDocs
+python -m innercoremodtoolchain.task loadDocs

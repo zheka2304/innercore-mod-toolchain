@@ -1,2 +1,2 @@
 @echo off
-python -m python.task importProject
+python -m innercoremodtoolchain.task importProject

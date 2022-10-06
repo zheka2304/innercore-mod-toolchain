@@ -1,2 +1,2 @@
 @echo off
-python -m python.task removeProject
+python -m innercoremodtoolchain.task removeProject

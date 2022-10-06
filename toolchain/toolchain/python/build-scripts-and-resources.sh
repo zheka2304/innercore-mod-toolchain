@@ -1,1 +1,1 @@
-python3 -m python.task clearOutput buildScriptsDebug buildResources buildAdditional buildInfo
+python3 -m innercoremodtoolchain.task clearOutput buildScriptsDebug buildResources buildAdditional buildInfo

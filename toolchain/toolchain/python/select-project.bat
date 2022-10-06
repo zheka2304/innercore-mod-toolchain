@@ -1,2 +1,2 @@
 @echo off
-python -m python.task selectProject @ %1
+python -m innercoremodtoolchain.task selectProject @ %1

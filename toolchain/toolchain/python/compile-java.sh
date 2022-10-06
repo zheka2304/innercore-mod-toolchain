@@ -1,1 +1,1 @@
-python3 -m python.task compileJavaDebug buildInfo
+python3 -m innercoremodtoolchain.task compileJavaDebug buildInfo

@@ -1,2 +1,2 @@
 @echo off
-python -m python.task compileNativeDebug buildInfo
+python -m innercoremodtoolchain.task compileNativeDebug buildInfo

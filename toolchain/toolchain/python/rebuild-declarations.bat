@@ -1,2 +1,2 @@
 @echo off
-python -m python.task updateIncludes
+python -m innercoremodtoolchain.task updateIncludes

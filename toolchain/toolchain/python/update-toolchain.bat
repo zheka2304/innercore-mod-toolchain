@@ -1,2 +1,2 @@
 @echo off
-python -m python.task updateToolchain
+python -m innercoremodtoolchain.task updateToolchain

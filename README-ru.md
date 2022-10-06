@@ -21,14 +21,22 @@
 
 Вы можете просто загрузить репозиторий, однако мы рекомендуем использовать именно скрипт установки. Он поможет вам установить все необходимые компоненты для более эффективного использования. Откройте терминал в папке, которая будет использована для установки тулчейна, и введите команду, следуя информации из интерактивной консоли.
 
-```sh
+```bat
 python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
-Либо же сохраните [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) для получения доступа к дополнительным опциям установки и импорта. Вызовите следующую команду для получения подробней.
+```sh
+python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
+```
+
+Либо же, сохраните [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) для получения доступа к дополнительным опциям установки и импорта. Вызовите следующую команду для получения подробней.
+
+```bat
+python toolchain-setup.py --help
+```
 
 ```sh
-python toolchain-setup.py --help
+python3 toolchain-setup.py --help
 ```
 
 [![Inner Core/Horizon Mods Development | Настройка среды](.github/environment.jpg)](https://www.youtube.com/watch?v=ofwKkRYh97k)
@@ -51,7 +59,7 @@ python toolchain-setup.py --help
 
 ### Моддинг со сторонним редактором
 
-Тулчейн не требует установленного редактора, или уж тем более, среды, для разработки модов. Вы можете запускать скрипты сборки и настройки напрямую через консоль или открытием файлов, расположенных в папке *toolchain/toolchain*. Рекомендуем ознакомиться со скриптом *toolchain/toolchain/python/task.py* для получения подробностей.
+Тулчейн не требует установленного редактора, или уж тем более, среды, для разработки модов. Вы можете запускать скрипты сборки и настройки напрямую через консоль или открытием файлов, расположенных в папке *toolchain/toolchain/python*. Рекомендуем ознакомиться с [Работа из командной строки](#работа-из-командной-строки) для получения подробностей.
 
 ## Мультипроект? Мне он нужен?
 
@@ -98,6 +106,27 @@ python toolchain-setup.py --help
 ## Публикация проекта
 
 После завершения разработки следующим шагом станет публикация в [браузере модов](https://icmods.mineprogramming.org/). Выполните таск `Assemble Mod for Release` или команду `./assemble-release.bat` или `./assemble-release.sh`. В корне папки будет создан архив *<имя_папки>.icmod*. Он уже полностью готов для публикации на сайт. Прочитайте [статью](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-ru.md) для получения подробностей.
+
+## Работа из командной строки
+
+Есть несколько вариантов использования тулчейна через консоль или терминал. Первый, и самый простой — открыть папку *toolchain/toolchain/python* в консоли, вручную запуская находящиеся там скрипты. Вы можете добавить эту же папку в переменную среды `PATH`, как это сделать на вашей платформе можно узнать [здесь](https://www.java.com/ru/download/help/path.html).
+
+Если одна из задач `python -m innercoremodtoolchain.task --list` или `python3 -m innercoremodtoolchain.task --list` заинтересовала вас, отличным вариантом будет интегрировать тулчейн как модуль для Python. Дополните `PYTHONPATH` для использования импортов `innercoremodtoolchain.*` или запуска команд с помощью `python -m innercoremodtoolchain.*` или `python3 -m innercoremodtoolchain.*` вне зависимости от рабочей папки.
+
+```bat
+set PYTHONPATH=%PYTHONPATH%;<путь до вашей установки тулчейна>\toolchain\toolchain\python
+```
+
+```sh
+export PYTHONPATH="<путь до вашей установки тулчейна>/toolchain/toolchain/python":$PYTHONPATH
+```
+
+Теперь вы можете использовать скрипты из консоли не изменяя своей рабочей директории, если конфигурация *toolchain.json* присутствует в ней или любой папке выше, она будет использоваться вместо глобальной. Используйте импорты из вашего кода, это также теперь возможно.
+
+```py
+from innercoremodtoolchain import device
+device.setup_device_connection()
+```
 
 ## Документация и дальнейшие шаги
 

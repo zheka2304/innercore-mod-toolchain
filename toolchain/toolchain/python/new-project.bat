@@ -1,2 +1,2 @@
 @echo off
-python -m python.task newProject
+python -m innercoremodtoolchain.task newProject

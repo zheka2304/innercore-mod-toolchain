@@ -1,1 +1,1 @@
-python3 -m python.task cleanup
+python3 -m innercoremodtoolchain.task cleanup
