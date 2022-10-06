@@ -4,8 +4,8 @@ from os.path import join, exists, basename, isfile, isdir, relpath
 import platform
 import time
 
-from utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 registered_tasks = {}
 locked_tasks = {}
@@ -83,7 +83,7 @@ def task_compile_native_debug(args = None):
 	if abi is None:
 		abi = "armeabi-v7a"
 		print(f"* No 'debugAbi' value in toolchain.json config, using {abi} as default.")
-	from native.native_build import compile_all_using_make_config
+	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
 @task("compileNativeRelease", lock=["native", "cleanup", "push"], description="Compiles C++ for everything `abis`.")
@@ -91,41 +91,41 @@ def task_compile_native_release(args = None):
 	abis = MAKE_CONFIG.get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
 		error(f"No 'abis' value in toolchain.json config, nothing will happened.")
-	from native.native_build import compile_all_using_make_config
+	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
 @task("compileJavaDebug", lock=["java", "cleanup", "push"], description="Compiles Java, changed classes will be packed into dex.")
 def task_compile_java_debug(args = None):
-	from java.java_build import compile_all_using_make_config
+	from .java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=True)
 
 @task("compileJavaRelease", lock=["java", "cleanup", "push"], description="Compiles Java without debugging information.")
 def task_compile_java_release(args = None):
-	from java.java_build import compile_all_using_make_config
+	from .java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=False)
 
 @task("buildScriptsDebug", lock=["script", "cleanup", "push"], description="Rebuilds changes scripts with excluded declarations.")
 def task_build_scripts_debug(args = None):
-	from script_build import build_all_scripts
+	from .script_build import build_all_scripts
 	return build_all_scripts(debug_build=True)
 
 @task("buildScriptsRelease", lock=["script", "cleanup", "push"], description="Assembling scripts without excluding debug declarations, everything script hashes will be rebuilded too.")
 def task_build_scripts_release(args = None):
-	from script_build import build_all_scripts
-	from hash_storage import output_storage, build_storage
+	from .script_build import build_all_scripts
+	from .hash_storage import output_storage, build_storage
 	output_storage.last_hashes = {}
 	build_storage.last_hashes = {}
 	return build_all_scripts(debug_build=False)
 
 @task("buildResources", lock=["resource", "cleanup", "push"], description="Builds resource pathes, like gui and atlases.")
 def task_resources(args = None):
-	from script_build import build_all_resources
+	from .script_build import build_all_resources
 	return build_all_resources()
 
 @task("buildInfo", lock=["cleanup", "push"], description="Builds output mod.info file.")
 def task_build_info(args = None):
 	import json
-	from utils import shortcodes
+	from .utils import shortcodes
 	with open(MAKE_CONFIG.get_path("output/mod.info"), "w") as info_file:
 		info = dict(MAKE_CONFIG.get_value("info", fallback={}))
 
@@ -174,7 +174,7 @@ def task_build_additional(args = None):
 
 @task("pushEverything", lock=["push"], description="Push everything 'output' directory.")
 def task_push_everything(args = None):
-	from device import push
+	from .device import push
 	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("adb.pushUnchangedFiles", True))
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"], description="Removes 'output' directory in selected project.")
@@ -218,7 +218,7 @@ def task_build_package(args = None):
 @task("launchHorizon", description="Launch Horizon with pack auto-launch.")
 def task_launch_horizon(args = None):
 	from subprocess import call
-	from device import adb_command
+	from .device import adb_command
 	call(adb_command + [
 		"shell", "touch",
 		"/storage/emulated/0/games/horizon/.flag_auto_launch"
@@ -232,7 +232,7 @@ def task_launch_horizon(args = None):
 @task("stopHorizon", description="Force stops Horizon via ADB.")
 def stop_horizon(args = None):
 	from subprocess import call
-	from device import adb_command
+	from .device import adb_command
 	return call(adb_command + [
 		"shell",
 		"am",
@@ -258,18 +258,18 @@ def task_load_docs(args = None):
 
 @task("updateIncludes", description="Rebuilds tsconfig.json declarations without script building.")
 def task_update_includes(args = None):
-	from script_build import build_all_make_scripts
+	from .script_build import build_all_make_scripts
 	return build_all_make_scripts(only_tsconfig_rebuild=True, debug_build=True)
 
 @task("configureADB", description="Interactively configures new ADB connections.")
 def task_configure_adb(args = None):
-	import device
+	from . import device
 	device.setup_device_connection()
 	return 0
 
 @task("newProject", description="Interactively creates new project.")
 def task_new_project(args = None):
-	from package import new_project
+	from .package import new_project
 
 	index = new_project(MAKE_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
@@ -278,7 +278,7 @@ def task_new_project(args = None):
 		exit(0)
 	print("Successfully completed!")
 
-	from project_manager import PROJECT_MANAGER
+	from .project_manager import PROJECT_MANAGER
 	try:
 		if input("Select this project? [Y/n] ")[:1].lower() == "n":
 			return 0
@@ -289,11 +289,12 @@ def task_new_project(args = None):
 
 @task("importProject", description="Import project by required location into output folder, if output is not specified, 'toolchain/<unique_name>' will be used by default.")
 def task_import_project(args = None):
-	module = __import__("import")
+	import importlib
+	module = importlib.import_module(".import", __package__) # import cannot use name '.import' of course
 	path = module.import_project(args[0] if args is not None and len(args) > 0 else None, args[1] if args is not None and len(args) > 1 else None)
 	print("Project successfully imported!")
 
-	from project_manager import PROJECT_MANAGER
+	from .project_manager import PROJECT_MANAGER
 	try:
 		if input("Select this project? [Y/n] ")[:1].lower() == "n":
 			return 0
@@ -304,7 +305,7 @@ def task_import_project(args = None):
 
 @task("removeProject", lock=["cleanup"], description="Removes project in interactive mode.")
 def task_remove_project(args = None):
-	from project_manager import PROJECT_MANAGER
+	from .project_manager import PROJECT_MANAGER
 	if PROJECT_MANAGER.how_much() == 0:
 		error("Not found any project to remove.")
 
@@ -324,8 +325,8 @@ def task_remove_project(args = None):
 	try:
 		location = TOOLCHAIN_CONFIG.get_absolute_path(who)
 		PROJECT_MANAGER.remove_project(folder=who)
-		from make_config import ToolchainMakeConfig
-		from package import cleanup_relative_directory
+		from .make_config import ToolchainMakeConfig
+		from .package import cleanup_relative_directory
 		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(location))
 	except ValueError:
 		error(f"Folder '{who}' not found!")
@@ -335,7 +336,7 @@ def task_remove_project(args = None):
 
 @task("selectProject", lock=["cleanup"], description="Selects project by specified location, otherwise interactive project selection will be shown to explore availabled projects specified in 'projectLocations' property.")
 def task_select_project(args = None):
-	from project_manager import PROJECT_MANAGER
+	from .project_manager import PROJECT_MANAGER
 	if args is not None and len(args) > 0:
 		path = args[0]
 		if isfile(path):
@@ -366,9 +367,9 @@ def task_select_project(args = None):
 
 @task("updateToolchain", description="Upgrades toolchain by downloading deploy branch, installed components will be upgraded if user accepts it.")
 def task_update_toolchain(args = None):
-	from update import update_toolchain
+	from .update import update_toolchain
 	update_toolchain()
-	from component import fetch_components, install_components
+	from .component import fetch_components, install_components
 	upgradable = fetch_components()
 	if len(upgradable) > 0:
 		print("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
@@ -383,12 +384,12 @@ def task_update_toolchain(args = None):
 
 @task("componentIntegrity", description="Upgrade and install new components, additionally used when startup phase is active.")
 def task_component_integrity(args = None):
-	from component import foreign
+	from .component import foreign
 	return foreign()
 
 @task("cleanup", description="Performs project 'output' folder cleanup, if nothing selected everything build cache will be removed.")
 def task_cleanup(args = None):
-	from package import cleanup_relative_directory
+	from .package import cleanup_relative_directory
 	if MAKE_CONFIG.current_project is not None:
 		try:
 			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n] ")[:1].lower() == "n":
@@ -410,7 +411,6 @@ def task_cleanup(args = None):
 	return 0
 
 def error(message, code = -1):
-	print(message, file=sys.stderr)
 	unlock_all_tasks()
 	print(message)
 	exit(code)

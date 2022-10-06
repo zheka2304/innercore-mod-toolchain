@@ -7,7 +7,7 @@ try:
 except ImportError:
 	import msvcrt
 
-from ansi_escapes import *
+from .ansi_escapes import *
 
 if platform.system() == "Windows":
 	os.system("color")
@@ -622,6 +622,7 @@ def select_prompt(prompt = None, *variants, fallback = None, what_not_which = Fa
 
 
 if __name__ == "__main__":
+	print(sys.argv)
 	shell = Shell()
 	while True:
 		try:

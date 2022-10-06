@@ -1,2 +1,2 @@
 @echo off
-python python/task.py componentIntegrity
+python -m python.task componentIntegrity

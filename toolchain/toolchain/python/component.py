@@ -5,9 +5,9 @@ import sys
 from urllib import request
 from urllib.error import URLError
 
-from make_config import TOOLCHAIN_CONFIG
-from utils import ensure_file_dir, ensure_not_whitespace, AttributeZipFile
-from shell import *
+from .make_config import TOOLCHAIN_CONFIG
+from .utils import ensure_file_dir, ensure_not_whitespace, AttributeZipFile
+from .shell import *
 
 class Component():
 	def __init__(self, keyword, name, location = "", packurl = None, commiturl = None, branch = None):
@@ -146,11 +146,11 @@ def install_components(components):
 			abis = []
 		abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
 		if abi is None and len(abis) == 0:
-			from task import error
+			from .task import error
 			error("Please describe options 'abis' or 'debugAbi' in your toolchain.json before install NDK!")
 		if abi is not None and not abi in abis:
 			abis.append(abi)
-		from native.native_setup import abi_to_arch, check_installed, install
+		from .native.native_setup import abi_to_arch, check_installed, install
 		for arch in abis:
 			if not check_installed(abi_to_arch(arch)):
 				install(abi_to_arch(arch), reinstall=True)

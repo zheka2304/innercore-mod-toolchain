@@ -1,2 +1,2 @@
 @echo off
-python python/task.py updateToolchain
+python -m python.task updateToolchain

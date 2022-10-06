@@ -1,1 +1,1 @@
-python3 python/task.py updateToolchain
+python3 -m python.task updateToolchain

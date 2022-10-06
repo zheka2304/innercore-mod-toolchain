@@ -1,2 +1,2 @@
 @echo off
-python python/task.py clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
+python -m python.task clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage

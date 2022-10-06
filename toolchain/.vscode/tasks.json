@@ -8,12 +8,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../build-all.sh",
+			"command": "./build-all.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\build-all.bat",
+				"command": ".\\build-all.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -31,12 +31,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../build-scripts-and-resources.sh",
+			"command": "./build-scripts-and-resources.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\build-scripts-and-resources.bat",
+				"command": ".\\build-scripts-and-resources.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -54,12 +54,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../compile-java.sh",
+			"command": "./compile-java.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\compile-java.bat",
+				"command": ".\\compile-java.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -77,12 +77,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../compile-native.sh",
+			"command": "./compile-native.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\compile-native.bat",
+				"command": ".\\compile-native.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -267,12 +267,12 @@
 				"id": "device-mobile"
 			},
 			"type": "shell",
-			"command": "../configure-adb.sh",
+			"command": "./configure-adb.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\configure-adb.bat",
+				"command": ".\\configure-adb.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -292,12 +292,12 @@
 				"id": "archive"
 			},
 			"type": "shell",
-			"command": "../assemble-release.sh",
+			"command": "./assemble-release.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\assemble-release.bat",
+				"command": ".\\assemble-release.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -313,12 +313,12 @@
 				"id": "new-folder"
 			},
 			"type": "shell",
-			"command": "../new-project.sh",
+			"command": "./new-project.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\new-project.bat",
+				"command": ".\\new-project.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -338,12 +338,12 @@
 				"id": "repo-pull"
 			},
 			"type": "shell",
-			"command": "../import-project.sh",
+			"command": "./import-project.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\import-project.bat",
+				"command": ".\\import-project.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -363,12 +363,12 @@
 				"id": "root-folder-opened"
 			},
 			"type": "shell",
-			"command": "../remove-project.sh",
+			"command": "./remove-project.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\remove-project.bat",
+				"command": ".\\remove-project.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -388,12 +388,12 @@
 				"id": "folder-opened"
 			},
 			"type": "shell",
-			"command": "../select-project.sh",
+			"command": "./select-project.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\select-project.bat",
+				"command": ".\\select-project.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -414,12 +414,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../select-project.sh",
+			"command": "./select-project.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\select-project.bat",
+				"command": ".\\select-project.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -441,12 +441,12 @@
 			},
 			"hide": true,
 			"type": "shell",
-			"command": "../rebuild-declarations.sh",
+			"command": "./rebuild-declarations.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\rebuild-declarations.bat",
+				"command": ".\\rebuild-declarations.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -463,12 +463,12 @@
 				"id": "rocket"
 			},
 			"type": "shell",
-			"command": "../push.sh",
+			"command": "./push.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\push.bat",
+				"command": ".\\push.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -485,12 +485,12 @@
 				"id": "cloud"
 			},
 			"type": "shell",
-			"command": "../update-toolchain.sh",
+			"command": "./update-toolchain.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\update-toolchain.bat",
+				"command": ".\\update-toolchain.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -510,12 +510,12 @@
 				"id": "package"
 			},
 			"type": "shell",
-			"command": "../component-integrity.sh",
+			"command": "./component-integrity.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\component-integrity.bat",
+				"command": ".\\component-integrity.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -535,12 +535,12 @@
 				"id": "symbol-type-parameter"
 			},
 			"type": "shell",
-			"command": "../download-declarations.sh",
+			"command": "./download-declarations.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\download-declarations.bat",
+				"command": ".\\download-declarations.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}
@@ -557,12 +557,12 @@
 				"id": "flame"
 			},
 			"type": "shell",
-			"command": "../cleanup.sh",
+			"command": "./cleanup.sh",
 			"options": {
 				"cwd": "./toolchain"
 			},
 			"windows": {
-				"command": "..\\cleanup.bat",
+				"command": ".\\cleanup.bat",
 				"options": {
 					"cwd": ".\\toolchain"
 				}

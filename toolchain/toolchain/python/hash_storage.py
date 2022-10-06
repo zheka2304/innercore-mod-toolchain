@@ -4,7 +4,7 @@ from errno import ENOENT
 import json
 
 from hashlib import md5
-from make_config import MAKE_CONFIG
+from .make_config import MAKE_CONFIG
 
 class HashStorage:
 	last_hashes = {}

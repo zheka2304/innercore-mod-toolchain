@@ -2,8 +2,8 @@ import os
 from os.path import join, isfile, isdir, relpath
 import json
 
-from utils import ensure_directory, clear_directory, ensure_file_dir
-from make_config import MAKE_CONFIG
+from .utils import ensure_directory, clear_directory, ensure_file_dir
+from .make_config import MAKE_CONFIG
 
 class BuildTargetType:
 	def __init__(self, directory = None, list_property = None, **kw):

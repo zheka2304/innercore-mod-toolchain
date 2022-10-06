@@ -1,2 +1,2 @@
 @echo off
-python python/task.py updateIncludes
+python -m python.task updateIncludes

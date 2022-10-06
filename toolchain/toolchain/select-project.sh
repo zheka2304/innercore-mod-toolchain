@@ -1,1 +1,1 @@
-python3 python/task.py selectProject @ $1
+python3 -m python.task selectProject @ $1

@@ -1,2 +1,2 @@
 @echo off
-python python/task.py stopHorizon pushEverything launchHorizon
+python -m python.task stopHorizon pushEverything launchHorizon

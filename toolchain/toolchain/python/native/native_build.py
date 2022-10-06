@@ -3,9 +3,9 @@ from os.path import exists, join, basename, abspath, isfile, isdir, relpath
 import subprocess
 import json
 
-from utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files
-import native.native_setup as native_setup
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
+from ..utils import copy_file, clear_directory, ensure_directory, ensure_file_dir, copy_directory, get_all_files
+from . import native_setup
+from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
 
 CODE_OK = 0
 CODE_FAILED_NO_GCC = 1001
@@ -15,8 +15,7 @@ CODE_INVALID_JSON = 1004
 CODE_INVALID_PATH = 1005
 
 def prepare_compiler_executable(abi):
-	from native.native_setup import abi_to_arch
-	arch = abi_to_arch(abi)
+	arch = native_setup.abi_to_arch(abi)
 	if arch is None:
 		print(f"WARNING: Unregistered abi {abi}!")
 	return native_setup.require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
@@ -210,7 +209,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 	return overall_result
 
 def compile_all_using_make_config(abis):
-	from mod_structure import mod_structure
+	from ..mod_structure import mod_structure
 	import time
 	start_time = time.time()
 

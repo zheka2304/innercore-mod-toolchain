@@ -3,11 +3,11 @@ import os
 from os.path import exists, isdir, join, basename, relpath
 import time
 
-from utils import clear_directory, copy_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
-from base_config import BaseConfig
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch, select_prompt
-from project_manager import PROJECT_MANAGER
+from .utils import clear_directory, copy_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
+from .base_config import BaseConfig
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch, select_prompt
+from .project_manager import PROJECT_MANAGER
 
 def get_path_set(pathes, error_sensitive = False):
 	directories = []
@@ -51,7 +51,7 @@ def select_template():
 	if len(PROJECT_MANAGER.templates) <= 1:
 		if len(PROJECT_MANAGER.templates) == 0:
 			print("Please, ensure that `projectLocations` property in your toolchain.json contains any folder with template.json.")
-			from task import error
+			from .task import error
 			error("Not found any templates, nothing to do.")
 		return PROJECT_MANAGER.templates[0]
 	return select_prompt(
@@ -71,7 +71,7 @@ def new_project(template = "../toolchain-mod"):
 		print(err)
 		if len(PROJECT_MANAGER.templates) > 1:
 			return new_project(None)
-		from task import error
+		from .task import error
 		error(f"Malformed {template}/template.json, nothing to do.")
 
 	have_template = TOOLCHAIN_CONFIG.get_value("template") is not None
@@ -149,7 +149,7 @@ def new_project(template = "../toolchain-mod"):
 	if shell.what() == "template":
 		return new_project(None)
 	if not hasattr(observer, "directory") or observer.directory is None:
-		from task import error
+		from .task import error
 		error("Not found `directory` property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
 	return PROJECT_MANAGER.create_project(

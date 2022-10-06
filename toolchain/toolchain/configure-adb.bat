@@ -1,2 +1,2 @@
 @echo off
-python python/task.py configureADB
+python -m python.task configureADB

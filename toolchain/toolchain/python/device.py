@@ -6,10 +6,10 @@ import socket
 import subprocess
 from glob import glob
 
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from hash_storage import output_storage
-from shell import Progress, Shell, select_prompt
-from ansi_escapes import link
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .hash_storage import output_storage
+from .shell import Progress, Shell, select_prompt
+from .ansi_escapes import link
 
 def get_modpack_push_directory():
 	directory = MAKE_CONFIG.get_value("pushTo", accept_prototype=False)
@@ -21,7 +21,7 @@ def get_modpack_push_directory():
 		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
 		TOOLCHAIN_CONFIG.save()
 		if MAKE_CONFIG.get_value("pushTo") is None:
-			from task import error
+			from .task import error
 			error("Nothing may be selected in modpack, nothing to do.")
 		return get_modpack_push_directory()
 	if "/horizon/packs/" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
@@ -121,7 +121,7 @@ def push(directory, push_unchanged = False):
 	src_root = directory.replace("\\", "/")
 
 	percent = 0
-	from task import devnull
+	from .task import devnull
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
@@ -164,7 +164,7 @@ def make_locks(*locks):
 
 def ensure_server_running(retry = 0):
 	try:
-		from task import devnull
+		from .task import devnull
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
@@ -274,7 +274,7 @@ def get_ip():
 def get_adb_command():
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
-	from task import devnull
+	from .task import devnull
 	if len(devices) > 0:
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
@@ -300,11 +300,11 @@ def get_adb_command():
 		if device is not None:
 			return get_adb_command_by_serial(device["serial"])
 	if MAKE_CONFIG.get_value("adb.doNothingIfDisconnected", False):
-		from task import error
+		from .task import error
 		error("Not found connected devices, nothing to do.", 0)
 	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
-		from task import error
+		from .task import error
 		error("Nothing will happened, adb set up interrupted.", 1)
 	return which
 
@@ -384,7 +384,7 @@ def setup_via_usb():
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
-		from task import devnull
+		from .task import devnull
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
@@ -441,7 +441,7 @@ def setup_via_ping_localhost():
 		shell.leave()
 		print("Not found anything, are you sure that network connected?")
 		return setup_via_network()
-	from task import devnull
+	from .task import devnull
 	subprocess.run([
 		TOOLCHAIN_CONFIG.get_adb(),
 		"disconnect"
@@ -493,7 +493,7 @@ def ping_via_shell(ip, shell, progress, index):
 	progress.progress = index / 255
 	shell.render()
 
-	from task import devnull
+	from .task import devnull
 	return subprocess.call([
 		"ping",
 		"-n" if platform.system() == "Windows" else "-c", "1",
@@ -506,7 +506,7 @@ async def ping(ip, shell, progress, index, accepted):
 		progress.progress = index / 255
 		shell.render()
 
-	from task import devnull
+	from .task import devnull
 	import asyncio
 	coroutine = await asyncio.create_subprocess_shell(
 		"ping " + ("-n" if platform.system() == "Windows" else "-c") + " 1 " + ip, stdout=devnull, stderr=devnull
@@ -536,7 +536,7 @@ async def connect(ip, port, shell, progress, accepted):
 		progress.progress = port / 65535
 		shell.render()
 
-	from task import devnull
+	from .task import devnull
 	import asyncio
 	coroutine = await asyncio.create_subprocess_shell(
 		TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=devnull, stderr=devnull
@@ -567,7 +567,7 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 		tcp = tcp.split(":")
 		ip = tcp[0]
 		port = tcp[1] if len(tcp) > 1 else port
-	from task import devnull
+	from .task import devnull
 	if with_pairing_code or pairing_code is not None:
 		if pairing_code is None:
 			try:

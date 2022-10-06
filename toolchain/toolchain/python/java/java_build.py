@@ -6,10 +6,10 @@ import json
 import hashlib
 from zipfile import ZipFile
 
-from utils import *
-from component import which_installed, install_components
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from mod_structure import mod_structure
+from ..utils import *
+from ..component import which_installed, install_components
+from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from ..mod_structure import mod_structure
 
 def get_classpath_from_directories(directories):
 	classpath = []
@@ -334,7 +334,7 @@ def compile_all_using_make_config(debug_build = False):
 		if "java" not in which_installed():
 			install_components(["java"])
 			if "java" not in which_installed():
-				from task import error
+				from ..task import error
 				error("Component java (r8) required for java compilation, nothing to do.")
 		classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 		if not exists(classpath_dir):

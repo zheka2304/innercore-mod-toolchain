@@ -1,2 +1,2 @@
 @echo off
-python python/task.py compileJavaDebug buildInfo
+python -m python.task compileJavaDebug buildInfo

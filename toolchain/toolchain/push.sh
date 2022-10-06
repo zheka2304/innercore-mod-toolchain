@@ -1,1 +1,1 @@
-python3 python/task.py stopHorizon pushEverything launchHorizon
+python3 -m python.task stopHorizon pushEverything launchHorizon

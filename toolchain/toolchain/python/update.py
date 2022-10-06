@@ -3,10 +3,9 @@ from os.path import join, exists, isfile, isdir
 import shutil
 from urllib import request
 from urllib.error import URLError
-from utils import AttributeZipFile
 
-from make_config import TOOLCHAIN_CONFIG
-from utils import merge_directory
+from .make_config import TOOLCHAIN_CONFIG
+from .utils import merge_directory, AttributeZipFile
 
 def download_toolchain(directory):
 	os.makedirs(directory, exist_ok=True)
@@ -18,7 +17,7 @@ def download_toolchain(directory):
 		try:
 			request.urlretrieve(url, archive)
 		except URLError:
-			from task import error
+			from .task import error
 			error("Check your network connection!", 1)
 		except BaseException as err:
 			print(err)
@@ -53,7 +52,7 @@ def extract_toolchain(directory):
 	branch = join(directory, "innercore-mod-toolchain-deploy")
 	if not exists(branch):
 		print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
-		from task import error
+		from .task import error
 		error("Retry operation or extract 'toolchain.zip' manually.", 3)
 	toolchain = TOOLCHAIN_CONFIG.get_path("..")
 

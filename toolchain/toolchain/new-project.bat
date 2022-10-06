@@ -1,2 +1,2 @@
 @echo off
-python python/task.py newProject
+python -m python.task newProject

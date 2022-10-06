@@ -1,8 +1,8 @@
 from os.path import isfile, abspath, relpath, join
 import json
 
-from make_config import MakeConfig, MAKE_CONFIG, TOOLCHAIN_CONFIG
-from base_config import BaseConfig
+from .make_config import MakeConfig, MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .base_config import BaseConfig
 
 class WorkspaceNotAvailable(RuntimeError):
 	def __init__(self, *args):

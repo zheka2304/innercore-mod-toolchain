@@ -1,2 +1,2 @@
 @echo off
-python python/task.py importProject
+python -m python.task importProject

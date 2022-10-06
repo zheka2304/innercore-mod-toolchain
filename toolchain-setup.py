@@ -149,13 +149,13 @@ print()
 if "--foreign" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"component.py"
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+		"-m", "python.component"
+	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"component.py", "--startup"
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+		"-m", "python.component", "--startup"
+	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
@@ -164,5 +164,5 @@ if "--import" in sys.argv:
 	folder = sys.argv[where + 1]
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"import.py", folder
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+		"-m", "python.import", folder
+	], cwd=join(location, "toolchain\\toolchain") if platform.system() == "Windows" else join(location, "toolchain/toolchain"))

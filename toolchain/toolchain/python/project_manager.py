@@ -2,9 +2,9 @@ import os
 from os.path import join, exists, isfile, isdir, basename, abspath
 import json
 
-from utils import clear_directory, ensure_not_whitespace
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from workspace import CODE_WORKSPACE, CODE_SETTINGS
+from .utils import clear_directory, ensure_not_whitespace
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .workspace import CODE_WORKSPACE, CODE_SETTINGS
 
 class ProjectManager:
 	def __init__(self):
@@ -27,15 +27,15 @@ class ProjectManager:
 	def create_project(self, template, folder, name = None, author = None, version = None, description = None, clientOnly = False):
 		location = TOOLCHAIN_CONFIG.get_path(folder)
 		if exists(location):
-			from task import error
+			from .task import error
 			error(f"Folder '{folder}' already exists!")
 		template_path = TOOLCHAIN_CONFIG.get_absolute_path(template)
 		if not exists(template_path):
-			from task import error
+			from .task import error
 			error(f"Not found {template} template, nothing to do.")
 		template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 		if not isfile(template_make_path):
-			from task import error
+			from .task import error
 			error(f"Not found template.json in template {template}, nothing to do.")
 
 		with open(template_make_path, "r", encoding="utf-8") as make_file:
@@ -60,7 +60,7 @@ class ProjectManager:
 			template_info["clientOnly"] if "clientOnly" in template_info else False
 
 		os.makedirs(location)
-		from package import setup_project
+		from .package import setup_project
 		setup_project(template_obj, template_path, location)
 
 		make_path = join(location, "make.json")
@@ -84,7 +84,7 @@ class ProjectManager:
 
 	def remove_project(self, index = None, folder = None):
 		if len(self.projects) == 0:
-			from task import error
+			from .task import error
 			error("Not found any project to remove.")
 
 		index, folder = self.get_folder(index, folder)
@@ -152,7 +152,7 @@ class ProjectManager:
 			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
 				make_path = TOOLCHAIN_CONFIG.get_absolute_path(folder + "/make.json")
 				if not isfile(make_path):
-					from task import error
+					from .task import error
 					error(f"Not found make.json in project {folder}, nothing to do.")
 				with open(make_path, "r", encoding="utf-8") as make_file:
 					make_obj = json.loads(make_file.read())
@@ -197,7 +197,7 @@ class ProjectManager:
 		return len(self.projects)
 
 	def require_selection(self, prompt = None, prompt_when_single = None, dont_want_anymore = None):
-		from package import select_project
+		from .package import select_project
 		if self.how_much() == 1:
 			itwillbe = self.projects[0]
 			if prompt_when_single is None:

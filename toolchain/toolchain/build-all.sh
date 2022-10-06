@@ -1,1 +1,1 @@
-python3 python/task.py clearOutput buildScriptsDebug buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo
+python3 -m python.task clearOutput buildScriptsDebug buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo

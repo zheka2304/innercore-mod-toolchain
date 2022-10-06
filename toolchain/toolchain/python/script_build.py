@@ -1,10 +1,10 @@
 from os.path import exists, splitext, basename, isfile, isdir, join
 from functools import cmp_to_key
 
-from utils import clear_directory, copy_file, copy_directory, request_typescript
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from mod_structure import mod_structure
-from includes import Includes
+from .utils import clear_directory, copy_file, copy_directory, request_typescript
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .mod_structure import mod_structure
+from .includes import Includes
 
 def build_source(source_path, target_path, language, includes_file, debug_build = False):
 	includes = Includes.invalidate(source_path, includes_file, debug_build)
@@ -24,7 +24,7 @@ def build_all_scripts(debug_build = False):
 		allowed_languages.append("javascript")
 
 	if len(allowed_languages) == 0:
-		from task import error
+		from .task import error
 		error("TypeScript is required by default, if you want to build legacy JavaScript, change `denyJavaScript` property in your make.json or toolchain.json config.")
 	return build_all_make_scripts(allowed_languages=allowed_languages, debug_build=debug_build)
 
@@ -102,7 +102,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 						_includes, debug_build
 					)
 			elif isdir(source_path):
-				from includes import temp_directory
+				from .includes import temp_directory
 				includes = Includes.invalidate(source_path, _includes, debug_build)
 				includes.create_tsconfig(join(temp_directory, basename(target_path)))
 

@@ -1,1 +1,1 @@
-python3 python/task.py cleanup
+python3 -m python.task cleanup

@@ -4,8 +4,8 @@ from os.path import exists, join, basename, isfile, isdir, relpath
 import sys
 import json
 
-from utils import copy_directory, copy_file, ensure_directory, get_project_folder_by_name
-from base_config import BaseConfig
+from .utils import copy_directory, copy_file, ensure_directory, get_project_folder_by_name
+from .base_config import BaseConfig
 
 def load_mod_info(make_obj, directory):
 	mod_info = join(directory, "mod.info")
@@ -201,12 +201,14 @@ def import_project(path = None, destination = None):
 		print("Specify absolute or relative path to toolchain folder that must be imported as project, it may be Inner Core mod or already exists Mod Toolchain folder.")
 		try:
 			path = input("Which directory will be imported? ")
+			if len(path) == 0 or path.isspace():
+				raise KeyboardInterrupt()
 		except KeyboardInterrupt:
 			print("Abort.")
 			exit(0)
 	destination_may_changed = destination is None
 	if destination_may_changed:
-		from make_config import TOOLCHAIN_CONFIG
+		from .make_config import TOOLCHAIN_CONFIG
 		toolchain = TOOLCHAIN_CONFIG.root_dir
 		destination = join(toolchain, get_project_folder_by_name(toolchain, basename(path)))
 

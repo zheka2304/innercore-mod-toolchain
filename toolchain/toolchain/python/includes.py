@@ -5,9 +5,9 @@ import json
 import re
 import subprocess
 
-from utils import move_file, copy_file
-from make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from hash_storage import build_storage
+from .utils import move_file, copy_file
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .hash_storage import build_storage
 
 params_list = {
 	"allowJs": False,

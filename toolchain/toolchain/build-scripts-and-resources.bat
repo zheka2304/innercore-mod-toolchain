@@ -1,2 +1,2 @@
 @echo off
-python python/task.py clearOutput buildScriptsDebug buildResources buildAdditional buildInfo
+python -m python.task clearOutput buildScriptsDebug buildResources buildAdditional buildInfo

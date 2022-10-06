@@ -1,2 +1,2 @@
 @echo off
-python python/task.py loadDocs
+python -m python.task loadDocs

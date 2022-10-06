@@ -5,9 +5,9 @@ import platform
 import subprocess
 import re
 
-from make_config import TOOLCHAIN_CONFIG
-from shell import Notice, Progress, Shell
-from utils import clear_directory, AttributeZipFile
+from ..make_config import TOOLCHAIN_CONFIG
+from ..shell import Notice, Progress, Shell
+from ..utils import clear_directory, AttributeZipFile
 
 def abi_to_arch(abi):
 	abi_map = {
