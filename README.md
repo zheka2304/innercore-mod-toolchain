@@ -128,7 +128,7 @@ from innercoremodtoolchain import device
 device.setup_device_connection()
 ```
 
-## Documentation and futher steps
+## Documentation and further steps
 
 All documentation is available at <https://docs.mineprogramming.org>. Here you can find information about available APIs, learn the basics of modding and get acquainted with existing projects.
 

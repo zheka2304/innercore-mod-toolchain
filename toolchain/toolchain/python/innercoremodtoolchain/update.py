@@ -88,7 +88,7 @@ def update_toolchain():
 				commit = file.read().strip()
 		extract_toolchain(directory)
 		if not isfile(commit_path):
-			print("Successfully installed! But corresponding 'toolchain/bin/.commit' not found, futher update will be installed without any prompt.")
+			print("Successfully installed! But corresponding 'toolchain/bin/.commit' not found, further update will be installed without any prompt.")
 		else:
 			with open(commit_path) as file:
 				branch_commit = file.read().strip()
