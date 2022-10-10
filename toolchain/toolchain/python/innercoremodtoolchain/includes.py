@@ -159,7 +159,7 @@ class Includes:
 		result = 0
 		if language == "typescript":
 			self.create_tsconfig(temp_path)
-		if build_storage.is_path_changed(self.directory):
+		if build_storage.is_path_changed(self.directory) or not isfile(temp_path):
 			import datetime
 
 			print(f"Building {basename(target_path)} from {self.includes_file}")
@@ -175,7 +175,10 @@ class Includes:
 			build_storage.save()
 		else:
 			print(f"* Build target {basename(target_path)} is not changed")
-		copy_file(temp_path, target_path)
+		if isfile(temp_path):
+			copy_file(temp_path, target_path)
+		else:
+			print(f"WARNING: Not found build target {basename(target_path)}, maybe it building emitted error or corresponding source is empty.")
 
 		return result
 
