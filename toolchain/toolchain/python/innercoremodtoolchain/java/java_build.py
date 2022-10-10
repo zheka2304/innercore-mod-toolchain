@@ -9,6 +9,7 @@ from zipfile import ZipFile
 from ..utils import *
 from ..component import which_installed, install_components
 from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from ..base_config import BaseConfig
 from ..mod_structure import mod_structure
 
 def get_classpath_from_directories(directories):
@@ -78,11 +79,11 @@ def update_modified_classes(directories, cache_dir):
 					modified_timings[file] = hash
 
 		with open(join(directory, "manifest"), "r") as file:
-			manifest = json.load(file)
+			manifest = BaseConfig(json.load(file))
 
 		was_libs_modified = False
 		library_files = []
-		for library_dir in manifest["library-dirs"]:
+		for library_dir in manifest.get_value("library-dirs", []):
 			for dirpath, dirnames, filenames in os.walk(join(directory, library_dir)):
 				for filename in filenames:
 					if filename.endswith(".jar"):
@@ -240,30 +241,34 @@ def setup_gradle_project(cache_dir, directories, classpath):
 		target_dir = mod_structure.new_build_target("java", basename(directory))
 		clear_directory(target_dir)
 		ensure_directory(target_dir)
-		copy_file(join(directory, "manifest"), join(target_dir, "manifest"))
 		targets.append(target_dir)
 
 		with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
-			manifest = json.load(file)
+			manifest = BaseConfig(json.load(file))
 
-		source_dirs = manifest["source-dirs"]
-		library_dirs = manifest["library-dirs"]
+		source_dirs = manifest.get_value("source-dirs", [])
+		library_dirs = manifest.get_value("library-dirs", [])
 		build_dir = join(cache_dir, "classes")
 		dex_dir = target_dir
 		ensure_directory(build_dir)
 		ensure_directory(dex_dir)
 
-		if MAKE_CONFIG.get_value("gradle.keepLibraries", True):
+		if manifest.get_value("keepLibraries", MAKE_CONFIG.get_value("gradle.keepLibraries", True)):
 			for library_dir in library_dirs:
 				src_dir = join(directory, library_dir)
 				if isdir(src_dir):
 					copy_directory(src_dir, join(dex_dir, library_dir), clear_dst=True)
+			manifest.remove_value("keepLibraries")
 
-		if MAKE_CONFIG.get_value("gradle.keepSources", False):
+		if manifest.get_value("keepSources", MAKE_CONFIG.get_value("gradle.keepSources", False)):
 			for source_dir in source_dirs:
 				src_dir = join(directory, source_dir)
 				if isdir(src_dir):
 					copy_directory(src_dir, join(dex_dir, source_dir), clear_dst=True)
+			manifest.remove_value("keepSources")
+
+		with open(join(target_dir, "manifest"), "w", encoding="utf-8") as file:
+			file.write(json.dumps(manifest.json))
 
 		write_build_gradle(directory, classpath, build_dir, source_dirs, library_dirs)
 	return targets
