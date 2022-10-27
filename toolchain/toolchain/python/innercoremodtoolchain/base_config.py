@@ -36,7 +36,10 @@ class BaseConfig:
 				return
 			value = value[key]
 		if len(rawname[0]) > 0:
-			del value[rawname.pop()]
+			try:
+				del value[rawname.pop()]
+			except KeyError:
+				pass
 			if value != self.json and len(value) == 0:
 				self.remove_value(name.rsplit(".", 1)[0])
 
