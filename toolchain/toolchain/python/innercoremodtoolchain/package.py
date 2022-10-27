@@ -23,25 +23,6 @@ def get_path_set(pathes, error_sensitive = False):
 					print(f"Declared invalid directory {path}, it will be skipped")
 	return directories
 
-def assemble_additional_directories():
-	result = 0
-	output_dir = MAKE_CONFIG.get_path("output")
-	for additional_dir in MAKE_CONFIG.get_value("additional", []):
-		if "sources" not in additional_dir or "pushTo" not in additional_dir:
-			print("Invalid formatted additional directory json", additional_dir)
-			result = -1
-			break
-		dst_dir = join(output_dir, additional_dir["pushTo"])
-		clear_directory(dst_dir)
-		source_directories = get_path_set(additional_dir["sources"], error_sensitive=True)
-		if source_directories is None:
-			print("Some additional directories are invalid, nothing will happened")
-			result = -1
-			break
-		for source_dir in source_directories:
-			copy_directory(source_dir, dst_dir)
-	return result
-
 def cleanup_relative_directory(path, project = False):
 	start_time = time.time()
 	clear_directory(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))

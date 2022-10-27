@@ -157,18 +157,17 @@ def task_build_additional(args = None):
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in MAKE_CONFIG.get_paths(additional_dir["source"]):
 				if not exists(additional_path):
-					print("Non existing additional path: " + additional_path)
+					print("WARNING: Non existing additional path: " + additional_path)
 					overall_result = 1
 					break
 				target = MAKE_CONFIG.get_path(join(
 					"output",
 					additional_dir["targetDir"],
-					basename(additional_path)
+					additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
 				))
 				if isdir(additional_path):
 					copy_directory(additional_path, target)
 				else:
-					ensure_file_dir(target)
 					copy_file(additional_path, target)
 	return overall_result
 
