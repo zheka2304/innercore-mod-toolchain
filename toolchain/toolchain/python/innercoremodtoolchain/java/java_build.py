@@ -315,6 +315,7 @@ def compile_all_using_make_config(debug_build = False):
 	overall_result = 0
 	cache_dir = MAKE_CONFIG.get_build_path("gradle")
 	ensure_directory(cache_dir)
+	mod_structure.cleanup_build_target("java")
 
 	directories = []
 	directory_names = []

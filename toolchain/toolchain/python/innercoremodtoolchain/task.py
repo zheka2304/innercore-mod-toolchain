@@ -152,13 +152,11 @@ def task_build_info(args = None):
 
 @task("buildAdditional", lock=["cleanup", "push"], description="Copies additional directories, like assets root.")
 def task_build_additional(args = None):
-	overall_result = 0
 	for additional_dir in MAKE_CONFIG.get_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in MAKE_CONFIG.get_paths(additional_dir["source"]):
 				if not exists(additional_path):
 					print("WARNING: Non existing additional path: " + additional_path)
-					overall_result = 1
 					break
 				target = MAKE_CONFIG.get_path(join(
 					"output",
@@ -169,7 +167,7 @@ def task_build_additional(args = None):
 					copy_directory(additional_path, target)
 				else:
 					copy_file(additional_path, target)
-	return overall_result
+	return 0
 
 @task("pushEverything", lock=["push"], description="Push everything 'output' directory.")
 def task_push_everything(args = None):
@@ -178,7 +176,8 @@ def task_push_everything(args = None):
 
 @task("clearOutput", lock=["assemble", "push", "native", "java"], description="Removes 'output' directory in selected project.")
 def task_clear_output(args = None):
-	clear_directory(MAKE_CONFIG.get_path("output"))
+	if MAKE_CONFIG.get_value("development.clearOutput", False) or (args is not None and "--clean" in args):
+		clear_directory(MAKE_CONFIG.get_path("output"))
 	return 0
 
 @task("excludeDirectories", lock=["push", "assemble", "native", "java"], description="Removes excluded from release assembling directories.")

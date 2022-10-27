@@ -34,11 +34,11 @@ class ModStructure:
 		if target_type.directory == "":
 			return
 		directory = join(self.directory, target_type.directory)
-		reldir = relpath(directory, self.directory)
-		if reldir[:2] == "..":
+		if relpath(directory, self.directory)[:2] == "..":
 			print(f"WARNING: Output target {target_type_name} is not relative to output, it will be not cleaned!")
 			return
-		clear_directory(directory)
+		if not MAKE_CONFIG.get_value("development.clearOutput", False):
+			clear_directory(directory)
 		ensure_directory(directory)
 
 	def new_build_target(self, target_type_name, name, **properties):
