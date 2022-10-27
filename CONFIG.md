@@ -51,10 +51,14 @@ Properties marked with \* can have absolute file paths.
 │
 ├─ additional: [] // additional directories that need to be included in project after building
 │  └─ {}
-│     ├─ sources // relative path to folder, /* format is supported to include subfolders in folder
-│     └─ pushTo // output path in project after building
+│     ├─ source // relative path to folder, /* format is supported to include subfolders in folder
+│     ├─ targetDir // output path in project after building
+│     └─ targetFile: basename(this.source) // file name in target directory, will be added to end of path
 ├─ excludeFromRelease: [] // relative paths to folders excluded from project when building to release, /* format is supported to include subfolders in a folder
+├─ development: {} // development settings, to make assembling much more faster
+│  └─ clearOutput: false // whether clear output/ on every building, otherwise it will be cleaned when packaging to release
 │
+├─ tsconfig: {} // script compilation options, "compilerOptions" property of tsconfig.json; use IntelliSense in this file or run tsc --all to get option list
 ├─ gradle: {} // exclusive to java modding
 │  ├─ keepLibraries: true // whether to leave libraries in project after compilation
 │  ├─ keepSources: false // whether to leave sources in project after compilation
