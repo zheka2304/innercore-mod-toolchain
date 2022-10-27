@@ -9,43 +9,176 @@ from .utils import move_file, copy_file
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .hash_storage import build_storage
 
-params_list = {
+# The TypeScript Compiler - Version 4.8.3
+TSCONFIG = {
+	# JavaScript Support
 	"allowJs": False,
-	"allowUnusedLabels": False,
-	"alwaysStrict":	 False,
-	"assumeChangesOnlyAffectDirectDependencies": False,
 	"checkJs": False,
+	"maxNodeModuleJsDepth": 0,
+
+	# Interop Constraints
+	"allowSyntheticDefaultImports": False,
+	"esModuleInterop": False,
+	"forceConsistentCasingInFileNames": False,
+	"isolatedModules": False,
+	"preserveSymlinks": False,
+
+	# Modules
+	"allowUmdGlobalAccess": False,
+	"baseUrl": None,
+	"module": None,
+	"moduleResolution": "classic",
+	"moduleSuffixes": [],
+	"noResolve": False,
+	"paths": [],
+	"resolveJsonModule": False,
+	"rootDir": [],
+	"rootDirs": [],
+	"typeRoots": [],
+	"types": [],
+
+	# Type Checking
+	"allowUnreachableCode": None,
+	"allowUnusedLabels": None,
+	"alwaysStrict": False,
+	"exactOptionalPropertyTypes": False,
+	"noFallthroughCasesInSwitch": False,
+	"noImplicitAny": False,
+	"noImplicitOverride": False,
+	"noImplicitReturns": False,
+	"noImplicitThis": False,
+	"noPropertyAccessFromIndexSignature": False,
+	"noUncheckedIndexedAccess": False,
+	"noUnusedLocals": False,
+	"noUnusedParameters": False,
+	"strict": False,
+	"strictBindCallApply": False,
+	"strictFunctionTypes": False,
+	"strictNullChecks": False,
+	"strictPropertyInitialization": False,
+	"useUnknownInCatchVariables": False,
+
+	# Watch and Build Modes
+	"assumeChangesOnlyAffectDirectDependencies": False,
+
+	# Backwards Compatibility
+	# "charset": "utf8",
+	"keyofStringsOnly": False,
+	"noImplicitUseStrict": False,
+	"noStrictGenericChecks": False,
+	# "out": None,
+	"suppressExcessPropertyErrors": False,
+	"suppressImplicitAnyIndexErrors": False,
+
+	# Projects
+	"composite": False,
+	"disableReferencedProjectLoad": False,
+	"disableSolutionSearching": False,
+	"disableSourceOfProjectReferenceRedirect": False,
+	"incremental": False,
+	"tsBuildInfoFile": ".tsbuildinfo",
+
+	# Emit
 	"declaration": False,
-	"diagnostics": False,
-	"disableSizeLimit":	False,
+	"declarationDir": None,
+	"declarationMap": False,
 	"downlevelIteration": False,
+	"emitBOM": False,
 	"emitDeclarationOnly": False,
-	"experimentalDecorators": False,
-	"extendedDiagnostics": False,
 	"importHelpers": False,
-	"listEmittedFiles":	False,
-	"listFiles": False,
-	"locale": "en",
+	"importsNotUsedAsValues": "remove",
+	"inlineSourceMap": False,
+	"inlineSources": False,
+	"mapRoot": None,
+	"newLine": None,
 	"noEmit": False,
 	"noEmitHelpers": False,
 	"noEmitOnError": False,
-	"noErrorTruncation": False,
-	"noFallthroughCasesInSwitch": False,
-	"noLib": False,
-	"noResolve": False,
-	"noStrictGenericChecks": False,
-	"noUnusedLocals": False,
-	"noUnusedParameters": False,
+	"outDir": None,
+	"outFile": None,
 	"preserveConstEnums": False,
-	"preserveSymlinks":	False,
-	"pretty": True,
+	"preserveValueImports": False,
 	"removeComments": False,
-	"showConfig": False,
-	"skipLibCheck": False,
 	"sourceMap": False,
-	"strict": False,
-	"tsBuildInfoFile": ".tsbuildinfo"
+	"sourceRoot": False,
+	"stripInternal": False,
+
+	# Compiler Diagnostics
+	"diagnostics": False,
+	"explainFiles": False,
+	"extendedDiagnostics": False,
+	"generateCpuProfile": "profile.cpuprofile",
+	"generateTrace": False,
+	"listEmittedFiles": False,
+	"listFiles": False,
+	"traceResolution": False,
+
+	# Editor Support
+	"disableSizeLimit": False,
+	"plugins": [],
+
+	# Language and Environment
+	"emitDecoratorMetadata": False,
+	"experimentalDecorators": False,
+	# "jsx": None,
+	# "jsxFactory": "React.Fragment",
+	# "jsxImportSource": "react",
+	"lib": [],
+	"moduleDetection": "auto",
+	"noLib": False,
+	# "reactNamespace": "React",
+	"target": "es3",
+	"useDefineForClassFields": False,
+
+	# Output Formatting
+	"noErrorTruncation": False,
+	"preserveWatchOutput": False,
+	"pretty": True,
+
+	# Completeness
+	"skipDefaultLibCheck": False,
+	"skipLibCheck": False
 }
+
+# Basic prototype that will be changed when building
+TSCONFIG_TOOLCHAIN = {
+	"target": "es5", # Most of ES6 not realized in Rhino 1.7.7
+	"lib": ["esnext"],
+	"module": "none",
+	"moduleDetection": "legacy",
+	"moduleResolution": "classic",
+	"skipDefaultLibCheck": True,
+	"allowJs": True,
+	"downlevelIteration": True,
+	"declaration": True,
+	"experimentalDecorators": True,
+	"stripInternal": True,
+	"noEmitOnError": True
+}
+
+for key, value in MAKE_CONFIG.get_value("tsconfig", {}).items():
+	TSCONFIG_TOOLCHAIN[key] = value
+
+for key in TSCONFIG_TOOLCHAIN:
+	TSCONFIG[key] = TSCONFIG_TOOLCHAIN[key]
+
+# Do NOT include toolchain overrided options
+TSCONFIG_DEPENDENTS = {
+	"allowSyntheticDefaultImports": "esModuleInterop",
+	"alwaysStrict": "strict",
+	"noImplicitAny": "strict",
+	"noImplicitThis": "strict",
+	"strictBindCallApply": "strict",
+	"strictFunctionTypes": "strict",
+	"strictNullChecks": "strict",
+	"strictPropertyInitialization": "strict",
+	"incremental": "composite",
+	"declaration": "composite"
+}
+
+for key in TSCONFIG_TOOLCHAIN:
+	if key in TSCONFIG_DEPENDENTS:
+		del TSCONFIG_DEPENDENTS[key]
 
 temp_directory = MAKE_CONFIG.get_build_path("sources")
 
@@ -62,25 +195,44 @@ class Includes:
 
 	def read(self):
 		with open(self.file, encoding="utf-8") as includes:
+			dependents = []
 			for line in includes:
 				line = line.strip()
-				self.decode_line(line)
+				self.decode_line(line, dependents)
+			for dependent in dependents:
+				if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
+					self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
 
-	def decode_line(self, line):
-		if line.startswith("#"): # comment or parameter
-			pair = [item.strip() for item in line[1:].strip().split(":")]
+	def decode_line(self, line, dependents = []):
+		if line.startswith("#") or line.startswith("//"): # comment or parameter
+			line = line[2:] if line.startswith("//") else line[1:]
+			pair = [item.strip() for item in line.split(":", 1)]
 			key = pair[0]
 
-			if key in params_list:
-				default = params_list[key]
+			if key in TSCONFIG:
+				default = TSCONFIG[key]
 
 				if len(pair) > 1:
-					v = pair[1].lower()
-					self.params[key] = v == "true" if v in ["true", "false"] else v
+					value = pair[1]
+					if value.lower() in ["true", "false"]:
+						self.params[key] = value.lower() == "true"
+					elif default is None:
+						self.params[key] = value
+					elif isinstance(default, list):
+						self.params[key] = [next.strip() for next in value.split(",")]
+					elif isinstance(default, int):
+						self.params[key] = int(value)
+					else:
+						self.params[key] = value
+				elif default is None:
+					print("WARNING: Tsc option", key, "not corresponds to any value!")
+				elif isinstance(default, bool):
+					self.params[key] = not default
+					dependents.append(key)
 				else:
-					self.params[key] = True if isinstance(default, bool) else default
+					self.params = default
 
-		elif len(line) < 1 or line.startswith("//"):
+		elif len(line) == 0:
 			return
 
 		elif line.startswith("!"):
@@ -96,22 +248,36 @@ class Includes:
 			search_path = re.sub(r"\.$", "**/*", line) if line.endswith("/.") else line
 			self.include.append(search_path.replace("\\", "/"))
 
-	def create(self):
+	def parse(self):
 		with open(self.file, "w") as includes:
-			params = ["# " + key + ((": " + str(self.params[key])).lower() if not self.params[key] else "") + "\n" for key in self.params]
-			files = [file + "\n" for file in self.include]
-
-			includes.writelines(params)
-			includes.write("\n")
-			includes.writelines(files)
+			for key, value in self.params.items():
+				if value is None:
+					continue
+				includes.write("# " + key + ": ")
+				if isinstance(value, bool):
+					includes.write("true" if value == True else "false")
+				elif isinstance(value, list):
+					includes.write(", ".join(value))
+				else:
+					includes.write(value)
+				includes.write("\n")
+			if len(self.params) > 0:
+				includes.write("\n")
+			includes.writelines([
+				file + "\n" for file in self.include
+			])
+			includes.writelines([
+				"!" + file + "\n" for file in self.exclude
+			])
 
 	@staticmethod
 	def create_from_directory(directory, includes_file, debug_build = False):
 		includes = Includes(directory, includes_file, debug_build)
-		includes.files = [normpath(relpath(file, directory))
-			for file in glob.glob(f"{directory}/**/*", recursive=True)]
-		includes.params = {}
-		includes.create()
+		for dirpath, dirnames, filenames in os.walk(directory):
+			for filename in filenames:
+				if filename.endswith(".js") or filename.endswith(".ts"):
+					includes.include.append(normpath(join(relpath(dirpath, directory), filename)))
+		includes.parse()
 
 		return includes
 
@@ -120,14 +286,10 @@ class Includes:
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
 
-			params = config["compilerOptions"]
-			include = config["include"]
-			exclude = config["exclude"]
+			params = config["compilerOptions"] if "compilerOptions" in config else {}
+			include = config["include"] if "include" in config else []
+			exclude = config["exclude"] if "exclude" in config else []
 
-			if "target" in params:
-				del params["target"]
-			if "lib" in params:
-				del params["lib"]
 			if "outFile" in params:
 				del params["outFile"]
 
@@ -135,7 +297,7 @@ class Includes:
 		includes.include = include
 		includes.exclude = exclude
 		includes.params = params
-		includes.create()
+		includes.parse()
 
 		return includes
 
@@ -149,7 +311,7 @@ class Includes:
 				includes = Includes.create_from_directory(directory, includes_file, debug_build)
 		else:
 			includes = Includes(directory, includes_file, debug_build)
-		includes.read()
+			includes.read()
 
 		return includes
 
@@ -215,17 +377,10 @@ class Includes:
 
 		template = {
 			"compilerOptions": {
-				"target": "ES5",
-				"lib": ["ESNext"],
-				"outFile": temp_path,
-				"experimentalDecorators": True,
-				"declaration": True,
-				"downlevelIteration": True,
-				"allowJs": True
+				"outFile": temp_path
 			},
 			"compileOnSave": False,
 			"exclude": [
-				"**/node_modules/*",
 				"dom",
 				"webpack"
 			] + self.exclude,
@@ -234,6 +389,9 @@ class Includes:
 
 		if len(declarations) > 0:
 			template["files"] = declarations
+
+		for key, value in TSCONFIG_TOOLCHAIN.items():
+			template["compilerOptions"][key] = value
 
 		for key, value in self.params.items():
 			template["compilerOptions"][key] = value
@@ -246,12 +404,13 @@ class Includes:
 		if language.lower() == "typescript":
 			command = [
 				"tsc",
-				"-p", self.get_tsconfig(),
-				"--noEmitOnError"
+				"--project", self.get_tsconfig()
 			]
 			if self.debug_build:
-				command.append("--skipLibCheck")
+				# Do NOT resolve down-level declaration, like android.d.ts if it not included
 				command.append("--noResolve")
+				 # Do NOT check declarations to resolve conflicts and something else due to --noResolve
+				command.append("--skipLibCheck")
 			result = subprocess.call(command)
 		else:
 			result = 0
