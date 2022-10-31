@@ -203,7 +203,7 @@ class ProjectManager:
 			if prompt_when_single is None:
 				return itwillbe
 			else:
-				if input(prompt_when_single.format(itwillbe) + " [Y/n] ")[:1].lower() == "n":
+				if input(prompt_when_single.format(self.resolve_mod_name(itwillbe) + " (" + itwillbe + ")") + " [Y/n] ")[:1].lower() == "n":
 					return print("Abort.")
 				return itwillbe
 		raw = select_project(self.projects, prompt, MAKE_CONFIG.current_project, dont_want_anymore)
