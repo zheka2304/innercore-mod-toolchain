@@ -71,20 +71,16 @@ def require_compiler_executable(arch, install_if_required = False):
 	ndk_dir = TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
-		if install(arch=arch, reinstall=False) == -1:
-			return None
+		install(arch=arch, reinstall=False)
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
 			print("NDK installation for " + arch + " is broken, trying to re-install.")
-			if install(arch=arch, reinstall=True) == -1:
-				return None
+			install(arch=arch, reinstall=True)
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
 				print("Reinstallation doesn't help, please, retry setup manually.")
 				return None
-		return file
-	else:
-		return file
+	return file
 
 def check_installed(arch):
 	return isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)))
@@ -140,11 +136,11 @@ def install(arch = "arm", reinstall = False):
 					shell.enter()
 					ndk_path = download(shell)
 				else:
-					print("Abort.")
-					return -1
+					from ..task import error
+					error("Abort.", 1)
 			except KeyboardInterrupt:
-				print("Abort.")
-				return -1
+				from ..task import error
+				error("Abort.", 1)
 		else:
 			shell.enter()
 
