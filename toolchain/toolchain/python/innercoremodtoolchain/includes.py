@@ -7,7 +7,7 @@ import subprocess
 
 from .utils import move_file, copy_file
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .hash_storage import build_storage
+from .hash_storage import BUILD_STORAGE
 
 # The TypeScript Compiler - Version 4.8.3
 TSCONFIG = {
@@ -328,7 +328,7 @@ class Includes:
 		result = 0
 		if language == "typescript":
 			self.create_tsconfig(temp_path)
-		if build_storage.is_path_changed(self.directory) or not isfile(temp_path):
+		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			import datetime
 
 			print(f"Building {basename(target_path)} from {self.includes_file}")
@@ -341,7 +341,9 @@ class Includes:
 			print(f"Completed {basename(target_path)} build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
 			if result != 0:
 				return result
-			build_storage.save()
+
+			BUILD_STORAGE.is_path_changed(self.directory, True)
+			BUILD_STORAGE.save()
 		else:
 			print(f"* Build target {basename(target_path)} is not changed")
 		if isfile(temp_path):
