@@ -1,6 +1,9 @@
-# use this to include all files (only for order-independent builds)
-# use !path/to/file to exclude files or directories from build
+# decribe tsconfig exclusive to this source
+# explainFiles
+# lib: es2016
+# or exclude default properties with !property
 
-# nocheck
-
+# include everything in folder (order-independent)
 **/*.js
+**/*.ts
+# use !path/to/file to exclude files or directories

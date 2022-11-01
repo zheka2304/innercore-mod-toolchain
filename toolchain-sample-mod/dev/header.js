@@ -2,9 +2,8 @@
 
 alert("Sample mod loaded!");
 
-var SampleNativeModule = WRAP_NATIVE("SampleNativeModule");
+const SampleNativeModule = WRAP_NATIVE("SampleNativeModule");
 alert("Received value from native: " + SampleNativeModule.hello(2, 1));
-
 
 // test sample library 
 

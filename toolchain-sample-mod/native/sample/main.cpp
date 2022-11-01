@@ -5,7 +5,6 @@
 
 #include <nativejs.h>
 
-
 // modules are main structural units of native libraries, all initialization must happen inside of them
 class MainModule : public Module {
 public:
