@@ -203,34 +203,41 @@ class Includes:
 				if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
 					self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
 
+	def decode_param(self, key, value = None, dependents = []):
+		default = TSCONFIG[key]
+
+		if value is not None:
+			if value.lower() in ["true", "false"]:
+				self.params[key] = value.lower() == "true"
+			elif default is None:
+				self.params[key] = value
+			elif isinstance(default, list):
+				self.params[key] = [next.strip() for next in value.split(",")]
+			elif isinstance(default, int):
+				self.params[key] = int(value)
+			else:
+				self.params[key] = value
+		elif default is None:
+			print("WARNING: Tsc option", key, "not corresponds to any value!")
+		elif isinstance(default, bool):
+			self.params[key] = not default
+			dependents.append(key)
+		else:
+			self.params = default
+
 	def decode_line(self, line, dependents = []):
 		if line.startswith("#") or line.startswith("//"): # comment or parameter
 			line = line[2:] if line.startswith("//") else line[1:]
-			pair = [item.strip() for item in line.split(":", 1)]
-			key = pair[0]
-
+			key, *values = [item.strip() for item in line.split(":", 1)]
 			if key in TSCONFIG:
-				default = TSCONFIG[key]
-
-				if len(pair) > 1:
-					value = pair[1]
-					if value.lower() in ["true", "false"]:
-						self.params[key] = value.lower() == "true"
-					elif default is None:
-						self.params[key] = value
-					elif isinstance(default, list):
-						self.params[key] = [next.strip() for next in value.split(",")]
-					elif isinstance(default, int):
-						self.params[key] = int(value)
-					else:
-						self.params[key] = value
-				elif default is None:
-					print("WARNING: Tsc option", key, "not corresponds to any value!")
-				elif isinstance(default, bool):
-					self.params[key] = not default
-					dependents.append(key)
+				if not key.startswith("!"):
+					self.decode_param(key, values[0] if len(values) > 0 else None, dependents)
 				else:
-					self.params = default
+					key = key[1:].strip()
+					if key in self.params:
+						del self.params[key]
+					elif key in TSCONFIG_TOOLCHAIN and key in TSCONFIG:
+						self.params[key] = TSCONFIG[key]
 
 		elif len(line) == 0:
 			return
@@ -397,8 +404,7 @@ class Includes:
 			template["compilerOptions"][key] = value
 
 		with open(self.get_tsconfig(), "w") as tsconfig:
-			json.dump(template, tsconfig, indent="\t")
-			tsconfig.write("\n")
+			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
 	def build_source(self, temp_path, language):
 		if language.lower() == "typescript":
