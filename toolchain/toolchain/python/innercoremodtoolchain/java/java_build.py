@@ -3,11 +3,11 @@ from os.path import join, basename, isfile, isdir, getmtime
 import platform
 import subprocess
 import json
-import hashlib
 from zipfile import ZipFile
 
 from ..utils import *
 from ..component import which_installed, install_components
+from ..hash_storage import BUILD_STORAGE
 from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from ..base_config import BaseConfig
 from ..mod_structure import mod_structure
@@ -35,7 +35,7 @@ def rebuild_library_cache(directory, library_files, cache_dir):
 		print("Extracting library classes:", basename(lib_file))
 		with AttributeZipFile(lib_file, "r") as zip_ref:
 			zip_ref.extractall(lib_cache_dir)
-	print("Zipping")
+	print("Zipping extracted cache")
 
 	import shutil
 	if isfile(lib_cache_zip):
@@ -44,63 +44,24 @@ def rebuild_library_cache(directory, library_files, cache_dir):
 	return [lib_cache_zip]
 
 def update_modified_classes(directories, cache_dir):
-	cache_json = {}
-	try:
-		with open(join(cache_dir, "gradle_classes_cache.json")) as file:
-			cache_json = json.load(file)
-	except Exception:
-		pass
-	print()
-	print("Recalculating class file hashes")
 	modified_files = {}
-
 	for directory in directories:
 		directory_name = basename(directory)
 		classes_dir = join(cache_dir, "classes", directory_name, "classes")
-		if directory_name not in cache_json:
-			cache_json[directory_name] = {}
-		modified_timings = cache_json[directory_name]
 		modified_files[directory_name] = {
-			"class": [],
+			"class": BUILD_STORAGE.get_modified_files(classes_dir, (".class")),
 			"lib": []
 		}
-		modified_files_for_dir = modified_files[directory_name]["class"]
-		for dirpath, dirnames, filenames in os.walk(classes_dir):
-			for filename in filenames:
-				if filename.endswith(".class"):
-					file = str(join(dirpath, filename))
-					modified_time = int(1000 * getmtime(file))
-					hash_factory = hashlib.md5()
-					with open(file, "rb") as fp:
-						hash_factory.update(fp.read())
-					hash = hash_factory.hexdigest()
-					if file not in modified_timings or modified_timings[file] != hash:
-						modified_files_for_dir.append(file)
-					modified_timings[file] = hash
-
 		with open(join(directory, "manifest"), "r") as file:
 			manifest = BaseConfig(json.load(file))
-
-		was_libs_modified = False
-		library_files = []
-		for library_dir in manifest.get_value("library-dirs", []):
-			for dirpath, dirnames, filenames in os.walk(join(directory, library_dir)):
-				for filename in filenames:
-					if filename.endswith(".jar"):
-						file = join(dirpath, filename)
-						library_files.append(file)
-						modified_time = int(1000 * getmtime(file))
-						key = "lib:" + file
-						if key not in modified_timings or modified_timings[key] != modified_time:
-							was_libs_modified = True
-						modified_timings[key] = modified_time
-		if was_libs_modified:
-			modified_files[directory_name]["lib"] += rebuild_library_cache(directory, library_files, cache_dir)
-	return modified_files, cache_json
-
-def save_modified_classes_cache(cache_json, cache_dir):
-	with open(join(cache_dir, "gradle_classes_cache.json"), "w") as file:
-		file.write(json.dumps(cache_json))
+		for library_path in manifest.get_value("library-dirs", []):
+			library_dir = join(directory, library_path)
+			modified_files[directory_name]["lib"] += BUILD_STORAGE.get_modified_files(library_dir, (".jar"))
+		if len(modified_files[directory_name]["lib"]) > 0:
+			modified_files[directory_name]["lib"] = rebuild_library_cache(
+				directory, modified_files[directory_name]["lib"], cache_dir
+			)
+	return modified_files
 
 def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 	d8_libs = []
@@ -159,7 +120,7 @@ def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 		index += max_span_size
 		print(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
 
-	print("Compressing dex archives")
+	print("Compressing archives")
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	with ZipFile(dex_zip_file, "w") as zip_ref:
@@ -171,8 +132,11 @@ def run_d8(directory_name, modified_files, cache_dir, debug_build = False):
 
 	return result
 
-def merge_compressed_dexes(directory_name, cache_dir, output_dex_dir, debug_build = False):
+def merge_compressed_dexes(directory_name, cache_dir, debug_build = False):
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
+	output_dex_dir = join(cache_dir, "odex", directory_name)
+	clear_directory(output_dex_dir)
+	ensure_directory(output_dex_dir)
 	print("Merging dex")
 	return subprocess.call([
 		"java",
@@ -197,27 +161,30 @@ def build_java_directories(directories, cache_dir, classpath, debug_build = Fals
 		"-p", cache_dir, "shadowJar"
 	])
 	if result != 0:
-		print(f"Java compilation failed with code {result}")
 		return result
+	print()
 
-	modified_files, cache_json = update_modified_classes(directories, cache_dir)
-	save_modified_classes_cache(cache_json, cache_dir)
+	modified_files = update_modified_classes(directories, cache_dir)
 	for target in targets:
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
-			print(f"\x1b[1m\x1b[92m\n* Running d8 for {directory_name}\x1b[0m\n")
+			print(f"\x1b[1m\x1b[92m* Running d8 for {directory_name}\x1b[0m")
 			result = run_d8(directory_name, modified_files[directory_name], cache_dir, debug_build)
 			if result != 0:
 				print(f"Failed to dex {directory_name} with code {result}")
 				return result
+			result = merge_compressed_dexes(directory_name, cache_dir, debug_build)
+			if result != 0:
+				print(f"Failed to merge {directory_name} with code {result}")
+				return result
+			print()
 		else:
 			print(f"* Directory {directory_name} is not changed")
-		result = merge_compressed_dexes(directory_name, cache_dir, target, debug_build)
-		if result != 0:
-			print(f"Failed to merge {directory_name} with code {result}")
-			return result
+		output_dex_dir = join(cache_dir, "odex", directory_name)
+		for filename in os.listdir(output_dex_dir):
+			copy_file(join(output_dex_dir, filename), join(target, filename))
 
-	print("\n\x1b[1m\x1b[92mJAVA BUILD COMPLETED\x1b[0m\n")
+	BUILD_STORAGE.save()
 	return result
 
 def build_list(working_dir):
@@ -231,9 +198,10 @@ def build_list(working_dir):
 
 def setup_gradle_project(cache_dir, directories, classpath):
 	file = open(join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
-	file.writelines(["include \":%s\"\nproject(\":%s\").projectDir = file(\"%s\")\n"
-				  % (basename(item), basename(item), item.replace("\\", "\\\\"))
-				  for item in directories])
+	file.writelines([
+		"include \":%s\"\nproject(\":%s\").projectDir = file(\"%s\")\n"
+			% (basename(item), basename(item), item.replace("\\", "\\\\")) for item in directories
+	])
 	file.close()
 
 	targets = []
@@ -281,23 +249,26 @@ def write_build_gradle(directory, classpath, build_dir, source_dirs, library_dir
 }
 
 dependencies {
-	""" + ("""compile fileTree(\"""" + "\", \"".join([path.replace("\\", "\\\\")
-												for path in library_dirs])
+	""" + ("""compile fileTree(\"""" + "\", \"".join([
+			path.replace("\\", "\\\\") for path in library_dirs
+		])
 		+ """\") { include \"*.jar\" }""" if len(library_dirs) > 0 else "") + """
 }
 
 sourceSets {
 	main {
 		java {
-			srcDirs = [\"""" + "\", \"".join([path.replace("\\", "\\\\")
-								  for path in source_dirs]) + """\"]
+			srcDirs = [\"""" + "\", \"".join([
+				path.replace("\\", "\\\\") for path in source_dirs
+			]) + """\"]
 			buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
 		}
 		resources {
 			srcDirs = []
 		}
-		compileClasspath += files(\"""" + "\", \"".join([path.replace("\\", "\\\\")
-												for path in classpath]) + """\")
+		compileClasspath += files(\"""" + "\", \"".join([
+			path.replace("\\", "\\\\") for path in classpath
+		]) + """\")
 	}
 }
 """)
@@ -309,8 +280,8 @@ def cleanup_gradle_scripts(directories):
 			os.remove(gradle_script)
 
 def compile_all_using_make_config(debug_build = False):
-	import time
-	start_time = time.time()
+	from time import time
+	start_time = time()
 
 	overall_result = 0
 	cache_dir = MAKE_CONFIG.get_build_path("gradle")
@@ -356,7 +327,7 @@ def compile_all_using_make_config(debug_build = False):
 	cleanup_gradle_scripts(directories)
 	mod_structure.update_build_config_list("javaDirs")
 
-	print(f"Completed java build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+	print(f"Completed java build in {int((time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
 	return overall_result
 
 
