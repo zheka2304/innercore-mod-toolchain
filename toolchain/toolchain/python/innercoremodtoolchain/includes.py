@@ -6,161 +6,9 @@ import re
 import subprocess
 
 from .utils import move_file, copy_file
+from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .hash_storage import BUILD_STORAGE
-
-# The TypeScript Compiler - Version 4.8.3
-TSCONFIG = {
-	# JavaScript Support
-	"allowJs": False,
-	"checkJs": False,
-	"maxNodeModuleJsDepth": 0,
-
-	# Interop Constraints
-	"allowSyntheticDefaultImports": False,
-	"esModuleInterop": False,
-	"forceConsistentCasingInFileNames": False,
-	"isolatedModules": False,
-	"preserveSymlinks": False,
-
-	# Modules
-	"allowUmdGlobalAccess": False,
-	"baseUrl": None,
-	"module": None,
-	"moduleResolution": "classic",
-	"moduleSuffixes": [],
-	"noResolve": False,
-	"paths": [],
-	"resolveJsonModule": False,
-	"rootDir": [],
-	"rootDirs": [],
-	"typeRoots": [],
-	"types": [],
-
-	# Type Checking
-	"allowUnreachableCode": None,
-	"allowUnusedLabels": None,
-	"alwaysStrict": False,
-	"exactOptionalPropertyTypes": False,
-	"noFallthroughCasesInSwitch": False,
-	"noImplicitAny": False,
-	"noImplicitOverride": False,
-	"noImplicitReturns": False,
-	"noImplicitThis": False,
-	"noPropertyAccessFromIndexSignature": False,
-	"noUncheckedIndexedAccess": False,
-	"noUnusedLocals": False,
-	"noUnusedParameters": False,
-	"strict": False,
-	"strictBindCallApply": False,
-	"strictFunctionTypes": False,
-	"strictNullChecks": False,
-	"strictPropertyInitialization": False,
-	"useUnknownInCatchVariables": False,
-
-	# Watch and Build Modes
-	"assumeChangesOnlyAffectDirectDependencies": False,
-
-	# Backwards Compatibility
-	# "charset": "utf8",
-	"keyofStringsOnly": False,
-	"noImplicitUseStrict": False,
-	"noStrictGenericChecks": False,
-	# "out": None,
-	"suppressExcessPropertyErrors": False,
-	"suppressImplicitAnyIndexErrors": False,
-
-	# Projects
-	"composite": False,
-	"disableReferencedProjectLoad": False,
-	"disableSolutionSearching": False,
-	"disableSourceOfProjectReferenceRedirect": False,
-	"incremental": False,
-	"tsBuildInfoFile": ".tsbuildinfo",
-
-	# Emit
-	"declaration": False,
-	"declarationDir": None,
-	"declarationMap": False,
-	"downlevelIteration": False,
-	"emitBOM": False,
-	"emitDeclarationOnly": False,
-	"importHelpers": False,
-	"importsNotUsedAsValues": "remove",
-	"inlineSourceMap": False,
-	"inlineSources": False,
-	"mapRoot": None,
-	"newLine": None,
-	"noEmit": False,
-	"noEmitHelpers": False,
-	"noEmitOnError": False,
-	"outDir": None,
-	"outFile": None,
-	"preserveConstEnums": False,
-	"preserveValueImports": False,
-	"removeComments": False,
-	"sourceMap": False,
-	"sourceRoot": False,
-	"stripInternal": False,
-
-	# Compiler Diagnostics
-	"diagnostics": False,
-	"explainFiles": False,
-	"extendedDiagnostics": False,
-	"generateCpuProfile": "profile.cpuprofile",
-	"generateTrace": False,
-	"listEmittedFiles": False,
-	"listFiles": False,
-	"traceResolution": False,
-
-	# Editor Support
-	"disableSizeLimit": False,
-	"plugins": [],
-
-	# Language and Environment
-	"emitDecoratorMetadata": False,
-	"experimentalDecorators": False,
-	# "jsx": None,
-	# "jsxFactory": "React.Fragment",
-	# "jsxImportSource": "react",
-	"lib": [],
-	"moduleDetection": "auto",
-	"noLib": False,
-	# "reactNamespace": "React",
-	"target": "es3",
-	"useDefineForClassFields": False,
-
-	# Output Formatting
-	"noErrorTruncation": False,
-	"preserveWatchOutput": False,
-	"pretty": True,
-
-	# Completeness
-	"skipDefaultLibCheck": False,
-	"skipLibCheck": False
-}
-
-# Basic prototype that will be changed when building
-TSCONFIG_TOOLCHAIN = {
-	"target": "es5", # Most of ES6 not realized in Rhino 1.7.7
-	"lib": ["esnext"],
-	"module": "none",
-	"moduleDetection": "legacy",
-	"moduleResolution": "classic",
-	"skipDefaultLibCheck": True,
-	"allowJs": True,
-	"downlevelIteration": True,
-	"declaration": True,
-	"experimentalDecorators": True,
-	"stripInternal": True,
-	"noEmitOnError": True
-}
-
-for key, value in MAKE_CONFIG.get_value("tsconfig", {}).items():
-	TSCONFIG_TOOLCHAIN[key] = value
-
-for key in TSCONFIG_TOOLCHAIN:
-	TSCONFIG[key] = TSCONFIG_TOOLCHAIN[key]
 
 # Do NOT include toolchain overrided options
 TSCONFIG_DEPENDENTS = {
@@ -194,18 +42,17 @@ class Includes:
 		self.params = {}
 
 	def read(self):
+		dependents = []
 		with open(self.file, encoding="utf-8") as includes:
-			dependents = []
 			for line in includes:
 				line = line.strip()
 				self.decode_line(line, dependents)
-			for dependent in dependents:
-				if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
-					self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
+		for dependent in dependents:
+			if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
+				self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
 
 	def decode_param(self, key, value = None, dependents = []):
-		default = TSCONFIG[key]
-
+		default = TSCONFIG_TOOLCHAIN[key] if key in TSCONFIG_TOOLCHAIN else TSCONFIG[key]
 		if value is not None:
 			if value.lower() in ["true", "false"]:
 				self.params[key] = value.lower() == "true"
@@ -234,10 +81,10 @@ class Includes:
 					self.decode_param(key, values[0] if len(values) > 0 else None, dependents)
 				else:
 					key = key[1:].strip()
-					if key in self.params:
-						del self.params[key]
-					elif key in TSCONFIG_TOOLCHAIN and key in TSCONFIG:
+					if key in TSCONFIG_TOOLCHAIN and key in TSCONFIG:
 						self.params[key] = TSCONFIG[key]
+					elif key in self.params:
+						del self.params[key]
 
 		elif len(line) == 0:
 			return
@@ -259,6 +106,7 @@ class Includes:
 		with open(self.file, "w") as includes:
 			for key, value in self.params.items():
 				if value is None:
+					includes.write("# !" + key + "\n")
 					continue
 				includes.write("# " + key + ": ")
 				if isinstance(value, bool):
@@ -334,7 +182,7 @@ class Includes:
 			print(f"Building {basename(target_path)} from {self.includes_file}")
 
 			start_time = datetime.datetime.now()
-			result = self.build_source(temp_path, language)
+			result = self.build_source(language)
 			end_time = datetime.datetime.now()
 			diff = end_time - start_time
 
@@ -357,76 +205,31 @@ class Includes:
 		return join(self.directory, "tsconfig.json")
 
 	def create_tsconfig(self, temp_path):
-		declarations = []
-		if exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-			declarations.extend(glob.glob(
-				TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
-				recursive=True
-			))
-		declarations.extend(glob.glob(
-			MAKE_CONFIG.get_build_path("declarations/**/*.d.ts"),
-			recursive=True
-		))
-
-		current_name = splitext(basename(temp_path))[0]
-		for declaration in declarations:
-			if declaration.endswith(f"{current_name}.d.ts"):
-				declarations.remove(declaration)
-
-		if self.debug_build:
-			for excluded in MAKE_CONFIG.get_value("debugIncludesExclude", []):
-				if exists(str(excluded).lstrip("/").partition("/")[0]):
-					for declaration in glob.glob(excluded, recursive=True):
-						if declaration in declarations:
-							declarations.remove(declaration)
-				else:
-					for declaration in glob.glob(TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
-						if declaration in declarations:
-							declarations.remove(declaration)
-
 		template = {
+			"extends": relpath(WORKSPACE_COMPOSITE.get_tsconfig(), self.directory),
 			"compilerOptions": {
 				"outFile": temp_path
 			},
-			"compileOnSave": False,
-			"exclude": [
-				"dom",
-				"webpack"
-			] + self.exclude,
+			"exclude": self.exclude,
 			"include": self.include,
 		}
 
-		if len(declarations) > 0:
-			template["files"] = declarations
-
-		for key, value in TSCONFIG_TOOLCHAIN.items():
-			template["compilerOptions"][key] = value
-
 		for key, value in self.params.items():
 			template["compilerOptions"][key] = value
-
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
-	def build_source(self, temp_path, language):
+	def build_source(self, language):
 		if language.lower() == "typescript":
 			command = [
 				"tsc",
-				"--project", self.get_tsconfig()
+				"--project", self.get_tsconfig(),
+				*MAKE_CONFIG.get_value("development.tsc", [])
 			]
 			if self.debug_build:
 				# Do NOT resolve down-level declaration, like android.d.ts if it not included
 				command.append("--noResolve")
 				 # Do NOT check declarations to resolve conflicts and something else due to --noResolve
 				command.append("--skipLibCheck")
-			result = subprocess.call(command)
-		else:
-			result = 0
-
-		declaration_path = f"{splitext(temp_path)[0]}.d.ts"
-		if isfile(declaration_path):
-			move_file(declaration_path, MAKE_CONFIG.get_build_path(
-				"declarations/" + basename(declaration_path)
-			))
-
-		return result
+			return subprocess.call(command)
+		return 0

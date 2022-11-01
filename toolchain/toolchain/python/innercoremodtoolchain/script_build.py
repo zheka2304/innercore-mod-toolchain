@@ -3,6 +3,7 @@ from functools import cmp_to_key
 
 from .utils import clear_directory, copy_file, copy_directory, request_typescript
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .workspace import WORKSPACE_COMPOSITE
 from .mod_structure import mod_structure
 from .includes import Includes
 
@@ -28,7 +29,7 @@ def build_all_scripts(debug_build = False):
 		error("TypeScript is required by default, if you want to build legacy JavaScript, change `denyJavaScript` property in your make.json or toolchain.json config.")
 	return build_all_make_scripts(allowed_languages=allowed_languages, debug_build=debug_build)
 
-def libraries_first(a, b):
+def do_sorting(a, b):
 	la = a["type"] == "library"
 	lb = b["type"] == "library"
 	return 0 if la == lb else -1 if la else 1
@@ -36,7 +37,7 @@ def libraries_first(a, b):
 def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["typescript"], debug_build = False):
 	overall_result = 0
 	sources = MAKE_CONFIG.get_value("sources", fallback=[])
-	sources = sorted(sources, key=cmp_to_key(libraries_first))
+	sources = sorted(sources, key=cmp_to_key(do_sorting))
 
 	for item in sources:
 		_source = item["source"]
@@ -91,8 +92,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 					source_type=_type,
 					declare=declare
 				)
-			mod_structure.update_build_config_list("compile")
-			if not only_tsconfig_rebuild:
+				mod_structure.update_build_config_list("compile")
 				if isfile(source_path):
 					copy_file(source_path, destination_path)
 				else:
@@ -106,7 +106,10 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 				includes = Includes.invalidate(source_path, _includes, debug_build)
 				includes.create_tsconfig(join(temp_directory, basename(target_path)))
 
-	return overall_result
+	WORKSPACE_COMPOSITE.flush(debug_build)
+	return overall_result + WORKSPACE_COMPOSITE.build(*(
+		[] if debug_build else ["--force"]
+	))
 
 def build_all_resources():
 	mod_structure.cleanup_build_target("resource_directory")
