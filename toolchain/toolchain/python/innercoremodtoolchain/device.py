@@ -7,7 +7,7 @@ import subprocess
 from glob import glob
 
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .hash_storage import output_storage
+from .hash_storage import OUTPUT_STORAGE
 from .shell import Progress, Shell, select_prompt
 from .ansi_escapes import link
 
@@ -103,7 +103,7 @@ def push(directory, push_unchanged = False):
 	shell = Shell()
 	progress = Progress("Pushing")
 	shell.interactables.append(progress)
-	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or output_storage.is_path_changed(path)]
+	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
 		progress.seek(1, "Nothing to push")
 		shell.enter()
@@ -142,7 +142,7 @@ def push(directory, push_unchanged = False):
 			return result
 
 	if not push_unchanged:
-		output_storage.save()
+		OUTPUT_STORAGE.save()
 	progress.seek(1, "Pushed")
 	shell.render()
 	shell.leave()

@@ -112,9 +112,9 @@ def task_build_scripts_debug(args = None):
 @task("buildScriptsRelease", lock=["script", "cleanup", "push"], description="Assembling scripts without excluding debug declarations, everything script hashes will be rebuilded too.")
 def task_build_scripts_release(args = None):
 	from .script_build import build_all_scripts
-	from .hash_storage import output_storage, build_storage
-	output_storage.last_hashes = {}
-	build_storage.last_hashes = {}
+	from .hash_storage import OUTPUT_STORAGE, BUILD_STORAGE
+	OUTPUT_STORAGE.last_hashes = {}
+	BUILD_STORAGE.last_hashes = {}
 	return build_all_scripts(debug_build=False)
 
 @task("buildResources", lock=["resource", "cleanup", "push"], description="Builds resource pathes, like gui and atlases.")

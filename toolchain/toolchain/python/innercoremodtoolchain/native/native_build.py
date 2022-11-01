@@ -199,9 +199,7 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 		command += dependencies
 		print("Linking object files")
 		result = subprocess.call(command)
-		if result == CODE_OK:
-			print("Build successfully completed")
-		else:
+		if result != CODE_OK:
 			print("Linker failed with result", result)
 			overall_result = result
 			return overall_result
