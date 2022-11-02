@@ -114,8 +114,8 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 				if MAKE_CONFIG.get_value("project.composite", True):
 					WORKSPACE_COMPOSITE.coerce(source_path)
 				if BUILD_STORAGE.is_path_changed(source_path):
-					composite.append((source_path, destination_path))
-				computed_composite.append((source_path, destination_path))
+					composite.append((source_path, destination_path, language))
+				computed_composite.append((source_path, destination_path, language))
 
 	BUILD_STORAGE.save()
 	return composite, computed_composite, includes, computed_includes
@@ -133,8 +133,11 @@ def copy_build_targets(composite, includes):
 		if not BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"* Build target {basename(temp_path)} is not changed")
 	for included in composite:
-		temp_path = join(temp_directory, relpath(included[0], MAKE_CONFIG.root_dir)) \
-			if MAKE_CONFIG.get_value("project.composite", True) else included[0]
+		if MAKE_CONFIG.get_value("project.composite", True) and not included[2] == "javascript":
+			temp_path = join(temp_directory, relpath(included[0], MAKE_CONFIG.root_dir))
+		else: temp_path = included[0]
+		if temp_path == included[0] and BUILD_STORAGE.is_path_changed(temp_path):
+			print(f"Flushing {basename(included[1])} from {basename(included[0])}")
 		if BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
@@ -158,21 +161,33 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 
 	if "typescript" in allowed_languages:
 		WORKSPACE_COMPOSITE.flush(debug_build)
-		if (MAKE_CONFIG.get_value("project.composite", True) and len(composite) > 0) \
-				or (MAKE_CONFIG.get_value("project.useReferences", False) and len(includes) > 0):
-			print("Rebuilding composite ", ", ".join([
-				basename(included[1]) for included in composite + includes
-			]), sep="")
 
-			import datetime
-			start_time = datetime.datetime.now()
-			overall_result += WORKSPACE_COMPOSITE.build(*(
-				() if debug_build else ("--force")
-			))
-			end_time = datetime.datetime.now()
-			diff = end_time - start_time
+		if MAKE_CONFIG.get_value("project.composite", True) \
+				or MAKE_CONFIG.get_value("project.useReferences", False):
+			which = []
+			if MAKE_CONFIG.get_value("project.composite", True):
+				which += list(filter(lambda included: included[2] == "typescript", composite))
+			no_composite_typescript = len(which) == 0
+			if MAKE_CONFIG.get_value("project.useReferences", False):
+				which += list(filter(lambda included: included[2] == "typescript", includes))
+			if no_composite_typescript and len(which) == 1 and MAKE_CONFIG.get_value("project.quickRebuild", True):
+				included = which.pop()
+				overall_result += included[0].build(included[1], included[2])
 
-			print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+			if len(which) > 0:
+				print("Rebuilding composite", ", ".join([
+					basename(included[1]) for included in which
+				]))
+
+				import datetime
+				start_time = datetime.datetime.now()
+				overall_result += WORKSPACE_COMPOSITE.build(*(
+					[] if debug_build else ["--force"]
+				))
+				end_time = datetime.datetime.now()
+				diff = end_time - start_time
+
+				print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
 			if overall_result != 0:
 				return overall_result
 

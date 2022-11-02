@@ -194,7 +194,7 @@ class Includes:
 		temp_path = join(temp_directory, basename(target_path))
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			if language == "typescript":
-				print(f"Computing {basename(target_path)} config from {self.includes_file}")
+				print(f"Computing {basename(target_path)} tsconfig from {self.includes_file}")
 				self.create_tsconfig(temp_path)
 			return True
 		return False
