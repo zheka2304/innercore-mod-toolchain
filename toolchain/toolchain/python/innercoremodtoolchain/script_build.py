@@ -16,12 +16,12 @@ def build_all_scripts(debug_build = False):
 	mod_structure.cleanup_build_target("script_library")
 
 	allowed_languages = []
-	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or MAKE_CONFIG.get_value("denyJavaScript", True):
+	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or MAKE_CONFIG.get_value("denyJavaScript", False):
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
 		if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 			print("\x1b[93mNot found toolchain/declarations, in most cases build will be failed, please install it via tasks.\x1b[0m")
-	if not MAKE_CONFIG.get_value("denyJavaScript", True):
+	if not MAKE_CONFIG.get_value("denyJavaScript", False):
 		allowed_languages.append("javascript")
 
 	if len(allowed_languages) == 0:
@@ -52,8 +52,7 @@ def build_all_make_scripts(only_tsconfig_rebuild = False, allowed_languages = ["
 
 		for source_path in MAKE_CONFIG.get_paths(_source):
 			if not exists(source_path):
-				print(f"Skipped non existing source {_source}")
-				overall_result = 1
+				print(f"Skipped-non existing source {_source}")
 				continue
 			if not (isdir(source_path) or source_path.endswith(".js") or source_path.endswith(".ts")):
 				continue
@@ -123,11 +122,12 @@ def build_all_resources():
 			print("Skipped invalid source json", resource)
 			overall_result = 1
 			continue
+
 		for source_path in MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
-				print("Skipped non existing resource", resource["path"])
-				overall_result = 1
+				print("Skipped non-existing resource", resource["path"])
 				continue
+
 			resource_type = resource["type"]
 			if resource_type not in ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack"):
 				print("Skipped invalid resource with type", resource_type)

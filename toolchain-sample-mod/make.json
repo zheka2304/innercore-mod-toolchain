@@ -43,7 +43,7 @@
 			"language": "javascript"
 		},
 		{
-			"source": "preloader/*",
+			"source": "preloader",
 			"type": "preloader",
 			"language": "javascript"
 		}
