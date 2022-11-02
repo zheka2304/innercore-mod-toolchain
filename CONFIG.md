@@ -19,6 +19,10 @@ Properties marked with \* can have absolute file paths.
 │  ├─ description: ""
 │  ├─ clientOnly: false
 │  └─ *icon: "mod_icon.png"
+├─ project: {} // other project assembling properties
+│  ├─ composite: true // compilation separate files with each other, allows same declarations usage between them and speed up build time; actual for tsc
+│  ├─ useReferences: false // whether or not compilate directories with other separate files and use same declarations; if project uses at least two directory sources, speeding up compilation with tsc
+│  └─ quickRebuild: true // quick rebuilds single directory if only it changes, otherwise everything works as expected; usable when using `useReferences`
 ├─ api: "CoreEngine" // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI", "Instant"
 ├─ optimizationLevel: -1 // value between -1..9, serves to unload scripts from memory
 ├─ setupScript: null // path to script that is triggered when unpacking project archive in mod browser
@@ -28,7 +32,7 @@ Properties marked with \* can have absolute file paths.
 │     ├─ type // "main", "launcher", "preloader", "instant", "custom", "library"
 │     ├─ source // relative path to script or folder, /* format is supported to include subfolders in folder
 │     ├─ language: "javascript" // or "typescript"
-│     ├─ target: basename(this.source) + ".js" // script file name for output compilation
+│     ├─ target: "<source>.js" // script file name for output compilation
 │     ├─ sourceName: null // exclusive to "custom" build types, but script name is also displayed, for example, on errors
 │     ├─ includes: ".includes" // file for building scripts, there can be several of them in one folder
 │     ├─ api: api // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI"
@@ -47,18 +51,24 @@ Properties marked with \* can have absolute file paths.
 │  └─ {}
 │     ├─ type // "resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack"
 │     ├─ path // relative path to resource folder
-│     └─ target: basename(this.path) // path in project after building
+│     └─ target: "<path>" // path in project after building
 │
 ├─ additional: [] // additional directories that need to be included in project after building
 │  └─ {}
 │     ├─ source // relative path to folder, /* format is supported to include subfolders in folder
 │     ├─ targetDir // output path in project after building
-│     └─ targetFile: basename(this.source) // file name in target directory, will be added to end of path
+│     └─ targetFile: "<source>" // file name in target directory, will be added to end of path
 ├─ excludeFromRelease: [] // relative paths to folders excluded from project when building to release, /* format is supported to include subfolders in a folder
-├─ development: {} // development settings, to make assembling much more faster
-│  └─ clearOutput: false // whether clear output/ on every building, otherwise it will be cleaned when packaging to release
 │
-├─ tsconfig: {} // script compilation options, "compilerOptions" property of tsconfig.json; use IntelliSense in this file or run tsc --all to get option list
+├─ development: {} // development settings, to make assembling much more faster
+│  ├─ comparingMode: "content" // recomputing changed files and directories strategy, may be "size", "modify" or "content"
+│  ├─ clearOutput: false // whether clear output/ on every building, otherwise it will be cleaned when packaging to release
+│  ├─ include: [] // files to include into every sources, here might be something like tests; only for tsc
+│  ├─ exclude: [] // files to exclude from every sources, if some of them already included, it willn't be excluded; only for tsc
+│  ├─ tsc: [] // optional tsc compiler arguments list in terminal, run tsc --all to get help
+│  └─ watch: [] // optional tsc watcher arguments list in terminal, run tsc --all to get help
+├─ tsconfig: {} // script compilation options, "compilerOptions" property of global tsconfig.json; use IntelliSense in this file or run tsc --all to get option list
+│
 ├─ gradle: {} // exclusive to java modding
 │  ├─ keepLibraries: true // whether to leave libraries in project after compilation
 │  ├─ keepSources: false // whether to leave sources in project after compilation
