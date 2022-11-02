@@ -218,6 +218,10 @@ class WorkspaceComposite:
 			**kwargs
 		})
 
+	def reset(self):
+		self.references = []
+		self.sources = []
+
 	@staticmethod
 	def resolve_declarations(debug_build = False):
 		declarations = []

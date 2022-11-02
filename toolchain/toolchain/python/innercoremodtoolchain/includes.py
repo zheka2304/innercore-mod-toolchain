@@ -190,14 +190,21 @@ class Includes:
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
+	def compute(self, target_path, language = "typescript"):
+		temp_path = join(temp_directory, basename(target_path))
+		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
+			if language == "typescript":
+				print(f"Computing {basename(target_path)} config from {self.includes_file}")
+				self.create_tsconfig(temp_path)
+			return True
+		return False
+
 	def build(self, target_path, language = "typescript"):
 		temp_path = join(temp_directory, basename(target_path))
 		result = 0
 
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			print(f"Building {basename(target_path)} from {self.includes_file}")
-			if language == "typescript":
-				self.create_tsconfig(temp_path)
 
 			import datetime
 			start_time = datetime.datetime.now()
@@ -213,10 +220,6 @@ class Includes:
 			BUILD_STORAGE.save()
 		else:
 			print(f"* Build target {basename(target_path)} is not changed")
-		if isfile(temp_path):
-			copy_file(temp_path, target_path)
-		else:
-			print(f"WARNING: Not found build target {basename(target_path)}, maybe it building emitted error or corresponding source is empty.")
 
 		return result
 

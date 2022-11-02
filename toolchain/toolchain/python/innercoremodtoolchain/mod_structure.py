@@ -132,7 +132,7 @@ class ModStructure:
 
 	def update_build_config_list(self, list_name):
 		self.setup_default_config()
-		self.build_config[list_name] = self.create_build_config_list(list_name, default_overrides=self.build_config["defaultConfig"])
+		self.build_config[list_name] = self.create_build_config_list(list_name, self.build_config["defaultConfig"])
 		self.write_build_config()
 
 

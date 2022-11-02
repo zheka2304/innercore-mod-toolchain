@@ -1,0 +1,1 @@
+python3 -m innercoremodtoolchain.task clearOutput watchScripts buildInfo

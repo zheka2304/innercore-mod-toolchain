@@ -117,6 +117,11 @@ def task_build_scripts_release(args = None):
 	BUILD_STORAGE.last_hashes = {}
 	return build_all_scripts(debug_build=False)
 
+@task("watchScripts", lock=["script", "cleanup", "push"], description="Watches to script changes, availabled only for TypeScript.")
+def task_watch_scripts(args = None):
+	from .script_build import build_all_scripts
+	return build_all_scripts(debug_build=True, watch=True)
+
 @task("buildResources", lock=["resource", "cleanup", "push"], description="Builds resource pathes, like gui and atlases.")
 def task_resources(args = None):
 	from .script_build import build_all_resources
@@ -254,10 +259,10 @@ def task_load_docs(args = None):
 	print("Complete!")
 	return 0
 
-@task("updateIncludes", description="Rebuilds tsconfig.json declarations without script building.")
+@task("updateIncludes", description="Rebuilds composite tsconfig.json without script building, used mostly to update typings.")
 def task_update_includes(args = None):
-	from .script_build import build_all_make_scripts
-	return build_all_make_scripts(only_tsconfig_rebuild=True, debug_build=True)
+	from .script_build import compute_and_capture_changed_scripts, get_allowed_languages
+	return compute_and_capture_changed_scripts(get_allowed_languages(), True)
 
 @task("configureADB", description="Interactively configures new ADB connections.")
 def task_configure_adb(args = None):

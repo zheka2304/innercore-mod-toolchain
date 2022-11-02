@@ -48,6 +48,29 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Watch Scripts (No push)",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./watch-scripts.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": ".\\watch-scripts.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "Build Java (No push)",
 			"icon": {
 				"id": "run"
@@ -248,6 +271,48 @@
 			"dependsOn": [
 				"Select Project by Active File",
 				"Build Scripts and Resources"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"glob": "**/*",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Scripts",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"dependsOn": [
+				"Watch Scripts (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Scripts by Active File",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Watch Scripts"
 			],
 			"dependsOrder": "sequence",
 			"presentation": {
