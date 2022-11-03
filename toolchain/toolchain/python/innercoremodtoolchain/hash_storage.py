@@ -65,7 +65,10 @@ class HashStorage:
 	def save(self):
 		os.makedirs(dirname(self.file), exist_ok=True)
 		with open(self.file, "w") as output:
-			output.write(json.dumps(self.hashes, indent=None, separators=(",", ":")) + "\n")
+			output.write(json.dumps({
+				**self.last_hashes,
+				**self.hashes
+			}, indent=None, separators=(",", ":")) + "\n")
 
 	def is_path_changed(self, path, force = False):
 		hash = self.get_path_hash(path, force)

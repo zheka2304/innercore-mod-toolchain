@@ -240,10 +240,11 @@ class Includes:
 			with open(temp_path, "w", encoding="utf-8") as source:
 				first_file = True
 				for search_path in self.include:
-					for filename in glob.glob(join(self.directory, search_path), recursive=True):
-						if not filename in self.exclude and isfile(filename) and filename.endswith(".js"):
+					for filepath in glob.glob(join(self.directory, search_path), recursive=True):
+						filename = relpath(filepath, self.directory)
+						if not filename in self.exclude and filename.endswith(".js") and isfile(filepath):
 							if first_file: first_file = False
 							else: source.write("\n\n")
-							source.write("// file: " + relpath(filename, self.directory) + "\n\n")
-							source.writelines(open(filename, encoding="utf-8").read().strip())
+							source.write("// file: " + filename + "\n\n")
+							source.writelines(open(filepath, encoding="utf-8").read().strip())
 			return 0
