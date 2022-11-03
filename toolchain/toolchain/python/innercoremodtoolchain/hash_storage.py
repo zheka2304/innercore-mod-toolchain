@@ -56,11 +56,10 @@ class HashStorage:
 	def get_modified_files(self, path, extensions = (), force = False):
 		if not isdir(path):
 			raise NotADirectoryError(path)
-		files = get_all_files(path, extensions)
-		for filepath in files:
-			if not self.is_path_changed(filepath, force):
-				files.remove(filepath)
-		return files
+		return list(filter(
+			lambda filepath: self.is_path_changed(filepath, force),
+			get_all_files(path, extensions)
+		))
 
 	def save(self):
 		os.makedirs(dirname(self.file), exist_ok=True)

@@ -35,7 +35,7 @@ def rebuild_library_cache(directory, library_files, cache_dir):
 		print("Extracting library classes:", basename(lib_file))
 		with AttributeZipFile(lib_file, "r") as zip_ref:
 			zip_ref.extractall(lib_cache_dir)
-	print("Zipping extracted cache")
+	print("Zipping extracted cache", end="\n\n")
 
 	import shutil
 	if isfile(lib_cache_zip):
