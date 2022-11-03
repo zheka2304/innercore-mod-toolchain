@@ -344,16 +344,16 @@ def task_select_project(args = None):
 		path = args[0]
 		if isfile(path):
 			path = join(path, "..")
+		where = relpath(path, TOOLCHAIN_CONFIG.root_dir)
 		if isdir(path):
-			where = relpath(path, TOOLCHAIN_CONFIG.root_dir)
 			if where == ".":
 				error("Requested project path must be reference to mod, not toolchain itself.")
 			if not isfile(join(path, "make.json")):
-				error("Not found make.json in requested folder, it not belongs to project yet.")
+				error(f"Not found make.json in '{where}', it not belongs to project yet.")
 			PROJECT_MANAGER.select_project_folder(folder=where)
 			return 0
 		else:
-			error("Requested project path does not exists.")
+			error(f"Requested project path '{where}' does not exists.")
 
 	if PROJECT_MANAGER.how_much() == 0:
 		error("Not found any project to choice.")

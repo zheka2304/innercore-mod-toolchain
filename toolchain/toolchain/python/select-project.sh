@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task selectProject @ $1
+python3 -m innercoremodtoolchain.task selectProject @ "$1"
