@@ -111,9 +111,13 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 					WORKSPACE_COMPOSITE.reference(source_path)
 				computed_includes.append((source_path, destination_path))
 			elif isfile(source_path):
+				from .includes import temp_directory
 				if MAKE_CONFIG.get_value("project.composite", True):
 					WORKSPACE_COMPOSITE.coerce(source_path)
-				if BUILD_STORAGE.is_path_changed(source_path):
+				if BUILD_STORAGE.is_path_changed(source_path) or \
+						(language == "typescript" and not isfile(
+							join(temp_directory, relpath(source_path, MAKE_CONFIG.root_dir))
+						)):
 					composite.append((source_path, destination_path, language))
 				computed_composite.append((source_path, destination_path, language))
 
@@ -124,7 +128,7 @@ def copy_build_targets(composite, includes):
 	from .includes import temp_directory
 	for included in includes:
 		temp_path = join(temp_directory, basename(included[1]))
-		if BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
+		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
@@ -136,9 +140,9 @@ def copy_build_targets(composite, includes):
 		if MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
 			temp_path = join(temp_directory, relpath(included[0], MAKE_CONFIG.root_dir))
 		else: temp_path = included[0]
-		if temp_path == included[0] and BUILD_STORAGE.is_path_changed(temp_path):
+		if temp_path == included[0] and isfile(temp_path) and BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"Flushing {basename(included[1])} from {basename(included[0])}")
-		if BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
+		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
