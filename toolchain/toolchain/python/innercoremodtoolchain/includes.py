@@ -8,6 +8,7 @@ import subprocess
 from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
 from .make_config import MAKE_CONFIG
 from .hash_storage import BUILD_STORAGE
+from .utils import ensure_file_dir
 
 TSCONFIG_DEPENDENTS = {
 	"allowSyntheticDefaultImports": "esModuleInterop",
@@ -223,6 +224,8 @@ class Includes:
 		return result
 
 	def build_source(self, temp_path, language = "typescript"):
+		ensure_file_dir(temp_path)
+
 		if language.lower() == "typescript":
 			command = [
 				"tsc",
@@ -247,4 +250,5 @@ class Includes:
 							else: source.write("\n\n")
 							source.write("// file: " + filename + "\n\n")
 							source.writelines(open(filepath, encoding="utf-8").read().strip())
-			return 0
+
+		return 0
