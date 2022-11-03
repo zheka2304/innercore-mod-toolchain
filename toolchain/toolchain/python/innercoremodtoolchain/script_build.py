@@ -157,43 +157,43 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 
 	composite, computed_composite, includes, computed_includes = \
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
+	if "typescript" in allowed_languages:
+		WORKSPACE_COMPOSITE.flush(debug_build)
 	if not MAKE_CONFIG.get_value("project.useReferences", False):
 		for included in includes:
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
 
-	if "typescript" in allowed_languages:
-		WORKSPACE_COMPOSITE.flush(debug_build)
+	if "typescript" in allowed_languages \
+		and (MAKE_CONFIG.get_value("project.composite", True) \
+			or MAKE_CONFIG.get_value("project.useReferences", False)):
+		which = []
+		if MAKE_CONFIG.get_value("project.composite", True):
+			which += list(filter(lambda included: included[2] == "typescript", composite))
+		no_composite_typescript = len(which) == 0
+		if MAKE_CONFIG.get_value("project.useReferences", False):
+			which += list(filter(lambda included: included[2] == "typescript", includes))
+		if no_composite_typescript and len(which) == 1 and MAKE_CONFIG.get_value("project.quickRebuild", True):
+			included = which.pop()
+			overall_result += included[0].build(included[1], included[2])
 
-		if MAKE_CONFIG.get_value("project.composite", True) \
-				or MAKE_CONFIG.get_value("project.useReferences", False):
-			which = []
-			if MAKE_CONFIG.get_value("project.composite", True):
-				which += list(filter(lambda included: included[2] == "typescript", composite))
-			no_composite_typescript = len(which) == 0
-			if MAKE_CONFIG.get_value("project.useReferences", False):
-				which += list(filter(lambda included: included[2] == "typescript", includes))
-			if no_composite_typescript and len(which) == 1 and MAKE_CONFIG.get_value("project.quickRebuild", True):
-				included = which.pop()
-				overall_result += included[0].build(included[1], included[2])
+		if len(which) > 0:
+			print("Rebuilding composite", ", ".join([
+				basename(included[1]) for included in which
+			]))
 
-			if len(which) > 0:
-				print("Rebuilding composite", ", ".join([
-					basename(included[1]) for included in which
-				]))
+			import datetime
+			start_time = datetime.datetime.now()
+			overall_result += WORKSPACE_COMPOSITE.build(*(
+				[] if debug_build else ["--force"]
+			))
+			end_time = datetime.datetime.now()
+			diff = end_time - start_time
 
-				import datetime
-				start_time = datetime.datetime.now()
-				overall_result += WORKSPACE_COMPOSITE.build(*(
-					[] if debug_build else ["--force"]
-				))
-				end_time = datetime.datetime.now()
-				diff = end_time - start_time
-
-				print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
-			if overall_result != 0:
-				return overall_result
+			print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+		if overall_result != 0:
+			return overall_result
 
 	copy_build_targets(computed_composite, computed_includes)
 	mod_structure.update_build_config_list("compile")
