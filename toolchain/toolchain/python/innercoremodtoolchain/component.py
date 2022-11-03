@@ -190,6 +190,9 @@ def fetch_components():
 	return upgradable
 
 def get_username():
+	username = TOOLCHAIN_CONFIG.get_value("template.author")
+	if username is not None:
+		return username
 	try:
 		return os.environ["USER"]
 	except KeyError:
@@ -200,7 +203,7 @@ def startup():
 	shell = SelectiveShell()
 	shell.interactables += [
 		Separator(),
-		Notice("Today we've complete your distribution installation."),
+		Notice("Today we're complete your distribution installation."),
 		Notice("Just let realize some things before downloading, and"),
 		Notice("modding will be started in a few moments."),
 		Separator(),
@@ -210,7 +213,7 @@ def startup():
 		Separator(),
 		Input("user", "I'll will be ", template=get_username()),
 		Notice("Author name identifies you, it will be used as default"),
-		Notice("`author` property when you're starting new project."),
+		Notice("`author` property when you've starting new project."),
 		Separator(),
 		Progress(progress=0.4, text="<" + "Who are you?".center(45) + ">")
 	]
@@ -252,10 +255,15 @@ def startup():
 			index += required_lines - 1
 		index += 1
 	shell.interactables.extend(interactables)
+	try:
+		import shutil
+		tsc = shutil.which("tsc") is not None
+	except BaseException:
+		tsc = False
 	shell.interactables += [
 		Separator(),
-		Switch("typescript", "I'll want to build everything with TypeScript", True),
-		Switch("composite", "I've allow building separate files with each other", True),
+		Switch("typescript", "I'll want to build everything with TypeScript", tsc),
+		Switch("composite", "I've allow building separate files with each other", tsc),
 		Switch("references", "I'm preferr using few script directories in project", False),
 		Separator(),
 		Progress(progress=0.8, text="<" + "Composite performance".center(45) + "+")
@@ -281,7 +289,7 @@ def startup():
 		TOOLCHAIN_CONFIG.set_value("project.composite", composite)
 	references = shell.get_interactable("references").checked
 	if references:
-		print("You preferr using few script directories in project")
+		print("You're preferr using few script directories in project")
 		TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
 	TOOLCHAIN_CONFIG.save()
 	installation = resolve_components(shell.interactables)
@@ -291,7 +299,7 @@ def startup():
 
 def foreign():
 	print("Which components will be upgraded?", end="")
-	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9), implicit_page_indicator=True)
+	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
 	shell.interactables += put_components(which_installed())
 	shell.interactables.append(Interrupt())
 	try:
