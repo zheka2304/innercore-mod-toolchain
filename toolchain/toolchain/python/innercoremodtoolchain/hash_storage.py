@@ -1,11 +1,15 @@
 import os
 from os.path import isfile, isdir, join, dirname, getmtime, getsize
 from errno import ENOENT
-from hashlib import md5
 import json
 
 from .make_config import MAKE_CONFIG
 from .utils import get_all_files
+
+try:
+	from hashlib import blake2s as encode
+except ImportError:
+	from hashlib import md5 as encode
 
 class HashStorage:
 	last_hashes = {}
@@ -21,8 +25,9 @@ class HashStorage:
 			self.last_hashes = json.load(input)
 
 	def get_path_hash(self, path, force = False):
-		if not force and path in self.hashes:
-			return self.hashes[path]
+		encoded = encode(bytes(path, "utf-8")).hexdigest()
+		if not force and encoded in self.hashes:
+			return self.hashes[encoded]
 
 		if isfile(path):
 			hash = HashStorage.get_file_hash(path)
@@ -31,7 +36,7 @@ class HashStorage:
 		else:
 			raise FileNotFoundError(ENOENT, os.strerror(ENOENT), path)
 
-		self.hashes[path] = hash
+		self.hashes[encoded] = hash
 		return hash
 
 	@staticmethod
@@ -42,7 +47,7 @@ class HashStorage:
 
 	@staticmethod
 	def get_directory_hash(directory):
-		total = md5()
+		total = encode()
 		for dirpath, dirnames, filenames in os.walk(directory):
 			for filename in filenames:
 				filepath = join(dirpath, filename)
@@ -51,7 +56,7 @@ class HashStorage:
 
 	@staticmethod
 	def get_file_hash(file):
-		return md5(HashStorage.do_comparing(file)).hexdigest()
+		return encode(HashStorage.do_comparing(file)).hexdigest()
 
 	def get_modified_files(self, path, extensions = (), force = False):
 		if not isdir(path):
@@ -71,8 +76,9 @@ class HashStorage:
 
 	def is_path_changed(self, path, force = False):
 		hash = self.get_path_hash(path, force)
-		return path not in self.last_hashes \
-			or self.last_hashes[path] != hash
+		encoded = encode(bytes(path, "utf-8")).hexdigest()
+		return encoded not in self.last_hashes \
+			or self.last_hashes[encoded] != hash
 
 
 COMPARING_MODE = MAKE_CONFIG.get_value("development.comparingMode", "content")

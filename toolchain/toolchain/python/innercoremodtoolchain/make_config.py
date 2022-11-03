@@ -1,4 +1,3 @@
-import hashlib
 import os
 from os.path import join, basename, abspath, exists, isfile, isdir, realpath
 import platform
@@ -6,6 +5,11 @@ import sys
 import json
 
 from .base_config import BaseConfig
+
+try:
+	from hashlib import blake2s as encode
+except ImportError:
+	from hashlib import md5 as encode
 
 class MakeConfig(BaseConfig):
 	def __init__(self, filename, base = None):
@@ -112,9 +116,7 @@ class ToolchainMakeConfig(MakeConfig):
 
 	@staticmethod
 	def unique_folder_name(path):
-		md5 = hashlib.md5()
-		md5.update(bytes(path, "utf-8"))
-		return basename(path) + "-" + md5.hexdigest()
+		return basename(path) + "-" + encode(bytes(path, "utf-8")).hexdigest()[-5:]
 
 
 def find_config(path, filename):
