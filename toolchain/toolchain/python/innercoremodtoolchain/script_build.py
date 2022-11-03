@@ -133,7 +133,7 @@ def copy_build_targets(composite, includes):
 		if not BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"* Build target {basename(temp_path)} is not changed")
 	for included in composite:
-		if MAKE_CONFIG.get_value("project.composite", True) and not included[2] == "javascript":
+		if MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
 			temp_path = join(temp_directory, relpath(included[0], MAKE_CONFIG.root_dir))
 		else: temp_path = included[0]
 		if temp_path == included[0] and BUILD_STORAGE.is_path_changed(temp_path):

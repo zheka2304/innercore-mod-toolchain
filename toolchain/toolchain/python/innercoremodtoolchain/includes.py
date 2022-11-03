@@ -5,7 +5,6 @@ import json
 import re
 import subprocess
 
-from .utils import copy_file
 from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
 from .make_config import MAKE_CONFIG
 from .hash_storage import BUILD_STORAGE

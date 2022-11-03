@@ -211,7 +211,7 @@ class WorkspaceComposite:
 	def reference(self, path, **kwargs):
 		path = relpath(path, MAKE_CONFIG.root_dir)
 		for ref in self.references:
-			if ref.path == path:
+			if ref["path"] == path:
 				return
 		self.references.append({
 			"path": path,

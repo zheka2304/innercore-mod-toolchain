@@ -204,7 +204,7 @@ def startup():
 		Notice("Just let realize some things before downloading, and"),
 		Notice("modding will be started in a few moments."),
 		Separator(),
-		Progress(progress=0.25, text=" " + "Howdy!".center(45) + ">")
+		Progress(progress=0.2, text=" " + "Howdy!".center(45) + ">")
 	]
 	shell.interactables += [
 		Separator(),
@@ -212,7 +212,7 @@ def startup():
 		Notice("Author name identifies you, it will be used as default"),
 		Notice("`author` property when you're starting new project."),
 		Separator(),
-		Progress(progress=0.5, text="<" + "Who are you?".center(45) + ">")
+		Progress(progress=0.4, text="<" + "Who are you?".center(45) + ">")
 	]
 	preffered = which_installed()
 	if not "declarations" in preffered:
@@ -233,9 +233,7 @@ def startup():
 	index = len(interactables)
 	while True:
 		if index % shell.lines_per_page == shell.lines_per_page - 1:
-			interactables.append(Progress(progress=0.75, text="<" + "Configure your toolchain".center(45) + (
-				">" if component < len(components) + 3 else "+"
-			)))
+			interactables.append(Progress(progress=0.6, text="<" + "Configure your toolchain".center(45) + ">"))
 			if component == len(components) + 3:
 				break
 		elif component < len(components) + 3:
@@ -253,10 +251,16 @@ def startup():
 			interactables.append(Separator(size=required_lines))
 			index += required_lines - 1
 		index += 1
+	shell.interactables.extend(interactables)
 	shell.interactables += [
-		*interactables,
-		Interrupt()
+		Separator(),
+		Switch("typescript", "I'll want to build everything with TypeScript", True),
+		Switch("composite", "I've allow building separate files with each other", True),
+		Switch("references", "I'm preferr using few script directories in project", False),
+		Separator(),
+		Progress(progress=0.8, text="<" + "Composite performance".center(45) + "+")
 	]
+	shell.interactables.append(Interrupt())
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
@@ -267,7 +271,19 @@ def startup():
 	if ensure_not_whitespace(username) is not None:
 		print("Who are you?", f"\x1b[2m{username}\x1b[0m")
 		TOOLCHAIN_CONFIG.set_value("template.author", username)
-		TOOLCHAIN_CONFIG.save()
+	typescript = shell.get_interactable("typescript").checked
+	if typescript:
+		print("You'll want to build everything with TypeScript")
+		TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
+	composite = shell.get_interactable("composite").checked
+	if not composite:
+		print("You've denied building separate files with each other")
+		TOOLCHAIN_CONFIG.set_value("project.composite", composite)
+	references = shell.get_interactable("references").checked
+	if references:
+		print("You preferr using few script directories in project")
+		TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
+	TOOLCHAIN_CONFIG.save()
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:
 		print("Which components will be installed? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")
