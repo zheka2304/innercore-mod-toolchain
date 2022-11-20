@@ -151,7 +151,8 @@ class AttributeZipFile(ZipFile):
 			targetpath = self._extract_member(member, path, pwd)
 
 			attr = member.external_attr >> 16
-			os.chmod(targetpath, attr)
+			if not isdir(targetpath):
+				os.chmod(targetpath, attr)
 			return targetpath
 
 	else:
@@ -162,6 +163,6 @@ class AttributeZipFile(ZipFile):
 			targetpath = super()._extract_member(member, targetpath, pwd)
 
 			attr = member.external_attr >> 16
-			if attr != 0:
+			if attr != 0 and not isdir(targetpath):
 				os.chmod(targetpath, attr)
 			return targetpath
