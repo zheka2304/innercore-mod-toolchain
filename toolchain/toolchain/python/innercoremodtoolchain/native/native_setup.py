@@ -115,9 +115,13 @@ def download(shell):
 	shell.interactables.append(progress)
 	shell.render()
 	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-	with AttributeZipFile(archive_path, "r") as archive:
-		archive.extractall(extract_path)
-	progress.seek(1, "Extracted into toolchain/temp")
+	try:
+		with AttributeZipFile(archive_path, "r") as archive:
+			archive.extractall(extract_path)
+		progress.seek(1, "Extracted into toolchain/temp")
+	except OSError as exc:
+		progress.seek(0, f"#{exc.errno}: {exc.filename}")
+		clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 	shell.render()
 
 	return search_ndk_path(extract_path, contains_ndk=True)
@@ -144,6 +148,11 @@ def install(arch = "arm", reinstall = False):
 		else:
 			shell.enter()
 
+		if ndk_path is None:
+			shell.leave()
+			print("Installation interrupted by raised cause above, you're must extract toolchain/temp/ndk.zip manually into toolchain/temp and retry task.")
+			return 1
+
 		progress = Progress(text="Installing")
 		shell.interactables.append(progress)
 		shell.render()
@@ -168,10 +177,8 @@ def install(arch = "arm", reinstall = False):
 		else:
 			progress.seek(0.5, f"Installation failed with result {str(result)}")
 			shell.render()
-			notice = Notice("You are must install it manually from toolchain/temp/ndk.zip")
-			shell.interactables.append(notice)
-			shell.render()
 			shell.leave()
+			print("You're must install it manually by running build/tools/make_standalone_toolchain.py, or re-extracting ndk.")
 			return result
 
 
