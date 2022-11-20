@@ -21,21 +21,19 @@
 
 Вы можете просто загрузить репозиторий, однако мы рекомендуем использовать именно скрипт установки. Он поможет вам установить все необходимые компоненты для более эффективного использования. Откройте терминал в папке, которая будет использована для установки тулчейна, и введите команду, следуя информации из интерактивной консоли.
 
-```bat
+```shell
+# Windows
 python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
-```
-
-```sh
+# Unix
 python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
 Либо же, сохраните [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) для получения доступа к дополнительным опциям установки и импорта. Вызовите следующую команду для получения подробней.
 
-```bat
+```shell
+# Windows
 python toolchain-setup.py --help
-```
-
-```sh
+# Unix
 python3 toolchain-setup.py --help
 ```
 
@@ -113,11 +111,10 @@ python3 toolchain-setup.py --help
 
 Если одна из задач `python -m innercoremodtoolchain.task --list` или `python3 -m innercoremodtoolchain.task --list` заинтересовала вас, отличным вариантом будет интегрировать тулчейн как модуль для Python. Дополните `PYTHONPATH` для использования импортов `innercoremodtoolchain.*` или запуска команд с помощью `python -m innercoremodtoolchain.*` или `python3 -m innercoremodtoolchain.*` вне зависимости от рабочей папки.
 
-```bat
+```shell
+# Windows
 set PYTHONPATH=%PYTHONPATH%;<путь до вашей установки тулчейна>\toolchain\toolchain\python
-```
-
-```sh
+# Unix
 export PYTHONPATH="<путь до вашей установки тулчейна>/toolchain/toolchain/python":$PYTHONPATH
 ```
 

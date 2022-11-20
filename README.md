@@ -21,21 +21,19 @@ It is obligatory to install only first component, the rest can be installed when
 
 You can simply download repository, however we recommend using install script. It will help you install all necessary components for more efficient use. Open a terminal in the folder that will be used to install toolchain and enter command following the information from interactive console.
 
-```bat
+```shell
+# Windows
 python -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
-```
-
-```sh
+# Unix
 python3 -c "from urllib import request; exec(request.urlopen('https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py').read().decode('utf-8'))"
 ```
 
 Alternatively, save [toolchain-setup.py](https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/master/toolchain-setup.py) for more installation and import options. Run the following command for more details.
 
-```bat
+```shell
+# Windows
 python toolchain-setup.py --help
-```
-
-```sh
+# Unix
 python3 toolchain-setup.py --help
 ```
 
@@ -113,11 +111,10 @@ There are several options for using toolchain through the console or terminal. T
 
 If one of the tasks `python -m innercoremodtoolchain.task --list` or `python3 -m innercoremodtoolchain.task --list` is of interest to you, a great option is to integrate toolchain as a module for Python. Extend `PYTHONPATH` to use `innercoremodtoolchain.*` imports or run commands with `python -m innercoremodtoolchain.*` or `python3 -m innercoremodtoolchain.*` regardless of the working directory.
 
-```bat
+```shell
+# Windows
 set PYTHONPATH=%PYTHONPATH%;<path to your toolchain installation>\toolchain\toolchain\python
-```
-
-```sh
+# Unix
 export PYTHONPATH="<path to your toolchain installation>/toolchain/toolchain/python":$PYTHONPATH
 ```
 
