@@ -237,7 +237,7 @@ class Includes:
 				command.append("--noResolve")
 				# Do NOT check declarations to resolve conflicts and something else due to --noResolve
 				command.append("--skipLibCheck")
-			return subprocess.call(command)
+			return subprocess.call(command, shell=True)
 
 		else:
 			with open(temp_path, "w", encoding="utf-8") as source:

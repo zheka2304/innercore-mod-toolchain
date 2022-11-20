@@ -272,7 +272,7 @@ class WorkspaceComposite:
 			"--build", self.get_tsconfig(),
 			*MAKE_CONFIG.get_value("development.tsc", []),
 			*args
-		])
+		], shell=True)
 
 	def watch(self, *args):
 		try:
@@ -281,7 +281,7 @@ class WorkspaceComposite:
 				"--watch",
 				*MAKE_CONFIG.get_value("development.watch", []),
 				*args
-			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep))
+			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=True)
 		except KeyboardInterrupt:
 			return 0
 
