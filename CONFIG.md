@@ -22,6 +22,7 @@ Properties marked with \* can have absolute file paths.
 ├─ project: {} // other project assembling properties
 │  ├─ composite: true // compilation separate files with each other, allows same declarations usage between them and speed up build time; actual for tsc
 │  ├─ useReferences: false // whether or not compilate directories with other separate files and use same declarations; if project uses at least two directory sources, speeding up compilation with tsc
+│  ├─ compiledLibraries: false // included JavaScript libraries tracted as compiled-as-is and not assembling for declarations, use only in case when you're not needed minification or libraries regularly updates
 │  └─ quickRebuild: true // quick rebuilds single directory if only it changes, otherwise everything works as expected; usable when using `useReferences`
 ├─ api: "CoreEngine" // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI", "Instant"
 ├─ optimizationLevel: -1 // value between -1..9, serves to unload scripts from memory

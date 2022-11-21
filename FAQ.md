@@ -20,6 +20,10 @@ One of most convenient and advantageous ways to find out which folder you are in
 
 All path paths in multi-root workspace become relative, however, folders outside main *toolchain/* folder are converted from root folders (../) to an extension-safe format (_/). This error does not need to be fixed if you are building a mod using the toolchain, easiest way to avoid this error is to move your mod to any of the loochain subfolders where it belongs, or change your environment settings by manually adding the necessary paths to the settings instead of using *.classpath*.
 
+### How to change import path
+
+When running task **Import Project** any project converts to corresponding directory besides toolchain, you can change output by running *toolchain-setup.py* or *toolchain/pythoh/innercoremodtoolchain/import.py* with usage second argument as target directory. Execute command with `--help` for getting list with descriptions.
+
 ## Issues you may encounter in terminal
 
 ### npm: command not found
