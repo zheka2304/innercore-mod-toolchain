@@ -121,7 +121,10 @@ def download(shell):
 		progress.seek(1, "Extracted into toolchain/temp")
 	except OSError as exc:
 		progress.seek(0, f"#{exc.errno}: {exc.filename}")
-		clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+		try:
+			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+		except OSError:
+			progress.seek(0, f"#{exc.errno}: {exc.filename} (security fail)")
 	shell.render()
 
 	return search_ndk_path(extract_path, contains_ndk=True)
@@ -169,8 +172,11 @@ def install(arch = "arm", reinstall = False):
 			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
 			progress.seek(0.9, "Removing temporary files")
 			shell.render()
-			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-			progress.seek(1, "Successfully installed")
+			try:
+				clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+				progress.seek(1, "Successfully installed")
+			except OSError as exc:
+				progress.seek(0, f"#{exc.errno}: {exc.filename}")
 			shell.render()
 			shell.leave()
 			return 0
