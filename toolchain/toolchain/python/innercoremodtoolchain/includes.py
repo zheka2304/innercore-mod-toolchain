@@ -2,6 +2,7 @@ import os
 from os.path import join, isdir, basename, isfile, normpath, relpath
 import glob
 import json
+import platform
 import re
 import subprocess
 
@@ -237,7 +238,7 @@ class Includes:
 				command.append("--noResolve")
 				# Do NOT check declarations to resolve conflicts and something else due to --noResolve
 				command.append("--skipLibCheck")
-			return subprocess.call(command, shell=True)
+			return subprocess.call(command, shell=platform.system() == "Windows")
 
 		else:
 			with open(temp_path, "w", encoding="utf-8") as source:

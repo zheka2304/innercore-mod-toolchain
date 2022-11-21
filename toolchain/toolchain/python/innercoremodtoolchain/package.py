@@ -3,7 +3,7 @@ import os
 from os.path import exists, isdir, join, basename, relpath
 import time
 
-from .utils import clear_directory, copy_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
+from .utils import clear_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
 from .base_config import BaseConfig
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch, select_prompt

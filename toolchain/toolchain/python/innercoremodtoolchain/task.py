@@ -34,6 +34,7 @@ def lock_task(name, silent = True):
 					sys.stdout.write(".")
 					sys.stdout.flush()
 				time.sleep(0.25)
+
 	if await_message:
 		if not silent:
 			print("")
@@ -77,7 +78,11 @@ def task(name, lock = None, description = None):
 
 	return decorator
 
-@task("compileNativeDebug", lock=["native", "cleanup", "push"], description="Compiles C++ in single debugging `debugAbi`, changed objects will be compiled.")
+@task(
+	"compileNativeDebug",
+	lock=["native", "cleanup", "push"],
+	description="Compiles C++ in single debugging `debugAbi`, changed objects will be compiled."
+)
 def task_compile_native_debug(args = None):
 	abi = MAKE_CONFIG.get_value("debugAbi", None)
 	if abi is None:
@@ -86,7 +91,11 @@ def task_compile_native_debug(args = None):
 	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
-@task("compileNativeRelease", lock=["native", "cleanup", "push"], description="Compiles C++ for everything `abis`.")
+@task(
+	"compileNativeRelease",
+	lock=["native", "cleanup", "push"],
+	description="Compiles C++ for everything `abis`."
+)
 def task_compile_native_release(args = None):
 	abis = MAKE_CONFIG.get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
@@ -94,22 +103,38 @@ def task_compile_native_release(args = None):
 	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
-@task("compileJavaDebug", lock=["java", "cleanup", "push"], description="Compiles Java, changed classes will be packed into dex.")
+@task(
+	"compileJavaDebug",
+	lock=["java", "cleanup", "push"],
+	description="Compiles Java, changed classes will be packed into dex."
+)
 def task_compile_java_debug(args = None):
 	from .java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=True)
 
-@task("compileJavaRelease", lock=["java", "cleanup", "push"], description="Compiles Java without debugging information.")
+@task(
+	"compileJavaRelease",
+	lock=["java", "cleanup", "push"],
+	description="Compiles Java without debugging information."
+)
 def task_compile_java_release(args = None):
 	from .java.java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=False)
 
-@task("buildScriptsDebug", lock=["script", "cleanup", "push"], description="Rebuilds changes scripts with excluded declarations.")
+@task(
+	"buildScriptsDebug",
+	lock=["script", "cleanup", "push"],
+	description="Rebuilds changes scripts with excluded declarations."
+)
 def task_build_scripts_debug(args = None):
 	from .script_build import build_all_scripts
 	return build_all_scripts(debug_build=True)
 
-@task("buildScriptsRelease", lock=["script", "cleanup", "push"], description="Assembling scripts without excluding debug declarations, everything script hashes will be rebuilded too.")
+@task(
+	"buildScriptsRelease",
+	lock=["script", "cleanup", "push"],
+	description="Assembling scripts without excluding debug declarations, everything script hashes will be rebuilded too."
+)
 def task_build_scripts_release(args = None):
 	from .script_build import build_all_scripts
 	from .hash_storage import OUTPUT_STORAGE, BUILD_STORAGE
@@ -117,17 +142,29 @@ def task_build_scripts_release(args = None):
 	BUILD_STORAGE.last_hashes = {}
 	return build_all_scripts(debug_build=False)
 
-@task("watchScripts", lock=["script", "cleanup", "push"], description="Watches to script changes, availabled only for TypeScript.")
+@task(
+	"watchScripts",
+	lock=["script", "cleanup", "push"],
+	description="Watches to script changes, availabled only for TypeScript."
+)
 def task_watch_scripts(args = None):
 	from .script_build import build_all_scripts
 	return build_all_scripts(debug_build=True, watch=True)
 
-@task("buildResources", lock=["resource", "cleanup", "push"], description="Builds resource pathes, like gui and atlases.")
+@task(
+	"buildResources",
+	lock=["resource", "cleanup", "push"],
+	description="Builds resource pathes, like gui and atlases."
+)
 def task_resources(args = None):
 	from .script_build import build_all_resources
 	return build_all_resources()
 
-@task("buildInfo", lock=["cleanup", "push"], description="Builds output mod.info file.")
+@task(
+	"buildInfo",
+	lock=["cleanup", "push"],
+	description="Builds output mod.info file."
+)
 def task_build_info(args = None):
 	import json
 	from .utils import shortcodes
@@ -155,7 +192,11 @@ def task_build_info(args = None):
 			print("Icon in make.json", icon_path, "not found!")
 	return 0
 
-@task("buildAdditional", lock=["cleanup", "push"], description="Copies additional directories, like assets root.")
+@task(
+	"buildAdditional",
+	lock=["cleanup", "push"],
+	description="Copies additional directories, like assets root."
+)
 def task_build_additional(args = None):
 	for additional_dir in MAKE_CONFIG.get_value("additional", fallback=[]):
 		if "source" in additional_dir and "targetDir" in additional_dir:
@@ -174,18 +215,30 @@ def task_build_additional(args = None):
 					copy_file(additional_path, target)
 	return 0
 
-@task("pushEverything", lock=["push"], description="Push everything 'output' directory.")
+@task(
+	"pushEverything",
+	lock=["push"],
+	description="Push everything 'output' directory."
+)
 def task_push_everything(args = None):
 	from .device import push
 	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("adb.pushUnchangedFiles", True))
 
-@task("clearOutput", lock=["assemble", "push", "native", "java"], description="Removes 'output' directory in selected project.")
+@task(
+	"clearOutput",
+	lock=["assemble", "push", "native", "java"],
+	description="Removes 'output' directory in selected project."
+)
 def task_clear_output(args = None):
 	if MAKE_CONFIG.get_value("development.clearOutput", False) or (args is not None and "--clean" in args):
 		clear_directory(MAKE_CONFIG.get_path("output"))
 	return 0
 
-@task("excludeDirectories", lock=["push", "assemble", "native", "java"], description="Removes excluded from release assembling directories.")
+@task(
+	"excludeDirectories",
+	lock=["push", "assemble", "native", "java"],
+	description="Removes excluded from release assembling directories."
+)
 def task_exclude_directories(args = None):
 	for path in MAKE_CONFIG.get_value("excludeFromRelease", []):
 		for exclude in MAKE_CONFIG.get_paths(join("output", path)):
@@ -195,7 +248,11 @@ def task_exclude_directories(args = None):
 				os.remove(exclude)
 	return 0
 
-@task("buildPackage", lock=["push", "assemble", "native", "java"], description="Performs release mod assembling, already builded 'output' will be used.")
+@task(
+	"buildPackage",
+	lock=["push", "assemble", "native", "java"],
+	description="Performs release mod assembling, already builded 'output' will be used."
+)
 def task_build_package(args = None):
 	import shutil
 	output_dir = MAKE_CONFIG.get_path("output")
@@ -218,7 +275,10 @@ def task_build_package(args = None):
 	os.rename(output_file_tmp, output_file)
 	return 0
 
-@task("launchHorizon", description="Launch Horizon with pack auto-launch.")
+@task(
+	"launchHorizon",
+	description="Launch Horizon with pack auto-launch."
+)
 def task_launch_horizon(args = None):
 	from subprocess import call
 	from .device import adb_command
@@ -232,7 +292,10 @@ def task_launch_horizon(args = None):
 		"-c", "android.intent.category.LAUNCHER", "1"
 	], stdout=devnull, stderr=devnull)
 
-@task("stopHorizon", description="Force stops Horizon via ADB.")
+@task(
+	"stopHorizon",
+	description="Force stops Horizon via ADB."
+)
 def stop_horizon(args = None):
 	from subprocess import call
 	from .device import adb_command
@@ -243,7 +306,10 @@ def stop_horizon(args = None):
 		"com.zheka.horizon"
 	], stdout=devnull, stderr=devnull)
 
-@task("loadDocs", description="Fetches latest declarations, incompatible with 'declarations' component right now; toolchain uses unrealized adapted-script implementation.")
+@task(
+	"loadDocs",
+	description="Fetches latest declarations, incompatible with 'declarations' component right now; toolchain uses unrealized adapted-script implementation."
+)
 def task_load_docs(args = None):
 	from urllib.request import urlopen
 	print("Downloading core-engine.d.ts")
@@ -259,18 +325,27 @@ def task_load_docs(args = None):
 	print("Complete!")
 	return 0
 
-@task("updateIncludes", description="Rebuilds composite tsconfig.json without script building, used mostly to update typings.")
+@task(
+	"updateIncludes",
+	description="Rebuilds composite tsconfig.json without script building, used mostly to update typings."
+)
 def task_update_includes(args = None):
 	from .script_build import compute_and_capture_changed_scripts, get_allowed_languages
 	return compute_and_capture_changed_scripts(get_allowed_languages(), True)
 
-@task("configureADB", description="Interactively configures new ADB connections.")
+@task(
+	"configureADB",
+	description="Interactively configures new ADB connections."
+)
 def task_configure_adb(args = None):
 	from . import device
 	device.setup_device_connection()
 	return 0
 
-@task("newProject", description="Interactively creates new project.")
+@task(
+	"newProject",
+	description="Interactively creates new project."
+)
 def task_new_project(args = None):
 	from .package import new_project
 
@@ -290,7 +365,10 @@ def task_new_project(args = None):
 	PROJECT_MANAGER.select_project(index=index)
 	return 0
 
-@task("importProject", description="Import project by required location into output folder, if output is not specified, 'toolchain/<unique_name>' will be used by default.")
+@task(
+	"importProject",
+	description="Import project by required location into output folder, if output is not specified, 'toolchain/<unique_name>' will be used by default."
+)
 def task_import_project(args = None):
 	import importlib
 	module = importlib.import_module(".import", __package__) # import cannot use name '.import' of course
@@ -306,7 +384,11 @@ def task_import_project(args = None):
 	PROJECT_MANAGER.select_project(folder=relpath(path, TOOLCHAIN_CONFIG.root_dir))
 	return 0
 
-@task("removeProject", lock=["cleanup"], description="Removes project in interactive mode.")
+@task(
+	"removeProject",
+	lock=["cleanup"],
+	description="Removes project in interactive mode."
+)
 def task_remove_project(args = None):
 	from .project_manager import PROJECT_MANAGER
 	if PROJECT_MANAGER.how_much() == 0:
@@ -337,7 +419,11 @@ def task_remove_project(args = None):
 	print("Project permanently deleted.")
 	return 0
 
-@task("selectProject", lock=["cleanup"], description="Selects project by specified location, otherwise interactive project selection will be shown to explore availabled projects specified in 'projectLocations' property.")
+@task(
+	"selectProject",
+	lock=["cleanup"],
+	description="Selects project by specified location, otherwise interactive project selection will be shown to explore availabled projects specified in 'projectLocations' property."
+)
 def task_select_project(args = None):
 	from .project_manager import PROJECT_MANAGER
 	if args is not None and len(args) > 0:
@@ -368,7 +454,10 @@ def task_select_project(args = None):
 		error(f"Folder '{who}' not found!")
 	return 0
 
-@task("updateToolchain", description="Upgrades toolchain by downloading deploy branch, installed components will be upgraded if user accepts it.")
+@task(
+	"updateToolchain",
+	description="Upgrades toolchain by downloading deploy branch, installed components will be upgraded if user accepts it."
+)
 def task_update_toolchain(args = None):
 	from .update import update_toolchain
 	update_toolchain()
@@ -385,12 +474,18 @@ def task_update_toolchain(args = None):
 		install_components(upgradable)
 	return 0
 
-@task("componentIntegrity", description="Upgrade and install new components, additionally used when startup phase is active.")
+@task(
+	"componentIntegrity",
+	description="Upgrade and install new components, additionally used when startup phase is active."
+)
 def task_component_integrity(args = None):
 	from .component import foreign
 	return foreign()
 
-@task("cleanup", description="Performs project 'output' folder cleanup, if nothing selected everything build cache will be removed.")
+@task(
+	"cleanup",
+	description="Performs project 'output' folder cleanup, if nothing selected everything build cache will be removed."
+)
 def task_cleanup(args = None):
 	from .package import cleanup_relative_directory
 	if MAKE_CONFIG.current_project is not None:
@@ -426,19 +521,24 @@ if __name__ == "__main__":
 		print(" " * 2 + "--list: See all availabled tasks.")
 		print("Executes declared by @task annotation required tasks.")
 		exit(0)
+
 	if "--list" in sys.argv:
 		print("All availabled tasks:")
 		for name in registered_tasks:
 			print(" " * 2 + name, end="")
 			print(": " + descriptioned_tasks[name] if name in descriptioned_tasks else "")
 		exit(0)
+
 	argv = sys.argv[1:]
+
+	# Anything after "@" passes as global arguments
 	if "@" in argv:
 		where = argv.index("@")
 		args = argv[where + 1:]
 		argv = argv[:where]
 	else:
 		args = None
+
 	if len(argv) > 0:
 		for task_name in argv:
 			if task_name in registered_tasks:
@@ -458,4 +558,5 @@ if __name__ == "__main__":
 				print(f"* No such task: {task_name}.")
 	else:
 		error("* No tasks to execute.")
+
 	unlock_all_tasks()

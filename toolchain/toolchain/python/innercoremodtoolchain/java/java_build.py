@@ -319,13 +319,17 @@ def compile_all_using_make_config(debug_build = False):
 		classpath_directories = ([
 			classpath_dir
 		] if exists(classpath_dir) else []) + MAKE_CONFIG.get_value("gradle.classpath", [])
-		overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories), debug_build)
+		try:
+			overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories), debug_build)
+		except KeyboardInterrupt:
+			overall_result = 1
 		if overall_result != 0:
 			print(f"Nope, clearing compiled directories {directories}")
 			for directory_name in directory_names:
 				clear_directory(MAKE_CONFIG.get_path("output/" + directory_name))
 	cleanup_gradle_scripts(directories)
-	mod_structure.update_build_config_list("javaDirs")
+	if overall_result == 0:
+		mod_structure.update_build_config_list("javaDirs")
 
 	print(f"Completed java build in {int((time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
 	return overall_result

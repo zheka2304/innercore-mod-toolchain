@@ -28,7 +28,7 @@ COMPONENTS = {
 	"declarations": Component("declarations", "TypeScript Declarations", "toolchain/declarations", branch="includes"),
 	"java": Component("java", "Java R8/D8 Compiler", "toolchain/bin/r8", branch="r8"),
 	"classpath": Component("classpath", "Java Classpath", "toolchain/classpath", branch="classpath"),
-	"cpp": Component("cpp", "C++ GCC Compiler (NDK)", "toolchain/ndk"),
+	"cpp": Component("cpp", "C++ GCC Compiler (NDK)", "toolchain/ndk"), # native/native_setup.py
 	"stdincludes": Component("stdincludes", "C++ Headers", "toolchain/stdincludes", branch="stdincludes")
 }
 
@@ -217,11 +217,13 @@ def startup():
 		Separator(),
 		Progress(progress=0.4, text="<" + "Who are you?".center(45) + ">")
 	]
+
 	preffered = which_installed()
 	if not "declarations" in preffered:
 		preffered.append("declarations")
 	if not "java" in preffered:
 		preffered.append("java")
+
 	try:
 		import shutil
 		if shutil.which("adb") is None and not "adb" in preffered:
@@ -234,6 +236,7 @@ def startup():
 	]
 	component = 0
 	index = len(interactables)
+
 	while True:
 		if index % shell.lines_per_page == shell.lines_per_page - 1:
 			interactables.append(Progress(progress=0.6, text="<" + "Configure your toolchain".center(45) + ">"))
@@ -260,11 +263,12 @@ def startup():
 		tsc = shutil.which("tsc") is not None
 	except BaseException:
 		tsc = False
+
 	shell.interactables += [
 		Separator(),
 		Switch("typescript", "I'll want to build everything with TypeScript", tsc),
 		Switch("composite", "I've allow building separate files with each other", tsc),
-		Switch("references", "I'm preferr using few script directories in project", False),
+		Switch("references", "I'm preffer using few script directories in project", False),
 		Separator(),
 		Progress(progress=0.8, text="<" + "Composite performance".center(45) + "+")
 	]
@@ -275,23 +279,29 @@ def startup():
 		shell.leave()
 		return print()
 	print()
+
 	username = shell.get_interactable("user").read()
 	if ensure_not_whitespace(username) is not None:
 		print("Who are you?", f"\x1b[2m{username}\x1b[0m")
 		TOOLCHAIN_CONFIG.set_value("template.author", username)
+
 	typescript = shell.get_interactable("typescript").checked
 	if typescript:
 		print("You'll want to build everything with TypeScript")
 		TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
+
 	composite = shell.get_interactable("composite").checked
 	if not composite:
 		print("You've denied building separate files with each other")
 		TOOLCHAIN_CONFIG.set_value("project.composite", composite)
+
 	references = shell.get_interactable("references").checked
 	if references:
-		print("You're preferr using few script directories in project")
+		print("You're preffer using few script directories in project")
 		TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
+
 	TOOLCHAIN_CONFIG.save()
+
 	installation = resolve_components(shell.interactables)
 	if len(installation) > 0:
 		print("Which components will be installed? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")

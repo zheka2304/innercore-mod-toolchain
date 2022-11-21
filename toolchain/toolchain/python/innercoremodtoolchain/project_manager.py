@@ -10,12 +10,14 @@ class ProjectManager:
 	def __init__(self):
 		self.projects = []
 		self.templates = []
+
 		locations = MAKE_CONFIG.get_value("projectLocations", [])
 		for location in ["", *locations]:
 			path = TOOLCHAIN_CONFIG.get_absolute_path(location)
 			if not exists(path) or not isdir(path):
 				print(f"Not found project location {location}!")
 				continue
+
 			for entry in ["", *os.listdir(path)]:
 				make_path = join(path, entry, "make.json")
 				if exists(make_path) and isfile(make_path):
@@ -29,10 +31,12 @@ class ProjectManager:
 		if exists(location):
 			from .task import error
 			error(f"Folder '{folder}' already exists!")
+
 		template_path = TOOLCHAIN_CONFIG.get_absolute_path(template)
 		if not exists(template_path):
 			from .task import error
 			error(f"Not found {template} template, nothing to do.")
+
 		template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 		if not isfile(template_make_path):
 			from .task import error

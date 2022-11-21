@@ -3,6 +3,7 @@ import subprocess
 import json
 import glob
 import os
+import platform
 
 from .make_config import MakeConfig, MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .base_config import BaseConfig
@@ -272,7 +273,7 @@ class WorkspaceComposite:
 			"--build", self.get_tsconfig(),
 			*MAKE_CONFIG.get_value("development.tsc", []),
 			*args
-		], shell=True)
+		], shell=platform.system() == "Windows")
 
 	def watch(self, *args):
 		try:
@@ -281,7 +282,7 @@ class WorkspaceComposite:
 				"--watch",
 				*MAKE_CONFIG.get_value("development.watch", []),
 				*args
-			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=True)
+			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=platform.system() == "Windows")
 		except KeyboardInterrupt:
 			return 0
 

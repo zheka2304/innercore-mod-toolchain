@@ -26,6 +26,9 @@ def download_toolchain(directory):
 	else:
 		print("'toolchain.zip' already exists in temporary directory.")
 
+""" Maintain "main" component, workings like anything other.
+When toolchain/bin/.commit outdated it will be updated.
+"""
 def might_be_updated(directory = None):
 	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if not isfile(commit_path):
@@ -45,6 +48,15 @@ def might_be_updated(directory = None):
 def perform_diff(a, b):
 	return str(a).strip() == str(b).strip()
 
+""" Which files will be extracted with merging nor replacing?
+- toolchain/* in master branch: bin (not bin/r8), python
+- toolchain/*.{sh,bat} will be removed
+- ../.github will be replaced if it exists
+- ../toolchain-sample-mod will be replaced if it exists
+- anything in directory excludes toolchain.json and toolchain if it
+exists on remote, you can disable it by `"updateAcceptReplaceConfiguration": false`
+property in your toolchain.json
+"""
 def extract_toolchain(directory):
 	archive = join(directory, "toolchain.zip")
 	with AttributeZipFile(archive, "r") as zip_ref:

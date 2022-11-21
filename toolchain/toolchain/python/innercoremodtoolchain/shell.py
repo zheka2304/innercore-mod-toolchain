@@ -212,6 +212,7 @@ class InteractiveShell(Shell):
 				self.global_buffer_offset = self.page_buffer_offset = 0
 				self.page = 1
 			return
+
 		self.global_buffer_offset += self.page_buffer_offset
 		self.page_buffer_offset = 0
 		self.page += 1
@@ -223,30 +224,38 @@ class InteractiveShell(Shell):
 				page = 1
 				page_occupied_lines = 0
 				page_buffer_offset = 0
+
 				while index < len(self.interactables):
 					lines = self.interactables[index].lines(self)
 					if lines > self.lines_per_page or lines < 0:
 						raise BufferError()
+
 					if page_occupied_lines + lines > self.lines_per_page:
 						page_occupied_lines = page_buffer_offset = 0
 						page += 1
 						continue
+
 					page_occupied_lines += lines
 					page_buffer_offset += 1
 					index += 1
+
 				self.global_buffer_offset = index - page_buffer_offset
 				self.page_buffer_offset = 0
 				self.page = page
 			return
+
 		page_occupied_lines = 0
 		while index > 0:
 			lines = self.interactables[index - 1].lines(self)
 			if lines > self.lines_per_page or lines < 0:
 				raise BufferError()
+
 			if page_occupied_lines + lines > self.lines_per_page:
 				break
+
 			page_occupied_lines += lines
 			index -= 1
+
 		self.global_buffer_offset = index
 		self.page_buffer_offset = 0
 		self.page -= 1
@@ -273,8 +282,10 @@ class InteractiveShell(Shell):
 		if self.global_buffer_offset >= len(self.interactables):
 			raise IndexError()
 		self.write("\n")
+
 		page_occupied_lines = 0
 		self.page_buffer_offset = 0
+
 		while self.global_buffer_offset + self.page_buffer_offset < len(self.interactables):
 			interactable = self.interactables[self.global_buffer_offset + self.page_buffer_offset]
 			lines = interactable.lines(self)
@@ -285,6 +296,7 @@ class InteractiveShell(Shell):
 			self.draw(interactable, self.page, page_occupied_lines)
 			page_occupied_lines += lines
 			self.page_buffer_offset += 1
+
 		self.write_implicit_indicator()
 
 	def enter(self):
@@ -370,9 +382,12 @@ class SelectiveShell(InteractiveShell):
 
 	def render(self):
 		InteractiveShell.render(self)
+
+		# Changes cursor location to previous one if possible
 		if self.pending_hover_offset != 0:
 			if self.pending_hover_offset <= -1:
 				if not self.hover_previous():
+
 					if self.pending_hover_offset == -1:
 						if self.infinite_scroll or self.global_buffer_offset > 0:
 							self.page_cursor_offset = self.lines_per_page
@@ -380,20 +395,27 @@ class SelectiveShell(InteractiveShell):
 							InteractiveShell.render(self)
 							if not self.hover_previous():
 								self.page_cursor_offset = -1
+
 					elif not self.hover_next() and not self.hovered():
 						self.page_cursor_offset = -1
+
 				InteractiveShell.render(self)
+
 			elif self.pending_hover_offset >= 1:
 				if not self.hover_next():
+
 					if self.pending_hover_offset == 1:
 						self.page_cursor_offset = -1
 						InteractiveShell.turn_forward(self)
 						InteractiveShell.render(self)
 						if not self.hover_next():
 							self.page_cursor_offset = -1
+
 					elif not self.hover_previous() and not self.hovered():
 						self.page_cursor_offset = -1
+
 				InteractiveShell.render(self)
+
 			self.pending_hover_offset = 0
 
 	def observe(self, raw):
@@ -405,7 +427,7 @@ class SelectiveShell(InteractiveShell):
 		if raw != "\x1b" and raw != "\xe0":
 			return observed
 		key = self.input_raw(1)
-		if raw == "\xe0":
+		if raw == "\xe0": # Windows
 			if key == "H": # Up
 				self.turn_up()
 			elif key == "P": # Down
@@ -419,7 +441,7 @@ class SelectiveShell(InteractiveShell):
 			return True
 		if key != "[":
 			return observed
-		joy = self.input_raw(1)
+		joy = self.input_raw(1) # Unix
 		if joy == "A": # Up
 			self.turn_up()
 		elif joy == "B": # Down

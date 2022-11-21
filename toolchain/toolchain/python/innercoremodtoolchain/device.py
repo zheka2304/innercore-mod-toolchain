@@ -17,6 +17,7 @@ def get_modpack_push_directory():
 		directory = TOOLCHAIN_CONFIG.get_value("pushTo")
 		if directory is not None:
 			directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
+
 	if directory is None:
 		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
 		TOOLCHAIN_CONFIG.save()
@@ -24,6 +25,7 @@ def get_modpack_push_directory():
 			from .task import error
 			error("Nothing may be selected in modpack, nothing to do.")
 		return get_modpack_push_directory()
+
 	if "/horizon/packs/" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
@@ -36,6 +38,7 @@ def get_modpack_push_directory():
 			"No questions, always push",
 			"Nothing", fallback=3
 		)
+
 		if which == 0:
 			TOOLCHAIN_CONFIG.remove_value("pushTo")
 			MAKE_CONFIG.remove_value("pushTo")
@@ -47,6 +50,7 @@ def get_modpack_push_directory():
 		elif which == 3:
 			print("Pushing aborted.")
 			return None
+
 	return directory
 
 def ls_pack(path):
