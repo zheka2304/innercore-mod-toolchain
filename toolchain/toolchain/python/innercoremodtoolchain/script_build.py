@@ -13,14 +13,18 @@ VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", 
 
 def get_allowed_languages():
 	allowed_languages = []
+
 	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or MAKE_CONFIG.get_value("denyJavaScript", False):
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
+
 	if not MAKE_CONFIG.get_value("denyJavaScript", False):
 		allowed_languages.append("javascript")
+
 	if len(allowed_languages) == 0:
 		from .task import error
 		error("TypeScript is required, if you want to build legacy JavaScript, change `denyJavaScript` property in your make.json or toolchain.json config.")
+
 	return allowed_languages
 
 def build_all_scripts(debug_build = False, watch = False):
@@ -33,9 +37,11 @@ def build_all_scripts(debug_build = False, watch = False):
 			print("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
 			overall_result = 1
 			continue
+
 		if source["type"] not in VALID_SOURCE_TYPES:
 			print("Invalid script `type` in source: ", source["type"], ", it might be one of ", VALID_SOURCE_TYPES, sep="")
 			overall_result = 1
+
 	if overall_result != 0:
 		return overall_result
 
@@ -52,6 +58,7 @@ def rebuild_build_target(source, target_path):
 		# make.json source type -> build.config source type
 		"sourceType": "mod" if source["type"] == "main" else source["type"]
 	}
+
 	if "api" in source and source["type"] != "preloader":
 		declare["api"] = source["api"]
 	if "optimizationLevel" in source:
@@ -80,15 +87,20 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 
 	for source in sorted(MAKE_CONFIG.get_value("sources", []), key=cmp_to_key(do_sorting)):
 		make = source["includes"] if "includes" in source else ".includes"
-		language = source["language"] if "language" in source and source["language"] in allowed_languages else allowed_languages[0]
+		preffered_language = source["language"] if "language" in source else None
+		language = preffered_language if preffered_language is not None \
+			and source["language"] in allowed_languages else allowed_languages[0]
 
 		for source_path in MAKE_CONFIG.get_paths(source["source"]):
 			if not exists(source_path):
 				print("* Skipped non-existing source ", source["source"], "!", sep="")
 				continue
+
+			# Supports assembling directories, JavaScript and TypeScript
 			if not (isdir(source_path) or source_path.endswith(".js") or source_path.endswith(".ts")):
 				continue
 
+			# Using template <sourceName>.<extension> -> <sourceName>, e.g. main.js -> main
 			if "target" not in source:
 				target_path = basename(source_path)
 				if isfile(source_path):
@@ -96,6 +108,8 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 				target_path += ".js"
 			else:
 				target_path = source["target"]
+
+			# Preserve output target duplication
 			try:
 				dot_index = target_path.rindex(".")
 				target_path = target_path[:dot_index] + "{}" + target_path[dot_index:]
@@ -103,53 +117,79 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 				target_path += "{}"
 
 			destination_path = rebuild_build_target(source, target_path)
+			appending_library = MAKE_CONFIG.get_value("project.compiledLibraries", False) \
+				and source["type"] == "library" and preffered_language == "javascript"
+
 			if isdir(source_path):
 				include = Includes.invalidate(source_path, make, debug_build)
+				# Computing in any cases, tsconfig normalizes environment usage
 				if include.compute(destination_path, language):
-					includes.append((include, destination_path, language))
-				if MAKE_CONFIG.get_value("project.useReferences", False):
+					includes.append((
+						include,
+						destination_path,
+						"javascript" if appending_library else language
+					))
+				if not appending_library and MAKE_CONFIG.get_value("project.useReferences", False):
 					WORKSPACE_COMPOSITE.reference(source_path)
-				computed_includes.append((source_path, destination_path))
+				computed_includes.append((
+					source_path, destination_path
+				))
+
 			elif isfile(source_path):
 				from .includes import temp_directory
-				if MAKE_CONFIG.get_value("project.composite", True):
-					WORKSPACE_COMPOSITE.coerce(source_path)
-				if BUILD_STORAGE.is_path_changed(source_path) or \
-						(language == "typescript" and not isfile(
+				if not appending_library:
+					if MAKE_CONFIG.get_value("project.composite", True):
+						WORKSPACE_COMPOSITE.coerce(source_path)
+					if BUILD_STORAGE.is_path_changed(source_path) or (
+						language == "typescript" and not isfile(
 							join(temp_directory, relpath(source_path, MAKE_CONFIG.root_dir))
-						)):
-					composite.append((source_path, destination_path, language))
-				computed_composite.append((source_path, destination_path, language))
+						)
+					):
+						composite.append((source_path, destination_path, language))
+				computed_composite.append((
+					source_path, destination_path, "javascript" if appending_library else language
+				))
 
 	BUILD_STORAGE.save()
 	return composite, computed_composite, includes, computed_includes
 
 def copy_build_targets(composite, includes):
 	from .includes import temp_directory
+
 	for included in includes:
 		temp_path = join(temp_directory, basename(included[1]))
+
 		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
 				print(f"WARNING: Not found build target {basename(temp_path)}, maybe it building emitted error or corresponding source is empty.")
 				continue
+
 		if not BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"* Build target {basename(temp_path)} is not changed")
+
 	for included in composite:
+		# Single JavaScript sources when TypeScript is not forced just copies to output without
+		# temporary caching; might be breaking change in future
 		if MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
 			temp_path = join(temp_directory, relpath(included[0], MAKE_CONFIG.root_dir))
-		else: temp_path = included[0]
+		else:
+			temp_path = included[0]
+
 		if temp_path == included[0] and isfile(temp_path) and BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"Flushing {basename(included[1])} from {basename(included[0])}")
+
 		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
 				print(f"WARNING: Not found build target {basename(temp_path)}, but it directly included!")
 				continue
+
 		if not BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"* Build target {basename(temp_path)} is not changed")
+
 	BUILD_STORAGE.save()
 
 def build_composite_project(allowed_languages = ["typescript"], debug_build = False):
@@ -157,10 +197,11 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 
 	composite, computed_composite, includes, computed_includes = \
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
+
 	if "typescript" in allowed_languages:
 		WORKSPACE_COMPOSITE.flush(debug_build)
-	if not MAKE_CONFIG.get_value("project.useReferences", False):
-		for included in includes:
+	for included in includes:
+		if not MAKE_CONFIG.get_value("project.useReferences", False) or includes[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
@@ -168,16 +209,24 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 	if "typescript" in allowed_languages \
 		and (MAKE_CONFIG.get_value("project.composite", True) \
 			or MAKE_CONFIG.get_value("project.useReferences", False)):
+
 		which = []
 		if MAKE_CONFIG.get_value("project.composite", True):
 			which += list(filter(lambda included: included[2] == "typescript", composite))
+
 		no_composite_typescript = len(which) == 0
 		if MAKE_CONFIG.get_value("project.useReferences", False):
 			which += list(filter(lambda included: included[2] == "typescript", includes))
+
+		# Quick rebuild means running tsc only on changed directory, which is must be faster
+		# than default composite building; but in some cases it also may cause unexpected behavior
 		if no_composite_typescript and len(which) == 1 and MAKE_CONFIG.get_value("project.quickRebuild", True):
 			included = which.pop()
 			overall_result += included[0].build(included[1], included[2])
 
+		# Recomputed changes doesn't really matter for tsc, since we'll just want to realize
+		# which files changed with hashing algorithm and composite building may rebuild everything
+		# when tsconfig changes or something unexpected happened, like removing temporary declarations
 		if len(which) > 0:
 			print("Rebuilding composite", ", ".join([
 				basename(included[1]) for included in which
@@ -192,6 +241,7 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 			diff = end_time - start_time
 
 			print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+
 		if overall_result != 0:
 			return overall_result
 
@@ -205,18 +255,20 @@ def watch_composite_project(allowed_languages = ["typescript"], debug_build = Tr
 		return 1
 	overall_result = 0
 
+	# Recomputing existing changes before watching, changes here doesn't make sence
+	# since it will be recomputed after watching interruption
 	compute_and_capture_changed_scripts(allowed_languages, debug_build)
 	WORKSPACE_COMPOSITE.flush(debug_build)
 	WORKSPACE_COMPOSITE.watch()
-
 	mod_structure.cleanup_build_target("script_source")
 	mod_structure.cleanup_build_target("script_library")
 	WORKSPACE_COMPOSITE.reset()
+
 	composite, computed_composite, includes, computed_includes = \
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
 
-	if not MAKE_CONFIG.get_value("project.useReferences", False):
-		for included in includes:
+	for included in includes:
+		if not MAKE_CONFIG.get_value("project.useReferences", False) or includes[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
@@ -248,6 +300,7 @@ def build_all_resources():
 				print("Invalid resource `type` in source: ", resource_type, ", it might be one of ", VALID_RESOURCE_TYPES, sep="")
 				overall_result = 1
 				continue
+
 			resource_name = resource["target"] if "target" in resource else basename(source_path)
 			resource_name += "{}"
 
@@ -269,6 +322,7 @@ def build_all_resources():
 						"behaviorPacksDir": mod_structure.get_target_directories("minecraft_behavior_pack")[0]
 					}
 				)
+
 			clear_directory(target)
 			copy_directory(source_path, target)
 
