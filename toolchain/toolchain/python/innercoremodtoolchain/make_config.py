@@ -80,6 +80,8 @@ class ToolchainMakeConfig(MakeConfig):
 	def __init__(self, filename):
 		prototype = MakeConfig(filename)
 		self.current_project = prototype.get_value("currentProject")
+		if self.current_project is None and len(prototype.get_value("projectLocations", [])) == 0:
+			self.current_project = "."
 		if self.current_project is not None:
 			make_path = prototype.get_absolute_path(self.current_project + "/make.json")
 			if isfile(make_path):

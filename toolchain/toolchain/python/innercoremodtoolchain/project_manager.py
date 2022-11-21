@@ -185,6 +185,11 @@ class ProjectManager:
 				pass
 		return make_obj["info"]["name"] if make_obj is not None and "info" in make_obj and "name" in make_obj["info"] else basename(path)
 
+	def get_shortcut(self, path, make_obj = None):
+		if len(path) == 0:
+			return basename(TOOLCHAIN_CONFIG.root_dir)
+		return self.resolve_mod_name(path, make_obj) + " (" + path + ")"
+
 	def get_folder(self, index = None, folder = None):
 		if index == None:
 			if folder == None:
@@ -200,18 +205,21 @@ class ProjectManager:
 	def how_much(self):
 		return len(self.projects)
 
-	def require_selection(self, prompt = None, prompt_when_single = None, dont_want_anymore = None):
+	def require_selection(self, prompt = None, prompt_when_single = None, *dont_want_anymore):
 		from .package import select_project
 		if self.how_much() == 1:
 			itwillbe = self.projects[0]
 			if prompt_when_single is None:
 				return itwillbe
 			else:
-				if input(prompt_when_single.format(self.resolve_mod_name(itwillbe) + " (" + itwillbe + ")") + " [Y/n] ")[:1].lower() == "n":
+				try:
+					if input(prompt_when_single.format(self.get_shortcut(itwillbe)) + " [Y/n] ")[:1].lower() == "n":
+						return print("Abort.")
+				except KeyboardInterrupt:
+					print()
 					return print("Abort.")
 				return itwillbe
-		raw = select_project(self.projects, prompt, MAKE_CONFIG.current_project, dont_want_anymore)
-		return (raw if raw != dont_want_anymore else None)
+		return select_project(self.projects, prompt, MAKE_CONFIG.current_project, *dont_want_anymore)
 
 
 PROJECT_MANAGER = ProjectManager()

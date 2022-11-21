@@ -12,6 +12,14 @@ If task **Configure ADB** is not what you were looking for, try reading <https:/
 
 Check `pushTo` property in your configuration files, it probably contains wrong location by default. Also, make sure that all tasks run without errors.
 
+### What if I want just single project
+
+Then just place the working files in the root folder of the toolchain, it does not need to be selected and if such a project exists, it will be selected by default. You will still be able to use all the features, the main folder will only act as a project. If necessary, change the `projectLocations` property to exclude the root folder (*..*) from the list of projects to prevent them from being duplicated in the selection interface. Once the `selectedProject` property is changed by you personally, the "global" project has no meaning.
+
+### How to change import path
+
+By running the **Import Project** task any project is converted to the appropriate folder relative to the toolchain, you can change the folder by running *toolchain-setup.py* or *toolchain/python/innercoremodtoolchain/import.py* using the second argument as the target folder. Use `--help` to get a list of available commands and their descriptions.
+
 ### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor
 
 One of most convenient and advantageous ways to find out which folder you are interacting with is to open any file in the project that you want to act on. By default, the last opened folder is used, if it does not exist, you will be prompted to create a new project.
@@ -19,10 +27,6 @@ One of most convenient and advantageous ways to find out which folder you are in
 ### Project 'toolchain_\<hash>' is missing required source folder: '_/<folder_name>/java/\<module>/src'
 
 All path paths in multi-root workspace become relative, however, folders outside main *toolchain/* folder are converted from root folders (../) to an extension-safe format (_/). This error does not need to be fixed if you are building a mod using the toolchain, easiest way to avoid this error is to move your mod to any of the loochain subfolders where it belongs, or change your environment settings by manually adding the necessary paths to the settings instead of using *.classpath*.
-
-### How to change import path
-
-When running task **Import Project** any project converts to corresponding directory besides toolchain, you can change output by running *toolchain-setup.py* or *toolchain/pythoh/innercoremodtoolchain/import.py* with usage second argument as target directory. Execute command with `--help` for getting list with descriptions.
 
 ## Issues you may encounter in terminal
 
