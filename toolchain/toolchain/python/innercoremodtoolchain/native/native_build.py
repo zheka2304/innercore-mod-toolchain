@@ -207,17 +207,9 @@ def build_native_dir(directory, output_dir, cache_dir, abis, std_includes_path, 
 	return overall_result
 
 def compile_all_using_make_config(abis):
-	from ..mod_structure import mod_structure
 	import time
 	start_time = time.time()
-
-	std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
-	if not exists(std_includes):
-		print("\x1b[93mNot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
-	cache_dir = MAKE_CONFIG.get_build_path("gcc")
-	ensure_directory(cache_dir)
-	mod_structure.cleanup_build_target("native")
-
+	directories = []
 	overall_result = CODE_OK
 
 	for native_dir in MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
@@ -225,24 +217,41 @@ def compile_all_using_make_config(abis):
 			print("Skipped invalid native directory json", native_dir)
 			overall_result = CODE_INVALID_JSON
 			continue
-		for native_dir_path in MAKE_CONFIG.get_paths(native_dir["source"]):
-			if isdir(native_dir_path):
-				directory_name = basename(native_dir_path)
-				result = build_native_dir(
-					native_dir_path,
-					mod_structure.new_build_target("native", directory_name + "{}"),
-					join(cache_dir, directory_name),
-					abis,
-					std_includes,
-					BaseConfig(native_dir["rules"] if "rules" in native_dir else {})
-				)
-				if result == CODE_FAILED_NO_GCC:
-					return overall_result
-				if result != CODE_OK:
-					overall_result = result
-			else:
-				print("Skipped non existing native directory", native_dir["source"])
-				overall_result = CODE_INVALID_PATH
+		directories.append(native_dir)
+
+	from ..mod_structure import mod_structure
+	mod_structure.cleanup_build_target("native")
+	if len(directories) > 0:
+		std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
+		if not exists(std_includes):
+			print("\x1b[93mNot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
+		cache_dir = MAKE_CONFIG.get_build_path("gcc")
+		ensure_directory(cache_dir)
+
+		for native_dir in MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
+			if "source" not in native_dir:
+				print("Skipped invalid native directory json", native_dir)
+				overall_result = CODE_INVALID_JSON
+				continue
+
+			for native_dir_path in MAKE_CONFIG.get_paths(native_dir["source"]):
+				if isdir(native_dir_path):
+					directory_name = basename(native_dir_path)
+					result = build_native_dir(
+						native_dir_path,
+						mod_structure.new_build_target("native", directory_name + "{}"),
+						join(cache_dir, directory_name),
+						abis,
+						std_includes,
+						BaseConfig(native_dir["rules"] if "rules" in native_dir else {})
+					)
+					if result == CODE_FAILED_NO_GCC:
+						return overall_result
+					if result != CODE_OK:
+						overall_result = result
+				else:
+					print("Skipped non existing native directory", native_dir["source"])
+					overall_result = CODE_INVALID_PATH
 
 	mod_structure.update_build_config_list("nativeDirs")
 	print(f"Completed native build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == CODE_OK else 'ERROR'}")

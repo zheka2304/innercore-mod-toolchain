@@ -129,16 +129,20 @@ def find_config(path, filename):
 			return ToolchainMakeConfig(config_path)
 		working_path.pop()
 
-# search for toolchain.json
-MAKE_CONFIG = find_config(os.getcwd(), "toolchain.json")
-if MAKE_CONFIG is None and len(sys.argv[0]) > 0:
-	MAKE_CONFIG = find_config(join(sys.argv[0], ".."), "toolchain.json")
+# Search for toolchain.json or make.json
+for filename in ("toolchain.json", "make.json"):
+	MAKE_CONFIG = find_config(os.getcwd(), filename)
+	if MAKE_CONFIG is None and len(sys.argv[0]) > 0:
+		MAKE_CONFIG = find_config(join(sys.argv[0], ".."), filename)
+	if MAKE_CONFIG is None:
+		try:
+			MAKE_CONFIG = find_config(realpath(join(__file__, "..")), filename)
+		except NameError:
+			pass
+	if MAKE_CONFIG is not None:
+		break
+
 if MAKE_CONFIG is None:
-	try:
-		MAKE_CONFIG = find_config(realpath(join(__file__, "..")), "toolchain.json")
-	except NameError:
-		pass
-if MAKE_CONFIG is None:
-	raise RuntimeError("Not found toolchain.json! Please, make sure that it appears in your working directory or any of it parents.")
+	raise RuntimeError("Not found toolchain.json or project make.json! Please, make sure that it appears in your working directory or any of it parents.")
 TOOLCHAIN_CONFIG = MakeConfig(MAKE_CONFIG.filename) \
 	if MAKE_CONFIG.current_project is None else MAKE_CONFIG.prototype

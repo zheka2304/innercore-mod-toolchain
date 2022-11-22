@@ -331,7 +331,10 @@ def task_load_docs(args = None):
 )
 def task_update_includes(args = None):
 	from .script_build import compute_and_capture_changed_scripts, get_allowed_languages
-	return compute_and_capture_changed_scripts(get_allowed_languages(), True)
+	compute_and_capture_changed_scripts(get_allowed_languages(), True)
+	from .workspace import WORKSPACE_COMPOSITE
+	WORKSPACE_COMPOSITE.flush(True)
+	return 0
 
 @task(
 	"configureADB",
@@ -426,7 +429,7 @@ def task_remove_project(args = None):
 )
 def task_select_project(args = None):
 	from .project_manager import PROJECT_MANAGER
-	if args is not None and len(args) > 0:
+	if args is not None and len(args) > 0 and len(args[0]) > 0:
 		path = args[0]
 		if isfile(path):
 			path = join(path, "..")

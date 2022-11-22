@@ -635,7 +635,10 @@ def select_prompt(prompt = None, *variants, fallback = None, what_not_which = Fa
 		result = shell.which()
 	except KeyboardInterrupt:
 		result = fallback
-	interactable = shell.get_interactable(result)
+	try:
+		interactable = shell.get_interactable(result)
+	except ValueError:
+		return None
 	try:
 		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + interactable.placeholder() + "\x1b[0m")
 	except ValueError:
