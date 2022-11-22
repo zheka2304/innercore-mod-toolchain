@@ -151,9 +151,14 @@ def install_components(components):
 		if abi is not None and not abi in abis:
 			abis.append(abi)
 		from .native.native_setup import abi_to_arch, check_installed, install
-		for arch in abis:
-			if not check_installed(abi_to_arch(arch)):
-				install(abi_to_arch(arch), reinstall=True)
+		abis = filter(
+			lambda abi: not check_installed(abi_to_arch(abi)),
+			abis
+		)
+		if len(abis) > 0:
+			install([
+				abi_to_arch(abi) for abi in abis
+			], reinstall=True)
 	shell.interactables.append(Interrupt())
 
 def fetch_component(component):

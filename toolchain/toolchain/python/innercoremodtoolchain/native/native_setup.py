@@ -82,8 +82,13 @@ def require_compiler_executable(arch, install_if_required = False):
 				return None
 	return file
 
-def check_installed(arch):
-	return isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)))
+def check_installed(arches):
+	if not isinstance(arches, iter):
+		arches = [arches]
+	return len(list(filter(
+		lambda arch: not isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch))),
+		arches
+	))) > 0
 
 def download(shell):
 	from urllib import request
@@ -129,15 +134,15 @@ def download(shell):
 
 	return search_ndk_path(extract_path, contains_ndk=True)
 
-def install(arch = "arm", reinstall = False):
-	if not reinstall and check_installed(arch):
+def install(arches = "arm", reinstall = False):
+	if not reinstall and check_installed(arches):
 		return 0
 	else:
 		shell = Shell()
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			if not reinstall:
-				print("Not found valid NDK installation for ", arch, ".", sep="")
+				print("Not found valid NDK installation for ", arches, ".", sep="")
 			try:
 				if reinstall or input("Download android-ndk-r16b-x86_64? [N/y] ")[:1].lower() == "y":
 					shell.enter()
@@ -155,42 +160,51 @@ def install(arch = "arm", reinstall = False):
 			shell.leave()
 			print("Installation interrupted by raised cause above, you're must extract toolchain/temp/ndk.zip manually into toolchain/temp and retry task.")
 			return 1
+		result = 0
 
-		progress = Progress(text="Installing")
-		shell.interactables.append(progress)
-		shell.render()
-		result = subprocess.call([
-			"python3" if platform.system() != "Windows" else "python",
-			join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
-			"--arch", str(arch),
-			"--api", "19",
-			"--install-dir", TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
-			"--force"
-		])
+		if not isinstance(arches, list):
+			arches = [arches]
+		for arch in arches:
+			progress = Progress(text=f"Installing {str(arch)}")
+			shell.interactables.append(progress)
+			shell.render()
+			result += subprocess.call([
+				"python3" if platform.system() != "Windows" else "python",
+				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
+				"--arch", str(arch),
+				"--api", "19",
+				"--install-dir", TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
+				"--force"
+			])
+			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
+			if result != 0:
+				progress.seek(0.5, f"Installation of {str(arch)} failed with result {str(result)}")
+				shell.render()
+			else:
+				progress.seek(1, f"Successfully installed {str(arch)}")
+				shell.render()
 
 		if result == 0:
-			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
-			progress.seek(0.9, "Removing temporary files")
+			progress = Progress(progress=0.9, text=f"Removing temporary files")
 			shell.render()
 			try:
 				clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-				progress.seek(1, "Successfully installed")
+				progress.seek(1, "C++ GCC Compiler (NDK)")
 			except OSError as exc:
 				progress.seek(0, f"#{exc.errno}: {exc.filename}")
-			shell.render()
-			shell.leave()
-			return 0
 		else:
 			progress.seek(0.5, f"Installation failed with result {str(result)}")
-			shell.render()
-			shell.leave()
-			print("You're must install it manually by running build/tools/make_standalone_toolchain.py, or re-extracting ndk.")
-			return result
+
+		shell.render()
+		shell.leave()
+		if result != 0:
+			print("You're must install it manually by running toolchain/temp/../build/tools/make_standalone_toolchain.py, or re-extracting ndk.")
+		return result
 
 
 if __name__ == "__main__":
 	if "--help" in sys.argv:
-		print("Usage: native/native-setup.py [arch]")
+		print("Usage: native/native-setup.py [arch/arches]")
 		exit(0)
 	if len(sys.argv) >= 2:
 		install(sys.argv[1])
