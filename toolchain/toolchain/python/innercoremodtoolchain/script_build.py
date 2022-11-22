@@ -129,7 +129,7 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 						destination_path,
 						"javascript" if appending_library else language
 					))
-				if not appending_library and MAKE_CONFIG.get_value("project.useReferences", False):
+				if not appending_library and MAKE_CONFIG.get_value("project.useReferences", False) and language == "typescript":
 					WORKSPACE_COMPOSITE.reference(source_path)
 				computed_includes.append((
 					source_path, destination_path
@@ -138,7 +138,7 @@ def compute_and_capture_changed_scripts(allowed_languages = ["typescript"], debu
 			elif isfile(source_path):
 				from .includes import temp_directory
 				if not appending_library:
-					if MAKE_CONFIG.get_value("project.composite", True):
+					if MAKE_CONFIG.get_value("project.composite", True) and language == "typescript":
 						WORKSPACE_COMPOSITE.coerce(source_path)
 					if BUILD_STORAGE.is_path_changed(source_path) or (
 						language == "typescript" and not isfile(
@@ -201,7 +201,7 @@ def build_composite_project(allowed_languages = ["typescript"], debug_build = Fa
 	if "typescript" in allowed_languages:
 		WORKSPACE_COMPOSITE.flush(debug_build)
 	for included in includes:
-		if not MAKE_CONFIG.get_value("project.useReferences", False) or includes[2] == "javascript":
+		if not MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
@@ -268,7 +268,7 @@ def watch_composite_project(allowed_languages = ["typescript"], debug_build = Tr
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
 
 	for included in includes:
-		if not MAKE_CONFIG.get_value("project.useReferences", False) or includes[2] == "javascript":
+		if not MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
