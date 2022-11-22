@@ -1,4 +1,4 @@
-from os.path import exists, isfile, abspath, relpath, join, dirname
+from os.path import exists, isfile, isdir, abspath, relpath, join, dirname
 import subprocess
 import json
 import glob
@@ -225,7 +225,17 @@ class WorkspaceComposite:
 
 	@staticmethod
 	def resolve_declarations(debug_build = False):
+		includes = MAKE_CONFIG.get_value("declarations", [
+			"declarations"
+		])
 		declarations = []
+		for filepath in [
+			MAKE_CONFIG.get_absolute_path(include) for include in includes
+		]:
+			if exists(filepath):
+				if isdir(filepath):
+					filepath = f"{filepath}/**/*.d.ts"
+				declarations.extend(glob.glob(filepath, recursive=True))
 		if exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 			declarations.extend(glob.glob(
 				TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
@@ -241,7 +251,7 @@ class WorkspaceComposite:
 					for declaration in glob.glob(TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
 						if declaration in declarations:
 							declarations.remove(declaration)
-		return declarations
+		return list(set(declarations))
 
 	def flush(self, debug_build = False, **kwargs):
 		from .includes import temp_directory
@@ -287,6 +297,6 @@ class WorkspaceComposite:
 			return 0
 
 
-CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("workspaceFile")))
+CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("workspaceFile", "toolchain.code-workspace")))
 CODE_SETTINGS = CodeWorkspace(TOOLCHAIN_CONFIG.get_path(".vscode/settings.json"))
 WORKSPACE_COMPOSITE = WorkspaceComposite("tsconfig.json")

@@ -60,6 +60,7 @@ Properties marked with \* can have absolute file paths.
 │     ├─ targetDir // output path in project after building
 │     └─ targetFile: "<source>" // file name in target directory, will be added to end of path
 ├─ excludeFromRelease: [] // relative paths to folders excluded from project when building to release, /* format is supported to include subfolders in a folder
+├─ *declarations: ["declarations"] // pathes to folders or files relative to project or absolute path; every subfolder will be included as already-created declarations to libraries, see another options
 │
 ├─ development: {} // development settings, to make assembling much more faster
 │  ├─ comparingMode: "content" // recomputing changed files and directories strategy, may be "size", "modify" or "content"
