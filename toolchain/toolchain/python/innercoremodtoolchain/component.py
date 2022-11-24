@@ -151,10 +151,10 @@ def install_components(components):
 		if abi is not None and not abi in abis:
 			abis.append(abi)
 		from .native.native_setup import abi_to_arch, check_installed, install
-		abis = filter(
+		abis = list(filter(
 			lambda abi: not check_installed(abi_to_arch(abi)),
 			abis
-		)
+		))
 		if len(abis) > 0:
 			install([
 				abi_to_arch(abi) for abi in abis

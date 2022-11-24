@@ -4,6 +4,7 @@ from os.path import isfile, isdir, join, abspath, dirname
 import platform
 import subprocess
 import re
+import zipfile
 
 from ..make_config import TOOLCHAIN_CONFIG
 from ..shell import Notice, Progress, Shell
@@ -71,11 +72,11 @@ def require_compiler_executable(arch, install_if_required = False):
 	ndk_dir = TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
-		install(arch=arch, reinstall=False)
+		install(arches=arch, reinstall=False)
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
 			print("NDK installation for " + arch + " is broken, trying to re-install.")
-			install(arch=arch, reinstall=True)
+			install(arches=arch, reinstall=True)
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
 				print("Reinstallation doesn't help, please, retry setup manually.")
@@ -83,12 +84,12 @@ def require_compiler_executable(arch, install_if_required = False):
 	return file
 
 def check_installed(arches):
-	if not isinstance(arches, iter):
+	if not isinstance(arches, list):
 		arches = [arches]
 	return len(list(filter(
 		lambda arch: not isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch))),
 		arches
-	))) > 0
+	))) == 0
 
 def download(shell):
 	from urllib import request
@@ -130,6 +131,13 @@ def download(shell):
 			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 		except OSError:
 			progress.seek(0, f"#{exc.errno}: {exc.filename} (security fail)")
+	except zipfile.BadZipFile as exc:
+		try:
+			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			return download(shell)
+		except OSError as exc:
+			progress.seek(0, f"#{exc.errno}: {exc.filename} (security fail)")
+			shell.render()
 	shell.render()
 
 	return search_ndk_path(extract_path, contains_ndk=True)
