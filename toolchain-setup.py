@@ -106,9 +106,6 @@ def print_placeholder(which):
 		layer += 1
 
 
-if platform.system() == "Windows":
-	os.system("color")
-
 if "--help" in sys.argv:
 	print("Usage: toolchain-setup.py <options> [directory]")
 	print(" " * 2 + "--no-startup: Skip startup stage for configuring author")

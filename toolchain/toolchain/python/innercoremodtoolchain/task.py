@@ -4,6 +4,7 @@ from os.path import join, exists, basename, isfile, isdir, relpath
 import platform
 import time
 
+from .colorama import just_fix_windows_console
 from .utils import ensure_directory, ensure_file_dir, clear_directory, copy_file, copy_directory
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
@@ -63,7 +64,7 @@ def task(name, lock = None, description = None):
 			for lock_name in lock:
 				lock_task(lock_name, silent=False)
 			if platform.system() == "Windows":
-				os.system("color")
+				just_fix_windows_console()
 			print(f"\x1b[92m> Executing task: {name}\x1b[0m")
 			task_result = func(*args, **kwargs)
 			unlock_task(name)

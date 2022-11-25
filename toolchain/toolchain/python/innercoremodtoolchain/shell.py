@@ -8,9 +8,10 @@ except ImportError:
 	import msvcrt
 
 from .ansi_escapes import *
+from .colorama import just_fix_windows_console
 
 if platform.system() == "Windows":
-	os.system("color")
+	just_fix_windows_console()
 
 class Shell():
 	offset = 0
