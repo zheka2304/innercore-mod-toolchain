@@ -39,7 +39,7 @@ def search_directory(parent, name):
 				return path
 
 def get_fake_so_dir(abi):
-	fake_so_dir = TOOLCHAIN_CONFIG.get_path(join("toolchain/ndk/fakeso", abi))
+	fake_so_dir = TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 

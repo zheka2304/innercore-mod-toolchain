@@ -71,7 +71,7 @@ def download_and_extract_toolchain(directory):
 
 	commit = "unknown"
 	try:
-		if isdir(join(directory, "toolchain-mod/toolchain")):
+		if isdir(join(directory, "toolchain-mod", "toolchain")):
 			dirname = "toolchain-mod"
 			index = 0
 			while exists(join(directory, dirname)):
@@ -79,8 +79,8 @@ def download_and_extract_toolchain(directory):
 				dirname = "toolchain-mod-" + str(index)
 			shutil.move(join(directory, "toolchain-mod"), join(directory, dirname))
 		shutil.copytree(join(directory, "innercore-mod-toolchain-deploy"), directory, dirs_exist_ok=True)
-		if isfile(join(directory, "toolchain/toolchain/bin/.commit")):
-			with open(join(directory, "toolchain/toolchain/bin/.commit")) as file:
+		if isfile(join(directory, "toolchain", "toolchain", "bin", ".commit")):
+			with open(join(directory, "toolchain", "toolchain", "bin", ".commit")) as file:
 				commit = file.read()
 		shutil.rmtree(join(directory, "innercore-mod-toolchain-deploy"))
 	except BaseException as err:
@@ -147,12 +147,12 @@ if "--foreign" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"-m", "innercoremodtoolchain.component"
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain", "toolchain", "python"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"-m", "innercoremodtoolchain.component", "--startup"
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain", "toolchain", "python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
@@ -162,4 +162,4 @@ if "--import" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
 		"-m", "innercoremodtoolchain.import", folder
-	], cwd=join(location, "toolchain\\toolchain\\python") if platform.system() == "Windows" else join(location, "toolchain/toolchain/python"))
+	], cwd=join(location, "toolchain", "toolchain", "python"))
