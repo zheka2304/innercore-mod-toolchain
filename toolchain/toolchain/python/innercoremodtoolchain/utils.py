@@ -63,6 +63,7 @@ def merge_directory(src, dst, accept_squash = True, ignore_list = [], only_paren
 		shutil.move(dst, dst + ".bak")
 	if not isdir(src):
 		if not exists(dst):
+			ensure_file_dir(dst)
 			shutil.move(src, dst)
 		return
 	for filename in os.listdir(src):
@@ -73,6 +74,7 @@ def merge_directory(src, dst, accept_squash = True, ignore_list = [], only_paren
 		if isfile(above) and (not exists(behind) or (isfile(behind) and accept_replace)):
 			if exists(behind):
 				os.remove(behind)
+			ensure_file_dir(behind)
 			shutil.move(above, behind)
 		elif isdir(above) or accept_squash:
 			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else [], only_parent_ignore, accept_replace)

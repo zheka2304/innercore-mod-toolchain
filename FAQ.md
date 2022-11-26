@@ -60,4 +60,8 @@ For some unknown reason, your *gradlew* file did not have executable flag applie
 
 After downloading and unpacking NDK, executable flag was lost and operating system does not allow process to run. Download and install NDK manually or just type `chmod -R +x *` on opened in terminal directory `toolchain/ndk/<required-arch>` of your GCCs.
 
+### FileNotFoundError: No such file or directory: \<toolchain\>/innercoremodtoolchain/colorama/\_\_init\_\_.py'
+
+Please, install updates manually. Archive located in `toolchain/temp`, so just replace `toolchain` with new directory. Now, updates will be installed correctly.
+
 > Article will be updated as new problems and clarifications arise.
