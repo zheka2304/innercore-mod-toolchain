@@ -265,10 +265,10 @@ sourceSets {
 		}
 		resources {
 			srcDirs = []
-		}
+		}""" + (("""
 		compileClasspath += files(\"""" + "\", \"".join([
 			path.replace("\\", "\\\\") for path in classpath
-		]) + """\")
+		]) + "\"") if len(classpath) > 0 else "") + """
 	}
 }
 """)

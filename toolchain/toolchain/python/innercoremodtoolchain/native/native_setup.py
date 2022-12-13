@@ -1,13 +1,13 @@
 import sys
 from os import listdir, environ, getenv, makedirs
-from os.path import isfile, isdir, join, abspath, dirname
+from os.path import isfile, isdir, join, abspath, dirname, basename
 import platform
 import subprocess
 import re
 import zipfile
 
 from ..make_config import TOOLCHAIN_CONFIG
-from ..shell import Notice, Progress, Shell
+from ..shell import Progress, Shell
 from ..utils import clear_directory, AttributeZipFile
 
 def abi_to_arch(abi):
@@ -121,22 +121,23 @@ def download(shell):
 	shell.interactables.append(progress)
 	shell.render()
 	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	makedirs(extract_path, exists_ok=True)
 	try:
 		with AttributeZipFile(archive_path, "r") as archive:
 			archive.extractall(extract_path)
 		progress.seek(1, "Extracted into toolchain/temp")
 	except OSError as exc:
-		progress.seek(0, f"#{exc.errno}: {exc.filename}")
+		progress.seek(0, f"#{exc.errno}: {basename(exc.filename)}")
 		try:
 			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 		except OSError:
-			progress.seek(0, f"#{exc.errno}: {exc.filename} (security fail)")
+			progress.seek(0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 	except zipfile.BadZipFile as exc:
 		try:
 			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 			return download(shell)
 		except OSError as exc:
-			progress.seek(0, f"#{exc.errno}: {exc.filename} (security fail)")
+			progress.seek(0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 			shell.render()
 	shell.render()
 
@@ -199,7 +200,7 @@ def install(arches = "arm", reinstall = False):
 				clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 				progress.seek(1, "C++ GCC Compiler (NDK)")
 			except OSError as exc:
-				progress.seek(0, f"#{exc.errno}: {exc.filename}")
+				progress.seek(0, f"#{exc.errno}: {basename(exc.filename)}")
 		else:
 			progress.seek(0.5, f"Installation failed with result {str(result)}")
 
