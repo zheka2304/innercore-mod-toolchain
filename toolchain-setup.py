@@ -1,5 +1,5 @@
 import os
-from os.path import join, exists, isfile, isdir
+from os.path import join, exists, isfile, isdir, abspath
 import platform
 import shutil
 import sys
@@ -19,8 +19,9 @@ class AttributeZipFile(ZipFile):
 
 			targetpath = self._extract_member(member, path, pwd)
 
-			attr = member.external_attr >> 16
-			os.chmod(targetpath, attr)
+			attr = member.external_attr >> 16 \
+				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
+			os.chmod(abspath(targetpath), attr)
 			return targetpath
 
 	else:
@@ -30,9 +31,10 @@ class AttributeZipFile(ZipFile):
 
 			targetpath = super()._extract_member(member, targetpath, pwd)
 
-			attr = member.external_attr >> 16
+			attr = member.external_attr >> 16 \
+				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
 			if attr != 0:
-				os.chmod(targetpath, attr)
+				os.chmod(abspath(targetpath), attr)
 			return targetpath
 
 def download_and_extract_toolchain(directory):

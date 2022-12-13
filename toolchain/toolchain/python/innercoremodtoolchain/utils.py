@@ -154,7 +154,7 @@ class AttributeZipFile(ZipFile):
 
 			attr = member.external_attr >> 16 \
 				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			os.chmod(targetpath, attr)
+			os.chmod(abspath(targetpath), attr)
 			return targetpath
 
 	else:
@@ -167,5 +167,5 @@ class AttributeZipFile(ZipFile):
 			attr = member.external_attr >> 16 \
 				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
 			if attr != 0:
-				os.chmod(targetpath, attr)
+				os.chmod(abspath(targetpath), attr)
 			return targetpath
