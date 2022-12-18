@@ -185,10 +185,10 @@ class InteractiveShell(Shell):
 
 	def observe(self, raw):
 		observed = Shell.observe(self, raw)
-		if raw != "\x1b" and raw != "\xe0":
+		if raw != "\x1b" and raw != "\xe0" and raw != "\x00":
 			return observed
 		key = self.input_raw(1)
-		if raw == "\xe0":
+		if raw == "\xe0" or raw == "\x00": # Windows
 			if key == "M": # Right
 				self.turn_forward()
 			elif key == "K": # Left
@@ -196,7 +196,7 @@ class InteractiveShell(Shell):
 			else:
 				return observed
 			return True
-		if key != "[":
+		if key != "[": # Unix
 			return observed
 		joy = self.input_raw(1)
 		if joy == "C": # Right
@@ -425,10 +425,10 @@ class SelectiveShell(InteractiveShell):
 				return False
 			raise EOFError()
 		observed = Shell.observe(self, raw)
-		if raw != "\x1b" and raw != "\xe0":
+		if raw != "\x1b" and raw != "\xe0" and raw != "\x00":
 			return observed
 		key = self.input_raw(1)
-		if raw == "\xe0": # Windows
+		if raw == "\xe0" or raw == "\x00": # Windows
 			if key == "H": # Up
 				self.turn_up()
 			elif key == "P": # Down
