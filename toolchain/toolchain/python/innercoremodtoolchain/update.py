@@ -79,11 +79,14 @@ def extract_toolchain(directory):
 	accept_squash_and_replace = TOOLCHAIN_CONFIG.get_value("updateAcceptReplaceConfiguration", True)
 	merge_directory(join(branch, "toolchain"), join(toolchain, "toolchain"), accept_squash_and_replace, ["toolchain", "toolchain.json"], True, accept_squash_and_replace)
 	merge_directory(join(branch, "toolchain", "toolchain"), join(toolchain, "toolchain", "toolchain"))
-	bashes = glob(join(toolchain, "toolchain", "toolchain", "*.sh"))
-	bashes.extend(glob(join(toolchain, "toolchain", "toolchain", "*.bat")))
-	for file in bashes:
-		if isfile(file):
-			os.remove(file)
+	try:
+		bashes = glob(join(toolchain, "toolchain", "toolchain", "*.sh"))
+		bashes.extend(glob(join(toolchain, "toolchain", "toolchain", "*.bat")))
+		for file in bashes:
+			if isfile(file):
+				os.remove(file)
+	except TypeError:
+		pass
 	if isdir(join(toolchain, "toolchain-sample-mod")) and isdir(join(branch, "toolchain-sample-mod")):
 		shutil.rmtree(join(toolchain, "toolchain-sample-mod"))
 		shutil.move(join(branch, "toolchain-sample-mod"), join(toolchain, "toolchain-sample-mod"))
