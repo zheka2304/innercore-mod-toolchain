@@ -121,7 +121,7 @@ def download(shell):
 	shell.interactables.append(progress)
 	shell.render()
 	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-	makedirs(extract_path, exists_ok=True)
+	makedirs(extract_path, exist_ok=True)
 	try:
 		with AttributeZipFile(archive_path, "r") as archive:
 			archive.extractall(extract_path)
