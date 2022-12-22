@@ -19,8 +19,9 @@ class AttributeZipFile(ZipFile):
 
 			targetpath = self._extract_member(member, path, pwd)
 
-			attr = member.external_attr >> 16 \
-				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
+			attr = member.external_attr >> 16
+			if platform.system() == "Windows":
+				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
 			os.chmod(abspath(targetpath), attr)
 			return targetpath
 
@@ -31,9 +32,10 @@ class AttributeZipFile(ZipFile):
 
 			targetpath = super()._extract_member(member, targetpath, pwd)
 
-			attr = member.external_attr >> 16 \
-				| 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			if attr != 0:
+			attr = member.external_attr >> 16
+			if platform.system() == "Windows":
+				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
+			elif attr != 0:
 				os.chmod(abspath(targetpath), attr)
 			return targetpath
 
