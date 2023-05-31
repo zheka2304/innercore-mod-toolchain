@@ -19,7 +19,7 @@ jobs:
         run: |
           if test -f toolchain/toolchain/classpath/.labcommit; then
             read result < toolchain/toolchain/classpath/.labcommit
-            echo "result=$result"
+            echo "result=$result" >> $GITHUB_OUTPUT
           fi
       - name: Raw curl latest commit
         run: |
