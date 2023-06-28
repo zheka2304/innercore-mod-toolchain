@@ -1,14 +1,16 @@
-from glob import glob
 import os
-from os.path import join, exists, isfile, isdir
 import shutil
+from glob import glob
+from os.path import exists, isdir, isfile, join
+from typing import Optional
 from urllib import request
 from urllib.error import URLError
 
 from .make_config import TOOLCHAIN_CONFIG
-from .utils import merge_directory, AttributeZipFile
+from .utils import AttributeZipFile, merge_directory
 
-def download_toolchain(directory):
+
+def download_toolchain(directory: str) -> None:
 	os.makedirs(directory, exist_ok=True)
 	archive = join(directory, "toolchain.zip")
 
@@ -22,14 +24,16 @@ def download_toolchain(directory):
 			error("Check your network connection!", 1)
 		except BaseException as err:
 			print(err)
+			from .task import error
 			error("Inner Core Mod Toolchain installation not completed due to above error.", 2)
 	else:
 		print("'toolchain.zip' already exists in temporary directory.")
 
-""" Maintain "main" component, workings like anything other.
-When toolchain/bin/.commit outdated it will be updated.
-"""
-def might_be_updated(directory = None):
+def might_be_updated(directory: Optional[str] = None) -> bool:
+	"""
+	Maintains 'main' component, things are similiar with ordinary components.
+	When 'toolchain/bin/.commit' outdated it will be updated.
+	"""
 	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if not isfile(commit_path):
 		return True
@@ -45,19 +49,20 @@ def might_be_updated(directory = None):
 		print(err)
 		return True
 
-def perform_diff(a, b):
+def perform_diff(a: object, b: object) -> bool:
 	return str(a).strip() == str(b).strip()
 
-""" Which files will be extracted with merging nor replacing?
-- toolchain/* in master branch: bin (not bin/r8), python
-- toolchain/*.{sh,bat} will be removed
-- ../.github will be replaced if it exists
-- ../toolchain-sample-mod will be replaced if it exists
-- anything in directory excludes toolchain.json and toolchain if it
-exists on remote, you can disable it by `"updateAcceptReplaceConfiguration": false`
-property in your toolchain.json
-"""
-def extract_toolchain(directory):
+def extract_toolchain(directory: str) -> None:
+	"""
+	Which files will be extracted with merging/replacing?
+	- toolchain/* in master branch: bin (not bin/r8), python
+	- toolchain/*.{sh,bat} will be removed
+	- ../.github will be replaced if it exists
+	- ../toolchain-sample-mod will be replaced if it exists
+	- anything in directory excludes toolchain.json and toolchain if it
+	exists on remote, you can disable it by `"updateAcceptReplaceConfiguration": false`
+	property in your toolchain.json
+	"""
 	archive = join(directory, "toolchain.zip")
 	with AttributeZipFile(archive, "r") as zip_ref:
 		zip_ref.extractall(directory)
@@ -94,7 +99,7 @@ def extract_toolchain(directory):
 	shutil.rmtree(branch, ignore_errors=True)
 	os.remove(archive)
 
-def update_toolchain():
+def update_toolchain() -> None:
 	directory = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	if might_be_updated(directory):
 		commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
@@ -105,7 +110,7 @@ def update_toolchain():
 				commit = file.read().strip()
 		extract_toolchain(directory)
 		if not isfile(commit_path):
-			print("Successfully installed! But corresponding 'toolchain/bin/.commit' not found, further update will be installed without any prompt.")
+			print("Successfully installed, but corresponding 'toolchain/bin/.commit' not found, further update will be installed without any prompt.")
 		else:
 			with open(commit_path) as file:
 				branch_commit = file.read().strip()

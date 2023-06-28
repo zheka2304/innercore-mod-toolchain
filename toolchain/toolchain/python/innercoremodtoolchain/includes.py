@@ -1,17 +1,18 @@
-import os
-from os.path import join, isdir, basename, isfile, normpath, relpath
 import glob
 import json
+import os
 import platform
 import re
 import subprocess
+from os.path import basename, isdir, isfile, join, normpath, relpath
+from typing import Any, Dict, Final, List
 
-from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
-from .make_config import MAKE_CONFIG
 from .hash_storage import BUILD_STORAGE
-from .utils import ensure_file_dir
+from .make_config import MAKE_CONFIG
+from .utils import ensure_file_directory
+from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
 
-TSCONFIG_DEPENDENTS = {
+TSCONFIG_DEPENDENTS: Final[Dict[str, Any]] = {
 	"allowSyntheticDefaultImports": "esModuleInterop",
 	"alwaysStrict": "strict",
 	"noImplicitAny": "strict",
@@ -29,32 +30,34 @@ for key in TSCONFIG_TOOLCHAIN:
 	if key in TSCONFIG_DEPENDENTS:
 		del TSCONFIG_DEPENDENTS[key]
 
-temp_directory = MAKE_CONFIG.get_build_path("sources")
+TEMPORARY_DIRECTORY: Final[str] = MAKE_CONFIG.get_build_path("sources")
+
 
 class Includes:
-	def __init__(self, directory, includes_file, debug_build = False):
+	directory: Final[str]; includes: Final[str]; path: Final[str]; debug_build: Final[bool]
+	include: List[str]; exclude: List[str]; params: Dict[str, Any]
+
+	def __init__(self, directory: str, includes_path: str, debug_build = False) -> None:
 		if not isdir(directory):
 			raise NotADirectoryError(directory)
-
 		self.directory = directory
-		self.includes_file = includes_file
-		self.file = join(directory, includes_file)
+		self.includes = includes_path
+		self.path = join(directory, includes_path)
 		self.debug_build = debug_build
-
 		self.include = []
 		self.exclude = []
 		self.params = {}
 
-	def read(self):
+	def read(self) -> None:
 		dependents = []
-		with open(self.file, encoding="utf-8") as includes:
+		with open(self.path, encoding="utf-8") as includes:
 			for line in includes:
 				self.decode_line(line.strip(), dependents)
 		for dependent in dependents:
 			if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
 				self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
 
-	def decode_param(self, key, value = None, dependents = []):
+	def decode_param(self, key: str, value: Any, dependents: List[str]) -> None:
 		default = TSCONFIG_TOOLCHAIN[key] if key in TSCONFIG_TOOLCHAIN else TSCONFIG[key]
 		if value is not None:
 			if value.lower() in ["true", "false"]:
@@ -75,7 +78,7 @@ class Includes:
 		else:
 			self.params = default
 
-	def decode_line(self, line, dependents = []):
+	def decode_line(self, line: str, dependents: List[str]) -> None:
 		if line.startswith("#") or line.startswith("//"): # comment or parameter
 			line = line[2:] if line.startswith("//") else line[1:]
 			key, *values = [item.strip() for item in line.split(":", 1)]
@@ -88,10 +91,8 @@ class Includes:
 						self.params[key] = TSCONFIG[key]
 					elif key in self.params:
 						del self.params[key]
-
 		elif len(line) == 0:
 			return
-
 		elif line.startswith("!"):
 			line = line[1:].strip()
 			search_path = (join(self.directory, line[:-2], ".") + "/**/*") \
@@ -100,13 +101,12 @@ class Includes:
 				file = normpath(file)
 				if file not in self.include:
 					self.exclude.append(relpath(file, self.directory).replace("\\", "/"))
-
 		else:
 			search_path = re.sub(r"\.$", "**/*", line) if line.endswith("/.") else line
 			self.include.append(search_path.replace("\\", "/"))
 
-	def parse(self):
-		with open(self.file, "w") as includes:
+	def parse(self) -> None:
+		with open(self.path, "w") as includes:
 			for key, value in self.params.items():
 				if value is None:
 					includes.write("# !" + key + "\n")
@@ -129,54 +129,46 @@ class Includes:
 			])
 
 	@staticmethod
-	def create_from_directory(directory, includes_file, debug_build = False):
-		includes = Includes(directory, includes_file, debug_build)
+	def create_from_directory(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
+		includes = Includes(directory, includes_path, debug_build)
 		for dirpath, dirnames, filenames in os.walk(directory):
 			for filename in filenames:
 				if filename.endswith(".js") or filename.endswith(".ts"):
 					includes.include.append(normpath(join(relpath(dirpath, directory), filename)))
-		includes.parse()
-
-		return includes
+		includes.parse(); return includes
 
 	@staticmethod
-	def create_from_tsconfig(directory, includes_file, debug_build = False):
+	def create_from_tsconfig(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
-
 			params = config["compilerOptions"] if "compilerOptions" in config else {}
 			include = config["include"] if "include" in config else []
 			exclude = config["exclude"] if "exclude" in config else []
+			if "outFile" in params: del params["outFile"]
 
-			if "outFile" in params:
-				del params["outFile"]
-
-		includes = Includes(directory, includes_file, debug_build)
+		includes = Includes(directory, includes_path, debug_build)
 		includes.include = include
 		includes.exclude = exclude
 		includes.params = params
-		includes.parse()
-
-		return includes
+		includes.parse(); return includes
 
 	@staticmethod
-	def invalidate(directory, includes_file, debug_build = False):
-		if not isfile(join(directory, includes_file)):
+	def invalidate(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
+		if not isfile(join(directory, includes_path)):
 			tsconfig_path = join(directory, "tsconfig.json")
 			if isfile(tsconfig_path):
-				includes = Includes.create_from_tsconfig(directory, includes_file, debug_build)
+				includes = Includes.create_from_tsconfig(directory, includes_path, debug_build)
 			else:
-				includes = Includes.create_from_directory(directory, includes_file, debug_build)
+				includes = Includes.create_from_directory(directory, includes_path, debug_build)
 		else:
-			includes = Includes(directory, includes_file, debug_build)
+			includes = Includes(directory, includes_path, debug_build)
 			includes.read()
-
 		return includes
 
-	def get_tsconfig(self):
+	def get_tsconfig(self) -> str:
 		return join(self.directory, "tsconfig.json")
 
-	def create_tsconfig(self, temp_path):
+	def create_tsconfig(self, temp_path) -> None:
 		template = {
 			"extends": relpath(WORKSPACE_COMPOSITE.get_tsconfig(), self.directory),
 			"compilerOptions": {
@@ -191,21 +183,21 @@ class Includes:
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
-	def compute(self, target_path, language = "typescript"):
-		temp_path = join(temp_directory, basename(target_path))
+	def compute(self, target_path: str, language: str = "typescript") -> bool:
+		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			if language == "typescript":
-				print(f"Computing {basename(target_path)} tsconfig from {self.includes_file}")
+				print(f"Computing {basename(target_path)} tsconfig from {self.includes}")
 				self.create_tsconfig(temp_path)
 			return True
 		return False
 
-	def build(self, target_path, language = "typescript"):
-		temp_path = join(temp_directory, basename(target_path))
+	def build(self, target_path: str, language: str = "typescript") -> int:
+		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
 		result = 0
 
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
-			print(f"Building {basename(target_path)} from {self.includes_file}")
+			print(f"Building {basename(target_path)} from {self.includes}")
 
 			import datetime
 			start_time = datetime.datetime.now()
@@ -224,8 +216,8 @@ class Includes:
 
 		return result
 
-	def build_source(self, temp_path, language = "typescript"):
-		ensure_file_dir(temp_path)
+	def build_source(self, temp_path: str, language: str = "typescript") -> int:
+		ensure_file_directory(temp_path)
 
 		if language.lower() == "typescript":
 			command = [

@@ -1,13 +1,16 @@
-from glob import glob
-import os
-from os.path import exists, join, basename, isfile, isdir, relpath
-import sys
 import json
+import os
+import sys
+from glob import glob
+from os.path import basename, exists, isdir, isfile, join, relpath
+from typing import Any, Dict, List, Optional, Tuple
 
-from .utils import copy_directory, copy_file, ensure_directory, get_project_folder_by_name
 from .base_config import BaseConfig
+from .utils import (copy_directory, copy_file, ensure_directory,
+                    get_project_folder_by_name)
 
-def load_mod_info(make_obj, directory):
+
+def load_mod_info(make_obj: Dict[Any, Any], directory: str) -> Optional[Dict[Any, Any]]:
 	mod_info = join(directory, "mod.info")
 	mod_info_obj = {
 		"name": basename(directory if directory != "." else os.getcwd())
@@ -30,7 +33,7 @@ def load_mod_info(make_obj, directory):
 			mod_info_obj["instantLaunch"] = mod_info_prototype["instantLaunch"]
 	make_obj["info"] = mod_info_obj
 
-def load_build_config(make_obj, source, destination):
+def load_build_config(make_obj: Dict[Any, Any], source: str, destination: str) -> List[Tuple[str, str]]:
 	build_config = join(source, "build.config")
 	destination_copy_tuples = []
 	if not isfile(build_config):
@@ -55,7 +58,7 @@ def load_build_config(make_obj, source, destination):
 		if not "resources" in make_obj:
 			make_obj["resources"] = []
 
-		for directory in config.get_filtered_list("resources", "resourceType", ("resource", "gui")):
+		for directory in config.get_filtered_list("resources", "resourceType", *("resource", "gui")):
 			if directory["resourceType"] == "resource":
 				directory["resourceType"] = "resource_directory"
 			path_stripped = directory["path"].strip("/")
@@ -81,7 +84,7 @@ def load_build_config(make_obj, source, destination):
 		elif not "sources" in make_obj:
 			make_obj["sources"] = []
 
-		for directory in config.get_filtered_list("compile", "sourceType", ("mod", "launcher", "preloader", "instant", "custom", "library")):
+		for directory in config.get_filtered_list("compile", "sourceType", *("mod", "launcher", "preloader", "instant", "custom", "library")):
 			if directory["sourceType"] == "mod":
 				directory["sourceType"] = "main"
 			toolchain_source = {
@@ -137,7 +140,7 @@ def load_build_config(make_obj, source, destination):
 
 	return destination_copy_tuples
 
-def copy_tuple_directories(tuples, source, destination):
+def copy_tuple_directories(tuples: List[Tuple[str, str]], source: str, destination: str) -> None:
 	ignore_list = [".dex", "make.json", "mod_icon.png", "mod.info", "build.config", "assets/root"]
 	for path, output in tuples:
 		if path == output:
@@ -186,7 +189,7 @@ def copy_tuple_directories(tuples, source, destination):
 	if len(os.listdir(additional_path)) == 0:
 		os.removedirs(additional_path)
 
-def merge_json(left, right):
+def merge_json(left: Dict[Any, Any], right: Dict[Any, Any]) -> Dict[Any, Any]:
 	if not isinstance(right, dict):
 		return right
 	for key in right:
@@ -196,7 +199,7 @@ def merge_json(left, right):
 		left[key] = merge_json(left[key], right[key])
 	return right
 
-def import_project(path = None, destination = None):
+def import_project(path: Optional[str] = None, destination: Optional[str] = None) -> str:
 	if path is None:
 		print("Specify absolute or relative path to toolchain folder that must be imported as project, it may be Inner Core mod or already exists Mod Toolchain folder.")
 		try:
@@ -207,10 +210,14 @@ def import_project(path = None, destination = None):
 			print("Abort.")
 			exit(0)
 	destination_may_changed = destination is None
+	toolchain = None
 	if destination_may_changed:
 		from .make_config import TOOLCHAIN_CONFIG
-		toolchain = TOOLCHAIN_CONFIG.root_dir
-		destination = join(toolchain, get_project_folder_by_name(toolchain, basename(path)))
+		toolchain = TOOLCHAIN_CONFIG.directory
+		destination = get_project_folder_by_name(toolchain, basename(path))
+		if destination is None:
+			raise TypeError(f"Unexpected name conversion exception on '{path}'!")
+		destination = join(toolchain, destination)
 
 	if exists(path) and isfile(path):
 		path = join(path, "..")
@@ -221,7 +228,7 @@ def import_project(path = None, destination = None):
 		print("Destination path is file!")
 		exit(2)
 	if not (isfile(join(path, "build.config")) or isfile(join(path, "make.json"))):
-		print("Not found build.config or make.json entry to import, nothing to do!")
+		print("Not found 'build.config' or 'make.json' entry to import, nothing to do!")
 		exit(3)
 	print(f"Importing '{path}' into {basename(destination)}")
 	make_obj = {}
@@ -238,8 +245,10 @@ def import_project(path = None, destination = None):
 
 		potential_name = make_obj["info"]["name"] if "info" in make_obj and "name" in make_obj["info"] else None
 		if potential_name is not None:
+			if toolchain is None:
+				raise SystemError()
 			potential_name = get_project_folder_by_name(toolchain, potential_name)
-			if potential_name != basename(destination):
+			if potential_name is not None and potential_name != basename(destination):
 				destination = join(toolchain, potential_name)
 				print(f"Output directory changed to {potential_name}")
 

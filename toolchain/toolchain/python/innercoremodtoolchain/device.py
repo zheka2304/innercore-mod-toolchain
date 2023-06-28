@@ -1,21 +1,24 @@
-import os
-from os.path import join, relpath, basename
 import platform
 import re
 import socket
 import subprocess
 from glob import glob
+from os.path import basename, join, relpath
+from typing import Any, Dict, Final, List, Optional, Tuple
 
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .hash_storage import OUTPUT_STORAGE
-from .shell import Progress, Shell, select_prompt
 from .ansi_escapes import link
+from .hash_storage import OUTPUT_STORAGE
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .shell import Progress, Shell, select_prompt
 
-def get_modpack_push_directory():
+
+def get_modpack_push_directory() -> Optional[str]:
 	directory = MAKE_CONFIG.get_value("pushTo", accept_prototype=False)
 	if directory is None:
 		directory = TOOLCHAIN_CONFIG.get_value("pushTo")
 		if directory is not None:
+			if (MAKE_CONFIG.current_project is None):
+				return None
 			directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
 
 	if directory is None:
@@ -53,11 +56,11 @@ def get_modpack_push_directory():
 
 	return directory
 
-def ls_pack(path):
+def ls_pack(path: str) -> List[str]:
 	list = [path + "/innercore"] if "mods" in ls(path + "/innercore") else []
 	return list + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")]
 
-def person_readable_modpack_name(path):
+def person_readable_modpack_name(path: str) -> str:
 	what = path.split("/")[::-1]
 	try:
 		suffix = " (internal)" if "Android/data" in path else ""
@@ -72,8 +75,11 @@ def person_readable_modpack_name(path):
 		pass
 	return basename(path)
 
-def setup_modpack_directory(directories = []):
+def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[str]:
 	pack_directories = ls("/storage/emulated/0/games/horizon/packs")
+	directories = []
+	if locations is not None:
+		directories += locations
 	for directory in pack_directories:
 		directories += ls_pack("/storage/emulated/0/games/horizon/packs/" + directory)
 	pack_directories = ls("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs")
@@ -92,9 +98,9 @@ def setup_modpack_directory(directories = []):
 	])
 	return None if which is None else directories[which]
 
-def ls(path, *args):
+def ls(path: str, *args: str) -> List[str]:
 	try:
-		pipe = subprocess.run(adb_command + [
+		pipe = subprocess.run(ADB_COMMAND + [
 			"shell", "ls", path
 		] + list(args), text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -105,16 +111,14 @@ def ls(path, *args):
 		return []
 	return pipe.stdout.rstrip().splitlines()
 
-def push(directory, push_unchanged = False):
+def push(directory : str, push_unchanged: bool = False) -> int:
 	shell = Shell()
 	progress = Progress("Pushing")
 	shell.interactables.append(progress)
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
-		progress.seek(1, "Nothing to push")
-		shell.enter()
-		shell.leave()
-		return 0
+		Progress.notify(shell, progress, 1, "Nothing to push...")
+		shell.enter(); shell.leave(); return 0
 
 	dst_root = get_modpack_push_directory()
 	if dst_root is None:
@@ -127,60 +131,56 @@ def push(directory, push_unchanged = False):
 	src_root = directory.replace("\\", "/")
 
 	percent = 0
-	from .task import devnull
+	from .task import DEVNULL
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
-		progress.seek(percent / len(items), "Pushing " + filename)
-		shell.render()
-		try:
-			subprocess.call(adb_command + [
-				"shell", "rm", "-r", dst
-			], stderr=devnull, stdout=devnull)
-			result = subprocess.call(adb_command + [
-				"push", src, dst
-			], stderr=devnull, stdout=devnull)
-		except KeyboardInterrupt:
-			progress.seek(0.5, "Pushing aborted.")
+		if shell is not None and progress is not None:
+			progress.seek(percent / len(items), "Pushing " + filename)
 			shell.render()
-			shell.leave()
-			return 1
+		try:
+			subprocess.call(ADB_COMMAND + [
+				"shell", "rm", "-r", dst
+			], stderr=DEVNULL, stdout=DEVNULL)
+			result = subprocess.call(ADB_COMMAND + [
+				"push", src, dst
+			], stderr=DEVNULL, stdout=DEVNULL)
+		except KeyboardInterrupt:
+			Progress.notify(shell, progress, 0.5, "Pushing aborted.")
+			shell.leave(); return 1
 		percent += 1
 
 		if result != 0:
-			progress.seek(0.5, f"Failed {filename} with code {result}")
-			shell.render()
-			shell.leave()
-			return result
+			Progress.notify(shell, progress, 0.5, f"Failed {filename} with code {result}")
+			shell.leave(); return result
 
 	if not push_unchanged:
 		OUTPUT_STORAGE.save()
-	progress.seek(1, "Pushed")
-	shell.render()
+	Progress.notify(shell, progress, 1, "Pushed")
 	shell.leave()
-	return result
+	return 0
 
-def make_locks(*locks):
+def make_locks(*locks: str) -> int:
 	dst = get_modpack_push_directory()
 	if dst is None:
 		return -1
 
 	for lock in locks:
 		lock = join(dst, lock).replace("\\", "/")
-		result = subprocess.call(adb_command + [
+		result = subprocess.call(ADB_COMMAND + [
 			"shell", "touch", lock
 		])
 		if result != 0:
 			return result
 	return 0
 
-def ensure_server_running(retry = 0):
+def ensure_server_running(retry: int = 0) -> bool:
 	try:
-		from .task import devnull
+		from .task import DEVNULL
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
-		], check=True, stdout=devnull, stderr=devnull)
+		], check=True, stdout=DEVNULL, stderr=DEVNULL)
 		return True
 	except subprocess.CalledProcessError as err:
 		if retry >= 3:
@@ -188,13 +188,13 @@ def ensure_server_running(retry = 0):
 			return False
 		return ensure_server_running(retry + 1)
 
-STATE_UNKNOWN = -1
-STATE_DEVICE_CONNECTED = 0
-STATE_NO_DEVICES = 1
-STATE_DISCONNECTED = 2
-STATE_DEVICE_AUTHORIZING = 3
+STATE_UNKNOWN: Final[int] = -1
+STATE_DEVICE_CONNECTED: Final[int] = 0
+STATE_NO_DEVICES: Final[int] = 1
+STATE_DISCONNECTED: Final[int] = 2
+STATE_DEVICE_AUTHORIZING: Final[int] = 3
 
-def which_state(what = None):
+def which_state(what: Optional[str] = None) -> int:
 	if what is None:
 		return STATE_UNKNOWN
 	try:
@@ -206,7 +206,7 @@ def which_state(what = None):
 	except KeyError: # offline
 		return STATE_DISCONNECTED
 
-def get_device_state():
+def get_device_state() -> int:
 	try:
 		pipe = subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
@@ -219,7 +219,7 @@ def get_device_state():
 		return STATE_UNKNOWN
 	return which_state(pipe.stdout.strip())
 
-def get_device_serial():
+def get_device_serial() -> Optional[str]:
 	try:
 		pipe = subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
@@ -230,7 +230,7 @@ def get_device_serial():
 		return None
 	return pipe.stdout.strip()
 
-def device_list():
+def device_list() -> Optional[List[Dict[str, Any]]]:
 	try:
 		pipe = subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
@@ -251,7 +251,7 @@ def device_list():
 		})
 	return devices
 
-def person_readable_device_name(device):
+def person_readable_device_name(device: Dict[str, Any]) -> str:
 	if "data" in device:
 		for property in device["data"]:
 			what = property.partition(":")
@@ -259,19 +259,19 @@ def person_readable_device_name(device):
 				return f"{device['serial']} ({what[2]})"
 	return device["serial"]
 
-def which_device_will_be_connected(*devices, state_not_matter = False):
-	devices = [device for device in devices
+def which_device_will_be_connected(*devices: Dict[str, Any], state_not_matter: bool = False) -> Optional[Dict[str, Any]]:
+	connected = [device for device in devices
 		if device["state"] == STATE_DEVICE_CONNECTED
 		or device["state"] == STATE_DEVICE_AUTHORIZING
 		or state_not_matter]
-	if len(devices) < 2:
-		return None if len(devices) == 0 else devices[0]
+	if len(connected) < 2:
+		return None if len(connected) == 0 else connected[0]
 	which = select_prompt("Which device will be used?", *[
-		person_readable_device_name(device) for device in devices
+		person_readable_device_name(device) for device in connected
 	] + ["I don't see my device"])
-	return None if which is None or which == len(devices) else devices[which]
+	return None if which is None or which == len(connected) else connected[which]
 
-def get_ip():
+def get_ip() -> str:
 	make = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	make.settimeout(0)
 	try:
@@ -283,15 +283,15 @@ def get_ip():
 		make.close()
 	return ip
 
-def get_adb_command():
+def get_adb_command() -> List[str]:
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
-	from .task import devnull
+	from .task import DEVNULL
 	if len(devices) > 0:
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"disconnect"
-		], stdout=devnull, stderr=devnull)
+		], stdout=DEVNULL, stderr=DEVNULL)
 	for device in devices:
 		if isinstance(device, dict):
 			try:
@@ -299,7 +299,7 @@ def get_adb_command():
 					TOOLCHAIN_CONFIG.get_adb(),
 					"connect",
 					f"{device['ip']}:{device['port']}" if "port" in device else device["ip"]
-				], timeout=3.0, stdout=devnull, stderr=devnull)
+				], timeout=3.0, stdout=DEVNULL, stderr=DEVNULL)
 			except subprocess.TimeoutExpired:
 				print("Timeout")
 	list = device_list()
@@ -320,7 +320,7 @@ def get_adb_command():
 		error("Nothing will happened, adb set up interrupted.", 1)
 	return which
 
-def get_adb_command_by_serial(serial):
+def get_adb_command_by_serial(serial: str) -> List[str]:
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not serial in devices:
@@ -336,17 +336,17 @@ def get_adb_command_by_serial(serial):
 		"-s", serial
 	]
 
-def get_adb_command_by_tcp(ip, port = None, skip_error = False):
+def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool = False) -> Optional[List[str]]:
 	ensure_server_running()
 	if get_adb_command_by_serialno_type("-e") is None:
 		if skip_error:
 			return None
 		try:
 			if input("Are you sure want to save it? [N/y] ")[:1].lower() != "y":
-				return print("Abort.")
+				print("Abort."); return None
 		except KeyboardInterrupt:
-			return print("Abort.")
-	device = {
+			print("Abort."); return None
+	device: dict[str, Any] = {
 		"ip": ip
 	}
 	if port is not None:
@@ -361,7 +361,7 @@ def get_adb_command_by_tcp(ip, port = None, skip_error = False):
 		"-e"
 	]
 
-def get_adb_command_by_serialno_type(which):
+def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
 	serial = subprocess.run([
 		TOOLCHAIN_CONFIG.get_adb(),
 		which, "get-serialno"
@@ -371,7 +371,7 @@ def get_adb_command_by_serialno_type(which):
 		return None
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
-def setup_device_connection():
+def setup_device_connection() -> Optional[List[str]]:
 	not_connected_any_device = len(TOOLCHAIN_CONFIG.get_value("devices", [])) == 0
 	if not_connected_any_device:
 		print(
@@ -392,15 +392,15 @@ def setup_device_connection():
 		setup_how_to_use() if which == 3 and \
 			not_connected_any_device else None
 
-def setup_via_usb():
+def setup_via_usb() -> Optional[List[str]]:
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
-		from .task import devnull
+		from .task import DEVNULL
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
-		], check=True, timeout=90.0, stdout=devnull, stderr=devnull)
+		], check=True, timeout=90.0, stdout=DEVNULL, stderr=DEVNULL)
 		command = get_adb_command_by_serialno_type("-d")
 		if command is not None:
 			return command
@@ -412,7 +412,7 @@ def setup_via_usb():
 		print()
 	return setup_device_connection()
 
-def setup_via_network():
+def setup_via_network() -> Optional[List[str]]:
 	which = select_prompt(
 		"Which network type must be used?",
 		"Just TCP by IP and PORT",
@@ -424,7 +424,7 @@ def setup_via_network():
 		setup_via_ping_localhost() if which == 1 else \
 		setup_via_tcp_network(with_pairing_code=which == 2)
 
-def setup_via_ping_localhost():
+def setup_via_ping_localhost() -> Optional[List[str]]:
 	ip = get_ip().rpartition(".")
 	if len(ip[2]) == 0:
 		print("Not availabled right now.")
@@ -453,11 +453,11 @@ def setup_via_ping_localhost():
 		shell.leave()
 		print("Not found anything, are you sure that network connected?")
 		return setup_via_network()
-	from .task import devnull
+	from .task import DEVNULL
 	subprocess.run([
 		TOOLCHAIN_CONFIG.get_adb(),
 		"disconnect"
-	], stdout=devnull, stderr=devnull)
+	], stdout=DEVNULL, stderr=DEVNULL)
 	print()
 	print("\n".join(accepted))
 	print("Pinging every port, interrupt operation if you already know it.")
@@ -468,14 +468,14 @@ def setup_via_ping_localhost():
 			subprocess.run([
 				TOOLCHAIN_CONFIG.get_adb(),
 				"connect", next
-			], check=True, timeout=5.0, stdout=devnull, stderr=devnull)
+			], check=True, timeout=5.0, stdout=DEVNULL, stderr=DEVNULL)
 			command = get_adb_command_by_tcp(next, skip_error=True)
 			if command is not None:
 				latest = command
 			else:
 				print()
 		except subprocess.CalledProcessError as err:
-			print("adb connect failed with code", err.errorcode)
+			print("adb connect failed with code", err.returncode)
 		except subprocess.TimeoutExpired:
 			print("Timeout")
 		except KeyboardInterrupt:
@@ -500,35 +500,32 @@ def setup_via_ping_localhost():
 	shell.leave()
 	return latest if latest is not None else setup_via_network()
 
-def ping_via_shell(ip, shell, progress, index):
-	progress.text = "Pinging " + ip
-	progress.progress = index / 255
-	shell.render()
-
-	from .task import devnull
+def ping_via_shell(ip: str, shell: Optional[Shell], progress: Optional[Progress], index: int) -> int:
+	if shell is not None and progress is not None:
+		progress.seek(index / 255, f"Pinging {ip}")
+		shell.render()
+	from .task import DEVNULL
 	return subprocess.call([
 		"ping",
 		"-n" if platform.system() == "Windows" else "-c", "1",
 		ip
-	], stdout=devnull, stderr=devnull) == 0
+	], stdout=DEVNULL, stderr=DEVNULL) == 0
 
-async def ping(ip, shell, progress, index, accepted):
-	if index % 15 == 0:
-		progress.text = "Pinging " + ip
-		progress.progress = index / 255
+async def ping(ip: str, shell: Optional[Shell], progress: Optional[Progress], index: int, accepted: List[str]) -> None:
+	if shell is not None and progress is not None and index % 15 == 0:
+		progress.seek(index / 255, f"Pinging {ip}")
 		shell.render()
-
-	from .task import devnull
 	import asyncio
+
+	from .task import DEVNULL
 	coroutine = await asyncio.create_subprocess_shell(
-		"ping " + ("-n" if platform.system() == "Windows" else "-c") + " 1 " + ip, stdout=devnull, stderr=devnull
+		f"ping {'-n' if platform.system() == 'Windows' else '-c'} 1 {ip}", stdout=DEVNULL, stderr=DEVNULL
 	)
 	await coroutine.wait()
-
 	if coroutine.returncode == 0:
 		accepted.append(ip)
 
-async def ping_async(ip, shell, progress, accepted):
+async def ping_async(ip: Tuple[str, str, str], shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	import asyncio
 	tasks = []
 	for index in range(256):
@@ -539,26 +536,23 @@ async def ping_async(ip, shell, progress, accepted):
 		tasks.append(task)
 	await asyncio.gather(*tasks, return_exceptions=True)
 
-async def connect(ip, port, shell, progress, accepted):
+async def connect(ip: str, port: int, shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	if len(accepted) > 0:
 		return
-
-	if port % 15 == 0:
-		progress.text = "Connecting to " + ip + ":" + str(port)
-		progress.progress = port / 65535
+	if shell is not None and progress is not None and port % 15 == 0:
+		progress.seek(port / 65535, f"Connecting to {ip}:{str(port)}")
 		shell.render()
-
-	from .task import devnull
 	import asyncio
+
+	from .task import DEVNULL
 	coroutine = await asyncio.create_subprocess_shell(
-		TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=devnull, stderr=devnull
+		TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=DEVNULL, stderr=DEVNULL
 	)
 	await coroutine.wait()
-
 	if coroutine.returncode == 0:
 		accepted.append(str(port))
 
-async def connect_async(ip, shell, progress, accepted):
+async def connect_async(ip: str, shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	import asyncio
 	tasks = []
 	for index in range(1000, 65536):
@@ -566,7 +560,7 @@ async def connect_async(ip, shell, progress, accepted):
 		tasks.append(task)
 	await asyncio.gather(*tasks, return_exceptions=True)
 
-def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pairing_code = False):
+def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, pairing_code: Optional[str] = None, with_pairing_code: bool = False) -> Optional[List[str]]:
 	if ip is None:
 		print("You are connected via", get_ip())
 		try:
@@ -579,7 +573,7 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 		tcp = tcp.split(":")
 		ip = tcp[0]
 		port = tcp[1] if len(tcp) > 1 else port
-	from .task import devnull
+	from .task import DEVNULL
 	if with_pairing_code or pairing_code is not None:
 		if pairing_code is None:
 			try:
@@ -593,32 +587,32 @@ def setup_via_tcp_network(ip = None, port = None, pairing_code = None, with_pair
 				"pair",
 				f"{ip}:{port}" if port is not None else ip,
 				pairing_code
-			], check=True, stderr=devnull, stdout=devnull)
+			], check=True, stderr=DEVNULL, stdout=DEVNULL)
 		except subprocess.CalledProcessError as err:
-			print("adb pair failed with code", err.errorcode)
+			print("adb pair failed with code", err.returncode)
 		except KeyboardInterrupt:
 			print()
 	subprocess.run([
 		TOOLCHAIN_CONFIG.get_adb(),
 		"disconnect"
-	], stdout=devnull, stderr=devnull)
+	], stdout=DEVNULL, stderr=DEVNULL)
 	try:
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"connect",
 			f"{ip}:{port}" if port is not None else ip
-		], check=True, timeout=10.0, stdout=devnull, stderr=devnull)
-		command = get_adb_command_by_tcp(ip, port)
+		], check=True, timeout=10.0, stdout=DEVNULL, stderr=DEVNULL)
+		command = get_adb_command_by_tcp(ip, int(port) if port is not None else None)
 		return command if command is not None else setup_via_tcp_network()
 	except subprocess.CalledProcessError as err:
-		print("adb connect failed with code", err.errorcode)
+		print("adb connect failed with code", err.returncode)
 	except subprocess.TimeoutExpired:
 		print("Timeout")
 	except KeyboardInterrupt:
 		print()
 	return setup_via_network()
 
-def setup_externally(skip_input = False):
+def setup_externally(skip_input: bool = False) -> Optional[List[str]]:
 	state = get_device_state()
 	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
 		serial = get_device_serial()
@@ -643,7 +637,7 @@ def setup_externally(skip_input = False):
 		return setup_device_connection()
 	return get_adb_command_by_serial(device["serial"])
 
-def setup_how_to_use():
+def setup_how_to_use() -> Optional[List[str]]:
 	print(
 		"Android Debug Bridge (adb) is a versatile command-line tool that lets you communicate with a device. " +
 		"The adb command facilitates a variety of device actions, such as installing and debugging apps, " +
@@ -656,4 +650,4 @@ def setup_how_to_use():
 		print()
 	return setup_device_connection()
 
-adb_command = get_adb_command()
+ADB_COMMAND: Final[List[str]] = get_adb_command()

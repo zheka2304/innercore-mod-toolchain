@@ -1,17 +1,22 @@
 import json
 import os
-from os.path import exists, isdir, join, basename, relpath
 import time
+from os.path import basename, exists, isdir, join, relpath
+from typing import Any, Dict, List, Optional
 
-from .utils import clear_directory, copy_file, ensure_not_whitespace, get_all_files, get_project_folder_by_name, name_to_identifier
 from .base_config import BaseConfig
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import Input, Interrupt, Notice, Progress, SelectiveShell, Entry, Separator, Shell, Switch, select_prompt
 from .project_manager import PROJECT_MANAGER
+from .shell import (Entry, Input, Interrupt, Notice, Progress, SelectiveShell,
+                    Separator, Shell, Switch, select_prompt)
+from .utils import (copy_file, ensure_not_whitespace, get_all_files,
+                    get_project_folder_by_name, name_to_identifier,
+                    remove_tree)
 
-def get_path_set(pathes, error_sensitive = False):
+
+def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optional[List[str]]:
 	directories = []
-	for path in pathes:
+	for path in locations:
 		for directory in MAKE_CONFIG.get_paths(path):
 			if isdir(directory):
 				directories.append(directory)
@@ -23,12 +28,12 @@ def get_path_set(pathes, error_sensitive = False):
 					print(f"Declared invalid directory {path}, it will be skipped")
 	return directories
 
-def cleanup_relative_directory(path, project = False):
+def cleanup_relative_directory(path: str, project: bool = False) -> None:
 	start_time = time.time()
-	clear_directory(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
+	remove_tree(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")
 
-def select_template():
+def select_template() -> Optional[str]:
 	if len(PROJECT_MANAGER.templates) <= 1:
 		if len(PROJECT_MANAGER.templates) == 0:
 			print("Please, ensure that `projectLocations` property in your toolchain.json contains any folder with template.json.")
@@ -38,10 +43,10 @@ def select_template():
 	return select_prompt(
 		"Which template do you want?",
 		*PROJECT_MANAGER.templates,
-		fallback=0, what_not_which=True
+		fallback=0, returns_what=True
 	)
 
-def new_project(template = "../toolchain-mod"):
+def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	if template is None or not exists(TOOLCHAIN_CONFIG.get_absolute_path(template)):
 		return new_project(template=select_template())
 	template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
@@ -61,17 +66,17 @@ def new_project(template = "../toolchain-mod"):
 	print("Inner Core Mod Toolchain", end="")
 
 	class NameObserver(Shell.Interactable):
-		def __init__(self):
+		def __init__(self) -> None:
 			Shell.Interactable.__init__(self, "name_observer")
 
-		def observe_key(self, what):
-			input = shell.get_interactable("name")
-			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.root_dir, input.read())
-			header = shell.get_interactable("header")
+		def observe_key(self, what: str) -> bool:
+			input = shell.get_interactable("name", Input)
+			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.directory, input.read() or "")
+			header = shell.get_interactable("header", Separator)
 			header.size = (1 if self.directory is None else 0) + (0 if len(PROJECT_MANAGER.templates) > 1 else 1)
-			location = shell.get_interactable("location")
+			location = shell.get_interactable("location", Notice)
 			location.text = "" if self.directory is None else "It will be in " + self.directory + "\n"
-			progress = shell.get_interactable("step")
+			progress = shell.get_interactable("step", Progress)
 			progress.progress = 0 if self.directory is None else progress_step
 			progress.text = " " + "Name your creation".center(45) + (" " if self.directory is None else ">")
 			shell.blocked_in_page = self.directory is None
@@ -120,8 +125,8 @@ def new_project(template = "../toolchain-mod"):
 		]
 
 	shell.interactables.append(Interrupt())
-	observer = shell.get_interactable("name_observer")
-	observer.observe_key(None)
+	observer = shell.get_interactable("name_observer", NameObserver)
+	observer.observe_key("\0")
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
@@ -131,18 +136,18 @@ def new_project(template = "../toolchain-mod"):
 		return new_project(None)
 	if not hasattr(observer, "directory") or observer.directory is None:
 		from .task import error
-		error("Not found `directory` property in observer!")
+		error("Not found 'directory' property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
 	return PROJECT_MANAGER.create_project(
 		template, observer.directory,
-		shell.get_interactable("name").read(),
-		shell.get_interactable("author").read(),
-		shell.get_interactable("version").read(),
-		shell.get_interactable("description").read(),
-		shell.get_interactable("client_side").checked
+		shell.get_interactable("name", Input).read(),
+		shell.get_interactable("author", Input).read(),
+		shell.get_interactable("version", Input).read(),
+		shell.get_interactable("description", Input).read(),
+		shell.get_interactable("client_side", Switch).checked
 	)
 
-def resolve_make_format_map(make_obj, path):
+def resolve_make_format_map(make_obj: Dict[Any, Any], path: str) -> Dict[Any, Any]:
 	make_obj_info = make_obj["info"] if "info" in make_obj else {}
 	identifier = name_to_identifier(basename(path))
 	while len(identifier) > 0 and identifier[0].isdecimal():
@@ -161,7 +166,7 @@ def resolve_make_format_map(make_obj, path):
 		"clientOnly": "true" if "clientOnly" in make_obj_info and make_obj_info["clientOnly"] else "false"
 	}
 
-def setup_project(make_obj, template, path):
+def setup_project(make_obj: Dict[Any, Any], template: str, path: str) -> None:
 	makemap = resolve_make_format_map(make_obj, path)
 	dirmap = { template: "" }
 	for dirpath, dirnames, filenames in os.walk(template):
@@ -189,7 +194,7 @@ def setup_project(make_obj, template, path):
 		with open(source, "w") as source_file:
 			source_file.writelines(lines)
 
-def select_project(variants, prompt = "Which project do you want?", selected = None, *additionals):
+def select_project(variants: List[str], prompt: Optional[str] = "Which project do you want?", selected: Optional[str] = None, *additionals: str) -> Optional[str]:
 	if prompt is not None:
 		print(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
@@ -211,7 +216,7 @@ def select_project(variants, prompt = "Which project do you want?", selected = N
 		return None
 	try:
 		what = shell.what()
-		if what in additionals:
+		if what is None or what in additionals:
 			print()
 			return print("Abort.")
 		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + what + "\x1b[0m")

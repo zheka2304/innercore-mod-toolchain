@@ -1,16 +1,19 @@
-import os
-from os.path import join, exists, isfile, isdir, basename, abspath
 import json
+import os
+from os.path import abspath, basename, exists, isdir, isfile, join
+from typing import Any, Dict, Final, List, Optional, Tuple
 
-from .utils import clear_directory, ensure_not_whitespace
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .workspace import CODE_WORKSPACE, CODE_SETTINGS
+from .utils import ensure_not_whitespace, remove_tree
+from .workspace import CODE_SETTINGS, CODE_WORKSPACE
+
 
 class ProjectManager:
-	def __init__(self):
+	projects: Final[List[str]]; templates: Final[List[str]]
+
+	def __init__(self) -> None:
 		self.projects = []
 		self.templates = []
-
 		locations = MAKE_CONFIG.get_value("projectLocations", [])
 		for location in ["", *locations]:
 			path = TOOLCHAIN_CONFIG.get_absolute_path(location)
@@ -26,7 +29,7 @@ class ProjectManager:
 				if exists(template_path) and isfile(template_path):
 					self.templates.append(join(location, entry))
 
-	def create_project(self, template, folder, name = None, author = None, version = None, description = None, clientOnly = False):
+	def create_project(self, template: str, folder: str, name: Optional[str] = None, author: Optional[str] = None, version: Optional[str] = None, description: Optional[str] = None, clientOnly: bool = False)-> int:
 		location = TOOLCHAIN_CONFIG.get_path(folder)
 		if exists(location):
 			from .task import error
@@ -35,12 +38,12 @@ class ProjectManager:
 		template_path = TOOLCHAIN_CONFIG.get_absolute_path(template)
 		if not exists(template_path):
 			from .task import error
-			error(f"Not found {template} template, nothing to do.")
+			error(f"Not found '{template}' template, nothing to do.")
 
 		template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 		if not isfile(template_make_path):
 			from .task import error
-			error(f"Not found template.json in template {template}, nothing to do.")
+			error(f"Not found 'template.json' in template '{template}', nothing to do.")
 
 		with open(template_make_path, "r", encoding="utf-8") as make_file:
 			template_obj = json.loads(make_file.read())
@@ -73,7 +76,7 @@ class ProjectManager:
 
 		if CODE_WORKSPACE.available():
 			location = CODE_WORKSPACE.get_toolchain_path(folder)
-			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) == 0:
 				self.append_workspace_folder(folder, template_info["name"])
 
 		if CODE_SETTINGS.available():
@@ -86,7 +89,7 @@ class ProjectManager:
 		self.projects.append(folder)
 		return self.how_much() - 1
 
-	def remove_project(self, index = None, folder = None):
+	def remove_project(self, index: Optional[int] = None, folder: Optional[str] = None) -> None:
 		if len(self.projects) == 0:
 			from .task import error
 			error("Not found any project to remove.")
@@ -98,7 +101,7 @@ class ProjectManager:
 
 		if CODE_WORKSPACE.available():
 			location = CODE_WORKSPACE.get_toolchain_path(folder)
-			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) > 0:
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) > 0:
 				folders = CODE_WORKSPACE.get_value("folders", [])
 				for entry in folders:
 					if isinstance(entry, dict) and "path" in entry and entry["path"] == location:
@@ -113,10 +116,10 @@ class ProjectManager:
 				CODE_SETTINGS.json["files.exclude"] = exclude
 				CODE_SETTINGS.save()
 
-		clear_directory(TOOLCHAIN_CONFIG.get_absolute_path(folder))
+		remove_tree(TOOLCHAIN_CONFIG.get_absolute_path(folder))
 		del self.projects[index]
 
-	def append_workspace_folder(self, folder, name = "Mod"):
+	def append_workspace_folder(self, folder: str, name: Optional[object] = "Mod") -> None:
 		if CODE_WORKSPACE.available():
 			folders = CODE_WORKSPACE.get_value("folders", [])
 			if len(folders) == 0:
@@ -131,7 +134,7 @@ class ProjectManager:
 			CODE_WORKSPACE.set_value("folders", folders)
 			CODE_WORKSPACE.save()
 
-	def select_project_folder(self, folder = None):
+	def select_project_folder(self, folder: Optional[str] = None) -> None:
 		if MAKE_CONFIG.current_project == folder:
 			return
 
@@ -141,23 +144,25 @@ class ProjectManager:
 			TOOLCHAIN_CONFIG.set_value("currentProject", folder)
 		TOOLCHAIN_CONFIG.save()
 
-		MAKE_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
+		MAKE_CONFIG.__init__(TOOLCHAIN_CONFIG.path)
 		if folder is None:
-			TOOLCHAIN_CONFIG.__init__(TOOLCHAIN_CONFIG.filename)
+			TOOLCHAIN_CONFIG.__init__(TOOLCHAIN_CONFIG.path)
 		else:
-			TOOLCHAIN_CONFIG.__init__(MAKE_CONFIG.prototype.filename, MAKE_CONFIG.prototype)
+			if MAKE_CONFIG.prototype is None:
+				raise SystemError()
+			TOOLCHAIN_CONFIG.__init__(MAKE_CONFIG.prototype.path, MAKE_CONFIG.prototype)
 		MAKE_CONFIG.prototype = TOOLCHAIN_CONFIG if folder is not None else None
 
-	def select_project(self, index = None, folder = None):
+	def select_project(self, index: Optional[int] = None, folder: Optional[str] = None) -> None:
 		index, folder = self.get_folder(index, folder)
 
 		if folder is not None and CODE_WORKSPACE.available():
 			location = CODE_WORKSPACE.get_toolchain_path(folder)
-			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", [location])) == 0:
+			if len(CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) == 0:
 				make_path = TOOLCHAIN_CONFIG.get_absolute_path(folder + "/make.json")
 				if not isfile(make_path):
 					from .task import error
-					error(f"Not found make.json in project {folder}, nothing to do.")
+					error(f"Not found 'make.json' in project '{folder}', nothing to do.")
 				with open(make_path, "r", encoding="utf-8") as make_file:
 					make_obj = json.loads(make_file.read())
 				self.append_workspace_folder(folder, self.resolve_mod_name(folder, make_obj))
@@ -174,7 +179,7 @@ class ProjectManager:
 		self.select_project_folder(folder)
 		print(f"Project '{folder}' selected.")
 
-	def resolve_mod_name(self, path, make_obj = None):
+	def resolve_mod_name(self, path: str, make_obj: Optional[Dict[Any, Any]] = None) -> str:
 		if make_obj is None:
 			try:
 				make_path = TOOLCHAIN_CONFIG.get_absolute_path(path + "/make.json")
@@ -185,12 +190,12 @@ class ProjectManager:
 				pass
 		return make_obj["info"]["name"] if make_obj is not None and "info" in make_obj and "name" in make_obj["info"] else basename(path)
 
-	def get_shortcut(self, path, make_obj = None):
+	def get_shortcut(self, path: str, make_obj: Optional[Dict[Any, Any]] = None) -> str:
 		if len(path) == 0:
-			return basename(TOOLCHAIN_CONFIG.root_dir)
+			return basename(TOOLCHAIN_CONFIG.directory)
 		return self.resolve_mod_name(path, make_obj) + " (" + path + ")"
 
-	def get_folder(self, index = None, folder = None):
+	def get_folder(self, index: Optional[int] = None, folder: Optional[str] = None) -> Tuple[int, str]:
 		if index == None:
 			if folder == None:
 				raise ValueError("Folder index must be specified!")
@@ -202,10 +207,10 @@ class ProjectManager:
 		folder = self.projects[index]
 		return index, folder
 
-	def how_much(self):
+	def how_much(self) -> int:
 		return len(self.projects)
 
-	def require_selection(self, prompt = None, prompt_when_single = None, *dont_want_anymore):
+	def require_selection(self, prompt: Optional[str] = None, prompt_when_single: Optional[str] = None, *dont_want_anymore: str) -> Optional[str]:
 		from .package import select_project
 		if self.how_much() == 1:
 			itwillbe = self.projects[0]

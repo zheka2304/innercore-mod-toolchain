@@ -18,8 +18,7 @@
 		],
 		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
 		"window.titleSeparator": " \u2014 ",
-		"search.useParentIgnoreFiles": true,
-		"C_Cpp.errorSquiggles": "Disabled"
+		"search.useParentIgnoreFiles": true
 	},
 	"extensions": {
 		"recommendations": [

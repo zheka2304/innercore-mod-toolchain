@@ -1,16 +1,18 @@
-import sys
-from os import listdir, environ, getenv, makedirs
-from os.path import isfile, isdir, join, abspath, dirname, basename
 import platform
-import subprocess
 import re
+import subprocess
+import sys
 import zipfile
+from os import environ, getenv, listdir, makedirs
+from os.path import abspath, basename, dirname, isdir, isfile, join
+from typing import List, Optional, Union
 
 from ..make_config import TOOLCHAIN_CONFIG
 from ..shell import Progress, Shell
-from ..utils import clear_directory, AttributeZipFile
+from ..utils import AttributeZipFile, remove_tree
 
-def abi_to_arch(abi):
+
+def abi_to_arch(abi: str) -> str:
 	abi_map = {
 		"armeabi-v7a": "arm",
 		"arm64-v8a": "arm64",
@@ -19,9 +21,9 @@ def abi_to_arch(abi):
 	}
 	if abi in abi_map:
 		return abi_map[abi]
-	return None
+	raise ValueError(f"Unsupported ABI identifier '{abi}'!")
 
-def list_subdirectories(path, max_depth = 5, dirs = None):
+def list_subdirectories(path: str, max_depth: int = 5, dirs: Optional[List[str]] = None) -> List[str]:
 	if dirs is None:
 		dirs = []
 	if not isdir(path):
@@ -33,7 +35,7 @@ def list_subdirectories(path, max_depth = 5, dirs = None):
 			list_subdirectories(file, dirs=dirs, max_depth=max_depth - 1)
 	return dirs
 
-def search_ndk_path(home_dir, contains_ndk = False):
+def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
 	preferred_ndk_versions = [
 		"android-ndk-r16b",
 		"android-ndk-.*",
@@ -46,7 +48,7 @@ def search_ndk_path(home_dir, contains_ndk = False):
 			if re.findall(compiled_pattern, possible_ndk_dir):
 				return possible_ndk_dir
 
-def get_ndk_path():
+def get_ndk_path() -> Optional[str]:
 	path_from_config = TOOLCHAIN_CONFIG.get_value("ndkPath")
 	if path_from_config is not None:
 		path_from_config = TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
@@ -58,9 +60,9 @@ def get_ndk_path():
 	except KeyError:
 		pass
 	# Windows
-	return search_ndk_path(getenv("LOCALAPPDATA"))
+	return search_ndk_path(getenv("LOCALAPPDATA", "."))
 
-def search_for_gcc_executable(ndk_dir):
+def search_for_gcc_executable(ndk_dir: str) -> Optional[str]:
 	search_dir = join(ndk_dir, "bin")
 	if isdir(search_dir):
 		pattern = re.compile("[0-9A-Za-z]*-linux-android(eabi)*-g\\+\\+.*")
@@ -68,7 +70,7 @@ def search_for_gcc_executable(ndk_dir):
 			if re.match(pattern, file):
 				return abspath(join(search_dir, file))
 
-def require_compiler_executable(arch, install_if_required = False):
+def require_compiler_executable(arch: str, install_if_required: bool = False) -> Optional[str]:
 	ndk_dir = TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
@@ -83,7 +85,7 @@ def require_compiler_executable(arch, install_if_required = False):
 				return None
 	return file
 
-def check_installed(arches):
+def check_installed(arches: Union[str, List[str]]) -> bool:
 	if not isinstance(arches, list):
 		arches = [arches]
 	return len(list(filter(
@@ -91,15 +93,17 @@ def check_installed(arches):
 		arches
 	))) == 0
 
-def download(shell):
+def download(shell: Optional[Shell] = None) -> Optional[str]:
 	from urllib import request
 	archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 	makedirs(dirname(archive_path), exist_ok=True)
 
 	if not isfile(archive_path):
-		progress = Progress(text="C++ GCC Compiler (NDK)")
-		shell.interactables.append(progress)
-		shell.render()
+		progress = None
+		if shell is not None:
+			progress = Progress(text="C++ GCC Compiler (NDK)")
+			shell.interactables.append(progress)
+			shell.render()
 		url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
 		with request.urlopen(url) as response:
 			with open(archive_path, "wb") as f:
@@ -111,39 +115,39 @@ def download(shell):
 					if not buffer:
 						break
 					downloaded += len(buffer)
-					progress.seek(downloaded / length, f"Downloading ({(downloaded / 1048576):.1f}/{(length / 1048576):.1f}MiB)")
-					shell.render()
+					if shell is not None and progress is not None:
+						progress.seek(downloaded / length, f"Downloading ({(downloaded / 1048576):.1f}/{(length / 1048576):.1f}MiB)")
+						shell.render()
 					f.write(buffer)
-		progress.seek(1, f"Downloaded {(length / 1024):.1f}MiB")
-		shell.render()
+		Progress.notify(shell, progress, 1, f"Downloaded {(length / 1024):.1f}MiB")
 
-	progress = Progress(text="Extracting NDK/GCC")
-	shell.interactables.append(progress)
-	shell.render()
+	progress = None
+	if shell is not None:
+		progress = Progress(text="Extracting NDK/GCC")
+		shell.interactables.append(progress)
+		shell.render()
 	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	makedirs(extract_path, exist_ok=True)
 	try:
 		with AttributeZipFile(archive_path, "r") as archive:
 			archive.extractall(extract_path)
-		progress.seek(1, "Extracted into toolchain/temp")
+		Progress.notify(shell, progress, 1, "Extracted into toolchain/temp")
 	except OSError as exc:
-		progress.seek(0, f"#{exc.errno}: {basename(exc.filename)}")
+		Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
 		try:
-			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 		except OSError:
-			progress.seek(0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
+			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 	except zipfile.BadZipFile as exc:
 		try:
-			clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 			return download(shell)
 		except OSError as exc:
-			progress.seek(0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
-			shell.render()
-	shell.render()
+			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 
 	return search_ndk_path(extract_path, contains_ndk=True)
 
-def install(arches = "arm", reinstall = False):
+def install(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> int:
 	if not reinstall and check_installed(arches):
 		return 0
 	else:
@@ -154,7 +158,8 @@ def install(arches = "arm", reinstall = False):
 				print("Not found valid NDK installation for ", arches, ".", sep="")
 			try:
 				if reinstall or input("Download android-ndk-r16b-x86_64? [N/y] ")[:1].lower() == "y":
-					shell.enter()
+					if shell is not None:
+						shell.enter()
 					ndk_path = download(shell)
 				else:
 					from ..task import error
@@ -162,21 +167,25 @@ def install(arches = "arm", reinstall = False):
 			except KeyboardInterrupt:
 				from ..task import error
 				error("Abort.", 1)
-		else:
+		elif shell is not None:
 			shell.enter()
 
 		if ndk_path is None:
-			shell.leave()
+			if shell is not None:
+				shell.leave()
 			print("Installation interrupted by raised cause above, you're must extract toolchain/temp/ndk.zip manually into toolchain/temp and retry task.")
 			return 1
 		result = 0
 
+		progress = None
 		if not isinstance(arches, list):
 			arches = [arches]
 		for arch in arches:
-			progress = Progress(text=f"Installing {str(arch)}")
-			shell.interactables.append(progress)
-			shell.render()
+			progress = None
+			if shell is not None:
+				progress = Progress(text=f"Installing {str(arch)}")
+				shell.interactables.append(progress)
+				shell.render()
 			result += subprocess.call([
 				"python3" if platform.system() != "Windows" else "python",
 				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
@@ -187,27 +196,30 @@ def install(arches = "arm", reinstall = False):
 			])
 			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
 			if result != 0:
-				progress.seek(0.5, f"Installation of {str(arch)} failed with result {str(result)}")
-				shell.render()
+				Progress.notify(shell, progress, 0.5, f"Installation of {str(arch)} failed with result {str(result)}")
 			else:
-				progress.seek(1, f"Successfully installed {str(arch)}")
-				shell.render()
+				Progress.notify(shell, progress, 1, f"Successfully installed {str(arch)}")
 
 		if result == 0:
-			progress = Progress(progress=0.9, text=f"Removing temporary files")
-			shell.render()
+			progress = None
+			if shell is not None:
+				progress = Progress(progress=0.9, text=f"Removing temporary files")
+				shell.interactables.append(progress)
+				shell.render()
 			try:
-				clear_directory(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-				progress.seek(1, "C++ GCC Compiler (NDK)")
+				remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+				if progress is not None:
+					progress.seek(1, "C++ GCC Compiler (NDK)")
 			except OSError as exc:
-				progress.seek(0, f"#{exc.errno}: {basename(exc.filename)}")
+				Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
 		else:
-			progress.seek(0.5, f"Installation failed with result {str(result)}")
+			Progress.notify(shell, progress, 0.5, f"Installation failed with result {str(result)}")
 
-		shell.render()
-		shell.leave()
+		if shell is not None:
+			shell.render()
+			shell.leave()
 		if result != 0:
-			print("You're must install it manually by running toolchain/temp/../build/tools/make_standalone_toolchain.py, or re-extracting ndk.")
+			print("You're must install it manually by running 'toolchain/temp/../build/tools/make_standalone_toolchain.py', or re-extracting NDK.")
 		return result
 
 

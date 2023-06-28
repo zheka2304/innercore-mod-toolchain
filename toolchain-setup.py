@@ -1,22 +1,23 @@
 import os
-from os.path import join, exists, isfile, isdir, abspath
 import platform
 import shutil
-import sys
 import subprocess
+import sys
 import urllib.request as request
+from os.path import abspath, exists, isdir, isfile, join
+from typing import List, Optional, Union
 from urllib.error import URLError
 from zipfile import ZipFile, ZipInfo
 
+
 class AttributeZipFile(ZipFile):
 	if sys.version_info < (3, 6):
-		def extract(self, member, path = None, pwd = None):
+		def extract(self, member: Union[ZipInfo, str], path: Optional[str] = None, pwd: Optional[str] = None) -> str:
 			if not isinstance(member, ZipInfo):
 				member = self.getinfo(member)
 
 			if path is None:
 				path = os.getcwd()
-
 			targetpath = self._extract_member(member, path, pwd)
 
 			attr = member.external_attr >> 16
@@ -26,22 +27,21 @@ class AttributeZipFile(ZipFile):
 			return targetpath
 
 	else:
-		def _extract_member(self, member, targetpath, pwd):
+		def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:
 			if not isinstance(member, ZipInfo):
 				member = self.getinfo(member)
 
-			targetpath = super()._extract_member(member, targetpath, pwd)
+			targetpath = super()._extract_member(member, targetpath, pwd) # type: ignore
 
 			attr = member.external_attr >> 16
 			if platform.system() == "Windows":
 				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			elif attr != 0:
-				os.chmod(abspath(targetpath), attr)
+			os.chmod(abspath(targetpath), attr)
 			return targetpath
 
-def download_and_extract_toolchain(directory):
+def download_and_extract_toolchain(directory: str) -> None:
 	os.makedirs(directory, exist_ok=True)
-	archive = join(directory, "toolchain.zip")
+	toolchain = join(directory, "toolchain.zip")
 
 	readable_name = "current directory" if directory in (".", "") else "'" + directory + "'"
 	if exists(join(directory, "toolchain")):
@@ -50,15 +50,15 @@ def download_and_extract_toolchain(directory):
 		print("It's handly to restore necessary removed script or template.")
 		try:
 			if input("Do you want to download it again? [N/y] ")[:1].lower() != "y":
-				return print("Abort.")
+				print("Abort."); return
 		except KeyboardInterrupt:
-			return print("Abort.")
+			print("Abort."); return
 
-	if not exists(archive):
+	if not exists(toolchain):
 		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
 		print("Downloading Inner Core Mod Toolchain: " + url)
 		try:
-			request.urlretrieve(url, archive)
+			request.urlretrieve(url, toolchain)
 		except URLError:
 			print("Check your network connection!")
 			exit(1)
@@ -70,18 +70,18 @@ def download_and_extract_toolchain(directory):
 		print("'toolchain.zip' already exists in " + readable_name + ".")
 
 	print("Extracting into " + readable_name)
-	with AttributeZipFile(archive, "r") as zip_ref:
-		zip_ref.extractall(directory)
+	with AttributeZipFile(toolchain, "r") as archive:
+		archive.extractall(directory)
 
 	commit = "unknown"
 	try:
 		if isdir(join(directory, "toolchain-mod", "toolchain")):
-			dirname = "toolchain-mod"
+			name = "toolchain-mod"
 			index = 0
-			while exists(join(directory, dirname)):
+			while exists(join(directory, name)):
 				index += 1
-				dirname = "toolchain-mod-" + str(index)
-			shutil.move(join(directory, "toolchain-mod"), join(directory, dirname))
+				name = "toolchain-mod-" + str(index)
+			shutil.move(join(directory, "toolchain-mod"), join(directory, name))
 		shutil.copytree(join(directory, "innercore-mod-toolchain-deploy"), directory, dirs_exist_ok=True)
 		if isfile(join(directory, "toolchain", "toolchain", "bin", ".commit")):
 			with open(join(directory, "toolchain", "toolchain", "bin", ".commit")) as file:
@@ -97,11 +97,11 @@ def download_and_extract_toolchain(directory):
 			print("Retry operation or extract 'toolchain.zip' manually.")
 			exit(4)
 		else:
-			os.remove(archive)
+			os.remove(toolchain)
 
 	print("Installed into " + readable_name + " under " + commit.strip()[:7] + " revision.")
 
-def print_placeholder(which):
+def print_placeholder(which: List[List[Union[str, int]]]) -> None:
 	layer = 0
 	while layer < len(which):
 		for symbol in which[layer]:

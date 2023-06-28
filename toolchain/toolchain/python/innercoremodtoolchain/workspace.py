@@ -1,47 +1,51 @@
-from os.path import exists, isfile, isdir, abspath, relpath, join, dirname
-import subprocess
-import json
 import glob
+import json
 import os
 import platform
+import subprocess
+from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from typing import Any, Dict, Final, List
 
-from .make_config import MakeConfig, MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .base_config import BaseConfig
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+
 
 class WorkspaceNotAvailable(RuntimeError):
-	def __init__(self, *args):
+	def __init__(self, *args: object) -> None:
 		RuntimeError.__init__(self, "Workspace is not available", *args)
 
 class CodeWorkspace(BaseConfig):
-	def __init__(self, filename):
-		if not isfile(filename):
+	def __init__(self, path: str) -> None:
+		if not isfile(path):
 			return BaseConfig.__init__(self, {})
-		self.filename = filename
-		self.root_dir = abspath(join(self.filename, ".."))
-		with open(filename, encoding="utf-8") as file:
+		self.path = path
+		self.directory = abspath(join(self.path, ".."))
+		with open(path, encoding="utf-8") as file:
 			self.json = json.load(file)
 		BaseConfig.__init__(self, self.json)
 
-	def available(self):
-		return hasattr(self, "filename") and isfile(self.filename)
+	def available(self) -> bool:
+		return hasattr(self, "path") and isfile(self.path)
 
-	def get_path(self, relative_path):
+	def get_path(self, relative_path: str) -> str:
 		if not self.available():
 			raise WorkspaceNotAvailable()
-		return MakeConfig.get_path(self, relative_path)
+		return abspath(join(self.directory, relative_path))
 
-	def get_toolchain_path(self, relative_path = ""):
+	def get_toolchain_path(self, relative_path: str = "") -> str:
 		if not self.available():
 			raise WorkspaceNotAvailable()
-		return relpath(TOOLCHAIN_CONFIG.get_path(relative_path), self.root_dir)
+		return relpath(TOOLCHAIN_CONFIG.get_path(relative_path), self.directory)
 
-	def save(self):
+	def save(self) -> None:
 		if not self.available():
 			raise WorkspaceNotAvailable()
-		return MakeConfig.save(self)
+		with open(self.path, "w", encoding="utf-8") as workspace_file:
+			workspace_file.write(json.dumps(self.json, indent="\t") + "\n")
+
 
 # The TypeScript Compiler - Version 4.8.3
-TSCONFIG = {
+TSCONFIG: Final[Dict[str, Any]] = {
 	# JavaScript Support
 	"allowJs": False,
 	"checkJs": False,
@@ -172,7 +176,7 @@ TSCONFIG = {
 }
 
 # Basic prototype that will be changed when building
-TSCONFIG_TOOLCHAIN = {
+TSCONFIG_TOOLCHAIN: Final[Dict[str, Any]] = {
 	"target": "es5", # Most of ES6 not realized in Rhino 1.7.7
 	"lib": ["esnext"],
 	"module": "none",
@@ -193,24 +197,26 @@ for key, value in MAKE_CONFIG.get_value("tsconfig", {}).items():
 	else:
 		TSCONFIG_TOOLCHAIN[key] = value
 
+
 class WorkspaceComposite:
-	references = []
-	sources = []
+	references: List[Dict[str, Any]]
+	sources: List[str]
 
-	def __init__(self, filename):
-		self.filename = filename
+	def __init__(self, path) -> None:
+		self.path = path
+		self.reset()
 
-	def get_tsconfig(self):
-		return MAKE_CONFIG.get_path(self.filename)
+	def get_tsconfig(self) -> str:
+		return MAKE_CONFIG.get_path(self.path)
 
-	def coerce(self, path):
-		path = relpath(path, MAKE_CONFIG.root_dir)
+	def coerce(self, path: str) -> None:
+		path = relpath(path, MAKE_CONFIG.directory)
 		if path in self.sources:
 			return
 		self.sources.append(path)
 
-	def reference(self, path, **kwargs):
-		path = relpath(path, MAKE_CONFIG.root_dir)
+	def reference(self, path: str, **kwargs: Any) -> None:
+		path = relpath(path, MAKE_CONFIG.directory)
 		for ref in self.references:
 			if ref["path"] == path:
 				return
@@ -219,12 +225,12 @@ class WorkspaceComposite:
 			**kwargs
 		})
 
-	def reset(self):
+	def reset(self) -> None:
 		self.references = []
 		self.sources = []
 
 	@staticmethod
-	def resolve_declarations(debug_build = False):
+	def resolve_declarations(debug_build: bool = False) -> List[str]:
 		includes = MAKE_CONFIG.get_value("declarations", [
 			"declarations"
 		])
@@ -253,11 +259,11 @@ class WorkspaceComposite:
 							declarations.remove(declaration)
 		return list(set(declarations))
 
-	def flush(self, debug_build = False, **kwargs):
-		from .includes import temp_directory
+	def flush(self, debug_build: bool = False, **kwargs: Any) -> None:
+		from .includes import TEMPORARY_DIRECTORY
 		template = {
 			"compilerOptions": {
-				"outDir": temp_directory,
+				"outDir": TEMPORARY_DIRECTORY,
 				**TSCONFIG_TOOLCHAIN
 			},
 			"compileOnSave": False,
@@ -277,7 +283,7 @@ class WorkspaceComposite:
 		with open(self.get_tsconfig(), "w") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
-	def build(self, *args):
+	def build(self, *args: str) -> int:
 		return subprocess.call([
 			"tsc",
 			"--build", self.get_tsconfig(),
@@ -285,7 +291,7 @@ class WorkspaceComposite:
 			*args
 		], shell=platform.system() == "Windows")
 
-	def watch(self, *args):
+	def watch(self, *args: str) -> int:
 		try:
 			return subprocess.call([
 				"tsc",

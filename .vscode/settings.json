@@ -1,0 +1,17 @@
+{
+	"[python]": {
+		"editor.defaultFormatter": "ms-python.python",
+		"editor.codeActionsOnSave": {
+			"source.organizeImports": true
+		}
+	},
+	"python.analysis.typeCheckingMode": "basic",
+	"python.analysis.diagnosticMode": "workspace",
+	"python.analysis.include": [
+		"toolchain/toolchain/python",
+		"*.py"
+	],
+	"python.analysis.exclude": [
+		"toolchain/toolchain/python/innercoremodtoolchain/colorama"
+	]
+}

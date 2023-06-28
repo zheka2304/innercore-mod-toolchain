@@ -1,16 +1,23 @@
 import os
-from os.path import join, isfile, isdir
 import shutil
 import sys
+from os.path import isdir, isfile, join
+from typing import Dict, Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
 from .make_config import TOOLCHAIN_CONFIG
-from .utils import ensure_file_dir, ensure_not_whitespace, AttributeZipFile
-from .shell import *
+from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
+                    SelectiveShell, Separator, Shell, Switch)
+from .utils import (AttributeZipFile, ensure_file_directory,
+                    ensure_not_whitespace)
+
 
 class Component():
-	def __init__(self, keyword, name, location = "", packurl = None, commiturl = None, branch = None):
+	keyword: Final[str]; name: Final[str]; location: Final[str]
+	packurl: Final[Optional[str]]; commiturl: Final[Optional[str]]; branch: Final[Optional[str]]
+
+	def __init__(self, keyword: str, name: str, location: str = "", packurl: Optional[str] = None, commiturl: Optional[str] = None, branch: Optional[str] = None):
 		self.keyword = keyword
 		self.name = name
 		self.location = location
@@ -23,7 +30,7 @@ class Component():
 		if commiturl is not None:
 			self.commiturl = commiturl
 
-COMPONENTS = {
+COMPONENTS: Final[Dict[str, Component]] = {
 	"adb": Component("adb", "Android Debug Bridge", "toolchain/adb", branch="adb"),
 	"declarations": Component("declarations", "TypeScript Declarations", "toolchain/declarations", branch="includes"),
 	"java": Component("java", "Java R8/D8 Compiler", "toolchain/bin/r8", branch="r8"),
@@ -32,19 +39,19 @@ COMPONENTS = {
 	"stdincludes": Component("stdincludes", "C++ Headers", "toolchain/stdincludes", branch="stdincludes")
 }
 
-def put_components(installed = []):
+def get_component_switches(installed_keywords: List[str]) -> List[Switch]:
 	return [
-		Switch("component:" + key, COMPONENTS[key].name, True if key in installed else False) for key in COMPONENTS
+		Switch("component:" + key, COMPONENTS[key].name, True if key in installed_keywords else False) for key in COMPONENTS
 	]
 
-def resolve_components(interactables):
+def resolve_selected_components(interactables: List[Shell.Interactable]) -> List[str]:
 	keywords = []
 	for interactable in interactables:
-		if interactable.key is not None and interactable.key.startswith("component:") and interactable.checked:
+		if isinstance(interactable, Switch) and interactable.key is not None and interactable.key.startswith("component:") and interactable.checked:
 			keywords.append(interactable.key.partition(":")[2])
 	return keywords
 
-def which_installed():
+def which_installed() -> List[str]:
 	installed = []
 	for componentname in COMPONENTS:
 		component = COMPONENTS[componentname]
@@ -58,46 +65,48 @@ def which_installed():
 			installed.append(component.keyword)
 	return installed
 
-def download_component(component, shell, progress):
+def to_megabytes(bytes_count: int) -> str:
+	return f"{(bytes_count / 1048576):.1f}MiB"
+
+def download_component(component: Component, shell: Optional[Shell], progress: Optional[Progress]) -> int:
 	if not hasattr(component, "packurl") or component.packurl is None:
-		progress.seek(0, f"Component {component.keyword} packurl property must be defined!")
-		shell.render()
+		Progress.notify(shell, progress, 0, f"Component {component.keyword} 'packurl' property must be defined!")
 		return 1
 	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
-	ensure_file_dir(path)
+	ensure_file_directory(path)
 	if isfile(path):
+		# TODO: Checking checksum of already downloaded file...
 		return 0
 	with request.urlopen(component.packurl) as response:
-		with open(path, "wb") as f:
+		with open(path, "wb") as archive:
 			downloaded = 0
 			while True:
 				buffer = response.read(8192)
 				if not buffer:
 					break
 				downloaded += len(buffer)
-				progress.seek(0.5, f"Downloading ({(downloaded / 1048576):.1f}MiB)")
-				shell.render()
-				f.write(buffer)
-	progress.seek(1, f"Downloaded {(downloaded / 1048576):.1f}MiB")
-	shell.render()
+				if shell is not None and progress is not None:
+					progress.seek(0.5, f"Downloading ({to_megabytes(downloaded)})")
+					shell.render()
+				archive.write(buffer)
+	Progress.notify(shell, progress, 1, f"Downloaded {to_megabytes(downloaded)}")
 	return 0
 
-def extract_component(component, shell, progress):
-	temp = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
-	archive_path = join(temp, component.keyword + ".zip")
+def extract_component(component: Component, shell: Optional[Shell], progress: Optional[Progress]) -> int:
+	temporary = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	archive_path = join(temporary, component.keyword + ".zip")
 	if not isfile(archive_path):
-		progress.seek(0, f"Component {component.keyword} downloaded nothing to extract!")
-		shell.render()
+		Progress.notify(shell, progress, 0, f"Component {component.keyword} downloaded nothing to extract!")
 		return 1
-	progress.seek(0.5, f"Extracting to {component.location}")
-	extract_to = temp if hasattr(component, "branch") else join(temp, component.keyword)
+	if shell is not None and progress is not None:
+		progress.seek(0.33, f"Extracting to {component.location}")
+	extract_to = temporary if hasattr(component, "branch") else join(temporary, component.keyword)
 	with AttributeZipFile(archive_path, "r") as archive:
 		archive.extractall(extract_to)
-	if hasattr(component, "branch"):
+	if hasattr(component, "branch") and component.branch is not None:
 		extract_to = join(extract_to, "innercore-mod-toolchain-" + component.branch)
 	if not isdir(extract_to):
-		progress.seek(0, f"Component {component.keyword} does not contain any content!")
-		shell.render()
+		Progress.notify(shell, progress, 0, f"Component {component.keyword} does not contain any content!")
 		return 2
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
 	if isdir(output):
@@ -106,24 +115,23 @@ def extract_component(component, shell, progress):
 		shutil.move(output, output + ".bak")
 	os.makedirs(output, exist_ok=True)
 	shutil.copytree(extract_to, output, dirs_exist_ok=True)
-	progress.seek(1, "Cleaning up")
-	shell.render()
+	Progress.notify(shell, progress, 0.66, "Cleaning up")
 	shutil.rmtree(extract_to, ignore_errors=True)
 	os.remove(archive_path)
 	return 0
 
-def install_components(components):
-	if len(components) == 0:
+def install_components(*keywords: str) -> None:
+	if len(keywords) == 0:
 		return
-	shell = InteractiveShell(lines_per_page=max(len(components), 9))
+	shell = InteractiveShell(lines_per_page=max(len(keywords), 9))
 	shell.enter()
-	for componentname in components:
-		if not componentname in COMPONENTS:
-			print(f"Not found component {componentname}!")
+	for keyword in keywords:
+		if not keyword in COMPONENTS:
+			print(f"Not found component '{keyword}'!")
 			continue
-		if componentname == "cpp":
+		if keyword == "cpp":
 			continue
-		component = COMPONENTS[componentname]
+		component = COMPONENTS[keyword]
 		progress = Progress(text=component.name)
 		shell.interactables.append(progress)
 		shell.render()
@@ -140,7 +148,7 @@ def install_components(components):
 		except BaseException as err:
 			progress.seek(0, f"{component.keyword}: {err}")
 		shell.render()
-	if "cpp" in components:
+	if "cpp" in keywords:
 		abis = TOOLCHAIN_CONFIG.get_value("abis", [])
 		if not isinstance(abis, list):
 			abis = []
@@ -161,7 +169,7 @@ def install_components(components):
 			], reinstall=True)
 	shell.interactables.append(Interrupt())
 
-def fetch_component(component):
+def fetch_component(component: Component) -> bool:
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
 	if component.keyword == "cpp":
 		return isdir(output)
@@ -175,26 +183,28 @@ def fetch_component(component):
 	if not hasattr(component, "commiturl"):
 		return True
 	try:
-		with open(join(output, ".commit")) as commit_file:
-			response = request.urlopen(component.commiturl)
-			return perform_diff(response.read().decode("utf-8"), commit_file.read())
-	except BaseException:
+		if hasattr(component, "commiturl") and component.commiturl is not None:
+			with open(join(output, ".commit")) as commit_file:
+				response = request.urlopen(component.commiturl)
+				return perform_diff(response.read().decode("utf-8"), commit_file.read())
+	except URLError:
 		return True
+	return False
 
-def perform_diff(a, b):
+def perform_diff(a: object, b: object) -> bool:
 	return str(a).strip() == str(b).strip()
 
-def fetch_components():
+def fetch_components() -> List[str]:
 	upgradable = []
-	for componentname in which_installed():
-		if not componentname in COMPONENTS:
-			print(f"Not found component {componentname}!")
+	for keyword in which_installed():
+		if not keyword in COMPONENTS:
+			print(f"Not found component '{keyword}'!")
 			continue
-		if not fetch_component(COMPONENTS[componentname]):
-			upgradable.append(componentname)
+		if not fetch_component(COMPONENTS[keyword]):
+			upgradable.append(keyword)
 	return upgradable
 
-def get_username():
+def get_username() -> Optional[str]:
 	username = TOOLCHAIN_CONFIG.get_value("template.author")
 	if username is not None:
 		return username
@@ -203,7 +213,7 @@ def get_username():
 	except KeyError:
 		return None
 
-def startup():
+def startup() -> None:
 	print("Welcome to Inner Core Mod Toolchain!", end="")
 	shell = SelectiveShell()
 	shell.interactables += [
@@ -235,8 +245,8 @@ def startup():
 			preffered.append("adb")
 	except BaseException:
 		pass
-	components = put_components(preffered)
-	interactables = [
+	components = get_component_switches(preffered)
+	interactables: List[Shell.Interactable] = [
 		Notice("Which components will be installed?")
 	]
 	component = 0
@@ -282,51 +292,49 @@ def startup():
 		shell.loop()
 	except KeyboardInterrupt:
 		shell.leave()
-		return print()
+		print(); return
 	print()
 
-	username = shell.get_interactable("user").read()
+	username = shell.get_interactable("user", Input).read()
 	if ensure_not_whitespace(username) is not None:
 		print("Who are you?", f"\x1b[2m{username}\x1b[0m")
 		TOOLCHAIN_CONFIG.set_value("template.author", username)
 
-	typescript = shell.get_interactable("typescript").checked
+	typescript = shell.get_interactable("typescript", Switch).checked
 	if typescript:
 		print("You'll want to build everything with TypeScript")
 		TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
 
-	composite = shell.get_interactable("composite").checked
+	composite = shell.get_interactable("composite", Switch).checked
 	if not composite:
 		print("You've denied building separate files with each other")
 		TOOLCHAIN_CONFIG.set_value("project.composite", composite)
 
-	references = shell.get_interactable("references").checked
+	references = shell.get_interactable("references", Switch).checked
 	if references:
 		print("You're preffer using few script directories in project")
 		TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
 
 	TOOLCHAIN_CONFIG.save()
 
-	installation = resolve_components(shell.interactables)
-	if len(installation) > 0:
-		print("Which components will be installed? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")
-		install_components(installation)
+	pending = resolve_selected_components(shell.interactables)
+	if len(pending) > 0:
+		print("Which components will be installed? ", "\x1b[2m", ", ".join(pending), "\x1b[0m", sep="")
+		install_components(*pending)
 
-def foreign():
+def upgrade() -> int:
 	print("Which components will be upgraded?", end="")
 	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
-	shell.interactables += put_components(which_installed())
+	shell.interactables += get_component_switches(which_installed())
 	shell.interactables.append(Interrupt())
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
-		shell.leave()
-		print()
-		return 0
-	installation = resolve_components(shell.interactables)
-	if len(installation) > 0:
-		print("Which components will be upgraded? ", "\x1b[2m", ", ".join(installation), "\x1b[0m", sep="")
-		install_components(installation)
+		shell.leave(); print(); return 1
+	installed = resolve_selected_components(shell.interactables)
+	if len(installed) > 0:
+		print("Which components will be upgraded? ", "\x1b[2m", ", ".join(installed), "\x1b[0m", sep="")
+		install_components(*installed)
 	else:
 		print("Nothing to perform.")
 	return 0
@@ -334,10 +342,10 @@ def foreign():
 
 if __name__ == "__main__":
 	if "--help" in sys.argv:
-		print("Usage: component.py <options> [components]")
+		print("Usage: python component.py <options> [components]")
 		print(" " * 2 + "--startup: Startup configuration instead of component installation.")
 		exit(0)
 	if "--startup" in sys.argv or "-s" in sys.argv:
 		startup()
 	else:
-		foreign()
+		upgrade()

@@ -1,7 +1,8 @@
-import os
-from os.path import isfile, isdir, join, dirname, getmtime, getsize
-from errno import ENOENT
 import json
+import os
+from errno import ENOENT
+from os.path import dirname, getmtime, getsize, isdir, isfile, join
+from typing import Collection, Dict, Final, List
 
 from .make_config import MAKE_CONFIG
 from .utils import get_all_files
@@ -11,20 +12,24 @@ try:
 except ImportError:
 	from hashlib import md5 as encode
 
+
 class HashStorage:
-	last_hashes = {}
-	hashes = {}
+	last_hashes: Dict[str, str]
+	hashes: Dict[str, str]
+	path: Final[str]
 
-	def __init__(self, file):
-		self.file = file
-		if isfile(file):
+	def __init__(self, path: str) -> None:
+		self.path = path
+		if isfile(path):
 			self.read()
+		self.last_hashes = {}
+		self.hashes = {}
 
-	def read(self):
-		with open(self.file, "r") as input:
-			self.last_hashes = json.load(input)
+	def read(self) -> None:
+		with open(self.path, "r") as file:
+			self.last_hashes = json.load(file)
 
-	def get_path_hash(self, path, force = False):
+	def get_path_hash(self, path: str, force: bool = False) -> str:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
 		if not force and encoded in self.hashes:
 			return self.hashes[encoded]
@@ -40,13 +45,13 @@ class HashStorage:
 		return hash
 
 	@staticmethod
-	def do_comparing(path):
+	def do_comparing(path: str) -> bytes:
 		return bytes(str(getsize(path)), "utf-8") if COMPARING_MODE == "size" \
 			else bytes(str(getmtime(path)), "utf-8") if COMPARING_MODE == "modify" \
 			else open(path, "rb").read() if COMPARING_MODE == "content" else bytes()
 
 	@staticmethod
-	def get_directory_hash(directory):
+	def get_directory_hash(directory: str) -> str:
 		total = encode()
 		for dirpath, dirnames, filenames in os.walk(directory):
 			for filename in filenames:
@@ -55,10 +60,10 @@ class HashStorage:
 		return total.hexdigest()
 
 	@staticmethod
-	def get_file_hash(file):
-		return encode(HashStorage.do_comparing(file)).hexdigest()
+	def get_file_hash(path: str) -> str:
+		return encode(HashStorage.do_comparing(path)).hexdigest()
 
-	def get_modified_files(self, path, extensions = (), force = False):
+	def get_modified_files(self, path: str, extensions: Collection[str] = (), force: bool = False) -> List[str]:
 		if not isdir(path):
 			raise NotADirectoryError(path)
 		return list(filter(
@@ -66,15 +71,15 @@ class HashStorage:
 			get_all_files(path, extensions)
 		))
 
-	def save(self):
-		os.makedirs(dirname(self.file), exist_ok=True)
-		with open(self.file, "w") as output:
-			output.write(json.dumps({
+	def save(self) -> None:
+		os.makedirs(dirname(self.path), exist_ok=True)
+		with open(self.path, "w") as file:
+			file.write(json.dumps({
 				**self.last_hashes,
 				**self.hashes
 			}, indent=None, separators=(",", ":")) + "\n")
 
-	def is_path_changed(self, path, force = False):
+	def is_path_changed(self, path: str, force: bool = False) -> bool:
 		hash = self.get_path_hash(path, force)
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
 		return encoded not in self.last_hashes \
