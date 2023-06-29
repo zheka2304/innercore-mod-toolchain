@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task importProject
+python3 -m icmtoolchain importProject

@@ -1,5 +1,5 @@
 # decribe tsconfig exclusive to this source
-# explainFiles
+# noUnusedLocals
 # lib: es2016
 # or exclude default properties with !property
 

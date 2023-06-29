@@ -8,7 +8,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, join
 from typing import List, Optional, Union
 
 from .make_config import TOOLCHAIN_CONFIG
-from .shell import Progress, Shell, abort, error, warn
+from .shell import Progress, Shell, abort, confirm, error, warn
 from .utils import AttributeZipFile, remove_tree
 
 
@@ -156,14 +156,11 @@ def install(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> i
 		if ndk_path is None:
 			if not reinstall:
 				print("Not found valid NDK installation for '", arches, "'.", sep="")
-			try:
-				if reinstall or input("Download android-ndk-r16b-x86_64? [N/y] ")[:1].lower() == "y":
-					if shell is not None:
-						shell.enter()
-					ndk_path = download(shell)
-				else:
-					abort()
-			except KeyboardInterrupt:
+			if reinstall or confirm("Download android-ndk-r16b-x86_64?", True):
+				if shell is not None:
+					shell.enter()
+				ndk_path = download(shell)
+			else:
 				abort()
 		elif shell is not None:
 			shell.enter()

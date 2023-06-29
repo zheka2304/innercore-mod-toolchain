@@ -169,7 +169,7 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 				continue
 
 		if not BUILD_STORAGE.is_path_changed(temp_path):
-			info(f"* Build target {basename(temp_path)} is not changed.")
+			info(f"* Build target '{basename(temp_path)}' is not changed.")
 
 	for included in composite:
 		# Single JavaScript sources when TypeScript is not forced just copies to output without
@@ -180,7 +180,7 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 			temp_path = included[0]
 
 		if temp_path == included[0] and isfile(temp_path) and BUILD_STORAGE.is_path_changed(temp_path):
-			debug(f"Flushing {basename(included[1])} from {basename(included[0])}")
+			print(f"Flushing '{basename(included[1])}' from '{basename(included[0])}'")
 
 		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
@@ -190,7 +190,7 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 				continue
 
 		if not BUILD_STORAGE.is_path_changed(temp_path):
-			info(f"* Build target {basename(temp_path)} is not changed.")
+			info(f"* Build target '{basename(temp_path)}' is not changed.")
 
 	BUILD_STORAGE.save()
 

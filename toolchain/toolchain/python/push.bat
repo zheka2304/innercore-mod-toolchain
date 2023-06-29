@@ -1,2 +1,2 @@
 @echo off
-python -m innercoremodtoolchain.task stopHorizon pushEverything launchHorizon
+python -m icmtoolchain stopHorizon pushEverything launchHorizon

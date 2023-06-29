@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task loadDocs
+python3 -m icmtoolchain loadDocs

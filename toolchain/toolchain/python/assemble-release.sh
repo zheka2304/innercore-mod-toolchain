@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage @ --clean
+python3 -m icmtoolchain clearOutput buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage @ --clean

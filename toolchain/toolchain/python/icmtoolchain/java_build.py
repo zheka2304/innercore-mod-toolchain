@@ -122,7 +122,7 @@ def run_d8(directory_name: str, modified_pathes: Dict[str, List[str]], cache_dir
 		if result != 0:
 			return result
 		index += max_span_size
-		print(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
+		debug(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
 
 	debug("Compressing archives")
 	dex_classes_dir = join(cache_dir, "d8", directory_name)

@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task removeProject
+python3 -m icmtoolchain removeProject

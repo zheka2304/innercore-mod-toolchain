@@ -1,11 +1,12 @@
 import os
-import sys
+import shutil
 import time
 from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import IO, Any, Callable, Dict, List, Optional
 
+from . import colorama
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import abort, info, warn
+from .shell import abort, confirm, info, stringify, warn
 from .utils import (DEVNULL, copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, remove_tree)
 
@@ -53,22 +54,22 @@ def task(name: str, locks: Optional[List[str]] = None, description: Optional[str
 	if locks is None:
 		locks = []
 
-	def decorator(callable: Callable[[Optional[List[str]]], int]):
-		def caller(args: Optional[List[str]] = None):
+	def decorator(task: Callable[[Optional[List[str]]], int]):
+		def callable(args: Optional[List[str]] = None):
 			lock_task(name, silent=False)
 			for lock_name in locks:
 				lock_task(lock_name, silent=False)
-			info(f"> Executing task: {name}")
-			task_result = callable(args)
+			info(stringify(f"> Executing task: {name}", color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL, end=""))
+			task_result = task(args)
 			unlock_task(name)
 			for lock_name in locks:
 				unlock_task(lock_name)
 			return task_result
 
-		registered_tasks[name] = caller
+		registered_tasks[name] = callable
 		if description is not None:
 			descriptioned_tasks[name] = description
-		return caller
+		return callable
 
 	return decorator
 
@@ -199,11 +200,11 @@ def task_build_additional(args: Optional[List[str]] = None) -> int:
 				if not exists(additional_path):
 					warn("* Non-existing additional path: " + additional_path)
 					break
-				target = MAKE_CONFIG.get_path(join(
-					"output",
-					additional_dir["targetDir"],
+				from .mod_structure import MOD_STRUCTURE
+				target = join(
+					MOD_STRUCTURE.directory, additional_dir["targetDir"],
 					additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
-				))
+				)
 				if isdir(additional_path):
 					copy_directory(additional_path, target)
 				else:
@@ -217,7 +218,8 @@ def task_build_additional(args: Optional[List[str]] = None) -> int:
 )
 def task_push_everything(args: Optional[List[str]] = None) -> int:
 	from .device import push
-	return push(MAKE_CONFIG.get_path("output"), MAKE_CONFIG.get_value("adb.pushUnchangedFiles", True))
+	from .mod_structure import MOD_STRUCTURE
+	return push(MOD_STRUCTURE.directory, MAKE_CONFIG.get_value("adb.pushUnchangedFiles", True))
 
 @task(
 	"clearOutput",
@@ -226,7 +228,8 @@ def task_push_everything(args: Optional[List[str]] = None) -> int:
 )
 def task_clear_output(args: Optional[List[str]] = None) -> int:
 	if MAKE_CONFIG.get_value("development.clearOutput", False) or (args is not None and "--clean" in args):
-		remove_tree(MAKE_CONFIG.get_path("output"))
+		from .mod_structure import MOD_STRUCTURE
+		remove_tree(MOD_STRUCTURE.directory)
 	return 0
 
 @task(
@@ -236,7 +239,8 @@ def task_clear_output(args: Optional[List[str]] = None) -> int:
 )
 def task_exclude_directories(args: Optional[List[str]] = None) -> int:
 	for path in MAKE_CONFIG.get_value("excludeFromRelease", []):
-		for exclude in MAKE_CONFIG.get_paths(join("output", path)):
+		from .mod_structure import MOD_STRUCTURE
+		for exclude in MAKE_CONFIG.get_paths(join(relpath(MOD_STRUCTURE.directory, MAKE_CONFIG.directory), path)):
 			if isdir(exclude):
 				remove_tree(exclude)
 			elif isfile(exclude):
@@ -249,8 +253,8 @@ def task_exclude_directories(args: Optional[List[str]] = None) -> int:
 	description="Performs release mod assembling, already builded 'output' will be used."
 )
 def task_build_package(args: Optional[List[str]] = None) -> int:
-	import shutil
-	output_dir = MAKE_CONFIG.get_path("output")
+	from .mod_structure import MOD_STRUCTURE
+	output_dir = MOD_STRUCTURE.directory
 	name = basename(MAKE_CONFIG.current_project) if MAKE_CONFIG.current_project is not None else "unknown"
 	output_dir_root_tmp = MAKE_CONFIG.get_build_path("package")
 	output_dir_tmp = join(output_dir_root_tmp, name)
@@ -339,16 +343,12 @@ def task_new_project(args: Optional[List[str]] = None) -> int:
 
 	index = new_project(MAKE_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
-		print()
-		abort()
+		print(); abort()
 	print("Successfully completed!")
 
 	from .project_manager import PROJECT_MANAGER
-	try:
-		if input("Select this project? [Y/n] ")[:1].lower() == "n":
-			return 0
-	except KeyboardInterrupt:
-		pass
+	if not confirm("Select this project?", True):
+		return 0
 	PROJECT_MANAGER.select_project(index=index)
 	return 0
 
@@ -363,11 +363,8 @@ def task_import_project(args: Optional[List[str]] = None) -> int:
 	print("Project successfully imported!")
 
 	from .project_manager import PROJECT_MANAGER
-	try:
-		if input("Select this project? [Y/n] ")[:1].lower() == "n":
-			return 0
-	except KeyboardInterrupt:
-		pass
+	if not confirm("Select this project?", True):
+		return 0
 	PROJECT_MANAGER.select_project(folder=relpath(path, TOOLCHAIN_CONFIG.directory))
 	return 0
 
@@ -381,17 +378,12 @@ def task_remove_project(args: Optional[List[str]] = None) -> int:
 	if PROJECT_MANAGER.how_much() == 0:
 		abort("Not found any project to remove.")
 	print("Selected project will be deleted forever, please think twice before removing anything!")
+
 	who = PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	if who is None:
-		exit(0)
-
-	if PROJECT_MANAGER.how_much() > 1:
-		try:
-			if input("Do you really want to delete it? [Y/n] ")[:1].lower() == "n":
-				print("Abort.")
-				return 0
-		except KeyboardInterrupt:
-			pass
+		return 0
+	if PROJECT_MANAGER.how_much() > 1 and not confirm("Do you really want to delete it?", True):
+		return 0
 
 	try:
 		location = TOOLCHAIN_CONFIG.get_absolute_path(who)
@@ -432,7 +424,7 @@ def task_select_project(args: Optional[List[str]] = None) -> int:
 
 	who = PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
-		exit(0)
+		return 1
 	try:
 		PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
@@ -450,12 +442,8 @@ def task_update_toolchain(args: Optional[List[str]] = None) -> int:
 	upgradable = fetch_components()
 	if len(upgradable) > 0:
 		info("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
-		try:
-			if input("Do you want to upgrade it? [Y/n] ")[:1].lower() == "n":
-				print("Abort.")
-				return 0
-		except KeyboardInterrupt:
-			pass
+		if not confirm("Do you want to upgrade it?", True):
+			return 0
 		install_components(*upgradable)
 	return 0
 
@@ -474,65 +462,13 @@ def task_component_integrity(args: Optional[List[str]] = None) -> int:
 def task_cleanup(args: Optional[List[str]] = None) -> int:
 	from .package import cleanup_relative_directory
 	if MAKE_CONFIG.current_project is not None:
-		try:
-			if input("Do you want to clear only selected project (everything cache will be cleaned otherwise)? [Y/n] ")[:1].lower() == "n":
-				cleanup_relative_directory("toolchain/build")
-				return 0
-		except KeyboardInterrupt:
-			pass
-		cleanup_relative_directory("toolchain/build/" + MAKE_CONFIG.get_project_unique_name())
-		cleanup_relative_directory("output", True)
-		return 0
+		if confirm("Do you want to clear only selected project (everything cache will be cleaned otherwise)?", True, prints_abort=False):
+			cleanup_relative_directory("toolchain/build/" + MAKE_CONFIG.get_project_unique_name())
+			from .mod_structure import MOD_STRUCTURE
+			cleanup_relative_directory(MOD_STRUCTURE.directory, True)
+			return 0
 	else:
-		try:
-			if input("Do you want to clear all projects cache? [Y/n] ")[:1].lower() == "n":
-				print("Abort.")
-				return 0
-		except KeyboardInterrupt:
-			pass
+		if not confirm("Do you want to clear all projects cache?", True):
+			return 0
 	cleanup_relative_directory("toolchain/build")
 	return 0
-
-
-if __name__ == "__main__":
-	if "--help" in sys.argv:
-		print("Usage: task.py <tasks> @ [arguments]")
-		print(" " * 2 + "--help: Just show this message.")
-		print(" " * 2 + "--list: See all availabled tasks.")
-		print("Executes declared by @task annotation required tasks.")
-		exit(0)
-
-	if "--list" in sys.argv:
-		print("All availabled tasks:")
-		for name in registered_tasks:
-			print(" " * 2 + name, end="")
-			print(": " + descriptioned_tasks[name] if name in descriptioned_tasks else "")
-		exit(0)
-
-	argv = sys.argv[1:]
-
-	# Anything after "@" passes as global arguments
-	if "@" in argv:
-		where = argv.index("@")
-		args = argv[where + 1:]
-		argv = argv[:where]
-	else:
-		args = None
-
-	if len(argv) > 0:
-		for task_name in argv:
-			if task_name in registered_tasks:
-				try:
-					result = registered_tasks[task_name](args)
-					if result != 0:
-						abort("__task__", f"* Task {task_name} failed with result {result}.", code=result)
-				except BaseException as err:
-					if isinstance(err, SystemExit):
-						raise err
-					abort("__task__", f"* Task {task_name} failed with unexpected error!", cause=err)
-			else:
-				warn(f"* No such task: {task_name}.")
-	else:
-		abort("__task__", "* No tasks to execute.")
-
-	unlock_all_tasks()

@@ -4,7 +4,7 @@ import time
 from os.path import basename, exists, isdir, join, relpath
 from typing import Any, Dict, List, Optional
 
-from .. import colorama
+from . import colorama
 from .base_config import BaseConfig
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .project_manager import PROJECT_MANAGER
@@ -30,9 +30,9 @@ def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optiona
 					warn(f"* Declared invalid directory {path}, it will be skipped")
 	return directories
 
-def cleanup_relative_directory(path: str, project: bool = False) -> None:
+def cleanup_relative_directory(path: str, absolute: bool = False) -> None:
 	start_time = time.time()
-	remove_tree(MAKE_CONFIG.get_path(path) if project else TOOLCHAIN_CONFIG.get_path(path))
+	remove_tree(path if absolute else TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")
 
 def select_template() -> Optional[str]:
@@ -215,8 +215,7 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 	try:
 		what = shell.what()
 		if what is None or what in additionals:
-			print()
-			return print("Abort.")
+			print(); print("Abort."); return
 		print((prompt + " " if prompt is not None else "") + stringify(what, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		return what
 	except ValueError:

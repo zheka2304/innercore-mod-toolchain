@@ -26,6 +26,6 @@
 		"*.py"
 	],
 	"python.analysis.exclude": [
-		"toolchain/toolchain/python/colorama"
+		"toolchain/toolchain/python/icmtoolchain/colorama"
 	]
 }

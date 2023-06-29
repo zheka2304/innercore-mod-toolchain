@@ -9,7 +9,7 @@ try:
 except ImportError:
 	import msvcrt
 
-from .. import colorama
+from . import colorama
 
 if platform.system() == "Windows":
 	colorama.just_fix_windows_console()
@@ -82,22 +82,27 @@ class Shell():
 		except ValueError:
 			self.offset += len(value)
 
-	def up(self, count: int) -> None:
+	def up(self, count: int = 1) -> None:
 		self.write(colorama.Cursor.UP(count))
 
-	def down(self, count: int) -> None:
+	def down(self, count: int = 1) -> None:
 		self.write(colorama.Cursor.DOWN(count))
 
-	def forward(self, count: int) -> None:
+	def forward(self, count: int = 1) -> None:
 		self.write(colorama.Cursor.FORWARD(count))
 
-	def backward(self, count: int) -> None:
+	def backward(self, count: int = 1) -> None:
 		self.write(colorama.Cursor.BACK(count))
 
 	def clear(self) -> None:
 		if self.line > 0:
+			buffer = ""
 			for offset in range(self.line):
-				self.stdout.write(colorama.ansi.clear_line())
+				buffer += colorama.ansi.clear_line()
+				if offset < self.line:
+					buffer += colorama.ansi.CSI + "F"
+			buffer += colorama.ansi.CSI + "G"
+			self.write(buffer)
 			self.line = 0
 		self.offset = 0
 
@@ -145,23 +150,22 @@ class Shell():
 		self.render()
 
 	def loop(self) -> None:
-		self.enter()
-		while True:
-			try:
-				key = self.input(1)
-				observed = False
-				for interactable in self.interactables:
-					observed = self.touch(interactable, key) or observed
-				if not observed:
-					observed = self.observe(key)
-				if observed:
-					self.render()
-			except EOFError:
-				break
-			except KeyboardInterrupt as err:
-				self.leave()
-				raise err
-		self.leave()
+		with self:
+			while True:
+				try:
+					key = self.input(1)
+					observed = False
+					for interactable in self.interactables:
+						observed = self.touch(interactable, key) or observed
+					if not observed:
+						observed = self.observe(key)
+					if observed:
+						self.render()
+				except EOFError:
+					break
+				except KeyboardInterrupt as err:
+					self.leave()
+					raise err
 
 	def leave(self) -> None:
 		self.show_cursor()
@@ -177,6 +181,13 @@ class Shell():
 
 	def scroll_down(self) -> None:
 		self.write(colorama.ansi.CSI + "T")
+
+	def __enter__(self) -> 'Shell':
+		self.enter()
+		return self
+
+	def __exit__(self, type, value, traceback) -> None:
+		self.leave()
 
 	@staticmethod
 	def notify(shell: Optional['Shell'], message: str) -> None:
@@ -718,6 +729,18 @@ def select_prompt(prompt: Optional[str] = None, *variants: Optional[str], fallba
 		return interactable.key if interactable is not None else None
 	return select_prompt_internal(prompt, *variants, fallback=fallback)[0]
 
+def confirm(prompt: str, fallback: bool, prints_abort: bool = True) -> bool:
+	try:
+		if input(prompt + (" [Y/n] " if fallback else " [N/y] ")).lower()[:1] == ("n" if fallback else "y"):
+			if prints_abort and fallback:
+				print("Abort.")
+			return not fallback
+	except KeyboardInterrupt:
+		print()
+	if prints_abort and not fallback:
+		print("Abort.")
+	return fallback
+
 def link(text: str, url: Optional[str] = None) -> str:
 	return f"{colorama.ansi.OSC}8;;{url if url is not None else text}{colorama.ansi.BEL}{text}{colorama.ansi.OSC}8;;{colorama.ansi.BEL}"
 
@@ -737,17 +760,14 @@ def printc(*values: object, color: Optional[Union[int, str]] = None, reset: Opti
 		if isinstance(color, int):
 			color = colorama.ansi.code_to_chars(color)
 		print(color, end="", file=file, flush=flush)
-	print(*values, end=(end or "\n") if reset is None else "", sep=sep, file=file, flush=flush)
+	print(*values, end=end if reset is None else "", sep=sep, file=file, flush=flush)
 	if reset is not None:
 		if isinstance(reset, int):
 			reset = colorama.ansi.code_to_chars(reset)
 		print(reset, end=end, file=file, flush=flush)
 
 def debug(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
-	printc(*values, color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
-
-def log(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
-	printc(*values, color=colorama.Fore.WHITE, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+	printc(*values, color=colorama.Style.DIM, reset=colorama.Style.NORMAL, sep=sep, end=end, file=file, flush=flush)
 
 def info(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
 	printc(*values, color=colorama.Fore.LIGHTGREEN_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)

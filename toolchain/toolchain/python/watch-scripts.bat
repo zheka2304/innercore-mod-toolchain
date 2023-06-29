@@ -1,2 +1,2 @@
 @echo off
-python -m innercoremodtoolchain.task clearOutput watchScripts buildInfo
+python -m icmtoolchain clearOutput watchScripts buildInfo

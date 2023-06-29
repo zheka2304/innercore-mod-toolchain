@@ -1,2 +1,2 @@
 @echo off
-python -m innercoremodtoolchain.task compileJavaDebug buildInfo
+python -m icmtoolchain compileJavaDebug buildInfo

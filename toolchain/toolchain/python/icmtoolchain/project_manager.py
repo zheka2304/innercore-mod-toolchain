@@ -4,7 +4,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join
 from typing import Any, Dict, Final, List, Optional, Tuple
 
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import abort, warn
+from .shell import abort, confirm, warn
 from .utils import ensure_not_whitespace, remove_tree
 from .workspace import CODE_SETTINGS, CODE_WORKSPACE
 
@@ -211,12 +211,8 @@ class ProjectManager:
 			if prompt_when_single is None:
 				return itwillbe
 			else:
-				try:
-					if input(prompt_when_single.format(self.get_shortcut(itwillbe)) + " [Y/n] ")[:1].lower() == "n":
-						return print("Abort.")
-				except KeyboardInterrupt:
-					print()
-					return print("Abort.")
+				if not confirm(prompt_when_single.format(self.get_shortcut(itwillbe)), True):
+					return None
 				return itwillbe
 		return select_project(self.projects, prompt, MAKE_CONFIG.current_project, *dont_want_anymore)
 

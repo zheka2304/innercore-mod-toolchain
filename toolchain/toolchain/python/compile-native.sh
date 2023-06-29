@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task compileNativeDebug buildInfo
+python3 -m icmtoolchain compileNativeDebug buildInfo

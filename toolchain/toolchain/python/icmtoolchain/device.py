@@ -8,7 +8,8 @@ from typing import Any, Dict, Final, List, Optional, Tuple
 
 from .hash_storage import OUTPUT_STORAGE
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import Progress, Shell, abort, error, link, select_prompt, warn
+from .shell import (Progress, Shell, abort, confirm, error, link,
+                    select_prompt, warn)
 from .utils import DEVNULL
 
 
@@ -117,45 +118,44 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
 		Progress.notify(shell, progress, 1, "Nothing to push...")
-		shell.enter(); shell.leave(); return 0
+		with shell: return 0
 
 	dst_root = get_modpack_push_directory()
 	if dst_root is None:
 		return 1
 
-	shell.enter()
-	dst_root = dst_root.replace("\\", "/")
-	if not dst_root.startswith("/"):
-		dst_root = "/" + dst_root
-	src_root = directory.replace("\\", "/")
+	with shell:
+		dst_root = dst_root.replace("\\", "/")
+		if not dst_root.startswith("/"):
+			dst_root = "/" + dst_root
+		src_root = directory.replace("\\", "/")
 
-	percent = 0
-	for filename in items:
-		src = src_root + "/" + filename
-		dst = dst_root + "/" + filename
-		if shell is not None and progress is not None:
-			progress.seek(percent / len(items), "Pushing " + filename)
-			shell.render()
-		try:
-			subprocess.call(ADB_COMMAND + [
-				"shell", "rm", "-r", dst
-			], stderr=DEVNULL, stdout=DEVNULL)
-			result = subprocess.call(ADB_COMMAND + [
-				"push", src, dst
-			], stderr=DEVNULL, stdout=DEVNULL)
-		except KeyboardInterrupt:
-			Progress.notify(shell, progress, 0.5, "Pushing aborted.")
-			shell.leave(); return 1
-		percent += 1
+		percent = 0
+		for filename in items:
+			src = src_root + "/" + filename
+			dst = dst_root + "/" + filename
+			if shell is not None and progress is not None:
+				progress.seek(percent / len(items), "Pushing " + filename)
+				shell.render()
+			try:
+				subprocess.call(ADB_COMMAND + [
+					"shell", "rm", "-r", dst
+				], stderr=DEVNULL, stdout=DEVNULL)
+				result = subprocess.call(ADB_COMMAND + [
+					"push", src, dst
+				], stderr=DEVNULL, stdout=DEVNULL)
+			except KeyboardInterrupt:
+				Progress.notify(shell, progress, 0.5, "Pushing aborted.")
+				return 1
+			percent += 1
 
-		if result != 0:
-			Progress.notify(shell, progress, 0.5, f"Failed {filename} with code {result}")
-			shell.leave(); return result
+			if result != 0:
+				Progress.notify(shell, progress, 0.5, f"Failed {filename} with code {result}")
+				return result
 
-	if not push_unchanged:
-		OUTPUT_STORAGE.save()
-	Progress.notify(shell, progress, 1, "Pushed")
-	shell.leave()
+		if not push_unchanged:
+			OUTPUT_STORAGE.save()
+		Progress.notify(shell, progress, 1, "Pushed")
 	return 0
 
 def make_locks(*locks: str) -> int:
@@ -333,13 +333,8 @@ def get_adb_command_by_serial(serial: str) -> List[str]:
 def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool = False) -> Optional[List[str]]:
 	ensure_server_running()
 	if get_adb_command_by_serialno_type("-e") is None:
-		if skip_error:
+		if skip_error or not confirm("Are you sure want to save it?", False):
 			return None
-		try:
-			if input("Are you sure want to save it? [N/y] ")[:1].lower() != "y":
-				print("Abort."); return None
-		except KeyboardInterrupt:
-			print("Abort."); return None
 	device: dict[str, Any] = {
 		"ip": ip
 	}
@@ -425,71 +420,68 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 	shell = Shell()
 	progress = Progress(text="Connecting")
 	shell.interactables.append(progress)
-	shell.enter()
-	accepted = []
-	try:
-		import asyncio
-		asyncio.run(ping_async(ip, shell, progress, accepted))
-	except ImportError:
-		for index in range(256):
-			if str(index) == ip[2]:
-				continue
-			next_ip = "{}.{}".format(ip[0], index)
-			if ping_via_shell(next_ip, shell, progress, index):
-				accepted.append(next_ip)
-	except KeyboardInterrupt:
-		print()
-		shell.leave()
-		return setup_via_network()
-	if len(accepted) == 0:
-		print()
-		shell.leave()
-		print("Not found anything, are you sure that network connected?")
-		return setup_via_network()
-	subprocess.run([
-		TOOLCHAIN_CONFIG.get_adb(),
-		"disconnect"
-	], stdout=DEVNULL, stderr=DEVNULL)
-	print()
-	print("\n".join(accepted))
-	print("Pinging every port, interrupt operation if you already know it.")
-	print()
-	latest = None
-	for next in accepted:
+	with shell:
+		accepted = []
 		try:
-			subprocess.run([
-				TOOLCHAIN_CONFIG.get_adb(),
-				"connect", next
-			], check=True, timeout=5.0, stdout=DEVNULL, stderr=DEVNULL)
-			command = get_adb_command_by_tcp(next, skip_error=True)
-			if command is not None:
-				latest = command
-			else:
-				print()
-		except subprocess.CalledProcessError as err:
-			error("adb connect failed with code", err.returncode)
-		except subprocess.TimeoutExpired:
-			print("Timeout")
+			import asyncio
+			asyncio.run(ping_async(ip, shell, progress, accepted))
+		except ImportError:
+			for index in range(256):
+				if str(index) == ip[2]:
+					continue
+				next_ip = "{}.{}".format(ip[0], index)
+				if ping_via_shell(next_ip, shell, progress, index):
+					accepted.append(next_ip)
 		except KeyboardInterrupt:
-			break
-		try:
-			ports = []
+			print()
+			return setup_via_network()
+		if len(accepted) == 0:
+			print()
+			print("Not found anything, are you sure that network connected?")
+			return setup_via_network()
+		subprocess.run([
+			TOOLCHAIN_CONFIG.get_adb(),
+			"disconnect"
+		], stdout=DEVNULL, stderr=DEVNULL)
+		print()
+		print("\n".join(accepted))
+		print("Pinging every port, interrupt operation if you already know it.")
+		print()
+		latest = None
+		for next in accepted:
 			try:
-				import asyncio
-				asyncio.run(connect_async(next, shell, progress, ports))
-			except ImportError:
-				pass
-			for port in ports:
-				command = get_adb_command_by_tcp(next + ":" + port, skip_error=True)
+				subprocess.run([
+					TOOLCHAIN_CONFIG.get_adb(),
+					"connect", next
+				], check=True, timeout=5.0, stdout=DEVNULL, stderr=DEVNULL)
+				command = get_adb_command_by_tcp(next, skip_error=True)
 				if command is not None:
 					latest = command
 				else:
 					print()
-		except KeyboardInterrupt:
-			break
+			except subprocess.CalledProcessError as err:
+				error("adb connect failed with code", err.returncode)
+			except subprocess.TimeoutExpired:
+				print("Timeout")
+			except KeyboardInterrupt:
+				break
+			try:
+				ports = []
+				try:
+					import asyncio
+					asyncio.run(connect_async(next, shell, progress, ports))
+				except ImportError:
+					pass
+				for port in ports:
+					command = get_adb_command_by_tcp(next + ":" + port, skip_error=True)
+					if command is not None:
+						latest = command
+					else:
+						print()
+			except KeyboardInterrupt:
+				break
+			print()
 		print()
-	print()
-	shell.leave()
 	return latest if latest is not None else setup_via_network()
 
 def ping_via_shell(ip: str, shell: Optional[Shell], progress: Optional[Progress], index: int) -> int:

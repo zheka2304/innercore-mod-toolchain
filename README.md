@@ -109,7 +109,7 @@ Once development is complete, the next step is to publish to [Mod Browser](https
 
 There are several options for using toolchain through the console or terminal. The first, and easiest, is to open the *toolchain/toolchain/python* folder in the console, manually running scripts there. You can add the same folder to `PATH` environment variable, how to do it on your platform can be found [here](https://www.java.com/en/download/help/path.html).
 
-If one of the tasks `python -m innercoremodtoolchain.task --list` or `python3 -m innercoremodtoolchain.task --list` is of interest to you, a great option is to integrate toolchain as a module for Python. Extend `PYTHONPATH` to use `innercoremodtoolchain.*` imports or run commands with `python -m innercoremodtoolchain.*` or `python3 -m innercoremodtoolchain.*` regardless of the working directory.
+If one of the tasks `python -m icmtoolchain --list` or `python3 -m icmtoolchain --list` is of interest to you, a great option is to integrate toolchain as a module for Python. Extend `PYTHONPATH` to use `icmtoolchain.*` imports or run commands with `python -m icmtoolchain.*` or `python3 -m icmtoolchain.*` regardless of the working directory.
 
 ```shell
 # Windows
@@ -121,7 +121,7 @@ export PYTHONPATH="<path to your toolchain installation>/toolchain/toolchain/pyt
 Now you can use scripts from the console without changing your working directory, if *toolchain.json* configuration is present in it or any folder above, it will be used instead of the global one. Use imports from your code, this is also now possible.
 
 ```py
-from innercoremodtoolchain import device
+from icmtoolchain import device
 device.setup_device_connection()
 ```
 

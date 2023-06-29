@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task componentIntegrity
+python3 -m icmtoolchain componentIntegrity

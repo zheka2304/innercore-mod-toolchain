@@ -18,7 +18,7 @@ Then just place the working files in the root folder of the toolchain, it does n
 
 ### How to change import path
 
-By running the **Import Project** task any project is converted to the appropriate folder relative to the toolchain, you can change the folder by running *toolchain-setup.py* or *toolchain/python/innercoremodtoolchain/import.py* using the second argument as the target folder. Use `--help` to get a list of available commands and their descriptions.
+By running the **Import Project** task any project is converted to the appropriate folder relative to the toolchain, you can change the folder by running *toolchain-setup.py* or *toolchain/python/icmtoolchain/import.py* using the second argument as the target folder. Use `--help` to get a list of available commands and their descriptions.
 
 ### Variable `${fileWorkspaceFolder}` can not be resolved. Please open an editor
 
@@ -60,7 +60,7 @@ For some unknown reason, your *gradlew* file did not have executable flag applie
 
 After downloading and unpacking NDK, executable flag was lost and operating system does not allow process to run. Download and install NDK manually or just type `chmod -R +x *` on opened in terminal directory `toolchain/ndk/<required-arch>` of your GCCs.
 
-### FileNotFoundError: No such file or directory: \<toolchain\>/innercoremodtoolchain/colorama/\_\_init\_\_.py'
+### FileNotFoundError: No such file or directory: \<toolchain\>/icmtoolchain/colorama/\_\_init\_\_.py'
 
 Please, install updates manually. Archive located in `toolchain/temp`, so just replace `toolchain` with new directory. Now, updates will be installed correctly.
 

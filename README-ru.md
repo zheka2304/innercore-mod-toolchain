@@ -109,7 +109,7 @@ python3 toolchain-setup.py --help
 
 Есть несколько вариантов использования тулчейна через консоль или терминал. Первый, и самый простой — открыть папку *toolchain/toolchain/python* в консоли, вручную запуская находящиеся там скрипты. Вы можете добавить эту же папку в переменную среды `PATH`, как это сделать на вашей платформе можно узнать [здесь](https://www.java.com/ru/download/help/path.html).
 
-Если одна из задач `python -m innercoremodtoolchain.task --list` или `python3 -m innercoremodtoolchain.task --list` заинтересовала вас, отличным вариантом будет интегрировать тулчейн как модуль для Python. Дополните `PYTHONPATH` для использования импортов `innercoremodtoolchain.*` или запуска команд с помощью `python -m innercoremodtoolchain.*` или `python3 -m innercoremodtoolchain.*` вне зависимости от рабочей папки.
+Если одна из задач `python -m icmtoolchain --list` или `python3 -m icmtoolchain --list` заинтересовала вас, отличным вариантом будет интегрировать тулчейн как модуль для Python. Дополните `PYTHONPATH` для использования импортов `icmtoolchain.*` или запуска команд с помощью `python -m icmtoolchain.*` или `python3 -m icmtoolchain.*` вне зависимости от рабочей папки.
 
 ```shell
 # Windows
@@ -121,7 +121,7 @@ export PYTHONPATH="<путь до вашей установки тулчейна
 Теперь вы можете использовать скрипты из консоли не изменяя своей рабочей директории, если конфигурация *toolchain.json* присутствует в ней или любой папке выше, она будет использоваться вместо глобальной. Используйте импорты из вашего кода, это также теперь возможно.
 
 ```py
-from innercoremodtoolchain import device
+from icmtoolchain import device
 device.setup_device_connection()
 ```
 

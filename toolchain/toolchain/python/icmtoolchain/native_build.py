@@ -165,7 +165,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 					if isfile(object_file):
 						os.remove(object_file)
 
-					debug("Compiling " + relative_file + " " * 96)
+					debug("Compiling '" + relative_file + "'" + " " * 48, end="\r")
 					result = max(result, subprocess.call(gcc + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))
@@ -180,6 +180,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 					os.remove(object_file)
 				overall_result = result
 
+		print()
 		if overall_result != CODE_OK:
 			error("Failed to compile with result ", overall_result)
 			return overall_result
@@ -203,7 +204,6 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 			error("Linker failed with result ", result)
 			overall_result = result
 			return overall_result
-		print()
 	return overall_result
 
 def compile_all_using_make_config(abis: Iterable[str]) -> int:

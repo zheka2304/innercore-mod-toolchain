@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task cleanup
+python3 -m icmtoolchain cleanup

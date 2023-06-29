@@ -206,7 +206,7 @@ class Includes:
 			end_time = datetime.datetime.now()
 			diff = end_time - start_time
 
-			info(f"Completed '{basename(target_path)}' build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
+			print(f"Completed '{basename(target_path)}' build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
 			if result != 0:
 				return result
 

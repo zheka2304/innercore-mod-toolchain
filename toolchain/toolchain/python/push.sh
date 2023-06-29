@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task stopHorizon pushEverything launchHorizon
+python3 -m icmtoolchain stopHorizon pushEverything launchHorizon

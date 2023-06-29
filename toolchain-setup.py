@@ -52,7 +52,7 @@ def download_and_extract_toolchain(directory: str) -> None:
 			if input("Do you want to download it again? [N/y] ")[:1].lower() != "y":
 				print("Abort."); return
 		except KeyboardInterrupt:
-			print("Abort."); return
+			print(); print("Abort."); return
 
 	if not exists(toolchain):
 		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
@@ -150,12 +150,12 @@ print()
 if "--foreign" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "innercoremodtoolchain.component"
+		"-m", "icmtoolchain.component"
 	], cwd=join(location, "toolchain", "toolchain", "python"))
 elif not "--no-startup" in sys.argv:
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "innercoremodtoolchain.component", "--startup"
+		"-m", "icmtoolchain.component", "--startup"
 	], cwd=join(location, "toolchain", "toolchain", "python"))
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
@@ -165,5 +165,5 @@ if "--import" in sys.argv:
 	folder = sys.argv[where + 1]
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "innercoremodtoolchain.import", folder
+		"-m", "icmtoolchain.import", folder
 	], cwd=join(location, "toolchain", "toolchain", "python"))

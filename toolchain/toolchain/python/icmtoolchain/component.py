@@ -6,7 +6,7 @@ from typing import Dict, Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
-from .. import colorama
+from . import colorama
 from .make_config import TOOLCHAIN_CONFIG
 from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
                     SelectiveShell, Separator, Shell, Switch, abort, stringify,
@@ -126,49 +126,49 @@ def install_components(*keywords: str) -> None:
 	if len(keywords) == 0:
 		return
 	shell = InteractiveShell(lines_per_page=max(len(keywords), 9))
-	shell.enter()
-	for keyword in keywords:
-		if not keyword in COMPONENTS:
-			print(f"Component '{keyword}' not availabled!")
-			continue
-		if keyword == "cpp":
-			continue
-		component = COMPONENTS[keyword]
-		progress = Progress(text=component.name)
-		shell.interactables.append(progress)
-		shell.render()
-		if fetch_component(component):
-			progress.seek(1)
+	with shell:
+		for keyword in keywords:
+			if not keyword in COMPONENTS:
+				print(f"Component '{keyword}' not availabled!")
+				continue
+			if keyword == "cpp":
+				continue
+			component = COMPONENTS[keyword]
+			progress = Progress(text=component.name)
+			shell.interactables.append(progress)
 			shell.render()
-			continue
-		try:
-			if download_component(component, shell, progress) == 0:
-				if extract_component(component, shell, progress) == 0:
-					progress.seek(1, component.name)
-		except URLError:
-			continue
-		except BaseException as err:
-			progress.seek(0, f"{component.keyword}: {err}")
-		shell.render()
-	if "cpp" in keywords:
-		abis = TOOLCHAIN_CONFIG.get_value("abis", [])
-		if not isinstance(abis, list):
-			abis = []
-		abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
-		if abi is None and len(abis) == 0:
-			abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
-		if abi is not None and not abi in abis:
-			abis.append(abi)
-		from .native_setup import abi_to_arch, check_installed, install
-		abis = list(filter(
-			lambda abi: not check_installed(abi_to_arch(abi)),
-			abis
-		))
-		if len(abis) > 0:
-			install([
-				abi_to_arch(abi) for abi in abis
-			], reinstall=True)
-	shell.interactables.append(Interrupt())
+			if fetch_component(component):
+				progress.seek(1)
+				shell.render()
+				continue
+			try:
+				if download_component(component, shell, progress) == 0:
+					if extract_component(component, shell, progress) == 0:
+						progress.seek(1, component.name)
+			except URLError:
+				continue
+			except BaseException as err:
+				progress.seek(0, f"{component.keyword}: {err}")
+			shell.render()
+		if "cpp" in keywords:
+			abis = TOOLCHAIN_CONFIG.get_value("abis", [])
+			if not isinstance(abis, list):
+				abis = []
+			abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
+			if abi is None and len(abis) == 0:
+				abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
+			if abi is not None and not abi in abis:
+				abis.append(abi)
+			from .native_setup import abi_to_arch, check_installed, install
+			abis = list(filter(
+				lambda abi: not check_installed(abi_to_arch(abi)),
+				abis
+			))
+			if len(abis) > 0:
+				install([
+					abi_to_arch(abi) for abi in abis
+				], reinstall=True)
+		shell.interactables.append(Interrupt())
 
 def fetch_component(component: Component) -> bool:
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
@@ -331,7 +331,7 @@ def upgrade() -> int:
 	try:
 		shell.loop()
 	except KeyboardInterrupt:
-		shell.leave(); print(); return 1
+		print(); return 1
 	installed = resolve_selected_components(shell.interactables)
 	if len(installed) > 0:
 		print("Which components will be upgraded?", stringify(", ".join(installed), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))

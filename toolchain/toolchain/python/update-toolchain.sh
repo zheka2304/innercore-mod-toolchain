@@ -1,1 +1,1 @@
-python3 -m innercoremodtoolchain.task updateToolchain
+python3 -m icmtoolchain updateToolchain

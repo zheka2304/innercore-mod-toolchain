@@ -6,7 +6,7 @@ from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
 from .base_config import BaseConfig
-from .shell import abort, debug, error, warn
+from .shell import abort, confirm, debug, error, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
                     get_project_folder_by_name)
 
@@ -222,14 +222,11 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	if exists(path) and isfile(path):
 		path = join(path, "..")
 	if not isdir(path):
-		error("Requested directory not found!")
-		exit(1)
+		abort("Requested directory not found!")
 	if exists(destination) and not isdir(destination):
-		error("Destination is not directory!")
-		exit(2)
+		abort("Destination is not directory!")
 	if not (isfile(join(path, "build.config")) or isfile(join(path, "make.json"))):
-		error("Not found 'build.config' or 'make.json' entry to import, nothing to do!")
-		exit(3)
+		abort("Not found 'build.config' or 'make.json' entry to import, nothing to do!")
 	print(f"Importing '{path}' into {basename(destination)}")
 	make_obj = {}
 
@@ -276,10 +273,7 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	with open(make_project, "w", encoding="utf-8") as make_file:
 		make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
-	try:
-		if destination == path and input("Do you want to copy reassigned directories in directory itself? [N/y] ")[:1].lower() != "y":
-			abort()
-	except KeyboardInterrupt:
+	if not confirm("Do you want to copy reassigned directories in directory itself?", False, prints_abort=False):
 		abort()
 
 	debug("Copying files and directories")

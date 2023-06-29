@@ -48,7 +48,7 @@ What are components? Android Debug Bridge, TypeScript declarations, Java Compile
 
 ## Work without leaving terminal
 
-Not enough built-in configurations, and creating new ones remains a problem to work on different devices? Or maybe you want to work only in the console, or using a remote server? From now on, the toolchain works as an independent library for Python, use it in your programs or call it from your *PATH* without any problems. A good start is to call `python -m innercoremodtoolchain.task --list` in your terminal, after the toolchain is part of the `PYTHONPATH` of course.
+Not enough built-in configurations, and creating new ones remains a problem to work on different devices? Or maybe you want to work only in the console, or using a remote server? From now on, the toolchain works as an independent library for Python, use it in your programs or call it from your *PATH* without any problems. A good start is to call `python -m icmtoolchain --list` in your terminal, after the toolchain is part of the `PYTHONPATH` of course.
 
 ## Ongoing support
 

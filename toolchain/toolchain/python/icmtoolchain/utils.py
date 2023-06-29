@@ -7,7 +7,7 @@ from typing import (IO, Any, Collection, Final, Iterable, List, Literal,
                     Optional, Union, overload)
 from zipfile import ZipFile, ZipInfo
 
-from .shell import info
+from .shell import confirm, info
 
 DEVNULL: Final[IO[Any]] = open(os.devnull, "w")
 
@@ -200,18 +200,15 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 	"""
 	if shutil.which("tsc") is not None:
 		return "typescript"
-	try:
-		if input("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)? [Y/n] ")[:1].lower() == "n":
-			return "javascript"
-	except KeyboardInterrupt:
-		pass
+	if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)?", True):
+		return "javascript"
 	info("Updating TypeScript globally via npm...")
 	os.system("npm install -g typescript")
 	return request_typescript()
 
 def request_task(name: str, args: Optional[List[str]] = None) -> int:
 	from .task import registered_tasks
-	if hasattr(registered_tasks, name):
+	if name in registered_tasks:
 		return registered_tasks[name](args)
 	return 400
 
