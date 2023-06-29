@@ -6,9 +6,11 @@ from typing import Dict, Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
+from . import colorama
 from .make_config import TOOLCHAIN_CONFIG
 from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
-                    SelectiveShell, Separator, Shell, Switch)
+                    SelectiveShell, Separator, Shell, Switch, abort, stringify,
+                    warn)
 from .utils import (AttributeZipFile, ensure_file_directory,
                     ensure_not_whitespace)
 
@@ -70,7 +72,7 @@ def to_megabytes(bytes_count: int) -> str:
 
 def download_component(component: Component, shell: Optional[Shell], progress: Optional[Progress]) -> int:
 	if not hasattr(component, "packurl") or component.packurl is None:
-		Progress.notify(shell, progress, 0, f"Component {component.keyword} 'packurl' property must be defined!")
+		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' property 'packurl' must be defined!")
 		return 1
 	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
 	ensure_file_directory(path)
@@ -96,7 +98,7 @@ def extract_component(component: Component, shell: Optional[Shell], progress: Op
 	temporary = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	archive_path = join(temporary, component.keyword + ".zip")
 	if not isfile(archive_path):
-		Progress.notify(shell, progress, 0, f"Component {component.keyword} downloaded nothing to extract!")
+		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not found!")
 		return 1
 	if shell is not None and progress is not None:
 		progress.seek(0.33, f"Extracting to {component.location}")
@@ -106,7 +108,7 @@ def extract_component(component: Component, shell: Optional[Shell], progress: Op
 	if hasattr(component, "branch") and component.branch is not None:
 		extract_to = join(extract_to, "innercore-mod-toolchain-" + component.branch)
 	if not isdir(extract_to):
-		Progress.notify(shell, progress, 0, f"Component {component.keyword} does not contain any content!")
+		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not contain any content!")
 		return 2
 	output = TOOLCHAIN_CONFIG.get_path(component.location)
 	if isdir(output):
@@ -127,7 +129,7 @@ def install_components(*keywords: str) -> None:
 	shell.enter()
 	for keyword in keywords:
 		if not keyword in COMPONENTS:
-			print(f"Not found component '{keyword}'!")
+			print(f"Component '{keyword}' not availabled!")
 			continue
 		if keyword == "cpp":
 			continue
@@ -154,8 +156,7 @@ def install_components(*keywords: str) -> None:
 			abis = []
 		abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
 		if abi is None and len(abis) == 0:
-			from .task import error
-			error("Please describe options 'abis' or 'debugAbi' in your toolchain.json before install NDK!")
+			abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
 		if abi is not None and not abi in abis:
 			abis.append(abi)
 		from .native.native_setup import abi_to_arch, check_installed, install
@@ -198,7 +199,7 @@ def fetch_components() -> List[str]:
 	upgradable = []
 	for keyword in which_installed():
 		if not keyword in COMPONENTS:
-			print(f"Not found component '{keyword}'!")
+			warn(f"* Not found component '{keyword}'!")
 			continue
 		if not fetch_component(COMPONENTS[keyword]):
 			upgradable.append(keyword)
@@ -295,9 +296,9 @@ def startup() -> None:
 		print(); return
 	print()
 
-	username = shell.get_interactable("user", Input).read()
-	if ensure_not_whitespace(username) is not None:
-		print("Who are you?", f"\x1b[2m{username}\x1b[0m")
+	username = ensure_not_whitespace(shell.get_interactable("user", Input).read())
+	if username is not None:
+		print("Who are you?", stringify(username, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		TOOLCHAIN_CONFIG.set_value("template.author", username)
 
 	typescript = shell.get_interactable("typescript", Switch).checked
@@ -319,7 +320,7 @@ def startup() -> None:
 
 	pending = resolve_selected_components(shell.interactables)
 	if len(pending) > 0:
-		print("Which components will be installed? ", "\x1b[2m", ", ".join(pending), "\x1b[0m", sep="")
+		print("Which components will be installed?", stringify(", ".join(pending), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		install_components(*pending)
 
 def upgrade() -> int:
@@ -333,7 +334,7 @@ def upgrade() -> int:
 		shell.leave(); print(); return 1
 	installed = resolve_selected_components(shell.interactables)
 	if len(installed) > 0:
-		print("Which components will be upgraded? ", "\x1b[2m", ", ".join(installed), "\x1b[0m", sep="")
+		print("Which components will be upgraded?", stringify(", ".join(installed), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		install_components(*installed)
 	else:
 		print("Nothing to perform.")
@@ -342,7 +343,7 @@ def upgrade() -> int:
 
 if __name__ == "__main__":
 	if "--help" in sys.argv:
-		print("Usage: python component.py <options> [components]")
+		print("Usage: python component.py [options] <components>")
 		print(" " * 2 + "--startup: Startup configuration instead of component installation.")
 		exit(0)
 	if "--startup" in sys.argv or "-s" in sys.argv:

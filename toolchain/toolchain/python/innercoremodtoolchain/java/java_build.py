@@ -7,10 +7,11 @@ from typing import Any, Dict, Iterable, List
 from zipfile import ZipFile
 
 from ..base_config import BaseConfig
-from ..component import install_components, which_installed
+from ..component import install_components
 from ..hash_storage import BUILD_STORAGE
 from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from ..mod_structure import MOD_STRUCTURE
+from ..shell import abort, debug, error, info, warn
 from ..utils import (AttributeZipFile, copy_directory, copy_file,
                      ensure_directory, remove_tree)
 
@@ -30,15 +31,15 @@ def rebuild_library_cache(directory: str, library_pathes: Iterable[str], cache_d
 	lib_cache_dir = join(cache_dir, "d8_lib_cache", directory_name)
 	lib_cache_zip = join(cache_dir, "d8_lib_cache-" + directory_name + ".zip")
 
-	print("Rebuilding library cache:", directory_name)
+	debug("Rebuilding library cache:", directory_name)
 	remove_tree(lib_cache_dir)
 	ensure_directory(lib_cache_dir)
 
 	for archive in library_pathes:
-		print("Extracting library classes:", basename(archive))
+		debug("Extracting library classes:", basename(archive))
 		with AttributeZipFile(archive, "r") as zip_ref:
 			zip_ref.extractall(lib_cache_dir)
-	print("Zipping extracted cache", end="\n\n")
+	debug("Zipping extracted cache", end="\n\n")
 
 	import shutil
 	if isfile(lib_cache_zip):
@@ -82,7 +83,7 @@ def run_d8(directory_name: str, modified_pathes: Dict[str, List[str]], cache_dir
 	modified_classes = modified_pathes["class"]
 	modified_libs = modified_pathes["lib"]
 
-	print("Dexing libraries")
+	debug("Dexing libraries")
 	result = subprocess.call([
 		"java",
 		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
@@ -99,7 +100,7 @@ def run_d8(directory_name: str, modified_pathes: Dict[str, List[str]], cache_dir
 	if result != 0:
 		return result
 
-	print("Dexing classes")
+	debug("Dexing classes")
 	index = 0
 	max_span_size = 128
 	while index < len(modified_classes):
@@ -123,7 +124,7 @@ def run_d8(directory_name: str, modified_pathes: Dict[str, List[str]], cache_dir
 		index += max_span_size
 		print(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
 
-	print("Compressing archives")
+	debug("Compressing archives")
 	dex_classes_dir = join(cache_dir, "d8", directory_name)
 	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
 	with ZipFile(dex_zip_file, "w") as zip_ref:
@@ -140,7 +141,7 @@ def merge_compressed_dexes(directory_name: str, cache_dir: str, debug_build: boo
 	output_dex_dir = join(cache_dir, "odex", directory_name)
 	remove_tree(output_dex_dir)
 	ensure_directory(output_dex_dir)
-	print("Merging dex")
+	debug("Merging dex")
 	return subprocess.call([
 		"java",
 		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
@@ -171,18 +172,18 @@ def build_java_directories(directories: Iterable[str], cache_dir: str, classpath
 	for target in targets:
 		directory_name = basename(target)
 		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
-			print(f"\x1b[1m\x1b[92m* Running d8 for {directory_name}\x1b[0m")
+			info(f"* Running d8 with '{directory_name}'")
 			result = run_d8(directory_name, modified_files[directory_name], cache_dir, debug_build)
 			if result != 0:
-				print(f"Failed to dex {directory_name} with code {result}")
+				error(f"Failed to dex {directory_name} with code {result}")
 				return result
 			result = merge_compressed_dexes(directory_name, cache_dir, debug_build)
 			if result != 0:
-				print(f"Failed to merge {directory_name} with code {result}")
+				error(f"Failed to merge {directory_name} with code {result}")
 				return result
 			print()
 		else:
-			print(f"* Directory {directory_name} is not changed")
+			info(f"* Directory {directory_name} is not changed")
 		output_dex_dir = join(cache_dir, "odex", directory_name)
 		for filename in os.listdir(output_dex_dir):
 			copy_file(join(output_dex_dir, filename), join(target, filename))
@@ -294,13 +295,13 @@ def compile_all_using_make_config(debug_build: bool = False) -> int:
 	directories = []
 	for directory in MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
 		if "source" not in directory:
-			print("Skipped invalid java directory json", directory)
+			warn("* Skipped invalid java directory json", directory)
 			overall_result += 1
 			continue
 
 		for path in MAKE_CONFIG.get_paths(directory["source"]):
 			if not isdir(path):
-				print("Skipped non existing java directory path", directory["source"])
+				warn("* Skipped non-existing java directory path", directory["source"])
 				overall_result += 1
 				continue
 			directories.append(path)
@@ -313,11 +314,10 @@ def compile_all_using_make_config(debug_build: bool = False) -> int:
 		if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
 			install_components("java")
 			if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
-				from ..task import error
-				error("Component 'java' required for compilation, nothing to do.")
+				abort("Component 'java' is required for compilation, nothing to do.")
 		classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 		if not exists(classpath_dir):
-			print("\x1b[93mNot found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.\x1b[0m")
+			warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
 		classpath_directories = ([
 			classpath_dir
 		] if exists(classpath_dir) else []) + MAKE_CONFIG.get_value("gradle.classpath", [])
@@ -326,7 +326,7 @@ def compile_all_using_make_config(debug_build: bool = False) -> int:
 		except KeyboardInterrupt:
 			overall_result = 1
 		if overall_result != 0:
-			print(f"Java compilation failed with code '{overall_result}', removing temporary files...")
+			error(f"Java compilation failed with code '{overall_result}', removing temporary files...")
 			for directory in directories:
 				remove_tree(MAKE_CONFIG.get_path("output/" + directory))
 

@@ -8,7 +8,7 @@ from os.path import abspath, basename, dirname, isdir, isfile, join
 from typing import List, Optional, Union
 
 from ..make_config import TOOLCHAIN_CONFIG
-from ..shell import Progress, Shell
+from ..shell import Progress, Shell, abort, error, warn
 from ..utils import AttributeZipFile, remove_tree
 
 
@@ -21,7 +21,7 @@ def abi_to_arch(abi: str) -> str:
 	}
 	if abi in abi_map:
 		return abi_map[abi]
-	raise ValueError(f"Unsupported ABI identifier '{abi}'!")
+	raise ValueError(f"Unsupported ABI '{abi}'!")
 
 def list_subdirectories(path: str, max_depth: int = 5, dirs: Optional[List[str]] = None) -> List[str]:
 	if dirs is None:
@@ -77,11 +77,11 @@ def require_compiler_executable(arch: str, install_if_required: bool = False) ->
 		install(arches=arch, reinstall=False)
 		file = search_for_gcc_executable(ndk_dir)
 		if file is None or not isfile(file):
-			print("NDK installation for " + arch + " is broken, trying to re-install.")
+			warn("NDK installation for '" + arch + "' is broken, trying to re-install.")
 			install(arches=arch, reinstall=True)
 			file = search_for_gcc_executable(ndk_dir)
 			if file is None or not isfile(file):
-				print("Reinstallation doesn't help, please, retry setup manually.")
+				error("Reinstallation doesn't help, please, retry setup manually.")
 				return None
 	return file
 
@@ -155,25 +155,23 @@ def install(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> i
 		ndk_path = get_ndk_path()
 		if ndk_path is None:
 			if not reinstall:
-				print("Not found valid NDK installation for ", arches, ".", sep="")
+				print("Not found valid NDK installation for '", arches, "'.", sep="")
 			try:
 				if reinstall or input("Download android-ndk-r16b-x86_64? [N/y] ")[:1].lower() == "y":
 					if shell is not None:
 						shell.enter()
 					ndk_path = download(shell)
 				else:
-					from ..task import error
-					error("Abort.", 1)
+					abort()
 			except KeyboardInterrupt:
-				from ..task import error
-				error("Abort.", 1)
+				abort()
 		elif shell is not None:
 			shell.enter()
 
 		if ndk_path is None:
 			if shell is not None:
 				shell.leave()
-			print("Installation interrupted by raised cause above, you're must extract toolchain/temp/ndk.zip manually into toolchain/temp and retry task.")
+			error("Installation interrupted by raised cause above, you're must extract 'toolchain/temp/ndk.zip' manually into toolchain/temp and retry task.")
 			return 1
 		result = 0
 

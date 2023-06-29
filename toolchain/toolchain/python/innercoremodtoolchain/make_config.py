@@ -6,6 +6,8 @@ from os.path import abspath, basename, exists, isdir, isfile, join, realpath
 from typing import Callable, Final, List, Optional
 
 from .base_config import BaseConfig
+from .shell import abort
+from .utils import request_task
 
 try:
 	from hashlib import blake2s as encode
@@ -18,8 +20,7 @@ class MakeConfig(BaseConfig):
 
 	def __init__(self, path: str, prototype: Optional[BaseConfig] = None) -> None:
 		if not isfile(path):
-			from .task import error
-			error(f"Not found '{basename(path)}', are you sure that selected project exists?")
+			abort(f"Not found '{basename(path)}', are you sure that selected project exists?")
 		self.path = path
 		self.directory = abspath(join(self.path, ".."))
 		with open(path, encoding="utf-8") as file:
@@ -105,9 +106,8 @@ class ToolchainMakeConfig(MakeConfig):
 
 	def assure_project_selected(self) -> None:
 		if self.current_project is None:
-			from .task import registered_tasks
-			print("Not found any opened project, nothing to do.")
-			registered_tasks["selectProject"]()
+			if request_task("selectProject") != 0:
+				abort("Not found any opened project, nothing to do.")
 			return MAKE_CONFIG.assure_project_selected()
 
 	def get_path(self, relative_path: str) -> str:
@@ -125,7 +125,7 @@ class ToolchainMakeConfig(MakeConfig):
 	def get_build_path(self, relative_path: str) -> str:
 		self.assure_project_selected()
 		if self.prototype is None:
-			raise RuntimeError("ToolchainMakeConfig prototype is 'None', config corrupted!")
+			raise RuntimeError("ToolchainMakeConfig prototype is `None`, config corrupted!")
 		return self.prototype.get_path(join(
 			"toolchain", "build", self.get_project_unique_name(), relative_path
 		))
@@ -168,6 +168,6 @@ if __make is None:
 __toolchain = MakeConfig(__make.path) \
 	if __make.current_project is None else __make.prototype
 if __toolchain is None:
-	raise RuntimeError("ToolchainMakeConfig prototype is 'None', config corrupted!")
+	raise RuntimeError("ToolchainMakeConfig prototype is `None`, config corrupted!")
 MAKE_CONFIG: Final[ToolchainMakeConfig] = __make
 TOOLCHAIN_CONFIG: Final[MakeConfig] = __toolchain

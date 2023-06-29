@@ -1,20 +1,17 @@
 import os
-import platform
 import sys
 import time
 from os.path import basename, exists, isdir, isfile, join, relpath
-from typing import IO, Any, Callable, Dict, Final, List, NoReturn, Optional
+from typing import IO, Any, Callable, Dict, List, Optional
 
-from .colorama import just_fix_windows_console
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .utils import (copy_directory, copy_file, ensure_directory,
+from .shell import abort, info, warn
+from .utils import (DEVNULL, copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, remove_tree)
 
 registered_tasks: Dict[str, Callable] = {}
 locked_tasks: Dict[str, IO[Any]] = {}
 descriptioned_tasks: Dict[str, str] = {}
-
-DEVNULL: Final[IO[Any]] = open(os.devnull, "w")
 
 
 def lock_task(name: str, silent: bool = True) -> None:
@@ -32,17 +29,11 @@ def lock_task(name: str, silent: bool = True) -> None:
 				if not await_message:
 					await_message = True
 					if not silent:
-						sys.stdout.write(f"* Task {name} is locked by another process, waiting for it to unlock.")
+						warn(f"* Task {name} is locked by another process, waiting for it to unlock.")
 					if name in locked_tasks:
-						error("ERROR: Dead lock detected", code=-2)
-				if not silent:
-					sys.stdout.write(".")
-					sys.stdout.flush()
-				time.sleep(0.25)
+						abort("Dead lock detected!")
+				time.sleep(1.5)
 
-	if await_message:
-		if not silent:
-			print("")
 	open(path, "tw").close()
 	locked_tasks[name] = open(path, "a")
 
@@ -67,9 +58,7 @@ def task(name: str, locks: Optional[List[str]] = None, description: Optional[str
 			lock_task(name, silent=False)
 			for lock_name in locks:
 				lock_task(lock_name, silent=False)
-			if platform.system() == "Windows":
-				just_fix_windows_console()
-			print(f"\x1b[92m> Executing task: {name}\x1b[0m")
+			info(f"> Executing task: {name}")
 			task_result = callable(args)
 			unlock_task(name)
 			for lock_name in locks:
@@ -92,7 +81,7 @@ def task_compile_native_debug(args: Optional[List[str]] = None) -> int:
 	abi = MAKE_CONFIG.get_value("debugAbi", None)
 	if abi is None:
 		abi = "armeabi-v7a"
-		print(f"* No 'debugAbi' value in toolchain.json config, using {abi} as default.")
+		warn(f"* No `debugAbi` value in 'toolchain.json' config, using '{abi}' as default.")
 	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
@@ -104,7 +93,7 @@ def task_compile_native_debug(args: Optional[List[str]] = None) -> int:
 def task_compile_native_release(args: Optional[List[str]] = None) -> int:
 	abis = MAKE_CONFIG.get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
-		error(f"No 'abis' value in toolchain.json config, nothing will happened.")
+		abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
 	from .native.native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
@@ -168,7 +157,7 @@ def task_resources(args: Optional[List[str]] = None) -> int:
 @task(
 	"buildInfo",
 	locks=["cleanup", "push"],
-	description="Builds output mod.info file."
+	description="Builds output 'mod.info' file."
 )
 def task_build_info(args: Optional[List[str]] = None) -> int:
 	import json
@@ -195,7 +184,7 @@ def task_build_info(args: Optional[List[str]] = None) -> int:
 		if isfile(icon_path):
 			copy_file(icon_path, MAKE_CONFIG.get_path("output/mod_icon.png"))
 		else:
-			print("Icon in make.json", icon_path, "not found!")
+			warn(f"* Icon '{icon_path}' described in 'make.json' not found!")
 	return 0
 
 @task(
@@ -208,7 +197,7 @@ def task_build_additional(args: Optional[List[str]] = None) -> int:
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in MAKE_CONFIG.get_paths(additional_dir["source"]):
 				if not exists(additional_path):
-					print("WARNING: Non existing additional path: " + additional_path)
+					warn("* Non-existing additional path: " + additional_path)
 					break
 				target = MAKE_CONFIG.get_path(join(
 					"output",
@@ -315,27 +304,14 @@ def stop_horizon(args: Optional[List[str]] = None) -> int:
 	], stdout=DEVNULL, stderr=DEVNULL)
 
 @task(
-	"loadDocs",
-	description="Fetches latest declarations, incompatible with 'declarations' component right now; toolchain uses unrealized adapted-script implementation."
+	"loadDocs"
 )
 def task_load_docs(args: Optional[List[str]] = None) -> int:
-	from urllib.request import urlopen
-	print("Downloading core-engine.d.ts")
-	response = urlopen("https://docs.mineprogramming.org/headers/core-engine.d.ts")
-	content = response.read().decode("utf-8")
-
-	declaration_path = TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
-	if not exists(declaration_path):
-		os.mkdir(declaration_path)
-	with open(join(declaration_path, "core-engine.d.ts"), "w") as docs:
-		docs.write(content)
-
-	print("Complete!")
-	return 0
+	abort("Temporary disabled!")
 
 @task(
 	"updateIncludes",
-	description="Rebuilds composite tsconfig.json without script building, used mostly to update typings."
+	description="Rebuilds composite 'tsconfig.json' without script building, used mostly to update typings."
 )
 def task_update_includes(args: Optional[List[str]] = None) -> int:
 	from .script_build import (compute_and_capture_changed_scripts,
@@ -364,8 +340,7 @@ def task_new_project(args: Optional[List[str]] = None) -> int:
 	index = new_project(MAKE_CONFIG.get_value("defaultTemplate", "../toolchain-mod"))
 	if index is None:
 		print()
-		print("Abort.")
-		exit(0)
+		abort()
 	print("Successfully completed!")
 
 	from .project_manager import PROJECT_MANAGER
@@ -404,7 +379,7 @@ def task_import_project(args: Optional[List[str]] = None) -> int:
 def task_remove_project(args: Optional[List[str]] = None) -> int:
 	from .project_manager import PROJECT_MANAGER
 	if PROJECT_MANAGER.how_much() == 0:
-		error("Not found any project to remove.")
+		abort("Not found any project to remove.")
 	print("Selected project will be deleted forever, please think twice before removing anything!")
 	who = PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	if who is None:
@@ -425,7 +400,7 @@ def task_remove_project(args: Optional[List[str]] = None) -> int:
 		from .package import cleanup_relative_directory
 		cleanup_relative_directory("toolchain/build/" + ToolchainMakeConfig.unique_folder_name(location))
 	except ValueError:
-		error(f"Folder '{who}' not found!")
+		abort(f"Folder '{who}' not found!")
 
 	print("Project permanently deleted.")
 	return 0
@@ -444,16 +419,16 @@ def task_select_project(args: Optional[List[str]] = None) -> int:
 		where = relpath(path, TOOLCHAIN_CONFIG.directory)
 		if isdir(path):
 			if where == ".":
-				error("Requested project path must be reference to mod, not toolchain itself.")
+				abort("Requested project path must be reference to mod, not toolchain itself.")
 			if not isfile(join(path, "make.json")):
-				error(f"Not found 'make.json' in '{where}', it not belongs to project yet.")
+				abort(f"Not found 'make.json' in '{where}', it not belongs to project yet.")
 			PROJECT_MANAGER.select_project_folder(folder=where)
 			return 0
 		else:
-			error(f"Requested project path '{where}' does not exists.")
+			abort(f"Requested project path '{where}' does not exists.")
 
 	if PROJECT_MANAGER.how_much() == 0:
-		error("Not found any project to choice.")
+		abort("Not found any project to choice.")
 
 	who = PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if who is None:
@@ -461,7 +436,7 @@ def task_select_project(args: Optional[List[str]] = None) -> int:
 	try:
 		PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
-		error(f"Folder '{who}' not found!")
+		abort(f"Folder '{who}' not found!")
 	return 0
 
 @task(
@@ -474,7 +449,7 @@ def task_update_toolchain(args: Optional[List[str]] = None) -> int:
 	from .component import fetch_components, install_components
 	upgradable = fetch_components()
 	if len(upgradable) > 0:
-		print("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
+		info("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
 		try:
 			if input("Do you want to upgrade it? [Y/n] ")[:1].lower() == "n":
 				print("Abort.")
@@ -518,11 +493,6 @@ def task_cleanup(args: Optional[List[str]] = None) -> int:
 	cleanup_relative_directory("toolchain/build")
 	return 0
 
-def error(message: str, code: int = -1) -> NoReturn:
-	unlock_all_tasks()
-	print(message)
-	exit(code)
-
 
 if __name__ == "__main__":
 	if "--help" in sys.argv:
@@ -555,18 +525,14 @@ if __name__ == "__main__":
 				try:
 					result = registered_tasks[task_name](args)
 					if result != 0:
-						print()
-						error(f"* Task {task_name} failed with result {result}.", code=result)
+						abort("__task__", f"* Task {task_name} failed with result {result}.", code=result)
 				except BaseException as err:
 					if isinstance(err, SystemExit):
 						raise err
-
-					import traceback
-					traceback.print_exc()
-					error(f"* Task {task_name} failed with above error!")
+					abort("__task__", f"* Task {task_name} failed with unexpected error!", cause=err)
 			else:
-				print(f"* No such task: {task_name}.")
+				warn(f"* No such task: {task_name}.")
 	else:
-		error("* No tasks to execute.")
+		abort("__task__", "* No tasks to execute.")
 
 	unlock_all_tasks()

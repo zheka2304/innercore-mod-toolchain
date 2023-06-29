@@ -3,9 +3,13 @@ import platform
 import shutil
 import sys
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import (Collection, Iterable, List, Literal, Optional, Union,
-                    overload)
+from typing import (IO, Any, Collection, Final, Iterable, List, Literal,
+                    Optional, Union, overload)
 from zipfile import ZipFile, ZipInfo
+
+from .shell import info
+
+DEVNULL: Final[IO[Any]] = open(os.devnull, "w")
 
 
 def ensure_directory(directory: str) -> None:
@@ -201,9 +205,16 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 			return "javascript"
 	except KeyboardInterrupt:
 		pass
-	print("Updating TypeScript globally via npm...")
+	info("Updating TypeScript globally via npm...")
 	os.system("npm install -g typescript")
 	return request_typescript()
+
+def request_task(name: str, args: Optional[List[str]] = None) -> int:
+	from .task import registered_tasks
+	if hasattr(registered_tasks, name):
+		return registered_tasks[name](args)
+	return 400
+
 
 class AttributeZipFile(ZipFile):
 	if sys.version_info < (3, 6):

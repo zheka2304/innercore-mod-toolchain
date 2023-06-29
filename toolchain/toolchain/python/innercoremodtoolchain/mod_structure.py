@@ -1,9 +1,10 @@
 import json
 import os
 from os.path import isdir, isfile, join, relpath
-from typing import Any, Dict, Final, Iterable, List, Literal, Optional
+from typing import Any, Dict, Final, Iterable, List, Optional
 
 from .make_config import MAKE_CONFIG
+from .shell import warn
 from .utils import ensure_directory, ensure_file_directory, remove_tree
 
 
@@ -42,7 +43,7 @@ class ModStructure:
 			return
 		directory = join(self.directory, target_type.directory)
 		if relpath(directory, self.directory)[:2] == "..":
-			print(f"WARNING: Output target {keyword} is not relative to output, it will be not cleaned!")
+			warn(f"* Output target {keyword} is not relative to output, it will not be cleaned!")
 			return
 		if not MAKE_CONFIG.get_value("development.clearOutput", False):
 			remove_tree(directory)
@@ -105,7 +106,7 @@ class ModStructure:
 					self.build_config = json.loads(build_config.read())
 					return
 				except json.JSONDecodeError as err:
-					print("Something went wrong while reading cached build config:", err)
+					warn("* Something went wrong while reading cached build config:", err.msg)
 		self.build_config = {}
 
 	def write_build_config(self) -> None:

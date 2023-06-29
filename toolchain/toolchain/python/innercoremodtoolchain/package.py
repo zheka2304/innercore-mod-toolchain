@@ -4,11 +4,13 @@ import time
 from os.path import basename, exists, isdir, join, relpath
 from typing import Any, Dict, List, Optional
 
+from . import colorama
 from .base_config import BaseConfig
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .project_manager import PROJECT_MANAGER
 from .shell import (Entry, Input, Interrupt, Notice, Progress, SelectiveShell,
-                    Separator, Shell, Switch, select_prompt)
+                    Separator, Shell, Switch, abort, error, select_prompt,
+                    stringify, warn)
 from .utils import (copy_file, ensure_not_whitespace, get_all_files,
                     get_project_folder_by_name, name_to_identifier,
                     remove_tree)
@@ -22,10 +24,10 @@ def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optiona
 				directories.append(directory)
 			else:
 				if error_sensitive:
-					print(f"Declared invalid directory {path}, task will be terminated")
+					error(f"Declared invalid directory {path}, task will be terminated")
 					return None
 				else:
-					print(f"Declared invalid directory {path}, it will be skipped")
+					warn(f"* Declared invalid directory {path}, it will be skipped")
 	return directories
 
 def cleanup_relative_directory(path: str, project: bool = False) -> None:
@@ -36,9 +38,8 @@ def cleanup_relative_directory(path: str, project: bool = False) -> None:
 def select_template() -> Optional[str]:
 	if len(PROJECT_MANAGER.templates) <= 1:
 		if len(PROJECT_MANAGER.templates) == 0:
-			print("Please, ensure that `projectLocations` property in your toolchain.json contains any folder with template.json.")
-			from .task import error
-			error("Not found any templates, nothing to do.")
+			error("Please, ensure that `projectLocations` property in your 'toolchain.json' contains any folder with 'template.json'.")
+			abort("Not found any templates, nothing to do.")
 		return PROJECT_MANAGER.templates[0]
 	return select_prompt(
 		"Which template do you want?",
@@ -54,11 +55,9 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 		with open(template_make_path) as template_make:
 			template_config = BaseConfig(json.loads(template_make.read()))
 	except BaseException as err:
-		print(err)
 		if len(PROJECT_MANAGER.templates) > 1:
 			return new_project(None)
-		from .task import error
-		error(f"Malformed {template}/template.json, nothing to do.")
+		abort(f"Malformed '{template}/template.json', nothing to do.", cause=err)
 
 	have_template = TOOLCHAIN_CONFIG.get_value("template") is not None
 	always_skip_description = TOOLCHAIN_CONFIG.get_value("template.skipDescription", False)
@@ -117,9 +116,9 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	if not have_template:
 		shell.interactables += [
 			Notice("You can override template by setting up `template`"),
-			Notice("property in your toolchain.json, it will be automatically"),
+			Notice("property in your 'toolchain.json', it will be automatically"),
 			Notice("applied when new project is being created."),
-			Notice("Properties are still same make.json `info` property."),
+			Notice("Properties are still same 'make.json' property `info`."),
 			Separator(),
 			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<" + "Friendly advice".center(45) + "+")
 		]
@@ -135,8 +134,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	if shell.what() == "template":
 		return new_project(None)
 	if not hasattr(observer, "directory") or observer.directory is None:
-		from .task import error
-		error("Not found 'directory' property in observer!")
+		abort("Not found 'directory' property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
 	return PROJECT_MANAGER.create_project(
 		template, observer.directory,
@@ -176,7 +174,7 @@ def setup_project(make_obj: Dict[Any, Any], template: str, path: str) -> None:
 			try:
 				dirmap[dir] = dirmap[dir].format_map(makemap)
 			except BaseException:
-				print(f"Source {dirmap[dir]} contains malformed name!")
+				warn(f"* Source '{dirmap[dir]}' contains malformed name!")
 			os.mkdir(join(path, dirmap[dir]))
 		for filename in filenames:
 			if dirpath == template and filename == "template.json":
@@ -205,7 +203,7 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 	names = list(binding.keys())
 	names.sort()
 	for variant in names:
-		shell.interactables.append(Entry(variant, binding[variant][:59] if selected != variant else f"\x1b[7m{binding[variant][:59]}\x1b[0m"))
+		shell.interactables.append(Entry(variant, binding[variant][:59] if selected != variant else stringify(binding[variant][:59], color=7, reset=colorama.Style.RESET_ALL)))
 	for variant in additionals:
 		shell.interactables.append(Entry(variant))
 	try:
@@ -219,7 +217,7 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 		if what is None or what in additionals:
 			print()
 			return print("Abort.")
-		print((prompt + " " if prompt is not None else "") + "\x1b[2m" + what + "\x1b[0m")
+		print((prompt + " " if prompt is not None else "") + stringify(what, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		return what
 	except ValueError:
 		return None

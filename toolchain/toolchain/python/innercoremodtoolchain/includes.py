@@ -9,6 +9,7 @@ from typing import Any, Dict, Final, List
 
 from .hash_storage import BUILD_STORAGE
 from .make_config import MAKE_CONFIG
+from .shell import debug, info, warn
 from .utils import ensure_file_directory
 from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
 
@@ -71,7 +72,7 @@ class Includes:
 			else:
 				self.params[key] = value
 		elif default is None:
-			print("WARNING: Tsc option", key, "not corresponds to any value!")
+			warn(f"* Option {key} not corresponds to any default value!")
 		elif isinstance(default, bool):
 			self.params[key] = not default
 			dependents.append(key)
@@ -187,7 +188,7 @@ class Includes:
 		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			if language == "typescript":
-				print(f"Computing {basename(target_path)} tsconfig from {self.includes}")
+				debug(f"Computing '{basename(target_path)}' tsconfig from '{self.includes}'")
 				self.create_tsconfig(temp_path)
 			return True
 		return False
@@ -197,7 +198,7 @@ class Includes:
 		result = 0
 
 		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
-			print(f"Building {basename(target_path)} from {self.includes}")
+			debug(f"Building '{basename(target_path)}' from '{self.includes}'")
 
 			import datetime
 			start_time = datetime.datetime.now()
@@ -205,14 +206,14 @@ class Includes:
 			end_time = datetime.datetime.now()
 			diff = end_time - start_time
 
-			print(f"Completed {basename(target_path)} build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
+			info(f"Completed '{basename(target_path)}' build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
 			if result != 0:
 				return result
 
 			BUILD_STORAGE.is_path_changed(self.directory, True)
 			BUILD_STORAGE.save()
 		else:
-			print(f"* Build target {basename(target_path)} is not changed")
+			info(f"* Build target {basename(target_path)} is not changed")
 
 		return result
 

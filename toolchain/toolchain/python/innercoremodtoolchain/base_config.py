@@ -1,5 +1,4 @@
-from typing import (Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple,
-                    Union)
+from typing import Any, Dict, List, Optional
 
 
 class BaseConfig:
@@ -72,5 +71,5 @@ class BaseConfig:
 			self.set_value(name, {})
 		config = self.get_config(name)
 		if config is None:
-			raise RuntimeError(f"Property '{name}' should be created, but it still does not exists!")
+			raise RuntimeError(f"Property '{name}' should be created, but it still does not exists.")
 		return config

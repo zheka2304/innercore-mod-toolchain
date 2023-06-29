@@ -7,6 +7,7 @@ from urllib import request
 from urllib.error import URLError
 
 from .make_config import TOOLCHAIN_CONFIG
+from .shell import abort, error, warn
 from .utils import AttributeZipFile, merge_directory
 
 
@@ -20,12 +21,7 @@ def download_toolchain(directory: str) -> None:
 		try:
 			request.urlretrieve(url, archive)
 		except URLError:
-			from .task import error
-			error("Check your network connection!", 1)
-		except BaseException as err:
-			print(err)
-			from .task import error
-			error("Inner Core Mod Toolchain installation not completed due to above error.", 2)
+			abort("Check your network connection!")
 	else:
 		print("'toolchain.zip' already exists in temporary directory.")
 
@@ -45,9 +41,9 @@ def might_be_updated(directory: Optional[str] = None) -> bool:
 			return not perform_diff(response.read().decode("utf-8"), commit_file.read())
 	except URLError:
 		return False
-	except BaseException as err:
-		print(err)
-		return True
+	except BaseException:
+		pass
+	return True
 
 def perform_diff(a: object, b: object) -> bool:
 	return str(a).strip() == str(b).strip()
@@ -59,9 +55,9 @@ def extract_toolchain(directory: str) -> None:
 	- toolchain/*.{sh,bat} will be removed
 	- ../.github will be replaced if it exists
 	- ../toolchain-sample-mod will be replaced if it exists
-	- anything in directory excludes toolchain.json and toolchain if it
+	- anything in directory excludes 'toolchain.json' and toolchain if it
 	exists on remote, you can disable it by `"updateAcceptReplaceConfiguration": false`
-	property in your toolchain.json
+	property in your 'toolchain.json'
 	"""
 	archive = join(directory, "toolchain.zip")
 	with AttributeZipFile(archive, "r") as zip_ref:
@@ -69,9 +65,8 @@ def extract_toolchain(directory: str) -> None:
 
 	branch = join(directory, "innercore-mod-toolchain-deploy")
 	if not exists(branch):
-		print("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
-		from .task import error
-		error("Retry operation or extract 'toolchain.zip' manually.", 3)
+		error("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
+		abort("Retry operation or extract 'toolchain.zip' manually.")
 	toolchain = TOOLCHAIN_CONFIG.get_path("..")
 
 	if exists(join(branch, ".github")):
@@ -110,7 +105,7 @@ def update_toolchain() -> None:
 				commit = file.read().strip()
 		extract_toolchain(directory)
 		if not isfile(commit_path):
-			print("Successfully installed, but corresponding 'toolchain/bin/.commit' not found, further update will be installed without any prompt.")
+			warn("Successfully installed, but corresponding 'toolchain/bin/.commit' not found, further update will be installed without any prompt.")
 		else:
 			with open(commit_path) as file:
 				branch_commit = file.read().strip()

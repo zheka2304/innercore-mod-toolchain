@@ -6,10 +6,10 @@ from glob import glob
 from os.path import basename, join, relpath
 from typing import Any, Dict, Final, List, Optional, Tuple
 
-from .ansi_escapes import link
 from .hash_storage import OUTPUT_STORAGE
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import Progress, Shell, select_prompt
+from .shell import Progress, Shell, abort, error, link, select_prompt, warn
+from .utils import DEVNULL
 
 
 def get_modpack_push_directory() -> Optional[str]:
@@ -24,8 +24,7 @@ def get_modpack_push_directory() -> Optional[str]:
 	if directory is None:
 		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
 		if MAKE_CONFIG.get_value("pushTo") is None:
-			from .task import error
-			error("Nothing may be selected in modpack, nothing to do.")
+			abort("Not found any modpacks, nothing to do.")
 		TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
 
@@ -49,7 +48,7 @@ def get_modpack_push_directory() -> Optional[str]:
 		elif which == 2:
 			TOOLCHAIN_CONFIG.set_value("adb.pushAnyLocation", True)
 			TOOLCHAIN_CONFIG.save()
-			print("This may be changed in your toolchain.json config.")
+			print("This may be changed in your 'toolchain.json' config.")
 		elif which == 3:
 			print("Pushing aborted.")
 			return None
@@ -90,7 +89,7 @@ def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[s
 	if len(directories) == 0:
 		print(
 			"It seems your device doesn't contain any Inner Core pack directory. " +
-			"If not, describe output path manually in toolchain.json."
+			"If not, describe output path manually in 'toolchain.json'."
 		)
 		return None
 	which = select_prompt("Which modpack will be used?", *[
@@ -105,7 +104,7 @@ def ls(path: str, *args: str) -> List[str]:
 		] + list(args), text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
 		if err.returncode != 1:
-			print("adb shell ls failed with code", err.returncode)
+			error("adb shell ls failed with code", err.returncode)
 		return []
 	except KeyboardInterrupt:
 		return []
@@ -131,7 +130,6 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 	src_root = directory.replace("\\", "/")
 
 	percent = 0
-	from .task import DEVNULL
 	for filename in items:
 		src = src_root + "/" + filename
 		dst = dst_root + "/" + filename
@@ -176,7 +174,6 @@ def make_locks(*locks: str) -> int:
 
 def ensure_server_running(retry: int = 0) -> bool:
 	try:
-		from .task import DEVNULL
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
@@ -184,7 +181,7 @@ def ensure_server_running(retry: int = 0) -> bool:
 		return True
 	except subprocess.CalledProcessError as err:
 		if retry >= 3:
-			print("adb start-server failed with code", err.returncode)
+			error("adb start-server failed with code", err.returncode)
 			return False
 		return ensure_server_running(retry + 1)
 
@@ -215,7 +212,7 @@ def get_device_state() -> int:
 	except subprocess.CalledProcessError as err:
 		if err.returncode == 1:
 			return STATE_NO_DEVICES
-		print("adb get-state failed with code", err.returncode)
+		error("adb get-state failed with code", err.returncode)
 		return STATE_UNKNOWN
 	return which_state(pipe.stdout.strip())
 
@@ -226,7 +223,7 @@ def get_device_serial() -> Optional[str]:
 			"get-serialno"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
-		print("adb get-serialno failed with code", err.returncode)
+		warn("adb get-serialno failed with code", err.returncode)
 		return None
 	return pipe.stdout.strip()
 
@@ -237,7 +234,7 @@ def device_list() -> Optional[List[Dict[str, Any]]]:
 			"devices", "-l"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
-		print("adb devices failed with code", err.returncode)
+		warn("adb devices failed with code", err.returncode)
 		return None
 	data = pipe.stdout.rstrip().splitlines()
 	data.pop(0)
@@ -268,7 +265,7 @@ def which_device_will_be_connected(*devices: Dict[str, Any], state_not_matter: b
 		return None if len(connected) == 0 else connected[0]
 	which = select_prompt("Which device will be used?", *[
 		person_readable_device_name(device) for device in connected
-	] + ["I don't see my device"])
+	] + ["I doesn't see my device"])
 	return None if which is None or which == len(connected) else connected[which]
 
 def get_ip() -> str:
@@ -286,7 +283,6 @@ def get_ip() -> str:
 def get_adb_command() -> List[str]:
 	ensure_server_running()
 	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
-	from .task import DEVNULL
 	if len(devices) > 0:
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
@@ -312,12 +308,10 @@ def get_adb_command() -> List[str]:
 		if device is not None:
 			return get_adb_command_by_serial(device["serial"])
 	if MAKE_CONFIG.get_value("adb.doNothingIfDisconnected", False):
-		from .task import error
-		error("Not found connected devices, nothing to do.", 0)
+		abort("Not found connected devices, nothing to do.")
 	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
-		from .task import error
-		error("Nothing will happened, adb set up interrupted.", 1)
+		abort("Nothing will happened, adb set up interrupted.")
 	return which
 
 def get_adb_command_by_serial(serial: str) -> List[str]:
@@ -367,7 +361,7 @@ def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
 		which, "get-serialno"
 	], text=True, capture_output=True)
 	if serial.returncode != 0:
-		print("adb get-serialno failed with code", serial.returncode)
+		warn("adb get-serialno failed with code", serial.returncode)
 		return None
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
@@ -396,7 +390,6 @@ def setup_via_usb() -> Optional[List[str]]:
 	try:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
-		from .task import DEVNULL
 		subprocess.run([
 			TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
@@ -405,7 +398,7 @@ def setup_via_usb() -> Optional[List[str]]:
 		if command is not None:
 			return command
 	except subprocess.CalledProcessError as err:
-		print("adb wait-for-usb-device failed with code", err.returncode)
+		error("adb wait-for-usb-device failed with code", err.returncode)
 	except subprocess.TimeoutExpired:
 		print("Timeout")
 	except KeyboardInterrupt:
@@ -453,7 +446,6 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 		shell.leave()
 		print("Not found anything, are you sure that network connected?")
 		return setup_via_network()
-	from .task import DEVNULL
 	subprocess.run([
 		TOOLCHAIN_CONFIG.get_adb(),
 		"disconnect"
@@ -475,7 +467,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 			else:
 				print()
 		except subprocess.CalledProcessError as err:
-			print("adb connect failed with code", err.returncode)
+			error("adb connect failed with code", err.returncode)
 		except subprocess.TimeoutExpired:
 			print("Timeout")
 		except KeyboardInterrupt:
@@ -504,7 +496,6 @@ def ping_via_shell(ip: str, shell: Optional[Shell], progress: Optional[Progress]
 	if shell is not None and progress is not None:
 		progress.seek(index / 255, f"Pinging {ip}")
 		shell.render()
-	from .task import DEVNULL
 	return subprocess.call([
 		"ping",
 		"-n" if platform.system() == "Windows" else "-c", "1",
@@ -516,8 +507,6 @@ async def ping(ip: str, shell: Optional[Shell], progress: Optional[Progress], in
 		progress.seek(index / 255, f"Pinging {ip}")
 		shell.render()
 	import asyncio
-
-	from .task import DEVNULL
 	coroutine = await asyncio.create_subprocess_shell(
 		f"ping {'-n' if platform.system() == 'Windows' else '-c'} 1 {ip}", stdout=DEVNULL, stderr=DEVNULL
 	)
@@ -543,8 +532,6 @@ async def connect(ip: str, port: int, shell: Optional[Shell], progress: Optional
 		progress.seek(port / 65535, f"Connecting to {ip}:{str(port)}")
 		shell.render()
 	import asyncio
-
-	from .task import DEVNULL
 	coroutine = await asyncio.create_subprocess_shell(
 		TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=DEVNULL, stderr=DEVNULL
 	)
@@ -573,7 +560,6 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 		tcp = tcp.split(":")
 		ip = tcp[0]
 		port = tcp[1] if len(tcp) > 1 else port
-	from .task import DEVNULL
 	if with_pairing_code or pairing_code is not None:
 		if pairing_code is None:
 			try:
@@ -589,7 +575,7 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 				pairing_code
 			], check=True, stderr=DEVNULL, stdout=DEVNULL)
 		except subprocess.CalledProcessError as err:
-			print("adb pair failed with code", err.returncode)
+			error("adb pair failed with code", err.returncode)
 		except KeyboardInterrupt:
 			print()
 	subprocess.run([
@@ -605,7 +591,7 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 		command = get_adb_command_by_tcp(ip, int(port) if port is not None else None)
 		return command if command is not None else setup_via_tcp_network()
 	except subprocess.CalledProcessError as err:
-		print("adb connect failed with code", err.returncode)
+		error("adb connect failed with code", err.returncode)
 	except subprocess.TimeoutExpired:
 		print("Timeout")
 	except KeyboardInterrupt:

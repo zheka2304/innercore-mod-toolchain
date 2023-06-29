@@ -1,7 +1,7 @@
 import platform
 import sys
-from typing import (Any, List, Literal, NoReturn,
-                    TextIO, Tuple, Type, TypeVar, Union, overload)
+from typing import (Any, Dict, List, Literal, NoReturn, Optional, TextIO,
+                    Tuple, Type, TypeVar, Union, overload)
 
 try:
 	import termios
@@ -9,11 +9,11 @@ try:
 except ImportError:
 	import msvcrt
 
-from .ansi_escapes import *
-from .colorama import just_fix_windows_console
+from . import colorama
 
 if platform.system() == "Windows":
-	just_fix_windows_console()
+	colorama.just_fix_windows_console()
+
 
 class Shell():
 	offset: int = 0; line: int = 0
@@ -31,7 +31,7 @@ class Shell():
 	def readline(self, count: int = 1) -> str:
 		return self.stdin.readline(count)
 
-	def input_raw(self, count: int = 1) -> str:
+	def inputraw(self, count: int = 1) -> str:
 		try:
 			fd = self.stdin.fileno()
 			term_attrs = termios.tcgetattr(fd)
@@ -55,7 +55,7 @@ class Shell():
 		return key
 
 	def input(self, count: int = 1) -> str:
-		key = self.input_raw(count)
+		key = self.inputraw(count)
 		if key == "\x03" or key == "\x1a": # Ctrl+C or Ctrl+Z
 			raise KeyboardInterrupt()
 		return key
@@ -83,20 +83,21 @@ class Shell():
 			self.offset += len(value)
 
 	def up(self, count: int) -> None:
-		self.write(cursor_up(count))
+		self.write(colorama.Cursor.UP(count))
 
 	def down(self, count: int) -> None:
-		self.write(cursor_down(count))
+		self.write(colorama.Cursor.DOWN(count))
 
-	def right(self, count: int) -> None:
-		self.write(cursor_forward(count))
+	def forward(self, count: int) -> None:
+		self.write(colorama.Cursor.FORWARD(count))
 
-	def left(self, count: int) -> None:
-		self.write(cursor_backward(count))
+	def backward(self, count: int) -> None:
+		self.write(colorama.Cursor.BACK(count))
 
 	def clear(self) -> None:
 		if self.line > 0:
-			self.stdout.write(erase_lines(self.line + 1))
+			for offset in range(self.line):
+				self.stdout.write(colorama.ansi.clear_line())
 			self.line = 0
 		self.offset = 0
 
@@ -166,15 +167,21 @@ class Shell():
 		self.show_cursor()
 
 	def hide_cursor(self) -> None:
-		self.write(CURSOR_HIDE)
+		self.write(colorama.ansi.CSI + "?25l")
 
 	def show_cursor(self) -> None:
-		self.write(CURSOR_SHOW)
+		self.write(colorama.ansi.CSI + "?25h")
+
+	def scroll_up(self) -> None:
+		self.write(colorama.ansi.CSI + "S")
+
+	def scroll_down(self) -> None:
+		self.write(colorama.ansi.CSI + "T")
 
 	@staticmethod
 	def notify(shell: Optional['Shell'], message: str) -> None:
 		if shell is None:
-			print(message); return
+			printc(message); return
 		shell.interactables.append(
 			Notice(f"print{len(shell.interactables)}", message)
 		)
@@ -210,21 +217,21 @@ class InteractiveShell(Shell):
 		observed = Shell.observe(self, raw)
 		if raw != "\x1b" and raw != "\xe0" and raw != "\x00":
 			return observed
-		key = self.input_raw(1)
+		key = self.inputraw(1)
 		if raw == "\xe0" or raw == "\x00": # Windows
-			if key == "M": # Right
+			if key == "M": # Forward
 				self.turn_forward()
-			elif key == "K": # Left
+			elif key == "K": # Backward
 				self.turn_backward()
 			else:
 				return observed
 			return True
 		if key != "[": # Unix
 			return observed
-		joy = self.input_raw(1)
-		if joy == "C": # Right
+		joy = self.inputraw(1)
+		if joy == "C": # Forward
 			self.turn_forward()
-		elif joy == "D": # Left
+		elif joy == "D": # Backward
 			self.turn_backward()
 		else:
 			return observed
@@ -452,29 +459,29 @@ class SelectiveShell(InteractiveShell):
 		observed = Shell.observe(self, raw)
 		if raw != "\x1b" and raw != "\xe0" and raw != "\x00":
 			return observed
-		key = self.input_raw(1)
+		key = self.inputraw(1)
 		if raw == "\xe0" or raw == "\x00": # Windows
 			if key == "H": # Up
 				self.turn_up()
 			elif key == "P": # Down
 				self.turn_down()
-			elif key == "M": # Right
+			elif key == "M": # Forward
 				self.turn_forward()
-			elif key == "K": # Left
+			elif key == "K": # Backward
 				self.turn_backward()
 			else:
 				return observed
 			return True
 		if key != "[":
 			return observed
-		joy = self.input_raw(1) # Unix
+		joy = self.inputraw(1) # Unix
 		if joy == "A": # Up
 			self.turn_up()
 		elif joy == "B": # Down
 			self.turn_down()
-		elif joy == "C": # Right
+		elif joy == "C": # Forward
 			self.turn_forward()
-		elif joy == "D": # Left
+		elif joy == "D": # Backward
 			self.turn_backward()
 		else:
 			return observed
@@ -600,9 +607,8 @@ class Input(Entry):
 		self.maximum_length = maximum_length
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
-		shell.write(self.get_arrow(at_cursor) + (self.hint if self.hint is not None else "") +
-			("" if self.hovered else "\x1b[2m") + (str(self.text) if len(str(self.text)) > 0 or self.hovered else \
-				"..." if self.template is None else self.template) + ("\x1b[7m " if self.hovered else "") + "\x1b[0m\n")
+		text = str(self.text) if len(str(self.text)) > 0 or self.hovered else "..." if self.template is None else self.template
+		shell.write(self.get_arrow(at_cursor) + (self.hint if self.hint is not None else "") + (text if self.hovered else stringify(text, color=colorama.Style.DIM, reset=colorama.Style.NORMAL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
 
 	def read(self) -> Optional[str]:
 		return self.template if not self.hovered and len(str(self.text)) == 0 and self.template is not None else self.text
@@ -613,7 +619,7 @@ class Input(Entry):
 				self.hovered = not self.hovered
 				return True
 			if self.hovered:
-				if what in ("\x7f", "\x08"):
+				if what in ("\x7f", "\x08"): # backspace
 					if self.text is not None and len(self.text) > 0:
 						self.text = self.text[::-1][1:][::-1]
 					else:
@@ -638,7 +644,7 @@ class Progress(Shell.Interactable):
 	def render(self, shell: Shell, offset: int, line: int) -> None:
 		text = (str(self.text) if self.text is not None else str(int(self.progress * 100)) + "%").center(self.weight)
 		size = int(self.weight * self.progress)
-		shell.write("\x1b[7m" + text[:size] + "\x1b[2m" + text[size:self.weight] + "\x1b[0m\n")
+		shell.write(stringify(text[:size], color=7, reset=colorama.Style.RESET_ALL) + stringify(text[size:self.weight], color=colorama.Style.DIM, reset=colorama.Style.NORMAL) + "\n")
 
 	def seek(self, progress: float, text: Optional[str] = None) -> None:
 		self.progress = progress
@@ -680,7 +686,7 @@ class Debugger(SelectiveShell.Selectable):
 
 def select_prompt_internal(prompt: Optional[str] = None, *variants: Optional[str], fallback: Optional[int] = None) -> Tuple[Optional[int], Optional[Any]]:
 	if prompt is not None:
-		print(prompt, end="")
+		printc(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
 	for variant in variants:
 		if variant is not None:
@@ -696,7 +702,7 @@ def select_prompt_internal(prompt: Optional[str] = None, *variants: Optional[str
 		return None, None
 	try:
 		if isinstance(interactable, SelectiveShell.Selectable):
-			print((prompt + " " if prompt is not None else "") + "\x1b[2m" + interactable.placeholder() + "\x1b[0m")
+			printc((prompt + " " if prompt is not None else "") + stringify(interactable.placeholder(), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 	except ValueError:
 		pass
 	return result, interactable
@@ -712,6 +718,72 @@ def select_prompt(prompt: Optional[str] = None, *variants: Optional[str], fallba
 		return interactable.key if interactable is not None else None
 	return select_prompt_internal(prompt, *variants, fallback=fallback)[0]
 
+def link(text: str, url: Optional[str] = None) -> str:
+	return f"{colorama.ansi.OSC}8;;{url if url is not None else text}{colorama.ansi.BEL}{text}{colorama.ansi.OSC}8;;{colorama.ansi.BEL}"
+
+def image(base64: str, options: Optional[Dict[str, object]] = None) -> str:
+	returnValue = colorama.ansi.OSC + "1337;File=inline=1"
+	if options is not None:
+		if "width" in options:
+			returnValue += ";width=" + str(options["width"])
+		if "height" in options:
+			returnValue += ";height=" + str(options["height"])
+		if "preserveAspectRatio" in options and options["preserveAspectRatio"] == False:
+			returnValue += ";preserveAspectRatio=0"
+	return returnValue + ":" + base64 + colorama.ansi.BEL
+
+def printc(*values: object, color: Optional[Union[int, str]] = None, reset: Optional[Union[int, str]] = None, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False):
+	if color is not None:
+		if isinstance(color, int):
+			color = colorama.ansi.code_to_chars(color)
+		print(color, end="", file=file, flush=flush)
+	print(*values, end=(end or "\n") if reset is None else "", sep=sep, file=file, flush=flush)
+	if reset is not None:
+		if isinstance(reset, int):
+			reset = colorama.ansi.code_to_chars(reset)
+		print(reset, end=end, file=file, flush=flush)
+
+def debug(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
+	printc(*values, color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+
+def log(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
+	printc(*values, color=colorama.Fore.WHITE, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+
+def info(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
+	printc(*values, color=colorama.Fore.LIGHTGREEN_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+
+def warn(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
+	printc(*values, color=colorama.Fore.LIGHTYELLOW_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+
+def error(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
+	printc(*values, color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)
+
+class StringBuffer:
+	value: str = ""
+	def write(self, data: str) -> None: self.value += data
+
+def stringify(*values: object, color: Optional[Union[int, str]] = None, reset: Optional[Union[int, str]] = None, sep: Optional[str] = " ", end: Optional[str] = "\n") -> str:
+	buffer = StringBuffer()
+	printc(*values, color=color, reset=reset, sep=sep, end=end, file=buffer)
+	return buffer.value
+
+def abort(*values: object, sep: Optional[str] = " ", code: int = 400, cause: Optional[BaseException] = None) -> NoReturn:
+	if cause is not None:
+		from traceback import print_exception
+		buffer = StringBuffer()
+		print_exception(cause.__class__, cause, cause.__traceback__, 5, buffer)
+		error(buffer.value)
+	if len(values) != 0:
+		error(*values, sep=sep)
+	elif cause is None:
+		print("Abort.")
+	try:
+		from .task import unlock_all_tasks
+		unlock_all_tasks()
+	except IOError:
+		pass
+	exit(code)
+
 
 if __name__ == "__main__":
 	shell = Shell()
@@ -720,4 +792,4 @@ if __name__ == "__main__":
 			key = shell.input(1)
 		except KeyboardInterrupt:
 			break
-		print(ord(key), ": ", str(key.encode("unicode-escape"))[2:][::-1][1:][::-1].replace("\\\\", "\\"), sep="")
+		print(ord(key), " :: ", str(key.encode("unicode-escape"))[2:][::-1][1:][::-1].replace("\\\\", "\\"), sep="")

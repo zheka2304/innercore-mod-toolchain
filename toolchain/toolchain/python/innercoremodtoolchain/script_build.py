@@ -6,6 +6,7 @@ from .hash_storage import BUILD_STORAGE
 from .includes import Includes
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .mod_structure import MOD_STRUCTURE
+from .shell import abort, debug, error, info, warn
 from .utils import copy_directory, copy_file, remove_tree, request_typescript
 from .workspace import WORKSPACE_COMPOSITE
 
@@ -24,8 +25,7 @@ def get_allowed_languages() -> List[str]:
 		allowed_languages.append("javascript")
 
 	if len(allowed_languages) == 0:
-		from .task import error
-		error("TypeScript is required, if you want to build legacy JavaScript, change `denyJavaScript` property in your make.json or toolchain.json config.")
+		abort("TypeScript is required, if you want to build legacy JavaScript, change `denyJavaScript` property in your 'make.json' or 'toolchain.json' config.")
 
 	return allowed_languages
 
@@ -36,12 +36,12 @@ def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
 	overall_result = 0
 	for source in MAKE_CONFIG.get_value("sources", []):
 		if "source" not in source or "language" not in source or "type" not in source:
-			print("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
+			error("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
 			overall_result = 1
 			continue
 
 		if source["type"] not in VALID_SOURCE_TYPES:
-			print("Invalid script `type` in source: ", source["type"], ", it might be one of ", VALID_SOURCE_TYPES, sep="")
+			error("Invalid script `type` in source: ", source["type"], ", it might be one of ", VALID_SOURCE_TYPES, sep="")
 			overall_result = 1
 
 	if overall_result != 0:
@@ -49,7 +49,7 @@ def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
 
 	allowed_languages = get_allowed_languages()
 	if "typescript" in allowed_languages and not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-		print("\x1b[93mNot found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.\x1b[0m")
+		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
 
 	overall_result += build_composite_project(allowed_languages, debug_build) \
 		if not watch else watch_composite_project(allowed_languages, debug_build)
@@ -95,7 +95,7 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 
 		for source_path in MAKE_CONFIG.get_paths(source["source"]):
 			if not exists(source_path):
-				print("* Skipped non-existing source ", source["source"], "!", sep="")
+				warn("* Skipped non-existing source '", source["source"], "'!", sep="")
 				continue
 
 			# Supports assembling directories, JavaScript and TypeScript
@@ -165,11 +165,11 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
-				print(f"WARNING: Not found build target '{basename(temp_path)}', maybe it building emitted error or corresponding source is empty.")
+				warn(f"* Not found build target '{basename(temp_path)}', maybe it building emitted error or corresponding source is empty.")
 				continue
 
 		if not BUILD_STORAGE.is_path_changed(temp_path):
-			print(f"* Build target {basename(temp_path)} is not changed")
+			info(f"* Build target {basename(temp_path)} is not changed.")
 
 	for included in composite:
 		# Single JavaScript sources when TypeScript is not forced just copies to output without
@@ -180,17 +180,17 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 			temp_path = included[0]
 
 		if temp_path == included[0] and isfile(temp_path) and BUILD_STORAGE.is_path_changed(temp_path):
-			print(f"Flushing {basename(included[1])} from {basename(included[0])}")
+			debug(f"Flushing {basename(included[1])} from {basename(included[0])}")
 
 		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
-				print(f"WARNING: Not found build target '{basename(temp_path)}', but it directly included!")
+				warn(f"* Not found build target '{basename(temp_path)}', but it directly included!")
 				continue
 
 		if not BUILD_STORAGE.is_path_changed(temp_path):
-			print(f"* Build target {basename(temp_path)} is not changed")
+			info(f"* Build target {basename(temp_path)} is not changed.")
 
 	BUILD_STORAGE.save()
 
@@ -230,7 +230,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 		# which files changed with hashing algorithm and composite building may rebuild everything
 		# when tsconfig changes or something unexpected happened, like removing temporary declarations
 		if len(which) > 0:
-			print("Rebuilding composite", ", ".join([
+			debug("Rebuilding composite", ", ".join([
 				basename(included[1]) for included in which
 			]))
 
@@ -253,7 +253,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 
 def watch_composite_project(allowed_languages: List[str] = ["typescript"], debug_build: bool = True) -> int:
 	if not "typescript" in allowed_languages:
-		print("Watching is not supported for legacy JavaScript!")
+		error("Watching is not supported for legacy JavaScript!")
 		return 1
 	overall_result = 0
 
@@ -288,18 +288,18 @@ def build_all_resources() -> int:
 
 	for resource in MAKE_CONFIG.get_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
-			print("Skipped invalid source json ", resource, ", it might contain `path` and `type` properties!", sep="")
+			error("Skipped invalid source json ", resource, ", it might contain `path` and `type` properties!", sep="")
 			overall_result = 1
 			continue
 
 		for source_path in MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
-				print("* Skipped non-existing resource ", resource["path"], "!", sep="")
+				warn("* Skipped non-existing resource ", resource["path"], "!", sep="")
 				continue
 
 			resource_type = resource["type"]
 			if resource_type not in VALID_RESOURCE_TYPES:
-				print("Invalid resource `type` in source: ", resource_type, ", it might be one of ", VALID_RESOURCE_TYPES, sep="")
+				error("Invalid resource `type` in source: ", resource_type, ", it might be one of ", VALID_RESOURCE_TYPES, sep="")
 				overall_result = 1
 				continue
 

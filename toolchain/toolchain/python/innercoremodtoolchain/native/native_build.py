@@ -5,6 +5,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Any, Final, Iterable, Optional
 
 from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
+from ..shell import abort, debug, error, info, warn
 from ..utils import (copy_directory, copy_file, ensure_directory,
                      ensure_file_directory, get_all_files, remove_tree)
 from . import native_setup
@@ -19,8 +20,6 @@ CODE_INVALID_PATH: Final[int] = 1005
 
 def prepare_compiler_executable(abi: str) -> Optional[str]:
 	arch = native_setup.abi_to_arch(abi)
-	if arch is None:
-		print(f"WARNING: Unregistered abi {abi}!")
 	return native_setup.require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
 
 def get_manifest(directory: str) -> Any:
@@ -61,8 +60,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 	for abi in abis:
 		executable = prepare_compiler_executable(abi)
 		if executable is None:
-			print("Failed to acquire GCC executable from NDK for abi", abi)
-			return CODE_FAILED_NO_GCC
+			abort("Failed to acquire GCC executable from NDK for ABI", abi, code=CODE_FAILED_NO_GCC)
 		executables[abi] = executable
 
 	try:
@@ -72,8 +70,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 		for abi in abis:
 			targets[abi] = join(output_dir, "so", abi, soname)
 	except Exception as err:
-		print("Failed to read manifest for directory", f"{directory}:", err)
-		return CODE_FAILED_INVALID_MANIFEST
+		abort("Failed to read manifest for directory {directory} with unexpected error!", code=CODE_FAILED_INVALID_MANIFEST, cause=err)
 
 	keep_sources = rules.get_value("keepSources", fallback=False)
 	if keep_sources:
@@ -107,7 +104,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 	# compile for every abi
 	overall_result = CODE_OK
 	for abi in abis:
-		print(f"* Compiling {basename(directory)} for {abi}")
+		info(f"* Compiling '{basename(directory)}' for '{abi}'")
 
 		executable = executables[abi]
 		gcc = [executable, "-std=c++11"]
@@ -132,7 +129,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 						except KeyError:
 							pass
 				else:
-					print(f"WARNING: Dependency directory {dependency} is not found, it will be skipped")
+					warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
 
 		# prepare directories
 		source_files = get_all_files(directory, extensions=(".cpp", ".c"))
@@ -147,7 +144,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 		recompiled_count = 0
 		for file in source_files:
 			relative_file = relpath(file, directory)
-			print("Preprocessing " + relative_file + " " * 48, end="\r")
+			debug("Preprocessing " + relative_file + " " * 48, end="\r")
 
 			object_file = join(object_dir, relative_file) + ".o"
 			preprocessed_file = join(preprocessed_dir, relative_file)
@@ -168,7 +165,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 					if isfile(object_file):
 						os.remove(object_file)
 
-					print("Compiling " + relative_file + " " * 96)
+					debug("Compiling " + relative_file + " " * 96)
 					result = max(result, subprocess.call(gcc + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))
@@ -184,10 +181,10 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 				overall_result = result
 
 		if overall_result != CODE_OK:
-			print("Failed to compile with result", overall_result)
+			error("Failed to compile with result ", overall_result)
 			return overall_result
 		else:
-			print(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
+			info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
 
 		ensure_file_directory(targets[abi])
 
@@ -200,10 +197,10 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 		command.append(targets[abi])
 		command += includes
 		command += dependencies
-		print("Linking object files")
+		debug("Linking object files")
 		result = subprocess.call(command)
 		if result != CODE_OK:
-			print("Linker failed with result", result)
+			error("Linker failed with result ", result)
 			overall_result = result
 			return overall_result
 		print()
@@ -223,13 +220,13 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 	if len(directories) > 0:
 		std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
 		if not exists(std_includes):
-			print("\x1b[93mNot found toolchain/stdincludes, in most cases build will be failed, please install it via tasks.\x1b[0m")
+			warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
 		cache_dir = MAKE_CONFIG.get_build_path("gcc")
 		ensure_directory(cache_dir)
 
 		for native_dir in directories:
 			if "source" not in native_dir:
-				print("Skipped invalid native directory json", native_dir)
+				warn("* Skipped invalid native directory json: ", native_dir)
 				overall_result = CODE_INVALID_JSON
 				continue
 
@@ -247,7 +244,7 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 					if overall_result == CODE_FAILED_NO_GCC:
 						return overall_result
 				else:
-					print("Skipped non existing native directory", native_dir["source"])
+					warn("* Skipped non-existing native directory: ", native_dir["source"])
 					overall_result = CODE_INVALID_PATH
 
 	MOD_STRUCTURE.update_build_config_list("nativeDirs")
