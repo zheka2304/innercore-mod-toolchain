@@ -6,7 +6,7 @@ from typing import Dict, Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
-from . import colorama
+from .. import colorama
 from .make_config import TOOLCHAIN_CONFIG
 from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
                     SelectiveShell, Separator, Shell, Switch, abort, stringify,
@@ -159,7 +159,7 @@ def install_components(*keywords: str) -> None:
 			abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
 		if abi is not None and not abi in abis:
 			abis.append(abi)
-		from .native.native_setup import abi_to_arch, check_installed, install
+		from .native_setup import abi_to_arch, check_installed, install
 		abis = list(filter(
 			lambda abi: not check_installed(abi_to_arch(abi)),
 			abis

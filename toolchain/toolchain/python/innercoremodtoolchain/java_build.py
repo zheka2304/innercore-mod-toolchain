@@ -6,14 +6,14 @@ from os.path import basename, exists, isdir, isfile, join
 from typing import Any, Dict, Iterable, List
 from zipfile import ZipFile
 
-from ..base_config import BaseConfig
-from ..component import install_components
-from ..hash_storage import BUILD_STORAGE
-from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from ..mod_structure import MOD_STRUCTURE
-from ..shell import abort, debug, error, info, warn
-from ..utils import (AttributeZipFile, copy_directory, copy_file,
-                     ensure_directory, remove_tree)
+from .base_config import BaseConfig
+from .component import install_components
+from .hash_storage import BUILD_STORAGE
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from .mod_structure import MOD_STRUCTURE
+from .shell import abort, debug, error, info, warn
+from .utils import (AttributeZipFile, copy_directory, copy_file,
+                    ensure_directory, remove_tree)
 
 
 def get_classpath_from_directories(directories: Iterable[str]) -> List[str]:

@@ -9,7 +9,7 @@ try:
 except ImportError:
 	import msvcrt
 
-from . import colorama
+from .. import colorama
 
 if platform.system() == "Windows":
 	colorama.just_fix_windows_console()

@@ -82,7 +82,7 @@ def task_compile_native_debug(args: Optional[List[str]] = None) -> int:
 	if abi is None:
 		abi = "armeabi-v7a"
 		warn(f"* No `debugAbi` value in 'toolchain.json' config, using '{abi}' as default.")
-	from .native.native_build import compile_all_using_make_config
+	from .native_build import compile_all_using_make_config
 	return compile_all_using_make_config([abi])
 
 @task(
@@ -94,7 +94,7 @@ def task_compile_native_release(args: Optional[List[str]] = None) -> int:
 	abis = MAKE_CONFIG.get_value("abis", [])
 	if abis is None or not isinstance(abis, list) or len(abis) == 0:
 		abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
-	from .native.native_build import compile_all_using_make_config
+	from .native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
 @task(
@@ -103,7 +103,7 @@ def task_compile_native_release(args: Optional[List[str]] = None) -> int:
 	description="Compiles Java, changed classes will be packed into dex."
 )
 def task_compile_java_debug(args: Optional[List[str]] = None) -> int:
-	from .java.java_build import compile_all_using_make_config
+	from .java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=True)
 
 @task(
@@ -112,7 +112,7 @@ def task_compile_java_debug(args: Optional[List[str]] = None) -> int:
 	description="Compiles Java without debugging information."
 )
 def task_compile_java_release(args: Optional[List[str]] = None) -> int:
-	from .java.java_build import compile_all_using_make_config
+	from .java_build import compile_all_using_make_config
 	return compile_all_using_make_config(debug_build=False)
 
 @task(

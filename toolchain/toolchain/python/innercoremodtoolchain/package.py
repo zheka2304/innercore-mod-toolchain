@@ -4,7 +4,7 @@ import time
 from os.path import basename, exists, isdir, join, relpath
 from typing import Any, Dict, List, Optional
 
-from . import colorama
+from .. import colorama
 from .base_config import BaseConfig
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .project_manager import PROJECT_MANAGER

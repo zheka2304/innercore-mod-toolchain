@@ -7,9 +7,9 @@ from os import environ, getenv, listdir, makedirs
 from os.path import abspath, basename, dirname, isdir, isfile, join
 from typing import List, Optional, Union
 
-from ..make_config import TOOLCHAIN_CONFIG
-from ..shell import Progress, Shell, abort, error, warn
-from ..utils import AttributeZipFile, remove_tree
+from .make_config import TOOLCHAIN_CONFIG
+from .shell import Progress, Shell, abort, error, warn
+from .utils import AttributeZipFile, remove_tree
 
 
 def abi_to_arch(abi: str) -> str:

@@ -4,11 +4,11 @@ import subprocess
 from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Any, Final, Iterable, Optional
 
-from ..make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
-from ..shell import abort, debug, error, info, warn
-from ..utils import (copy_directory, copy_file, ensure_directory,
-                     ensure_file_directory, get_all_files, remove_tree)
 from . import native_setup
+from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
+from .shell import abort, debug, error, info, warn
+from .utils import (copy_directory, copy_file, ensure_directory,
+                    ensure_file_directory, get_all_files, remove_tree)
 
 CODE_OK: Final[int] = 0
 CODE_FAILED_NO_GCC: Final[int] = 1001
@@ -215,7 +215,7 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 	for native_dir in MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
 		directories.append(native_dir)
 
-	from ..mod_structure import MOD_STRUCTURE
+	from .mod_structure import MOD_STRUCTURE
 	MOD_STRUCTURE.cleanup_build_target("native")
 	if len(directories) > 0:
 		std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
