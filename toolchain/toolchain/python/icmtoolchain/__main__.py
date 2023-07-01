@@ -1,10 +1,10 @@
 import sys
 
 if "--help" in sys.argv:
-	print("Usage: icmtoolchain <tasks> @ [arguments]")
+	print("Usage: icmtoolchain <tasks> -- [arguments]")
 	print(" " * 2 + "--help: Just show this message.")
 	print(" " * 2 + "--list: See all availabled tasks.")
-	print("Executes declared by @task annotation required tasks.")
+	print("Executes declared by @task decorator requested tasks.")
 	exit(0)
 
 from .task import descriptioned_tasks, registered_tasks
@@ -20,9 +20,9 @@ if "--list" in sys.argv:
 
 argv = sys.argv[1:]
 
-# Anything after "@" passes as global arguments
-if "@" in argv:
-	where = argv.index("@")
+# Anything after "--" passes as global arguments
+if "--" in argv:
+	where = argv.index("--")
 	args = argv[where + 1:]
 	argv = argv[:where]
 else:

@@ -1,7 +1,7 @@
 import platform
 import sys
-from typing import (Any, Dict, List, Literal, NoReturn, Optional, TextIO,
-                    Tuple, Type, TypeVar, Union, overload)
+from typing import (IO, Any, Dict, List, Literal, NoReturn, Optional, Tuple,
+                    Type, TypeVar, Union, overload)
 
 try:
 	import termios
@@ -17,12 +17,12 @@ if platform.system() == "Windows":
 
 class Shell():
 	offset: int = 0; line: int = 0
-	stdin: TextIO; stdout: TextIO; eof_when_enter: bool = False
+	stdin: IO[str]; stdout: IO[str]; eof_when_enter: bool = False
 	interactables: List['Interactable']
 
-	def __init__(self, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout) -> None:
-		self.stdin = stdin
-		self.stdout = stdout
+	def __init__(self, stdin: Optional[IO[str]] = None, stdout: Optional[IO[str]] = None) -> None:
+		self.stdin = stdin if stdin is not None else sys.stdin
+		self.stdout = stdout if stdout is not None else sys.stdout
 		self.interactables = []
 
 	def read(self, count: int = 1) -> str:
@@ -218,7 +218,7 @@ class InteractiveShell(Shell):
 	infinite_scroll: bool; lines_per_page: int; implicit_page_indicator: bool
 	page: int = 1
 
-	def __init__(self, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout, infinite_scroll: bool = False, lines_per_page: int = 6, implicit_page_indicator: bool = False) -> None:
+	def __init__(self, stdin: Optional[IO[str]] = None, stdout: Optional[IO[str]] = None, infinite_scroll: bool = False, lines_per_page: int = 6, implicit_page_indicator: bool = False) -> None:
 		Shell.__init__(self, stdin, stdout)
 		self.infinite_scroll = infinite_scroll
 		self.lines_per_page = lines_per_page
@@ -364,7 +364,7 @@ class SelectiveShell(InteractiveShell):
 	page_cursor_offset: int = -1; pending_hover_offset: int = 0
 	blocked_in_page: bool = False
 
-	def __init__(self, stdin: TextIO = sys.stdin, stdout: TextIO = sys.stdout, infinite_scroll: bool = False, lines_per_page: int = 6, implicit_page_indicator: bool = False) -> None:
+	def __init__(self, stdin: Optional[IO[str]] = None, stdout: Optional[IO[str]] = None, infinite_scroll: bool = False, lines_per_page: int = 6, implicit_page_indicator: bool = False) -> None:
 		InteractiveShell.__init__(self, stdin, stdout, infinite_scroll, lines_per_page, implicit_page_indicator)
 		self.eof_when_enter = True
 

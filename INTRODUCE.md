@@ -117,4 +117,3 @@ Something that for some reason was not included in the rest of list, but it may 
 - Updated progress in tasks, in general, all console elements have changed
 - Snippets for callbacks will help you insert new ones into the code even faster
 - A few more new properties in config, it makes no sense to paint them here
-- Still requires Python 3.6, but Python 3.7 is required for autoping to work asynchronously

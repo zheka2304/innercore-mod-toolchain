@@ -210,8 +210,9 @@ def get_username() -> Optional[str]:
 	if username is not None:
 		return username
 	try:
-		return os.environ["USER"]
-	except KeyError:
+		from getpass import getuser
+		return ensure_not_whitespace(getuser())
+	except ImportError:
 		return None
 
 def startup() -> None:
