@@ -791,7 +791,7 @@ def abort(*values: object, sep: Optional[str] = " ", code: int = 400, cause: Opt
 	if cause is not None:
 		from traceback import print_exception
 		buffer = StringBuffer()
-		print_exception(cause.__class__, cause, cause.__traceback__, 5, buffer)
+		print_exception(cause.__class__, cause, cause.__traceback__, 3, buffer)
 		error(buffer.value)
 	if len(values) != 0:
 		error(*values, sep=sep)

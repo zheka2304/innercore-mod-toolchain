@@ -7,7 +7,6 @@ from typing import Callable, Final, List, Optional
 
 from .base_config import BaseConfig
 from .shell import abort
-from .utils import request_task
 
 try:
 	from hashlib import blake2s as encode
@@ -106,7 +105,8 @@ class ToolchainMakeConfig(MakeConfig):
 
 	def assure_project_selected(self) -> None:
 		if self.current_project is None:
-			if request_task("selectProject") != 0:
+			from .task import execute_task
+			if execute_task("selectProject") != 0:
 				abort("Not found any opened project, nothing to do.")
 			return MAKE_CONFIG.assure_project_selected()
 

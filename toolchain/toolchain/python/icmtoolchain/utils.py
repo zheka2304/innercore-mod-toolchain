@@ -206,12 +206,6 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 	os.system("npm install -g typescript")
 	return request_typescript()
 
-def request_task(name: str, args: Optional[List[str]] = None) -> int:
-	from .task import registered_tasks
-	if name in registered_tasks:
-		return registered_tasks[name](args)
-	return 400
-
 
 class AttributeZipFile(ZipFile):
 	if sys.version_info < (3, 6):

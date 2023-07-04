@@ -1,1 +1,1 @@
-python3 -m icmtoolchain selectProject -- "$1"
+python3 -m icmtoolchain selectProject "$1"
