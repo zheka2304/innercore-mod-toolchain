@@ -165,5 +165,5 @@ if "--import" in sys.argv:
 	folder = sys.argv[where + 1]
 	subprocess.run([
 		"python" if platform.system() == "Windows" else "python3",
-		"-m", "icmtoolchain.import", folder
+		"-m", "icmtoolchain.import_project", folder
 	], cwd=join(location, "toolchain", "toolchain", "python"))

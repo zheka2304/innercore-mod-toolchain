@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Final, List, Optional
 
 from . import colorama
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .shell import abort, confirm, debug, info, printc, stringify, warn
+from .shell import abort, confirm, error, info, printc, stringify, warn
 from .utils import (DEVNULL, copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, remove_tree)
 
@@ -17,7 +17,6 @@ class Task:
 	description: str = ""
 	callable: Callable
 	locks: Optional[List[str]] = None
-	stream: Optional[TextIOWrapper] = None
 
 	def __init__(self, name: str, description: Optional[str] = None, locks: Optional[List[str]] = None) -> None:
 		try:
@@ -69,6 +68,7 @@ class Task:
 				break
 
 TASKS: Final[Dict[str, Task]] = dict()
+LOCKS: Final[Dict[str, TextIOWrapper]] = dict()
 
 
 def assure_task(name: str) -> Task:
@@ -83,13 +83,7 @@ def assure_task(name: str) -> Task:
 				return TASKS[task]
 
 def lock_task(name: str, silent: bool = True) -> None:
-	try:
-		task = assure_task(name)
-	except ValueError:
-		debug(f"* Task {name!r} should be locked, but it was not found.")
-		return
-
-	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{task.name}.lock")
+	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	ensure_file_directory(path)
 	await_message = False
 
@@ -103,40 +97,43 @@ def lock_task(name: str, silent: bool = True) -> None:
 				if not await_message:
 					await_message = True
 					if not silent:
-						warn(f"* Task {name} is locked by another process, waiting for it to unlock.")
-					if task.stream:
-						abort("Dead lock detected!")
+						warn(f"* Task {name!r} is locked by another process, waiting for it to unlock.")
 				time.sleep(1.5)
 
+	if name in LOCKS:
+		error("Dead lock detected!")
+		unlock_task(name)
 	open(path, "tw").close()
-	task.stream = open(path, "a")
+	LOCKS[name] = open(path, "a")
 
 def unlock_task(name: str) -> None:
-	try:
-		task = assure_task(name)
-	except ValueError:
-		# It does not matter at all.
-		return
-	if task.stream:
-		task.stream.close()
-		task.stream = None
-	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{task.name}.lock")
+	if name in LOCKS:
+		try:
+			LOCKS[name].close()
+		except IOError:
+			pass
+		del LOCKS[name]
+	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/lock/{name}.lock")
 	if isfile(path):
 		os.remove(path)
 
 def unlock_all_tasks() -> None:
-	tasks = iter(TASKS)
+	tasks = iter(TASKS.values())
 	while True:
 		try:
 			task = next(tasks)
 		except StopIteration:
 			break
 		else:
-			unlock_task(task)
+			task.unlock()
+	if len(LOCKS) > 0:
+		warn(f"* Locks {', '.join(LOCKS)!r} should be unlocked, but they was not found.")
+		for lock in tuple(LOCKS.keys()):
+			unlock_task(lock)
 
 def execute_task(name: str, silent: bool = True, *args, **kwargs) -> Any:
-	task = assure_task(name)
-	return task.execute(silent=silent, *args, **kwargs)
+	return assure_task(name) \
+		.execute(silent=silent, *args, **kwargs)
 
 def task(name: str, description: Optional[str] = None, locks: Optional[List[str]] = None) -> Callable[[Callable], Callable]:
 	task = Task(name, description, locks)
@@ -432,9 +429,8 @@ def task_new_project() -> int:
 	description="Import project by required location into output folder, if output is not specified, 'toolchain/<unique_name>' will be used by default."
 )
 def task_import_project(path: str = "", target: str = "") -> int:
-	import importlib
-	module = importlib.import_module(".import", __package__) # import cannot use name '.import' of course
-	path = module.import_project(path if len(path) > 0 else None, target if len(target) > 0 else None)
+	from import_project import import_project
+	path = import_project(path if len(path) > 0 else None, target if len(target) > 0 else None)
 	print("Project successfully imported!")
 
 	from .project_manager import PROJECT_MANAGER

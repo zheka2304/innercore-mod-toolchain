@@ -2,7 +2,8 @@ import json
 import os
 import platform
 import sys
-from os.path import abspath, basename, exists, isdir, isfile, join, realpath
+from os.path import (abspath, basename, exists, isdir, isfile, join, realpath,
+                     relpath)
 from typing import Callable, Final, List, Optional
 
 from .base_config import BaseConfig
@@ -50,12 +51,21 @@ class MakeConfig(BaseConfig):
 		with open(self.path, "w", encoding="utf-8") as file:
 			file.write(json.dumps(self.json, indent="\t") + "\n")
 
-	def get_absolute_path(self, path: str) -> str:
-		relative_path = self.get_path(path)
-		return relative_path if exists(relative_path) else abspath(path) if exists(abspath(path)) else relative_path
-
 	def get_path(self, relative_path: str) -> str:
 		return abspath(join(self.directory, relative_path))
+
+	def get_absolute_path(self, path: str) -> str:
+		relative_path = self.get_path(path)
+		if exists(relative_path):
+			return relative_path
+		path = abspath(path)
+		if exists(path):
+			return path
+		return relative_path
+
+	def get_relative_path(self, path: str) -> str:
+		absolute_path = self.get_absolute_path(path)
+		return relpath(absolute_path, self.directory)
 
 	def get_paths(self, relative_path: str, filter: Optional[Callable[[str], bool]] = None, locations: Optional[List[str]] = None) -> List[str]:
 		if locations is None:
@@ -117,6 +127,10 @@ class ToolchainMakeConfig(MakeConfig):
 	def get_absolute_path(self, path: str) -> str:
 		self.assure_project_selected()
 		return MakeConfig.get_absolute_path(self, path)
+
+	def get_relative_path(self, path: str) -> str:
+		self.assure_project_selected()
+		return MakeConfig.get_relative_path(self, path)
 
 	def get_paths(self, relative_path: str, filter: Optional[Callable[[str], bool]] = None, locations: Optional[List[str]] = None) -> List[str]:
 		self.assure_project_selected()

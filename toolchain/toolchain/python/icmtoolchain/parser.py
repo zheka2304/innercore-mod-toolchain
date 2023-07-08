@@ -275,6 +275,7 @@ def parse_callable_arguments(argv: List[str], callable: Callable, signature: ins
 				# Nothing to parse here anymore, next argument is not option.
 				raise StopIteration()
 			if len(argument) == 0:
+				argv.pop(0)
 				continue
 		except StopIteration:
 			try:
