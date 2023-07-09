@@ -1,10 +1,12 @@
 import os
 import platform
+import re
 import shutil
+import subprocess
 import sys
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import (IO, Any, Collection, Final, Iterable, List, Literal,
-                    Optional, Union, overload)
+from typing import (IO, Any, Callable, Collection, Final, Iterable, List,
+                    Literal, Optional, Union, overload)
 from zipfile import ZipFile, ZipInfo
 
 from .shell import confirm, info
@@ -116,22 +118,37 @@ def merge_directory(source: str, destination: str, accept_squash: bool = True, i
 		elif isdir(above) or accept_squash:
 			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else [], only_parent_ignore, accept_replace)
 
-def get_all_files(directory: str, extensions: Collection[str] = ()) -> List[str]:
+def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str], Any], extensions: Collection[str] = ()) -> None:
 	"""
-	Recursively walks over directory contents and filters results
+	Recursively walks over directory contents and filters outputs
 	if any extension provided in collection.
 	"""
-	all_files = []
-	for dirpath, dirnames, filenames in os.walk(directory):
-		for filename in filenames:
-			if len(extensions) == 0:
-				all_files.append(abspath(join(dirpath, filename)))
-			else:
-				for extension in extensions:
-					if len(filename) >= len(extension) and filename[-len(extension):] == extension:
-						all_files.append(abspath(join(dirpath, filename)))
-						break
-	return all_files
+	def walk_files(directory: str):
+		if isdir(directory):
+			for dirpath, dirnames, filenames in os.walk(directory):
+				for filename in filenames:
+					if len(extensions) == 0:
+						then(join(dirpath, filename))
+					else:
+						for extension in extensions:
+							if len(filename) >= len(extension) and filename[-len(extension):] == extension:
+								then(join(dirpath, filename))
+								break
+
+	if isinstance(directories, str):
+		walk_files(directories)
+	else:
+		for directory in directories:
+			walk_files(directory)
+
+def get_all_files(directories: Union[Iterable[str], str], extensions: Collection[str] = ()) -> List[str]:
+	"""
+	Recursively walks over directories contents and filters results
+	if any extension provided in collection.
+	"""
+	files = []
+	walk_all_files(directories, lambda filename: files.append(filename), extensions)
+	return files
 
 @overload 
 def ensure_not_whitespace(what: Optional[str], fallback: None = None) -> Optional[str]: ...
@@ -206,6 +223,37 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 	os.system("npm install -g typescript")
 	return request_typescript()
 
+def request_tool(name: str) -> Optional[str]:
+	from .make_config import TOOLCHAIN_CONFIG
+	path = TOOLCHAIN_CONFIG.get_value(f"tools.{name}")
+	if path:
+		path = TOOLCHAIN_CONFIG.get_absolute_path(path)
+		if exists(path):
+			return path
+	path = shutil.which(name)
+	if not path:
+		return None
+	return abspath(path)
+
+def request_executable_version(executable: Union[str, List[str]]) -> float:
+	pattern_version = re.compile(r"\d+\.\d+")
+	if isinstance(executable, str):
+		executable = [executable]
+	result = subprocess.run(executable + [
+		"--version"
+	], text=True, capture_output=True)
+	if result.returncode == 0 and result.stdout:
+		result = pattern_version.search(result.stdout)
+		if result:
+			return float(result.group())
+	result = subprocess.run(executable + [
+		"-version"
+	], text=True, capture_output=True)
+	if result.returncode == 0 and result.stdout:
+		result = pattern_version.search(result.stdout)
+		if result:
+			return float(result.group())
+	return 0.0
 
 class AttributeZipFile(ZipFile):
 	if sys.version_info < (3, 6):
@@ -219,8 +267,9 @@ class AttributeZipFile(ZipFile):
 
 			attr = member.external_attr >> 16
 			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			os.chmod(abspath(targetpath), attr)
+				attr |= 0o0000200 | 0o0000020 # issues/17
+			if attr != 0:
+				os.chmod(abspath(targetpath), attr)
 			return targetpath
 
 	else:
@@ -232,6 +281,7 @@ class AttributeZipFile(ZipFile):
 
 			attr = member.external_attr >> 16
 			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			os.chmod(abspath(targetpath), attr)
+				attr |= 0o0000200 | 0o0000020 # issues/17
+			if attr != 0:
+				os.chmod(abspath(targetpath), attr)
 			return targetpath

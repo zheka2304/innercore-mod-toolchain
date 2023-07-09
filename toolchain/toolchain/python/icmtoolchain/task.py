@@ -175,18 +175,18 @@ def task_compile_native_release() -> int:
 	locks=["java", "cleanup", "push"],
 	description="Compiles Java, changed classes will be packed into dex."
 )
-def task_compile_java_debug() -> int:
-	from .java_build import compile_all_using_make_config
-	return compile_all_using_make_config(debug_build=True)
+def task_compile_java_debug(tool: str = "gradle") -> int:
+	from .java_build import compile_java
+	return compile_java(tool)
 
 @task(
 	"compileJavaRelease",
 	locks=["java", "cleanup", "push"],
 	description="Compiles Java without debugging information."
 )
-def task_compile_java_release() -> int:
-	from .java_build import compile_all_using_make_config
-	return compile_all_using_make_config(debug_build=False)
+def task_compile_java_release(tool: str = "gradle") -> int:
+	from .java_build import compile_java
+	return compile_java(tool)
 
 @task(
 	"buildScriptsDebug",

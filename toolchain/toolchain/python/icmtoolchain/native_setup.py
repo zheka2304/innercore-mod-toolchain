@@ -65,7 +65,7 @@ def get_ndk_path() -> Optional[str]:
 def search_for_gcc_executable(ndk_dir: str) -> Optional[str]:
 	search_dir = join(ndk_dir, "bin")
 	if isdir(search_dir):
-		pattern = re.compile("[0-9A-Za-z]*-linux-android(eabi)*-g\\+\\+.*")
+		pattern = re.compile(r"[0-9A-Za-z]*-linux-android(eabi)*-g\\+\\+.*")
 		for file in listdir(search_dir):
 			if re.match(pattern, file):
 				return abspath(join(search_dir, file))

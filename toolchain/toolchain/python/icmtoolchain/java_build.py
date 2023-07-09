@@ -1,10 +1,14 @@
 import json
 import os
 import platform
+import re
 import subprocess
-from os.path import basename, exists, isdir, isfile, join
-from typing import Any, Dict, Iterable, List
+from collections import namedtuple
+from os.path import basename, exists, isdir, join, relpath
+from typing import Collection, Dict, List
 from zipfile import ZipFile
+
+from genericpath import isfile
 
 from .base_config import BaseConfig
 from .component import install_components
@@ -12,260 +16,382 @@ from .hash_storage import BUILD_STORAGE
 from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 from .mod_structure import MOD_STRUCTURE
 from .shell import abort, debug, error, info, warn
-from .utils import (AttributeZipFile, copy_directory, copy_file,
-                    ensure_directory, remove_tree)
+from .utils import (copy_directory, copy_file, ensure_directory, get_all_files,
+                    remove_tree, request_executable_version, request_tool,
+                    walk_all_files)
 
+BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest")
 
-def get_classpath_from_directories(directories: Iterable[str]) -> List[str]:
-	classpath = []
+def prepare_directory_order(directory: str) -> List[str]:
+	directories = os.listdir(directory)
+	if "order.txt" in directories:
+		with open(join(directory, "order.txt"), encoding="utf-8") as order:
+			directories = order.readlines()
+	else:
+		directories = list(filter(lambda name: isdir(join(directory, name)), directories))
+	return directories
+
+def prepare_build_targets(directories: Collection[str]) -> List[BuildTarget]:
+	targets = []
 	for directory in directories:
-		if isdir(directory):
-			for file in os.listdir(directory):
-				file = join(directory, file)
-				if isfile(file):
-					classpath.append(file)
-	return classpath
+		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
+			manifest = json.load(manifest)
+		# relative_directory = MAKE_CONFIG.get_relative_path(directory)
+		relative_directory = basename(directory)
+		output_directory = MOD_STRUCTURE.new_build_target("java", relative_directory)
+		ensure_directory(output_directory)
+		targets.append(BuildTarget(directory, relative_directory, output_directory, BaseConfig(manifest)))
+	return targets
 
-def rebuild_library_cache(directory: str, library_pathes: Iterable[str], cache_dir: str) -> List[str]:
-	directory_name = basename(directory)
-	lib_cache_dir = join(cache_dir, "d8_lib_cache", directory_name)
-	lib_cache_zip = join(cache_dir, "d8_lib_cache-" + directory_name + ".zip")
+def rebuild_library_cache(relative_directory: str, libraries: Collection[str], target_directory: str) -> List[str]:
+	target_classes_directory = join(target_directory, "libraries", "classes", relative_directory)
+	compressed_libraries = join(target_directory, "libraries", relative_directory + ".zip")
 
-	debug("Rebuilding library cache:", directory_name)
-	remove_tree(lib_cache_dir)
-	ensure_directory(lib_cache_dir)
-
-	for archive in library_pathes:
-		debug("Extracting library classes:", basename(archive))
-		with AttributeZipFile(archive, "r") as zip_ref:
-			zip_ref.extractall(lib_cache_dir)
-	debug("Zipping extracted cache", end="\n\n")
+	debug("Rebuilding library cache:", relative_directory)
+	remove_tree(target_classes_directory)
+	ensure_directory(target_classes_directory)
 
 	import shutil
-	if isfile(lib_cache_zip):
-		os.remove(lib_cache_zip)
-	shutil.make_archive(lib_cache_zip[:-4], "zip", lib_cache_dir)
-	return [lib_cache_zip]
+	for filename in libraries:
+		debug("Extracting library classes:", basename(filename))
+		shutil.unpack_archive(filename, target_classes_directory, "zip")
 
-def update_modified_classes(directories: Iterable[str], cache_dir: str) -> Dict[str, Dict[str, Any]]:
+	debug("Zipping extracted cache")
+	remove_tree(compressed_libraries)
+	shutil.make_archive(compressed_libraries[:-4], "zip", target_classes_directory)
+	return [compressed_libraries]
+
+def update_modified_targets(targets: Collection[BuildTarget], target_directory: str) -> Dict[str, Dict[str, List[str]]]:
 	modified_files = {}
-	for directory in directories:
-		directory_name = basename(directory)
-		classes_dir = join(cache_dir, "classes", directory_name, "classes")
-		modified_files[directory_name] = {
-			"class": BUILD_STORAGE.get_modified_files(classes_dir, (".class")),
-			"lib": []
-		}
-		with open(join(directory, "manifest"), "r") as file:
-			manifest = BaseConfig(json.load(file))
-		for library_path in manifest.get_value("library-dirs", []):
-			library_dir = join(directory, library_path)
-			modified_files[directory_name]["lib"] += BUILD_STORAGE.get_modified_files(library_dir, (".jar"))
-		if len(modified_files[directory_name]["lib"]) > 0:
-			modified_files[directory_name]["lib"] = rebuild_library_cache(
-				directory, modified_files[directory_name]["lib"], cache_dir
-			)
+	for target in targets:
+		classes_directory = join(target_directory, "classes", target.relative_directory, "classes")
+		classes = BUILD_STORAGE.get_modified_files(classes_directory, (".class"))
+		libraries = []
+		for library_path in target.manifest.get_value("library-dirs", []):
+			library_directory = join(target.directory, library_path)
+			libraries.extend(BUILD_STORAGE.get_modified_files(library_directory, (".jar")))
+		if len(libraries) > 0:
+			libraries = rebuild_library_cache(target.relative_directory, libraries, target_directory)
+		if len(classes) > 0 or len(libraries) > 0:
+			modified_files[target.relative_directory] = {
+				"classes": classes,
+				"libraries": libraries
+			}
 	return modified_files
 
-def run_d8(directory_name: str, modified_pathes: Dict[str, List[str]], cache_dir: str, debug_build: bool = False) -> int:
-	d8_libs = []
-	classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
-	if exists(classpath_dir):
-		for dirpath, dirnames, filenames in os.walk(classpath_dir):
-			for filename in filenames:
-				if filename.endswith(".jar"):
-					d8_libs += ["--lib", join(dirpath, filename)]
+### D8/L8/R8
+# <Error/Warning/Info/Debug> in <filename>:<archivesubpath>:
+# no trailing whitespace in descriptions
 
-	dex_classes_dir = join(cache_dir, "d8", directory_name)
-	jar_dir = join(cache_dir, "classes", directory_name, "libs", directory_name + "-all.jar")
-	ensure_directory(dex_classes_dir)
+def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath: Collection[str], target_directory: str, debug_build: bool = False) -> int:
+	classpath_targets = []
+	for filename in classpath:
+		classpath_targets += ["--classpath", filename]
+	compressed_libraries = join(target_directory, "classes", target.relative_directory, "libs", target.relative_directory + "-all.jar")
+	libraries = []
+	if exists(compressed_libraries):
+		libraries += ["--lib", compressed_libraries]
+	else:
+		walk_all_files((join(target.directory, library) for library in target.manifest.get_value("library-dirs", [])), lambda filename: libraries.extend(("--lib", filename)), (".jar"))
 
-	modified_classes = modified_pathes["class"]
-	modified_libs = modified_pathes["lib"]
+	target_d8_directory = join(target_directory, "d8", target.relative_directory)
+	compressed_target = target_d8_directory + ".zip"
+	ensure_directory(target_d8_directory)
+
+	modified_classes = modified_pathes["classes"]
+	modified_libraries = modified_pathes["libraries"]
 
 	debug("Dexing libraries")
 	result = subprocess.call([
 		"java",
-		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
+		"-classpath", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8"
-	] + modified_libs + d8_libs + ([
-		"--classpath", classpath_dir
-	] if exists(classpath_dir) else []) + [
+	] + modified_libraries + classpath_targets + libraries + [
 		"--min-api", "19",
-		"--lib", jar_dir,
 		"--debug" if debug_build else "--release",
 		"--intermediate",
-		"--output", dex_classes_dir
+		"--output", target_d8_directory
 	])
 	if result != 0:
 		return result
 
 	debug("Dexing classes")
-	index = 0
-	max_span_size = 128
-	while index < len(modified_classes):
-		modified_classes_span = modified_classes[index:min(index + max_span_size, len(modified_classes))]
-		result = subprocess.call([
-			"java",
-			"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
-			"com.android.tools.r8.D8"
-		] + modified_classes_span + d8_libs + ([
-			"--classpath", classpath_dir
-		] if exists(classpath_dir) else []) + [
-			"--min-api", "19",
-			"--lib", jar_dir,
-			"--debug" if debug_build else "--release",
-			"--intermediate",
-			"--file-per-class",
-			"--output", dex_classes_dir
-		])
-		if result != 0:
-			return result
-		index += max_span_size
-		debug(f"Dexing classes: {min(index, len(modified_classes))}/{len(modified_classes)} completed")
-
-	debug("Compressing archives")
-	dex_classes_dir = join(cache_dir, "d8", directory_name)
-	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
-	with ZipFile(dex_zip_file, "w") as zip_ref:
-		for dirpath, dirnames, filenames in os.walk(dex_classes_dir):
-			for filename in filenames:
-				if filename.endswith(".dex"):
-					file = join(dirpath, filename)
-					zip_ref.write(file, arcname=file[len(dex_classes_dir) + 1:])
-
-	return result
-
-def merge_compressed_dexes(directory_name: str, cache_dir: str, debug_build: bool = False) -> int:
-	dex_zip_file = join(cache_dir, "d8", directory_name + ".zip")
-	output_dex_dir = join(cache_dir, "odex", directory_name)
-	remove_tree(output_dex_dir)
-	ensure_directory(output_dex_dir)
-	debug("Merging dex")
-	return subprocess.call([
+	result = subprocess.call([
 		"java",
-		"-cp", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
-		"com.android.tools.r8.D8",
-		dex_zip_file,
+		"-classpath", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
+		"com.android.tools.r8.D8"
+	] + modified_classes + classpath_targets + libraries + [
 		"--min-api", "19",
 		"--debug" if debug_build else "--release",
 		"--intermediate",
-		"--output", output_dex_dir
+		"--file-per-class",
+		"--output", target_d8_directory
+	])
+	if result != 0:
+		return result
+
+	debug("Compressing archives")
+	with ZipFile(compressed_target, "w") as archive:
+		walk_all_files(target_d8_directory, lambda filename: archive.write(filename, arcname=filename[len(target_d8_directory) + 1:]), (".dex"))
+
+	return result
+
+def merge_compressed_dexes(target: BuildTarget, target_directory: str, debug_build: bool = False) -> int:
+	compressed_target = join(target_directory, "d8", target.relative_directory + ".zip")
+	output_directory = join(target_directory, "odex", target.relative_directory)
+	remove_tree(output_directory)
+	ensure_directory(output_directory)
+
+	debug("Merging dex")
+	return subprocess.call([
+		"java",
+		"-classpath", TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
+		"com.android.tools.r8.D8",
+		compressed_target,
+		"--min-api", "19",
+		"--debug" if debug_build else "--release",
+		"--intermediate",
+		"--output", output_directory
 	])
 
-def build_java_directories(directories: Iterable[str], cache_dir: str, classpath: List[str], debug_build: bool = False) -> int:
-	ensure_directory(cache_dir)
+def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
+	for target in targets:
+		if target.manifest.get_value("keepLibraries", False) or MAKE_CONFIG.get_value("java.keepLibraries", False) or MAKE_CONFIG.get_value("gradle.keepLibraries", True):
+			library_directories = target.manifest.get_value("library-dirs", [])
+			for relative_directory in library_directories:
+				directory = join(target.directory, relative_directory)
+				if isdir(directory):
+					copy_directory(directory, join(target.output_directory, relative_directory), clear_destination=True)
+			target.manifest.remove_value("keepLibraries")
 
-	targets = setup_gradle_project(cache_dir, directories, classpath)
+		if target.manifest.get_value("keepSources", False) or MAKE_CONFIG.get_value("java.keepSources", False) or MAKE_CONFIG.get_value("gradle.keepSources", False):
+			source_directories = target.manifest.get_value("source-dirs", [])
+			for relative_directory in source_directories:
+				directory = join(target.directory, relative_directory)
+				if isdir(directory):
+					copy_directory(directory, join(target.output_directory, relative_directory), clear_destination=True)
+			target.manifest.remove_value("keepSources")
+
+		with open(join(target.output_directory, "manifest"), "w", encoding="utf-8") as manifest:
+			manifest.write(json.dumps(target.manifest.json))
+
+### JAVAC
+# <filename>:<line>: <error/warning/info/debug>: [<-Xlint>] <message>
+
+def build_java_with_javac(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
+	result = 0
+	javac_executable = None
+	supports_modules = False
+
+	for target in targets:
+		source_directories = target.manifest.get_value("source-dirs", [])
+		library_directories = target.manifest.get_value("library-dirs", [])
+		if len(source_directories) == len(library_directories) == 0:
+			debug(f"* Directory {target.relative_directory!r} is empty")
+			continue
+
+		from time import time
+		startup_millis = time()
+		target_compiler_directory = join(target_directory, "classes", target.relative_directory)
+		target_classes_directory = join(target_compiler_directory, "classes")
+		ensure_directory(target_classes_directory)
+		target_sources_directory = join(target_compiler_directory, "generated", "sources", "annotationProcessor")
+		target_headers_directory = join(target_compiler_directory, "generated", "sources", "headers")
+		ensure_directory(target_sources_directory)
+		ensure_directory(target_headers_directory)
+
+		classes_listing = join(target_compiler_directory, ".classes")
+		if not write_changed_source_files(target, source_directories, classes_listing):
+			info(f"* Directory {target.relative_directory!r} is not changed")
+			continue
+
+		if not javac_executable:
+			javac_executable = request_tool("javac")
+			if not javac_executable:
+				abort("Executable 'javac' is required for compilation, nothing to do.")
+			supports_modules = request_executable_version(javac_executable)
+			supports_modules = supports_modules >= 1.9 or supports_modules >= 9
+
+		options = []
+		if supports_modules:
+			options += ["--release", "8"]
+		else:
+			options += [
+				"-source", "8",
+				"-target", "8"
+			]
+		if len(source_directories) > 0:
+			options += ["-sourcepath", os.pathsep.join(join(target.directory, source) for source in source_directories)]
+		precompiled = []
+		if supports_modules:
+			precompiled += classpath
+		else:
+			# Might be unstable with lambdas, desugaring requires JDK >= 9.
+			options += ["-bootclasspath", os.pathsep.join(classpath)]
+		if len(library_directories) > 0:
+			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
+		options += ["-classpath", os.pathsep.join(precompiled)]
+
+		result = subprocess.call([
+			javac_executable
+		] + options + [
+			"-Xlint",
+			"-Xlint:-cast",
+			"-implicit:class",
+			"-d", target_classes_directory,
+			"-s", target_sources_directory,
+			"-h", target_headers_directory,
+			f"@{classes_listing}"
+		])
+		startup_millis = time() - startup_millis
+		if result != 0:
+			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result}.")
+			return result
+		debug(f"Completed {target.relative_directory!r} compilation in {startup_millis:.2f}s!")
+	return 0
+
+def write_changed_source_files(target: BuildTarget, directories: Collection[str], filename: str) -> bool:
+	contains_modifications = False
+	with open(filename, "w", encoding="utf-8") as output:
+		for directory in directories:
+			modifications = BUILD_STORAGE.get_modified_files(join(target.directory, directory), (".java"))
+			try:
+				next(iter(modifications))
+			except StopIteration:
+				continue
+			contains_modifications = True
+			output.writelines(modification + os.linesep for modification in modifications)
+	return contains_modifications
+
+### ECJ
+# <index>. [ERROR/WARNING/INFO/DEBUG] in <filename> (at line <line>)
+# ----------
+# <filename>:<line>: [error/warning/info/debug]: <message> (-Xemacs)
+
+def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
+	result = 0
+	ecj_executable = None
+
+	for target in targets:
+		source_directories = target.manifest.get_value("source-dirs", [])
+		library_directories = target.manifest.get_value("library-dirs", [])
+		if len(source_directories) == len(library_directories) == 0:
+			debug(f"* Directory {target.relative_directory!r} is empty")
+			continue
+
+		from time import time
+		startup_millis = time()
+		target_compiler_directory = join(target_directory, "classes", target.relative_directory)
+		target_classes_directory = join(target_compiler_directory, "classes")
+		ensure_directory(target_classes_directory)
+		target_sources_directory = join(target_compiler_directory, "generated", "sources")
+		ensure_directory(target_sources_directory)
+
+		classes_listing = join(target_compiler_directory, ".classes")
+		if not write_changed_source_files(target, source_directories, classes_listing):
+			info(f"* Directory {target.relative_directory!r} is not changed")
+			continue
+
+		if not ecj_executable:
+			java_executable = request_tool("java")
+			if not java_executable:
+				abort("Executable 'java' is required for compilation, nothing to do.")
+			ecj_pattern = re.compile(r"ecj-(\d+\.)*jar")
+			ecj_executables = TOOLCHAIN_CONFIG.get_paths("toolchain/bin/*", lambda filename: isfile(filename) and re.fullmatch(ecj_pattern, basename(filename)) is not None)
+			if len(ecj_executables) == 0:
+				abort("Executable 'ecj-*.jar' is required for compilation, nothing to do.")
+			ecj_executable = []
+			for executable in ecj_executables:
+				ecj_executable = [java_executable, "-jar", executable]
+				if request_executable_version(ecj_executable) != 0.0:
+					break
+			if result != 0:
+				error("Executable 'ecj-*.jar' is not supported, nothing to do.")
+				return result
+
+		options = []
+		if len(source_directories) > 0:
+			options += ["-sourcepath", ":".join(join(target.directory, source) for source in source_directories)]
+		precompiled = list(classpath)
+		if len(library_directories) > 0:
+			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
+		options += ["-classpath", ":".join(precompiled)]
+
+		result = subprocess.call(ecj_executable + [
+			"--release", "8",
+			"-Xlint",
+			"-Xlint:-cast",
+			"-Xemacs",
+			"-proceedOnError",
+			"-d", target_classes_directory,
+			"-s", target_sources_directory
+		] + options + [
+			f"@{classes_listing}"
+		])
+		startup_millis = time() - startup_millis
+		if result == 0:
+			debug(f"Completed {target.relative_directory!r} compilation in {startup_millis:.2f}s!")
+		else:
+			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result}.")
+			return result
+	return 0
+
+### GRADLE
+
+def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
+	setup_gradle_project(targets, target_directory, classpath)
 	gradle_executable = TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
 		gradle_executable += ".bat"
 	result = subprocess.call([
 		gradle_executable,
-		"-p", cache_dir, "shadowJar"
+		"-p", target_directory, "shadowJar"
 	])
+	cleanup_gradle_scripts(targets)
 	if result != 0:
 		return result
 	print()
-
-	modified_files = update_modified_classes(directories, cache_dir)
-	for target in targets:
-		directory_name = basename(target)
-		if directory_name in modified_files and (len(modified_files[directory_name]["class"]) > 0 or len(modified_files[directory_name]["lib"]) > 0):
-			info(f"* Running d8 with '{directory_name}'")
-			result = run_d8(directory_name, modified_files[directory_name], cache_dir, debug_build)
-			if result != 0:
-				error(f"Failed to dex {directory_name} with code {result}")
-				return result
-			result = merge_compressed_dexes(directory_name, cache_dir, debug_build)
-			if result != 0:
-				error(f"Failed to merge {directory_name} with code {result}")
-				return result
-			print()
-		else:
-			info(f"* Directory {directory_name} is not changed")
-		output_dex_dir = join(cache_dir, "odex", directory_name)
-		for filename in os.listdir(output_dex_dir):
-			copy_file(join(output_dex_dir, filename), join(target, filename))
-
-	BUILD_STORAGE.save()
 	return result
 
-def build_list(directory: str) -> List[str]:
-	dirs = os.listdir(directory)
-	if "order.txt" in dirs:
-		order = open(join(directory, "order.txt"), "r", encoding="utf-8")
-		dirs = order.read().splitlines()
-	else:
-		dirs = list(filter(lambda name: isdir(join(directory, name)), dirs))
-	return dirs
+def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> None:
+	with open(join(target_directory, "settings.gradle"), "w", encoding="utf-8") as settings_gradle:
+		for target in targets:
+			settings_gradle.write(f'include ":{target.relative_directory}"')
+			settings_gradle.write(os.linesep)
+			project_directory = target.directory.replace("\\", "\\\\")
+			settings_gradle.write(f'project(":{target.relative_directory}").projectDir = file("{project_directory}")')
+			settings_gradle.write(os.linesep)
 
-def setup_gradle_project(cache_dir: str, directories: Iterable[str], classpath: List[str]) -> List[str]:
-	file = open(join(cache_dir, "settings.gradle"), "w", encoding="utf-8")
-	file.writelines([
-		"include \":%s\"\nproject(\":%s\").projectDir = file(\"%s\")\n"
-			% (basename(item), basename(item), item.replace("\\", "\\\\")) for item in directories
-	])
-	file.close()
+	target_classes_directory = join(target_directory, "classes")
+	ensure_directory(target_classes_directory)
+	for target in targets:
+		# if not exists(join(target.directory, "build.gradle")):
+		source_directories = target.manifest.get_value("source-dirs", [])
+		library_directories = target.manifest.get_value("library-dirs", [])
+		write_build_gradle(target.directory, classpath, target_classes_directory, source_directories, library_directories)
 
-	targets = []
-	for directory in directories:
-		target_dir = MOD_STRUCTURE.new_build_target("java", basename(directory))
-		remove_tree(target_dir)
-		ensure_directory(target_dir)
-		targets.append(target_dir)
-
-		with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
-			manifest = BaseConfig(json.load(file))
-
-		source_dirs = manifest.get_value("source-dirs", [])
-		library_dirs = manifest.get_value("library-dirs", [])
-		build_dir = join(cache_dir, "classes")
-		dex_dir = target_dir
-		ensure_directory(build_dir)
-		ensure_directory(dex_dir)
-
-		if manifest.get_value("keepLibraries", MAKE_CONFIG.get_value("gradle.keepLibraries", True)):
-			for library_dir in library_dirs:
-				src_dir = join(directory, library_dir)
-				if isdir(src_dir):
-					copy_directory(src_dir, join(dex_dir, library_dir), clear_destination=True)
-			manifest.remove_value("keepLibraries")
-
-		if manifest.get_value("keepSources", MAKE_CONFIG.get_value("gradle.keepSources", False)):
-			for source_dir in source_dirs:
-				src_dir = join(directory, source_dir)
-				if isdir(src_dir):
-					copy_directory(src_dir, join(dex_dir, source_dir), clear_destination=True)
-			manifest.remove_value("keepSources")
-
-		with open(join(target_dir, "manifest"), "w", encoding="utf-8") as file:
-			file.write(json.dumps(manifest.json))
-
-		write_build_gradle(directory, classpath, build_dir, source_dirs, library_dirs)
-	return targets
-
-def write_build_gradle(directory: str, classpath: List[str], build_dir: str, source_dirs: Iterable[str], library_dirs: List[str]) -> None:
-	with open(join(directory, "build.gradle"), "w", encoding="utf-8") as build_file:
-		build_file.write("""plugins {
+def write_build_gradle(directory: str, classpath: Collection[str], target_classes_directory: str, source_directories: Collection[str], library_directories: Collection[str]) -> None:
+	with open(join(directory, "build.gradle"), "w", encoding="utf-8") as build_gradle:
+		build_gradle.write(
+"""plugins {
 	id "com.github.johnrengelman.shadow" version "5.2.0"
 	id "java"
 }
 
 dependencies {
 	""" + ("""compile fileTree(\"""" + "\", \"".join([
-			path.replace("\\", "\\\\") for path in library_dirs
+			path.replace("\\", "\\\\") for path in library_directories
 		])
-		+ """\") { include \"*.jar\" }""" if len(library_dirs) > 0 else "") + """
+		+ """\") { include \"*.jar\" }""" if len(library_directories) > 0 else "") + """
 }
 
 sourceSets {
 	main {
 		java {
 			srcDirs = [\"""" + "\", \"".join([
-				path.replace("\\", "\\\\") for path in source_dirs
+				path.replace("\\", "\\\\") for path in source_directories
 			]) + """\"]
-			buildDir = \"""" + join(build_dir, "${project.name}").replace("\\", "\\\\") + """\"
+			buildDir = \"""" + join(target_classes_directory, "${project.name}").replace("\\", "\\\\") + """\"
 		}
 		resources {
 			srcDirs = []
@@ -277,64 +403,105 @@ sourceSets {
 }
 """)
 
-def cleanup_gradle_scripts(directories: Iterable[str]) -> None:
-	for path in directories:
-		gradle_script = join(path, "build.gradle")
+def cleanup_gradle_scripts(targets: Collection[BuildTarget]) -> None:
+	for target in targets:
+		gradle_script = join(target.directory, "build.gradle")
 		if isfile(gradle_script):
 			os.remove(gradle_script)
 
-def compile_all_using_make_config(debug_build: bool = False) -> int:
-	from time import time
-	start_time = time()
+### TASKS
 
+def build_java_with(tool: str, directories: Collection[str], target_directory: str, classpath_directories: Collection[str]) -> int:
+	classpath = get_all_files(classpath_directories, (".jar"))
+	targets = prepare_build_targets(directories)
+
+	if tool == "gradle":
+		result = build_java_with_gradle(targets, target_directory, classpath)
+	elif tool == "ecj":
+		result = build_java_with_ecj(targets, target_directory, classpath)
+	else: # javac
+		result = build_java_with_javac(targets, target_directory, classpath)
+	if result != 0:
+		return result
+
+	modified_targets = update_modified_targets(targets, target_directory)
+	for target in targets:
+		if target.relative_directory not in modified_targets:
+			# Otherwise it will be reported immediately.
+			if tool == "gradle":
+				info(f"* Directory {target.relative_directory!r} is not changed")
+		else:
+			debug(f"* Running d8 with {target.relative_directory!r}")
+			result = run_d8(target, modified_targets[target.relative_directory], classpath, target_directory)
+			if result != 0:
+				error(f"Failed to dex {target.relative_directory!r} with result {result}.")
+				return result
+			result = merge_compressed_dexes(target, target_directory)
+			if result != 0:
+				error(f"Failed to merge {target.relative_directory!r} with result {result}.")
+				return result
+
+		target_odex_directory = join(target_directory, "odex", target.relative_directory)
+		for dirpath, dirnames, filenames in os.walk(target_odex_directory):
+			for filename in filenames:
+				relative_directory = relpath(dirpath, target_odex_directory)
+				copy_file(join(dirpath, filename), join(target.output_directory, relative_directory, filename))
+
+	copy_additional_sources(targets)
+	BUILD_STORAGE.save()
+	return result
+
+def compile_java(tool: str = "gradle") -> int:
+	if tool not in ("gradle", "javac", "ecj"):
+		error(f"Java compilation will be cancelled, because tool {tool!r} is not availabled.")
+		return 255
+	from time import time
+	startup_millis = time()
 	overall_result = 0
-	cache_dir = MAKE_CONFIG.get_build_path("gradle")
-	ensure_directory(cache_dir)
+
+	target_directory = MAKE_CONFIG.get_build_path(tool)
+	ensure_directory(target_directory)
 	MOD_STRUCTURE.cleanup_build_target("java")
 
 	directories = []
 	for directory in MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
 		if "source" not in directory:
-			warn("* Skipped invalid java directory json", directory)
+			warn(f"* Skipped invalid java directory {directory!r} json!")
 			overall_result += 1
 			continue
-
 		for path in MAKE_CONFIG.get_paths(directory["source"]):
 			if not isdir(path):
-				warn("* Skipped non-existing java directory path", directory["source"])
+				warn(f"* Skipped non-existing java directory {directory!r}!")
 				overall_result += 1
 				continue
 			directories.append(path)
-
-	if overall_result != 0:
-		print("Cancelling compilation, because one of folders broken.")
+	if overall_result != 0 or len(directories) == 0:
+		if len(directories) > 0:
+			error("Java compilation will be cancelled, because some directories skipped.")
 		return overall_result
 
-	if len(directories) > 0:
+	if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
+		install_components("java")
 		if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
-			install_components("java")
-			if not exists(TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
-				abort("Component 'java' is required for compilation, nothing to do.")
-		classpath_dir = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
-		if not exists(classpath_dir):
-			warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
-		classpath_directories = ([
-			classpath_dir
-		] if exists(classpath_dir) else []) + MAKE_CONFIG.get_value("gradle.classpath", [])
-		try:
-			overall_result = build_java_directories(directories, cache_dir, get_classpath_from_directories(classpath_directories), debug_build)
-		except KeyboardInterrupt:
-			overall_result = 1
-		if overall_result != 0:
-			error(f"Java compilation failed with code '{overall_result}', removing temporary files...")
-			for directory in directories:
-				remove_tree(MAKE_CONFIG.get_path("output/" + directory))
+			abort("Component 'java' is required for compilation, nothing to do.")
+	classpath_directory = TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
+	if not exists(classpath_directory):
+		warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
+		classpath_directory = None
 
-	cleanup_gradle_scripts(directories)
+	classpath_directories = MAKE_CONFIG.get_value("java.classpath")
+	# Just in case if someone meaning to use outdated property.
+	if not classpath_directories:
+		classpath_directories = MAKE_CONFIG.get_value("gradle.classpath", [])
+	if classpath_directory:
+		classpath_directories.insert(0, classpath_directory)
+
+	overall_result = build_java_with(tool, directories, target_directory, classpath_directories)
+
 	MOD_STRUCTURE.update_build_config_list("javaDirs")
-	print(f"Completed java build in {int((time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+	startup_millis = time() - startup_millis
+	if overall_result == 0:
+		print(f"Completed java build in {startup_millis:.2f}s!")
+	else:
+		error(f"Failed java build in {startup_millis:.2f}s with result {overall_result}.")
 	return overall_result
-
-
-if __name__ == "__main__":
-	compile_all_using_make_config(debug_build=True)

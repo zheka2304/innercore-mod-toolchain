@@ -787,7 +787,7 @@ def stringify(*values: object, color: Optional[Union[int, str]] = None, reset: O
 	printc(*values, color=color, reset=reset, sep=sep, end=end, file=buffer)
 	return buffer.value
 
-def abort(*values: object, sep: Optional[str] = " ", code: int = 400, cause: Optional[BaseException] = None) -> NoReturn:
+def abort(*values: object, sep: Optional[str] = " ", code: int = 255, cause: Optional[BaseException] = None) -> NoReturn:
 	if cause is not None:
 		from traceback import print_exception
 		buffer = StringBuffer()

@@ -1,7 +1,7 @@
 import json
 import os
 from errno import ENOENT
-from os.path import dirname, getmtime, getsize, isdir, isfile, join
+from os.path import dirname, getmtime, getsize, isdir, isfile, islink, join
 from typing import Collection, Dict, Final, List
 
 from .make_config import MAKE_CONFIG
@@ -12,7 +12,6 @@ try:
 except ImportError:
 	from hashlib import md5 as encode
 
-
 class HashStorage:
 	last_hashes: Dict[str, str]
 	hashes: Dict[str, str]
@@ -20,21 +19,22 @@ class HashStorage:
 
 	def __init__(self, path: str) -> None:
 		self.path = path
-		if isfile(path):
-			self.read()
 		self.last_hashes = {}
 		self.hashes = {}
+		if isfile(path) or islink(path):
+			self.read()
 
 	def read(self) -> None:
 		with open(self.path, "r") as file:
 			self.last_hashes = json.load(file)
+		self.hashes = {}
 
 	def get_path_hash(self, path: str, force: bool = False) -> str:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
 		if not force and encoded in self.hashes:
 			return self.hashes[encoded]
 
-		if isfile(path):
+		if isfile(path) or islink(path):
 			hash = HashStorage.get_file_hash(path)
 		elif isdir(path):
 			hash = HashStorage.get_directory_hash(path)
@@ -78,6 +78,7 @@ class HashStorage:
 				**self.last_hashes,
 				**self.hashes
 			}, indent=None, separators=(",", ":")) + "\n")
+		self.read()
 
 	def is_path_changed(self, path: str, force: bool = False) -> bool:
 		hash = self.get_path_hash(path, force)
