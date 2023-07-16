@@ -9,6 +9,7 @@ from typing import (IO, Any, Callable, Collection, Final, Iterable, List,
                     Literal, Optional, Union, overload)
 from zipfile import ZipFile, ZipInfo
 
+from . import GLOBALS
 from .shell import confirm, info
 
 DEVNULL: Final[IO[Any]] = open(os.devnull, "w")
@@ -224,10 +225,9 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 	return request_typescript()
 
 def request_tool(name: str) -> Optional[str]:
-	from .make_config import TOOLCHAIN_CONFIG
-	path = TOOLCHAIN_CONFIG.get_value(f"tools.{name}")
+	path = GLOBALS.TOOLCHAIN_CONFIG.get_value(f"tools.{name}")
 	if path:
-		path = TOOLCHAIN_CONFIG.get_absolute_path(path)
+		path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path)
 		if exists(path):
 			return path
 	path = shutil.which(name)

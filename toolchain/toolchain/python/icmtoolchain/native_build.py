@@ -4,8 +4,9 @@ import subprocess
 from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Any, Final, Iterable, Optional
 
-from . import native_setup
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG, BaseConfig
+from . import GLOBALS
+from .make_config import BaseConfig
+from .native_setup import abi_to_arch, require_compiler_executable
 from .shell import abort, debug, error, info, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, get_all_files, remove_tree)
@@ -19,8 +20,8 @@ CODE_INVALID_PATH: Final[int] = 1005
 
 
 def prepare_compiler_executable(abi: str) -> Optional[str]:
-	arch = native_setup.abi_to_arch(abi)
-	return native_setup.require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
+	arch = abi_to_arch(abi)
+	return require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
 
 def get_manifest(directory: str) -> Any:
 	with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
@@ -41,7 +42,7 @@ def search_directory(parent: str, name: str) -> Optional[str]:
 				return path
 
 def get_fake_so_dir(abi: str) -> str:
-	fake_so_dir = TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
+	fake_so_dir = GLOBALS.TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 
@@ -50,7 +51,7 @@ def add_fake_so(gcc: str, abi: str, name: str) -> None:
 	if not isfile(file):
 		result = subprocess.call([
 			gcc, "-std=c++11",
-			TOOLCHAIN_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
+			GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
 			"-shared", "-o", file
 		])
 		print("Created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
@@ -112,7 +113,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 		for std_includes_dir in std_includes:
 			includes.append(f"-I{std_includes_dir}")
 		dependencies = [f"-L{get_fake_so_dir(abi)}", "-landroid", "-lm", "-llog"]
-		for link in rules.get_value("link", fallback=[]) + MAKE_CONFIG.get_value("linkNative", fallback=[]) + ["horizon"]:
+		for link in rules.get_value("link", fallback=[]) + GLOBALS.MAKE_CONFIG.get_value("linkNative", fallback=[]) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 		if "depends" in manifest:
@@ -212,16 +213,15 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 	directories = []
 	overall_result = CODE_OK
 
-	for native_dir in MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
+	for native_dir in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
 		directories.append(native_dir)
 
-	from .mod_structure import MOD_STRUCTURE
-	MOD_STRUCTURE.cleanup_build_target("native")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("native")
 	if len(directories) > 0:
-		std_includes = TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
+		std_includes = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
 		if not exists(std_includes):
 			warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
-		cache_dir = MAKE_CONFIG.get_build_path("gcc")
+		cache_dir = GLOBALS.MAKE_CONFIG.get_build_path("gcc")
 		ensure_directory(cache_dir)
 
 		for native_dir in directories:
@@ -230,12 +230,12 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 				overall_result = CODE_INVALID_JSON
 				continue
 
-			for native_dir_path in MAKE_CONFIG.get_paths(native_dir["source"]):
+			for native_dir_path in GLOBALS.MAKE_CONFIG.get_paths(native_dir["source"]):
 				if isdir(native_dir_path):
 					directory_name = basename(native_dir_path)
 					overall_result = build_native_dir(
 						native_dir_path,
-						MOD_STRUCTURE.new_build_target("native", directory_name + "{}"),
+						GLOBALS.MOD_STRUCTURE.new_build_target("native", directory_name + "{}"),
 						join(cache_dir, directory_name),
 						abis,
 						std_includes,
@@ -247,7 +247,7 @@ def compile_all_using_make_config(abis: Iterable[str]) -> int:
 					warn("* Skipped non-existing native directory: ", native_dir["source"])
 					overall_result = CODE_INVALID_PATH
 
-	MOD_STRUCTURE.update_build_config_list("nativeDirs")
+	GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
 	print(f"Completed native build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == CODE_OK else 'ERROR'}")
 	return overall_result
 

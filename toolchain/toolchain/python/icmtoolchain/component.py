@@ -6,8 +6,7 @@ from typing import Dict, Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
-from . import colorama
-from .make_config import TOOLCHAIN_CONFIG
+from . import GLOBALS, colorama
 from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
                     SelectiveShell, Separator, Shell, Switch, abort, stringify,
                     warn)
@@ -57,13 +56,13 @@ def which_installed() -> List[str]:
 	installed = []
 	for componentname in COMPONENTS:
 		component = COMPONENTS[componentname]
-		path = TOOLCHAIN_CONFIG.get_path(component.location)
+		path = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
 		if not isdir(path):
 			continue
 		if component.keyword == "cpp":
 			installed.append("cpp")
 			continue
-		if isfile(join(path, ".commit")) or TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
+		if isfile(join(path, ".commit")) or GLOBALS.TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
 			installed.append(component.keyword)
 	return installed
 
@@ -74,7 +73,7 @@ def download_component(component: Component, shell: Optional[Shell], progress: O
 	if not hasattr(component, "packurl") or component.packurl is None:
 		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' property 'packurl' must be defined!")
 		return 1
-	path = TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
+	path = GLOBALS.TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
 	ensure_file_directory(path)
 	if isfile(path):
 		# TODO: Checking checksum of already downloaded file...
@@ -95,7 +94,7 @@ def download_component(component: Component, shell: Optional[Shell], progress: O
 	return 0
 
 def extract_component(component: Component, shell: Optional[Shell], progress: Optional[Progress]) -> int:
-	temporary = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	temporary = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	archive_path = join(temporary, component.keyword + ".zip")
 	if not isfile(archive_path):
 		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not found!")
@@ -110,7 +109,7 @@ def extract_component(component: Component, shell: Optional[Shell], progress: Op
 	if not isdir(extract_to):
 		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not contain any content!")
 		return 2
-	output = TOOLCHAIN_CONFIG.get_path(component.location)
+	output = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
 	if isdir(output):
 		shutil.rmtree(output, ignore_errors=True)
 	elif isfile(output):
@@ -151,10 +150,10 @@ def install_components(*keywords: str) -> None:
 				progress.seek(0, f"{component.keyword}: {err}")
 			shell.render()
 		if "cpp" in keywords:
-			abis = TOOLCHAIN_CONFIG.get_value("abis", [])
+			abis = GLOBALS.TOOLCHAIN_CONFIG.get_value("abis", [])
 			if not isinstance(abis, list):
 				abis = []
-			abi = TOOLCHAIN_CONFIG.get_value("debugAbi")
+			abi = GLOBALS.TOOLCHAIN_CONFIG.get_value("debugAbi")
 			if abi is None and len(abis) == 0:
 				abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
 			if abi is not None and not abi in abis:
@@ -171,11 +170,11 @@ def install_components(*keywords: str) -> None:
 		shell.interactables.append(Interrupt())
 
 def fetch_component(component: Component) -> bool:
-	output = TOOLCHAIN_CONFIG.get_path(component.location)
+	output = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
 	if component.keyword == "cpp":
 		return isdir(output)
 	if isdir(output):
-		if TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
+		if GLOBALS.TOOLCHAIN_CONFIG.get_value("componentInstallationWithoutCommit", False):
 			return True
 		if not isfile(join(output, ".commit")):
 			return False
@@ -206,7 +205,7 @@ def fetch_components() -> List[str]:
 	return upgradable
 
 def get_username() -> Optional[str]:
-	username = TOOLCHAIN_CONFIG.get_value("template.author")
+	username = GLOBALS.TOOLCHAIN_CONFIG.get_value("template.author")
 	if username is not None:
 		return username
 	try:
@@ -300,24 +299,24 @@ def startup() -> None:
 	username = ensure_not_whitespace(shell.get_interactable("user", Input).read())
 	if username is not None:
 		print("Who are you?", stringify(username, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
-		TOOLCHAIN_CONFIG.set_value("template.author", username)
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("template.author", username)
 
 	typescript = shell.get_interactable("typescript", Switch).checked
 	if typescript:
 		print("You'll want to build everything with TypeScript")
-		TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
 
 	composite = shell.get_interactable("composite", Switch).checked
 	if not composite:
 		print("You've denied building separate files with each other")
-		TOOLCHAIN_CONFIG.set_value("project.composite", composite)
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.composite", composite)
 
 	references = shell.get_interactable("references", Switch).checked
 	if references:
 		print("You're preffer using few script directories in project")
-		TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
 
-	TOOLCHAIN_CONFIG.save()
+	GLOBALS.TOOLCHAIN_CONFIG.save()
 
 	pending = resolve_selected_components(shell.interactables)
 	if len(pending) > 0:

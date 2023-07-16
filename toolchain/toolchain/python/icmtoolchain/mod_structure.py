@@ -3,7 +3,7 @@ import os
 from os.path import isdir, isfile, join, relpath
 from typing import Any, Dict, Final, Iterable, List, Optional
 
-from .make_config import MAKE_CONFIG
+from . import GLOBALS
 from .shell import warn
 from .utils import ensure_directory, ensure_file_directory, remove_tree
 
@@ -16,15 +16,15 @@ class BuildTargetType:
 		self.property = property
 
 BUILD_TARGETS: Final[Dict[str, BuildTargetType]] = {
-	"resource_directory": BuildTargetType(MAKE_CONFIG.get_value("target.resource_directory", "resources"), "resources"),
-	"gui": BuildTargetType(MAKE_CONFIG.get_value("target.gui", "gui"), "resources"),
-	"minecraft_resource_pack": BuildTargetType(MAKE_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), "resources"),
-	"minecraft_behavior_pack": BuildTargetType(MAKE_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), "resources"),
+	"resource_directory": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.resource_directory", "resources"), "resources"),
+	"gui": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.gui", "gui"), "resources"),
+	"minecraft_resource_pack": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), "resources"),
+	"minecraft_behavior_pack": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), "resources"),
 
-	"script_source": BuildTargetType(MAKE_CONFIG.get_value("target.source", "source"), "compile"),
-	"script_library": BuildTargetType(MAKE_CONFIG.get_value("target.library", "library"), "compile"),
-	"native": BuildTargetType(MAKE_CONFIG.get_value("target.native", "native"), "nativeDirs"),
-	"java": BuildTargetType(MAKE_CONFIG.get_value("target.java", "java"), "javaDirs")
+	"script_source": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.source", "source"), "compile"),
+	"script_library": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.library", "library"), "compile"),
+	"native": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.native", "native"), "nativeDirs"),
+	"java": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.java", "java"), "javaDirs")
 }
 
 
@@ -33,7 +33,7 @@ class ModStructure:
 	build_config: Optional[Dict[Any, Any]] = None
 
 	def __init__(self, output_directory: str) -> None:
-		self.directory = MAKE_CONFIG.get_path(output_directory)
+		self.directory = GLOBALS.MAKE_CONFIG.get_path(output_directory)
 		self.targets = {}
 
 	def cleanup_build_target(self, keyword: str) -> None:
@@ -45,7 +45,7 @@ class ModStructure:
 		if relpath(directory, self.directory)[:2] == "..":
 			warn(f"* Output target {keyword} is not relative to output, it will not be cleaned!")
 			return
-		if not MAKE_CONFIG.get_value("development.clearOutput", False):
+		if not GLOBALS.PREFERRED_CONFIG.get_value("development.clearOutput", False):
 			remove_tree(directory)
 		ensure_directory(directory)
 
@@ -128,11 +128,11 @@ class ModStructure:
 			self.build_config["defaultConfig"] = {}
 		default_config = self.build_config["defaultConfig"]
 		default_config["readme"] = "this build config is generated automatically by mod development toolchain"
-		default_config["api"] = MAKE_CONFIG.get_value("api", fallback="CoreEngine")
-		optimization_level = MAKE_CONFIG.get_value("optimizationLevel")
+		default_config["api"] = GLOBALS.MAKE_CONFIG.get_value("api", fallback="CoreEngine", accept_prototype=False)
+		optimization_level = GLOBALS.MAKE_CONFIG.get_value("optimizationLevel", accept_prototype=False)
 		if optimization_level is not None:
 			default_config["optimizationLevel"] = min(max(int(optimization_level), -1), 9)
-		setup_script = MAKE_CONFIG.get_value("setupScript")
+		setup_script = GLOBALS.MAKE_CONFIG.get_value("setupScript", accept_prototype=False)
 		if setup_script is not None:
 			default_config["setupScript"] = setup_script
 		default_config["buildType"] = "develop"
@@ -146,6 +146,3 @@ class ModStructure:
 			raise SystemError()
 		self.build_config[name] = self.create_build_config_list(name, self.build_config["defaultConfig"])
 		self.write_build_config()
-
-
-MOD_STRUCTURE: Final[ModStructure] = ModStructure("output")

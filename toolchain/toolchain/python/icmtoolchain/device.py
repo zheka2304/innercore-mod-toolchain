@@ -6,30 +6,30 @@ from glob import glob
 from os.path import basename, join, relpath
 from typing import Any, Dict, Final, List, Optional, Tuple
 
-from .hash_storage import OUTPUT_STORAGE
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
+from . import GLOBALS
+from .make_config import MakeConfig
 from .shell import (Progress, Shell, abort, confirm, error, link,
                     select_prompt, warn)
 from .utils import DEVNULL
 
 
 def get_modpack_push_directory() -> Optional[str]:
-	directory = MAKE_CONFIG.get_value("pushTo", accept_prototype=False)
+	directory = GLOBALS.PREFERRED_CONFIG.get_value("pushTo", accept_prototype=False)
 	if directory is None:
-		directory = TOOLCHAIN_CONFIG.get_value("pushTo")
+		directory = GLOBALS.TOOLCHAIN_CONFIG.get_value("pushTo")
 		if directory is not None:
-			if (MAKE_CONFIG.current_project is None):
+			if not isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) or GLOBALS.MAKE_CONFIG.current_project:
 				return None
-			directory = join(directory, "mods", basename(MAKE_CONFIG.current_project))
+			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project))
 
 	if directory is None:
-		TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
-		if MAKE_CONFIG.get_value("pushTo") is None:
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
+		if GLOBALS.PREFERRED_CONFIG.get_value("pushTo") is None:
 			abort("Not found any modpacks, nothing to do.")
-		TOOLCHAIN_CONFIG.save()
+		GLOBALS.TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
 
-	if "/horizon/packs/" not in directory and not MAKE_CONFIG.get_value("adb.pushAnyLocation", False):
+	if "/horizon/packs/" not in directory and not GLOBALS.PREFERRED_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
 			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
@@ -43,12 +43,13 @@ def get_modpack_push_directory() -> Optional[str]:
 		)
 
 		if which == 0:
-			TOOLCHAIN_CONFIG.remove_value("pushTo")
-			MAKE_CONFIG.remove_value("pushTo")
+			GLOBALS.TOOLCHAIN_CONFIG.remove_value("pushTo")
+			if GLOBALS.TOOLCHAIN_CONFIG != GLOBALS.PREFERRED_CONFIG:
+				GLOBALS.PREFERRED_CONFIG.remove_value("pushTo")
 			return get_modpack_push_directory()
 		elif which == 2:
-			TOOLCHAIN_CONFIG.set_value("adb.pushAnyLocation", True)
-			TOOLCHAIN_CONFIG.save()
+			GLOBALS.TOOLCHAIN_CONFIG.set_value("adb.pushAnyLocation", True)
+			GLOBALS.TOOLCHAIN_CONFIG.save()
 			print("This may be changed in your 'toolchain.json' config.")
 		elif which == 3:
 			print("Pushing aborted.")
@@ -100,7 +101,7 @@ def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[s
 
 def ls(path: str, *args: str) -> List[str]:
 	try:
-		pipe = subprocess.run(ADB_COMMAND + [
+		pipe = subprocess.run(GLOBALS.ADB_COMMAND + [
 			"shell", "ls", path
 		] + list(args), text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -115,7 +116,7 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 	shell = Shell()
 	progress = Progress("Pushing")
 	shell.interactables.append(progress)
-	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or OUTPUT_STORAGE.is_path_changed(path)]
+	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
 		Progress.notify(shell, progress, 1, "Nothing to push...")
 		with shell: return 0
@@ -138,10 +139,10 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 				progress.seek(percent / len(items), "Pushing " + filename)
 				shell.render()
 			try:
-				subprocess.call(ADB_COMMAND + [
+				subprocess.call(GLOBALS.ADB_COMMAND + [
 					"shell", "rm", "-r", dst
 				], stderr=DEVNULL, stdout=DEVNULL)
-				result = subprocess.call(ADB_COMMAND + [
+				result = subprocess.call(GLOBALS.ADB_COMMAND + [
 					"push", src, dst
 				], stderr=DEVNULL, stdout=DEVNULL)
 			except KeyboardInterrupt:
@@ -154,7 +155,7 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 				return result
 
 		if not push_unchanged:
-			OUTPUT_STORAGE.save()
+			GLOBALS.OUTPUT_STORAGE.save()
 		Progress.notify(shell, progress, 1, "Pushed")
 	return 0
 
@@ -165,7 +166,7 @@ def make_locks(*locks: str) -> int:
 
 	for lock in locks:
 		lock = join(dst, lock).replace("\\", "/")
-		result = subprocess.call(ADB_COMMAND + [
+		result = subprocess.call(GLOBALS.ADB_COMMAND + [
 			"shell", "touch", lock
 		])
 		if result != 0:
@@ -175,7 +176,7 @@ def make_locks(*locks: str) -> int:
 def ensure_server_running(retry: int = 0) -> bool:
 	try:
 		subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"start-server"
 		], check=True, stdout=DEVNULL, stderr=DEVNULL)
 		return True
@@ -206,7 +207,7 @@ def which_state(what: Optional[str] = None) -> int:
 def get_device_state() -> int:
 	try:
 		pipe = subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"get-state"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -219,7 +220,7 @@ def get_device_state() -> int:
 def get_device_serial() -> Optional[str]:
 	try:
 		pipe = subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"get-serialno"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -230,7 +231,7 @@ def get_device_serial() -> Optional[str]:
 def device_list() -> Optional[List[Dict[str, Any]]]:
 	try:
 		pipe = subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"devices", "-l"
 		], text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
@@ -282,17 +283,17 @@ def get_ip() -> str:
 
 def get_adb_command() -> List[str]:
 	ensure_server_running()
-	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
 	if len(devices) > 0:
 		subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"disconnect"
 		], stdout=DEVNULL, stderr=DEVNULL)
 	for device in devices:
 		if isinstance(device, dict):
 			try:
 				subprocess.run([
-					TOOLCHAIN_CONFIG.get_adb(),
+					GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 					"connect",
 					f"{device['ip']}:{device['port']}" if "port" in device else device["ip"]
 				], timeout=3.0, stdout=DEVNULL, stderr=DEVNULL)
@@ -307,7 +308,7 @@ def get_adb_command() -> List[str]:
 		device = which_device_will_be_connected(*(list if len(itwillbe) == 0 else itwillbe))
 		if device is not None:
 			return get_adb_command_by_serial(device["serial"])
-	if MAKE_CONFIG.get_value("adb.doNothingIfDisconnected", False):
+	if GLOBALS.PREFERRED_CONFIG.get_value("adb.doNothingIfDisconnected", False):
 		abort("Not found connected devices, nothing to do.")
 	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
@@ -316,17 +317,17 @@ def get_adb_command() -> List[str]:
 
 def get_adb_command_by_serial(serial: str) -> List[str]:
 	ensure_server_running()
-	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not serial in devices:
 		try:
 			from ipaddress import ip_address
 			ip_address(serial.partition(":")[0])
 		except ValueError:
 			devices.append(serial)
-			TOOLCHAIN_CONFIG.set_value("devices", devices)
-			TOOLCHAIN_CONFIG.save()
+			GLOBALS.TOOLCHAIN_CONFIG.set_value("devices", devices)
+			GLOBALS.TOOLCHAIN_CONFIG.save()
 	return [
-		TOOLCHAIN_CONFIG.get_adb(),
+		GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 		"-s", serial
 	]
 
@@ -340,19 +341,19 @@ def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool
 	}
 	if port is not None:
 		device["port"] = port
-	devices = TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
 	if not device in devices:
 		devices.append(device)
-		TOOLCHAIN_CONFIG.set_value("devices", devices)
-		TOOLCHAIN_CONFIG.save()
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("devices", devices)
+		GLOBALS.TOOLCHAIN_CONFIG.save()
 	return [
-		TOOLCHAIN_CONFIG.get_adb(),
+		GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 		"-e"
 	]
 
 def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
 	serial = subprocess.run([
-		TOOLCHAIN_CONFIG.get_adb(),
+		GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 		which, "get-serialno"
 	], text=True, capture_output=True)
 	if serial.returncode != 0:
@@ -361,7 +362,7 @@ def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
 def setup_device_connection() -> Optional[List[str]]:
-	not_connected_any_device = len(TOOLCHAIN_CONFIG.get_value("devices", [])) == 0
+	not_connected_any_device = len(GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])) == 0
 	if not_connected_any_device:
 		print(
 			"Howdy! " +
@@ -386,7 +387,7 @@ def setup_via_usb() -> Optional[List[str]]:
 		print("Listening device via cable...")
 		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
 		subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
 		], check=True, timeout=90.0, stdout=DEVNULL, stderr=DEVNULL)
 		command = get_adb_command_by_serialno_type("-d")
@@ -440,7 +441,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 			print("Not found anything, are you sure that network connected?")
 			return setup_via_network()
 		subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"disconnect"
 		], stdout=DEVNULL, stderr=DEVNULL)
 		print()
@@ -451,7 +452,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 		for next in accepted:
 			try:
 				subprocess.run([
-					TOOLCHAIN_CONFIG.get_adb(),
+					GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 					"connect", next
 				], check=True, timeout=5.0, stdout=DEVNULL, stderr=DEVNULL)
 				command = get_adb_command_by_tcp(next, skip_error=True)
@@ -525,7 +526,7 @@ async def connect(ip: str, port: int, shell: Optional[Shell], progress: Optional
 		shell.render()
 	import asyncio
 	coroutine = await asyncio.create_subprocess_shell(
-		TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=DEVNULL, stderr=DEVNULL
+		GLOBALS.TOOLCHAIN_CONFIG.get_adb() + " connect " + ip + ":" + str(port), stdout=DEVNULL, stderr=DEVNULL
 	)
 	await coroutine.wait()
 	if coroutine.returncode == 0:
@@ -561,7 +562,7 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 				return setup_via_network()
 		try:
 			subprocess.run([
-				TOOLCHAIN_CONFIG.get_adb(),
+				GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 				"pair",
 				f"{ip}:{port}" if port is not None else ip,
 				pairing_code
@@ -571,12 +572,12 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 		except KeyboardInterrupt:
 			print()
 	subprocess.run([
-		TOOLCHAIN_CONFIG.get_adb(),
+		GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 		"disconnect"
 	], stdout=DEVNULL, stderr=DEVNULL)
 	try:
 		subprocess.run([
-			TOOLCHAIN_CONFIG.get_adb(),
+			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"connect",
 			f"{ip}:{port}" if port is not None else ip
 		], check=True, timeout=10.0, stdout=DEVNULL, stderr=DEVNULL)
@@ -595,7 +596,7 @@ def setup_externally(skip_input: bool = False) -> Optional[List[str]]:
 	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
 		serial = get_device_serial()
 		if serial is not None:
-			if not serial in TOOLCHAIN_CONFIG.get_value("devices", []):
+			if not serial in GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", []):
 				return get_adb_command_by_serial(serial)
 			else:
 				print("Connected device already saved, maybe another available too.")
@@ -627,5 +628,3 @@ def setup_how_to_use() -> Optional[List[str]]:
 	except KeyboardInterrupt:
 		print()
 	return setup_device_connection()
-
-ADB_COMMAND: Final[List[str]] = get_adb_command()

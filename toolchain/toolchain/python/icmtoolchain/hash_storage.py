@@ -4,7 +4,6 @@ from errno import ENOENT
 from os.path import dirname, getmtime, getsize, isdir, isfile, islink, join
 from typing import Collection, Dict, Final, List
 
-from .make_config import MAKE_CONFIG
 from .utils import get_all_files
 
 try:
@@ -17,10 +16,11 @@ class HashStorage:
 	hashes: Dict[str, str]
 	path: Final[str]
 
-	def __init__(self, path: str) -> None:
+	def __init__(self, path: str, comparing_mode: str = "content") -> None:
 		self.path = path
 		self.last_hashes = {}
 		self.hashes = {}
+		self.comparing_mode = comparing_mode
 		if isfile(path) or islink(path):
 			self.read()
 
@@ -35,9 +35,9 @@ class HashStorage:
 			return self.hashes[encoded]
 
 		if isfile(path) or islink(path):
-			hash = HashStorage.get_file_hash(path)
+			hash = HashStorage.get_file_hash(path, comparing_mode=self.comparing_mode)
 		elif isdir(path):
-			hash = HashStorage.get_directory_hash(path)
+			hash = HashStorage.get_directory_hash(path, comparing_mode=self.comparing_mode)
 		else:
 			raise FileNotFoundError(ENOENT, os.strerror(ENOENT), path)
 
@@ -45,23 +45,23 @@ class HashStorage:
 		return hash
 
 	@staticmethod
-	def do_comparing(path: str) -> bytes:
-		return bytes(str(getsize(path)), "utf-8") if COMPARING_MODE == "size" \
-			else bytes(str(getmtime(path)), "utf-8") if COMPARING_MODE == "modify" \
-			else open(path, "rb").read() if COMPARING_MODE == "content" else bytes()
+	def do_comparing(path: str, /, comparing_mode: str = "content") -> bytes:
+		return bytes(str(getsize(path)), "utf-8") if comparing_mode == "size" \
+			else bytes(str(getmtime(path)), "utf-8") if comparing_mode == "modify" \
+			else open(path, "rb").read() if comparing_mode == "content" else bytes()
 
 	@staticmethod
-	def get_directory_hash(directory: str) -> str:
+	def get_directory_hash(directory: str, /, comparing_mode: str = "content") -> str:
 		total = encode()
 		for dirpath, dirnames, filenames in os.walk(directory):
 			for filename in filenames:
 				filepath = join(dirpath, filename)
-				total.update(HashStorage.do_comparing(filepath))
+				total.update(HashStorage.do_comparing(filepath, comparing_mode=comparing_mode))
 		return total.hexdigest()
 
 	@staticmethod
-	def get_file_hash(path: str) -> str:
-		return encode(HashStorage.do_comparing(path)).hexdigest()
+	def get_file_hash(path: str, /, comparing_mode: str = "content") -> str:
+		return encode(HashStorage.do_comparing(path, comparing_mode=comparing_mode)).hexdigest()
 
 	def get_modified_files(self, path: str, extensions: Collection[str] = (), force: bool = False) -> List[str]:
 		if not isdir(path):
@@ -85,8 +85,3 @@ class HashStorage:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
 		return encoded not in self.last_hashes \
 			or self.last_hashes[encoded] != hash
-
-
-COMPARING_MODE = MAKE_CONFIG.get_value("development.comparingMode", "content")
-BUILD_STORAGE = HashStorage(MAKE_CONFIG.get_build_path(".buildrc"))
-OUTPUT_STORAGE = HashStorage(MAKE_CONFIG.get_build_path(".outputrc"))

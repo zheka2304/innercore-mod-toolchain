@@ -7,11 +7,10 @@ import subprocess
 from os.path import basename, isdir, isfile, join, normpath, relpath
 from typing import Any, Dict, Final, List
 
-from .hash_storage import BUILD_STORAGE
-from .make_config import MAKE_CONFIG
+from . import GLOBALS
 from .shell import debug, info, warn
 from .utils import ensure_file_directory
-from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN, WORKSPACE_COMPOSITE
+from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN
 
 TSCONFIG_DEPENDENTS: Final[Dict[str, Any]] = {
 	"allowSyntheticDefaultImports": "esModuleInterop",
@@ -31,7 +30,7 @@ for key in TSCONFIG_TOOLCHAIN:
 	if key in TSCONFIG_DEPENDENTS:
 		del TSCONFIG_DEPENDENTS[key]
 
-TEMPORARY_DIRECTORY: Final[str] = MAKE_CONFIG.get_build_path("sources")
+TEMPORARY_DIRECTORY: Final[str] = GLOBALS.MAKE_CONFIG.get_build_path("sources")
 
 
 class Includes:
@@ -171,7 +170,7 @@ class Includes:
 
 	def create_tsconfig(self, temp_path) -> None:
 		template = {
-			"extends": relpath(WORKSPACE_COMPOSITE.get_tsconfig(), self.directory),
+			"extends": relpath(GLOBALS.WORKSPACE_COMPOSITE.get_tsconfig(), self.directory),
 			"compilerOptions": {
 				"outFile": temp_path
 			},
@@ -186,7 +185,7 @@ class Includes:
 
 	def compute(self, target_path: str, language: str = "typescript") -> bool:
 		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
-		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
+		if GLOBALS.BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			if language == "typescript":
 				debug(f"Computing '{basename(target_path)}' tsconfig from '{self.includes}'")
 				self.create_tsconfig(temp_path)
@@ -197,7 +196,7 @@ class Includes:
 		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
 		result = 0
 
-		if BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
+		if GLOBALS.BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			debug(f"Building '{basename(target_path)}' from '{self.includes}'")
 
 			import datetime
@@ -210,8 +209,8 @@ class Includes:
 			if result != 0:
 				return result
 
-			BUILD_STORAGE.is_path_changed(self.directory, True)
-			BUILD_STORAGE.save()
+			GLOBALS.BUILD_STORAGE.is_path_changed(self.directory, True)
+			GLOBALS.BUILD_STORAGE.save()
 		else:
 			info(f"* Build target {basename(target_path)} is not changed")
 
@@ -224,7 +223,7 @@ class Includes:
 			command = [
 				"tsc",
 				"--project", self.get_tsconfig(),
-				*MAKE_CONFIG.get_value("development.tsc", [])
+				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", [])
 			]
 			if self.debug_build:
 				# Do NOT resolve down-level declaration, like android.d.ts if it not included

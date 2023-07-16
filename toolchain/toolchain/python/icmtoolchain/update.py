@@ -6,7 +6,7 @@ from typing import Optional
 from urllib import request
 from urllib.error import URLError
 
-from .make_config import TOOLCHAIN_CONFIG
+from . import GLOBALS
 from .shell import abort, error, warn
 from .utils import AttributeZipFile, merge_directory
 
@@ -30,7 +30,7 @@ def might_be_updated(directory: Optional[str] = None) -> bool:
 	Maintains 'main' component, things are similiar with ordinary components.
 	When 'toolchain/bin/.commit' outdated it will be updated.
 	"""
-	commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
+	commit_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if not isfile(commit_path):
 		return True
 	if directory is not None and isfile(join(directory, "toolchain.zip")):
@@ -67,7 +67,7 @@ def extract_toolchain(directory: str) -> None:
 	if not exists(branch):
 		error("Inner Core Mod Toolchain extracted 'innercore-mod-toolchain-deploy' folder not found.")
 		abort("Retry operation or extract 'toolchain.zip' manually.")
-	toolchain = TOOLCHAIN_CONFIG.get_path("..")
+	toolchain = GLOBALS.TOOLCHAIN_CONFIG.get_path("..")
 
 	if exists(join(branch, ".github")):
 		merge_directory(join(branch, ".github"), join(toolchain, ".github"))
@@ -76,7 +76,7 @@ def extract_toolchain(directory: str) -> None:
 		if not isfile(above):
 			continue
 		merge_directory(above, join(toolchain, filename))
-	accept_squash_and_replace = TOOLCHAIN_CONFIG.get_value("updateAcceptReplaceConfiguration", True)
+	accept_squash_and_replace = GLOBALS.TOOLCHAIN_CONFIG.get_value("updateAcceptReplaceConfiguration", True)
 	merge_directory(join(branch, "toolchain"), join(toolchain, "toolchain"), accept_squash_and_replace, ["toolchain", "toolchain.json"], True, accept_squash_and_replace)
 	merge_directory(join(branch, "toolchain", "toolchain"), join(toolchain, "toolchain", "toolchain"))
 	try:
@@ -95,9 +95,9 @@ def extract_toolchain(directory: str) -> None:
 	os.remove(archive)
 
 def update_toolchain() -> None:
-	directory = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	if might_be_updated(directory):
-		commit_path = TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
+		commit_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 		download_toolchain(directory)
 		commit = None
 		if isfile(commit_path):

@@ -5,8 +5,9 @@ from glob import glob
 from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import GLOBALS
 from .base_config import BaseConfig
-from .shell import abort, confirm, debug, error, warn
+from .shell import abort, confirm, debug, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
                     get_project_folder_by_name)
 
@@ -212,8 +213,7 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	destination_may_changed = destination is None
 	toolchain = None
 	if destination_may_changed:
-		from .make_config import TOOLCHAIN_CONFIG
-		toolchain = TOOLCHAIN_CONFIG.directory
+		toolchain = GLOBALS.TOOLCHAIN_CONFIG.directory
 		destination = get_project_folder_by_name(toolchain, basename(path))
 		if destination is None:
 			raise TypeError(f"Unexpected name conversion exception on '{path}'!")

@@ -4,10 +4,8 @@ import time
 from os.path import basename, exists, isdir, join, relpath
 from typing import Any, Dict, List, Optional
 
-from . import colorama
+from . import GLOBALS, colorama
 from .base_config import BaseConfig
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .project_manager import PROJECT_MANAGER
 from .shell import (Entry, Input, Interrupt, Notice, Progress, SelectiveShell,
                     Separator, Shell, Switch, abort, error, select_prompt,
                     stringify, warn)
@@ -19,7 +17,7 @@ from .utils import (copy_file, ensure_not_whitespace, get_all_files,
 def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optional[List[str]]:
 	directories = []
 	for path in locations:
-		for directory in MAKE_CONFIG.get_paths(path):
+		for directory in GLOBALS.MAKE_CONFIG.get_paths(path):
 			if isdir(directory):
 				directories.append(directory)
 			else:
@@ -32,35 +30,35 @@ def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optiona
 
 def cleanup_relative_directory(path: str, absolute: bool = False) -> None:
 	start_time = time.time()
-	remove_tree(path if absolute else TOOLCHAIN_CONFIG.get_path(path))
+	remove_tree(path if absolute else GLOBALS.TOOLCHAIN_CONFIG.get_path(path))
 	print(f"Completed {basename(path)} cleanup in {int((time.time() - start_time) * 100) / 100}s")
 
 def select_template() -> Optional[str]:
-	if len(PROJECT_MANAGER.templates) <= 1:
-		if len(PROJECT_MANAGER.templates) == 0:
+	if len(GLOBALS.PROJECT_MANAGER.templates) <= 1:
+		if len(GLOBALS.PROJECT_MANAGER.templates) == 0:
 			error("Please, ensure that `projectLocations` property in your 'toolchain.json' contains any folder with 'template.json'.")
 			abort("Not found any templates, nothing to do.")
-		return PROJECT_MANAGER.templates[0]
+		return GLOBALS.PROJECT_MANAGER.templates[0]
 	return select_prompt(
 		"Which template do you want?",
-		*PROJECT_MANAGER.templates,
+		*GLOBALS.PROJECT_MANAGER.templates,
 		fallback=0, returns_what=True
 	)
 
 def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
-	if template is None or not exists(TOOLCHAIN_CONFIG.get_absolute_path(template)):
+	if template is None or not exists(GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template)):
 		return new_project(template=select_template())
-	template_make_path = TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
+	template_make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 	try:
 		with open(template_make_path) as template_make:
 			template_config = BaseConfig(json.loads(template_make.read()))
 	except BaseException as err:
-		if len(PROJECT_MANAGER.templates) > 1:
+		if len(GLOBALS.PROJECT_MANAGER.templates) > 1:
 			return new_project(None)
 		abort(f"Malformed '{template}/template.json', nothing to do.", cause=err)
 
-	have_template = TOOLCHAIN_CONFIG.get_value("template") is not None
-	always_skip_description = TOOLCHAIN_CONFIG.get_value("template.skipDescription", False)
+	have_template = GLOBALS.TOOLCHAIN_CONFIG.get_value("template") is not None
+	always_skip_description = GLOBALS.TOOLCHAIN_CONFIG.get_value("template.skipDescription", False)
 	progress_step = 0.5 if have_template and always_skip_description else 0.33 if have_template or always_skip_description else 0.25
 	print("Inner Core Mod Toolchain", end="")
 
@@ -70,9 +68,9 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 
 		def observe_key(self, what: str) -> bool:
 			input = shell.get_interactable("name", Input)
-			self.directory = get_project_folder_by_name(TOOLCHAIN_CONFIG.directory, input.read() or "")
+			self.directory = get_project_folder_by_name(GLOBALS.TOOLCHAIN_CONFIG.directory, input.read() or "")
 			header = shell.get_interactable("header", Separator)
-			header.size = (1 if self.directory is None else 0) + (0 if len(PROJECT_MANAGER.templates) > 1 else 1)
+			header.size = (1 if self.directory is None else 0) + (0 if len(GLOBALS.PROJECT_MANAGER.templates) > 1 else 1)
 			location = shell.get_interactable("location", Notice)
 			location.text = "" if self.directory is None else "It will be in " + self.directory + "\n"
 			progress = shell.get_interactable("step", Progress)
@@ -83,7 +81,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 
 	shell = SelectiveShell()
 	shell.interactables.append(Notice("Create new project"))
-	if len(PROJECT_MANAGER.templates) > 1:
+	if len(GLOBALS.PROJECT_MANAGER.templates) > 1:
 		shell.interactables += [
 			Separator("header"),
 			Entry("template", "Choose template")
@@ -91,23 +89,23 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	else:
 		shell.interactables.append(Separator("header", size=2))
 	shell.interactables += [
-		Input("name", "Name: ", TOOLCHAIN_CONFIG.get_value("template.name", ""), template=template_config.get_value("info.name")),
+		Input("name", "Name: ", GLOBALS.TOOLCHAIN_CONFIG.get_value("template.name", ""), template=template_config.get_value("info.name")),
 		Notice("location"),
 		NameObserver(),
 		Progress("step")
 	]
 	if not always_skip_description:
 		shell.interactables += [
-			Input("author", "Author: ", TOOLCHAIN_CONFIG.get_value(
+			Input("author", "Author: ", GLOBALS.TOOLCHAIN_CONFIG.get_value(
 				"template.author", template_config.get_value("info.author", "")
 			)),
-			Input("version", "Version: ", TOOLCHAIN_CONFIG.get_value(
+			Input("version", "Version: ", GLOBALS.TOOLCHAIN_CONFIG.get_value(
 				"template.version", template_config.get_value("info.version", "1.0")
 			)),
-			Input("description", "Description: ", TOOLCHAIN_CONFIG.get_value(
+			Input("description", "Description: ", GLOBALS.TOOLCHAIN_CONFIG.get_value(
 				"template.description", template_config.get_value("info.description", "")
 			)),
-			Switch("client_side", "Client side only", TOOLCHAIN_CONFIG.get_value(
+			Switch("client_side", "Client side only", GLOBALS.TOOLCHAIN_CONFIG.get_value(
 				"template.clientOnly", template_config.get_value("info.clientOnly", False)
 			)),
 			Separator(),
@@ -136,7 +134,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	if not hasattr(observer, "directory") or observer.directory is None:
 		abort("Not found 'directory' property in observer!")
 	print(f"Copying template '{template}' to '{observer.directory}'")
-	return PROJECT_MANAGER.create_project(
+	return GLOBALS.PROJECT_MANAGER.create_project(
 		template, observer.directory,
 		shell.get_interactable("name", Input).read(),
 		shell.get_interactable("author", Input).read(),
@@ -199,7 +197,7 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 	binding = {}
 	for variant in variants:
 		if not variant in binding:
-			binding[variant] = PROJECT_MANAGER.get_shortcut(variant)
+			binding[variant] = GLOBALS.PROJECT_MANAGER.get_shortcut(variant)
 	names = list(binding.keys())
 	names.sort()
 	for variant in names:

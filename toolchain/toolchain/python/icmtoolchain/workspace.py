@@ -6,8 +6,8 @@ import subprocess
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, Final, List
 
+from . import GLOBALS
 from .base_config import BaseConfig
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
 
 
 class WorkspaceNotAvailable(RuntimeError):
@@ -35,7 +35,7 @@ class CodeWorkspace(BaseConfig):
 	def get_toolchain_path(self, relative_path: str = "") -> str:
 		if not self.available():
 			raise WorkspaceNotAvailable()
-		return relpath(TOOLCHAIN_CONFIG.get_path(relative_path), self.directory)
+		return relpath(GLOBALS.TOOLCHAIN_CONFIG.get_path(relative_path), self.directory)
 
 	def save(self) -> None:
 		if not self.available():
@@ -191,7 +191,7 @@ TSCONFIG_TOOLCHAIN: Final[Dict[str, Any]] = {
 	"allowJs": True
 }
 
-for key, value in MAKE_CONFIG.get_value("tsconfig", {}).items():
+for key, value in GLOBALS.PREFERRED_CONFIG.get_value("tsconfig", {}).items():
 	if value is None:
 		del TSCONFIG_TOOLCHAIN[key]
 	else:
@@ -207,16 +207,16 @@ class WorkspaceComposite:
 		self.reset()
 
 	def get_tsconfig(self) -> str:
-		return MAKE_CONFIG.get_path(self.path)
+		return GLOBALS.MAKE_CONFIG.get_path(self.path)
 
 	def coerce(self, path: str) -> None:
-		path = relpath(path, MAKE_CONFIG.directory)
+		path = relpath(path, GLOBALS.MAKE_CONFIG.directory)
 		if path in self.sources:
 			return
 		self.sources.append(path)
 
 	def reference(self, path: str, **kwargs: Any) -> None:
-		path = relpath(path, MAKE_CONFIG.directory)
+		path = relpath(path, GLOBALS.MAKE_CONFIG.directory)
 		for ref in self.references:
 			if ref["path"] == path:
 				return
@@ -231,30 +231,30 @@ class WorkspaceComposite:
 
 	@staticmethod
 	def resolve_declarations(debug_build: bool = False) -> List[str]:
-		includes = MAKE_CONFIG.get_value("declarations", [
+		includes = GLOBALS.MAKE_CONFIG.get_value("declarations", [
 			"declarations"
 		])
 		declarations = []
 		for filepath in [
-			MAKE_CONFIG.get_absolute_path(include) for include in includes
+			GLOBALS.MAKE_CONFIG.get_absolute_path(include) for include in includes
 		]:
 			if exists(filepath):
 				if isdir(filepath):
 					filepath = f"{filepath}/**/*.d.ts"
 				declarations.extend(glob.glob(filepath, recursive=True))
-		if exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
+		if exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 			declarations.extend(glob.glob(
-				TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
+				GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
 				recursive=True
 			))
 		if debug_build:
-			for excluded in MAKE_CONFIG.get_value("debugIncludesExclude", []):
+			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", []):
 				if exists(str(excluded).lstrip("/").partition("/")[0]):
 					for declaration in glob.glob(excluded, recursive=True):
 						if declaration in declarations:
 							declarations.remove(declaration)
 				else:
-					for declaration in glob.glob(TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
+					for declaration in glob.glob(GLOBALS.TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
 						if declaration in declarations:
 							declarations.remove(declaration)
 		return list(set(declarations))
@@ -270,8 +270,8 @@ class WorkspaceComposite:
 			"exclude": [
 				"dom",
 				"webpack"
-			] + MAKE_CONFIG.get_value("development.exclude", []),
-			"include": self.sources + MAKE_CONFIG.get_value("development.include", []),
+			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", []),
+			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", []),
 			**kwargs
 		}
 
@@ -287,7 +287,7 @@ class WorkspaceComposite:
 		return subprocess.call([
 			"tsc",
 			"--build", self.get_tsconfig(),
-			*MAKE_CONFIG.get_value("development.tsc", []),
+			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", []),
 			*args
 		], shell=platform.system() == "Windows")
 
@@ -296,13 +296,8 @@ class WorkspaceComposite:
 			return subprocess.call([
 				"tsc",
 				"--watch",
-				*MAKE_CONFIG.get_value("development.watch", []),
+				*GLOBALS.MAKE_CONFIG.get_value("development.watch", []),
 				*args
 			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=platform.system() == "Windows")
 		except KeyboardInterrupt:
 			return 0
-
-
-CODE_WORKSPACE = CodeWorkspace(TOOLCHAIN_CONFIG.get_absolute_path(MAKE_CONFIG.get_value("workspaceFile", "toolchain.code-workspace")))
-CODE_SETTINGS = CodeWorkspace(TOOLCHAIN_CONFIG.get_path(".vscode/settings.json"))
-WORKSPACE_COMPOSITE = WorkspaceComposite("tsconfig.json")

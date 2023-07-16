@@ -1,3 +1,4 @@
+import os
 import platform
 import sys
 from typing import (IO, Any, Dict, List, Literal, NoReturn, Optional, Tuple,
@@ -782,7 +783,7 @@ class StringBuffer:
 	value: str = ""
 	def write(self, data: str) -> None: self.value += data
 
-def stringify(*values: object, color: Optional[Union[int, str]] = None, reset: Optional[Union[int, str]] = None, sep: Optional[str] = " ", end: Optional[str] = "\n") -> str:
+def stringify(*values: object, color: Optional[Union[int, str]] = None, reset: Optional[Union[int, str]] = None, sep: Optional[str] = " ", end: Optional[str] = "") -> str:
 	buffer = StringBuffer()
 	printc(*values, color=color, reset=reset, sep=sep, end=end, file=buffer)
 	return buffer.value
@@ -791,10 +792,10 @@ def abort(*values: object, sep: Optional[str] = " ", code: int = 255, cause: Opt
 	if cause is not None:
 		from traceback import print_exception
 		buffer = StringBuffer()
-		print_exception(cause.__class__, cause, cause.__traceback__, 3, buffer)
-		error(buffer.value, end="")
+		print_exception(cause.__class__, cause, cause.__traceback__, file=buffer)
+		error(os.linesep.join(buffer.value.rsplit(os.linesep, 8)[1:-1]))
 	if len(values) != 0:
-		printc(stringify(*values, sep=sep, color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL, end=""), color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET)
+		printc(stringify(*values, sep=sep, color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL), color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET)
 	elif cause is None:
 		print("Abort.")
 	try:

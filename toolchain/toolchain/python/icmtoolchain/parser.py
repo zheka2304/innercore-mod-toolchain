@@ -21,7 +21,7 @@ try:
 	from pygments.lexers.python import PythonLexer
 
 	def highlight(*values: object, sep: Optional[str] = " ", file: Optional[Any] = None):
-		printc(pygments.highlight(stringify(*values, sep=sep), PythonLexer(), TerminalFormatter()), end="", file=file)
+		printc(pygments.highlight(stringify(*values, sep=sep), PythonLexer(), TerminalFormatter()), file=file)
 except ImportError:
 	def highlight(*values: object, sep: Optional[str] = " ", file: Optional[Any] = None):
 		printc(*values, file=file)

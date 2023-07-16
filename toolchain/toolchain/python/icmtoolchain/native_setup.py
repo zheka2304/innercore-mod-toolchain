@@ -7,7 +7,7 @@ from os import environ, getenv, listdir, makedirs
 from os.path import abspath, basename, dirname, isdir, isfile, join
 from typing import List, Optional, Union
 
-from .make_config import TOOLCHAIN_CONFIG
+from . import GLOBALS
 from .shell import Progress, Shell, abort, confirm, error, warn
 from .utils import AttributeZipFile, remove_tree
 
@@ -49,9 +49,9 @@ def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
 				return possible_ndk_dir
 
 def get_ndk_path() -> Optional[str]:
-	path_from_config = TOOLCHAIN_CONFIG.get_value("ndkPath")
+	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath")
 	if path_from_config is not None:
-		path_from_config = TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
+		path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
 		if isdir(path_from_config):
 			return path_from_config
 	# Unix
@@ -71,7 +71,7 @@ def search_for_gcc_executable(ndk_dir: str) -> Optional[str]:
 				return abspath(join(search_dir, file))
 
 def require_compiler_executable(arch: str, install_if_required: bool = False) -> Optional[str]:
-	ndk_dir = TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
+	ndk_dir = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
 	file = search_for_gcc_executable(ndk_dir)
 	if install_if_required:
 		install(arches=arch, reinstall=False)
@@ -89,13 +89,13 @@ def check_installed(arches: Union[str, List[str]]) -> bool:
 	if not isinstance(arches, list):
 		arches = [arches]
 	return len(list(filter(
-		lambda arch: not isfile(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch))),
+		lambda arch: not isfile(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch))),
 		arches
 	))) == 0
 
 def download(shell: Optional[Shell] = None) -> Optional[str]:
 	from urllib import request
-	archive_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
+	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 	makedirs(dirname(archive_path), exist_ok=True)
 
 	if not isfile(archive_path):
@@ -126,7 +126,7 @@ def download(shell: Optional[Shell] = None) -> Optional[str]:
 		progress = Progress(text="Extracting NDK/GCC")
 		shell.interactables.append(progress)
 		shell.render()
-	extract_path = TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+	extract_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	makedirs(extract_path, exist_ok=True)
 	try:
 		with AttributeZipFile(archive_path, "r") as archive:
@@ -135,12 +135,12 @@ def download(shell: Optional[Shell] = None) -> Optional[str]:
 	except OSError as exc:
 		Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
 		try:
-			remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 		except OSError:
 			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 	except zipfile.BadZipFile as exc:
 		try:
-			remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 			return download(shell)
 		except OSError as exc:
 			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
@@ -186,10 +186,10 @@ def install(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> i
 				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 				"--arch", str(arch),
 				"--api", "19",
-				"--install-dir", TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
+				"--install-dir", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
 				"--force"
 			])
-			open(TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
+			open(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
 			if result != 0:
 				Progress.notify(shell, progress, 0.5, f"Installation of {str(arch)} failed with result {str(result)}")
 			else:
@@ -202,7 +202,7 @@ def install(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> i
 				shell.interactables.append(progress)
 				shell.render()
 			try:
-				remove_tree(TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+				remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
 				if progress is not None:
 					progress.seek(1, "C++ GCC Compiler (NDK)")
 			except OSError as exc:

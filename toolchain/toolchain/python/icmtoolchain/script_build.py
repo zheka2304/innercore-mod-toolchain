@@ -2,13 +2,10 @@ from functools import cmp_to_key
 from os.path import basename, exists, isdir, isfile, join, relpath, splitext
 from typing import Any, Dict, List, Tuple
 
-from .hash_storage import BUILD_STORAGE
+from . import GLOBALS
 from .includes import Includes
-from .make_config import MAKE_CONFIG, TOOLCHAIN_CONFIG
-from .mod_structure import MOD_STRUCTURE
 from .shell import abort, debug, error, info, warn
 from .utils import copy_directory, copy_file, remove_tree, request_typescript
-from .workspace import WORKSPACE_COMPOSITE
 
 VALID_SOURCE_TYPES = ("main", "launcher", "preloader", "instant", "custom", "library")
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
@@ -17,11 +14,11 @@ VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", 
 def get_allowed_languages() -> List[str]:
 	allowed_languages = []
 
-	if len(MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or MAKE_CONFIG.get_value("denyJavaScript", False):
+	if len(GLOBALS.MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
 
-	if not MAKE_CONFIG.get_value("denyJavaScript", False):
+	if not GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
 		allowed_languages.append("javascript")
 
 	if len(allowed_languages) == 0:
@@ -30,11 +27,11 @@ def get_allowed_languages() -> List[str]:
 	return allowed_languages
 
 def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
-	MOD_STRUCTURE.cleanup_build_target("script_source")
-	MOD_STRUCTURE.cleanup_build_target("script_library")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 
 	overall_result = 0
-	for source in MAKE_CONFIG.get_value("sources", []):
+	for source in GLOBALS.MAKE_CONFIG.get_value("sources", []):
 		if "source" not in source or "language" not in source or "type" not in source:
 			error("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
 			overall_result = 1
@@ -48,7 +45,7 @@ def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
 		return overall_result
 
 	allowed_languages = get_allowed_languages()
-	if "typescript" in allowed_languages and not exists(TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
+	if "typescript" in allowed_languages and not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
 
 	overall_result += build_composite_project(allowed_languages, debug_build) \
@@ -69,7 +66,7 @@ def rebuild_build_target(source, target_path: str) -> str:
 		declare["sourceName"] = source["sourceName"]
 
 	target_type = "script_library" if source["type"] == "library" else "script_source"
-	return MOD_STRUCTURE.new_build_target(
+	return GLOBALS.MOD_STRUCTURE.new_build_target(
 		target_type,
 		target_path,
 		source_type=source["type"],
@@ -87,13 +84,13 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 	includes = []
 	computed_includes = []
 
-	for source in sorted(MAKE_CONFIG.get_value("sources", []), key=cmp_to_key(do_sorting)):
+	for source in sorted(GLOBALS.MAKE_CONFIG.get_value("sources", []), key=cmp_to_key(do_sorting)):
 		make = source["includes"] if "includes" in source else ".includes"
 		preffered_language = source["language"] if "language" in source else None
 		language = preffered_language if preffered_language is not None \
 			and source["language"] in allowed_languages else allowed_languages[0]
 
-		for source_path in MAKE_CONFIG.get_paths(source["source"]):
+		for source_path in GLOBALS.MAKE_CONFIG.get_paths(source["source"]):
 			if not exists(source_path):
 				warn("* Skipped non-existing source '", source["source"], "'!", sep="")
 				continue
@@ -119,7 +116,7 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 				target_path += "{}"
 
 			destination_path = rebuild_build_target(source, target_path)
-			appending_library = MAKE_CONFIG.get_value("project.compiledLibraries", False) \
+			appending_library = GLOBALS.MAKE_CONFIG.get_value("project.compiledLibraries", False) \
 				and source["type"] == "library" and preffered_language == "javascript"
 
 			if isdir(source_path):
@@ -131,8 +128,8 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 						destination_path,
 						"javascript" if appending_library else language
 					))
-				if not appending_library and MAKE_CONFIG.get_value("project.useReferences", False) and language == "typescript":
-					WORKSPACE_COMPOSITE.reference(source_path)
+				if not appending_library and GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) and language == "typescript":
+					GLOBALS.WORKSPACE_COMPOSITE.reference(source_path)
 				computed_includes.append((
 					source_path, destination_path
 				))
@@ -140,11 +137,11 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 			elif isfile(source_path):
 				from .includes import TEMPORARY_DIRECTORY
 				if not appending_library:
-					if MAKE_CONFIG.get_value("project.composite", True) and language == "typescript":
-						WORKSPACE_COMPOSITE.coerce(source_path)
-					if BUILD_STORAGE.is_path_changed(source_path) or (
+					if GLOBALS.MAKE_CONFIG.get_value("project.composite", True) and language == "typescript":
+						GLOBALS.WORKSPACE_COMPOSITE.coerce(source_path)
+					if GLOBALS.BUILD_STORAGE.is_path_changed(source_path) or (
 						language == "typescript" and not isfile(
-							join(TEMPORARY_DIRECTORY, relpath(source_path, MAKE_CONFIG.directory))
+							join(TEMPORARY_DIRECTORY, relpath(source_path, GLOBALS.MAKE_CONFIG.directory))
 						)
 					):
 						composite.append((source_path, destination_path, language))
@@ -152,7 +149,7 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 					source_path, destination_path, "javascript" if appending_library else language
 				))
 
-	BUILD_STORAGE.save()
+	GLOBALS.BUILD_STORAGE.save()
 	return composite, computed_composite, includes, computed_includes
 
 def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tuple[str, str]]) -> None:
@@ -161,38 +158,38 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 	for included in includes:
 		temp_path = join(TEMPORARY_DIRECTORY, basename(included[1]))
 
-		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
+		if not isfile(temp_path) or GLOBALS.BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
 				warn(f"* Not found build target '{basename(temp_path)}', maybe it building emitted error or corresponding source is empty.")
 				continue
 
-		if not BUILD_STORAGE.is_path_changed(temp_path):
+		if not GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
 			info(f"* Build target '{basename(temp_path)}' is not changed.")
 
 	for included in composite:
 		# Single JavaScript sources when TypeScript is not forced just copies to output without
 		# temporary caching; might be breaking change in future
-		if MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
-			temp_path = join(TEMPORARY_DIRECTORY, relpath(included[0], MAKE_CONFIG.directory))
+		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
+			temp_path = join(TEMPORARY_DIRECTORY, relpath(included[0], GLOBALS.MAKE_CONFIG.directory))
 		else:
 			temp_path = included[0]
 
-		if temp_path == included[0] and isfile(temp_path) and BUILD_STORAGE.is_path_changed(temp_path):
+		if temp_path == included[0] and isfile(temp_path) and GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
 			print(f"Flushing '{basename(included[1])}' from '{basename(included[0])}'")
 
-		if not isfile(temp_path) or BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
+		if not isfile(temp_path) or GLOBALS.BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
 			if isfile(temp_path):
 				copy_file(temp_path, included[1])
 			else:
 				warn(f"* Not found build target '{basename(temp_path)}', but it directly included!")
 				continue
 
-		if not BUILD_STORAGE.is_path_changed(temp_path):
+		if not GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
 			info(f"* Build target '{basename(temp_path)}' is not changed.")
 
-	BUILD_STORAGE.save()
+	GLOBALS.BUILD_STORAGE.save()
 
 def build_composite_project(allowed_languages: List[str] = ["typescript"], debug_build: bool = False) -> int:
 	overall_result = 0
@@ -201,28 +198,28 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
 
 	if "typescript" in allowed_languages:
-		WORKSPACE_COMPOSITE.flush(debug_build)
+		GLOBALS.WORKSPACE_COMPOSITE.flush(debug_build)
 	for included in includes:
-		if not MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
+		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
 
 	if "typescript" in allowed_languages \
-		and (MAKE_CONFIG.get_value("project.composite", True) \
-			or MAKE_CONFIG.get_value("project.useReferences", False)):
+		and (GLOBALS.MAKE_CONFIG.get_value("project.composite", True) \
+			or GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False)):
 
 		which = []
-		if MAKE_CONFIG.get_value("project.composite", True):
+		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True):
 			which += list(filter(lambda included: included[2] == "typescript", composite))
 
 		no_composite_typescript = len(which) == 0
-		if MAKE_CONFIG.get_value("project.useReferences", False):
+		if GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False):
 			which += list(filter(lambda included: included[2] == "typescript", includes))
 
 		# Quick rebuild means running tsc only on changed directory, which is must be faster
 		# than default composite building; but in some cases it also may cause unexpected behavior
-		if no_composite_typescript and len(which) == 1 and MAKE_CONFIG.get_value("project.quickRebuild", True):
+		if no_composite_typescript and len(which) == 1 and GLOBALS.MAKE_CONFIG.get_value("project.quickRebuild", True):
 			included = which.pop()
 			overall_result += included[0].build(included[1], included[2])
 
@@ -236,7 +233,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 
 			import datetime
 			start_time = datetime.datetime.now()
-			overall_result += WORKSPACE_COMPOSITE.build(*(
+			overall_result += GLOBALS.WORKSPACE_COMPOSITE.build(*(
 				[] if debug_build else ["--force"]
 			))
 			end_time = datetime.datetime.now()
@@ -248,7 +245,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 			return overall_result
 
 	copy_build_targets(computed_composite, computed_includes)
-	MOD_STRUCTURE.update_build_config_list("compile")
+	GLOBALS.MOD_STRUCTURE.update_build_config_list("compile")
 	return overall_result
 
 def watch_composite_project(allowed_languages: List[str] = ["typescript"], debug_build: bool = True) -> int:
@@ -260,39 +257,39 @@ def watch_composite_project(allowed_languages: List[str] = ["typescript"], debug
 	# Recomputing existing changes before watching, changes here doesn't make sence
 	# since it will be recomputed after watching interruption
 	compute_and_capture_changed_scripts(allowed_languages, debug_build)
-	WORKSPACE_COMPOSITE.flush(debug_build)
-	WORKSPACE_COMPOSITE.watch()
-	MOD_STRUCTURE.cleanup_build_target("script_source")
-	MOD_STRUCTURE.cleanup_build_target("script_library")
-	WORKSPACE_COMPOSITE.reset()
+	GLOBALS.WORKSPACE_COMPOSITE.flush(debug_build)
+	GLOBALS.WORKSPACE_COMPOSITE.watch()
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
+	GLOBALS.WORKSPACE_COMPOSITE.reset()
 
 	composite, computed_composite, includes, computed_includes = \
 		compute_and_capture_changed_scripts(allowed_languages, debug_build)
 
 	for included in includes:
-		if not MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
+		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
 
 	copy_build_targets(computed_composite, computed_includes)
-	MOD_STRUCTURE.update_build_config_list("compile")
+	GLOBALS.MOD_STRUCTURE.update_build_config_list("compile")
 	return overall_result
 
 def build_all_resources() -> int:
-	MOD_STRUCTURE.cleanup_build_target("resource_directory")
-	MOD_STRUCTURE.cleanup_build_target("gui")
-	MOD_STRUCTURE.cleanup_build_target("minecraft_resource_pack")
-	MOD_STRUCTURE.cleanup_build_target("minecraft_behavior_pack")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("resource_directory")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("gui")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("minecraft_resource_pack")
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 
-	for resource in MAKE_CONFIG.get_value("resources", fallback=[]):
+	for resource in GLOBALS.MAKE_CONFIG.get_value("resources", fallback=[]):
 		if "path" not in resource or "type" not in resource:
 			error("Skipped invalid source json ", resource, ", it might contain `path` and `type` properties!", sep="")
 			overall_result = 1
 			continue
 
-		for source_path in MAKE_CONFIG.get_paths(resource["path"]):
+		for source_path in GLOBALS.MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
 				warn("* Skipped non-existing resource ", resource["path"], "!", sep="")
 				continue
@@ -307,7 +304,7 @@ def build_all_resources() -> int:
 			resource_name += "{}"
 
 			if resource_type in ("resource_directory", "gui"):
-				target = MOD_STRUCTURE.new_build_target(
+				target = GLOBALS.MOD_STRUCTURE.new_build_target(
 					resource_type,
 					resource_name,
 					declare={
@@ -315,20 +312,20 @@ def build_all_resources() -> int:
 					}
 				)
 			else:
-				target = MOD_STRUCTURE.new_build_target(
+				target = GLOBALS.MOD_STRUCTURE.new_build_target(
 					resource_type,
 					resource_name,
 					exclude=True,
 					declare_default={
-						"resourcePacksDir": MOD_STRUCTURE.get_target_directories("minecraft_resource_pack")[0],
-						"behaviorPacksDir": MOD_STRUCTURE.get_target_directories("minecraft_behavior_pack")[0]
+						"resourcePacksDir": GLOBALS.MOD_STRUCTURE.get_target_directories("minecraft_resource_pack")[0],
+						"behaviorPacksDir": GLOBALS.MOD_STRUCTURE.get_target_directories("minecraft_behavior_pack")[0]
 					}
 				)
 
 			remove_tree(target)
 			copy_directory(source_path, target)
 
-	MOD_STRUCTURE.update_build_config_list("resources")
+	GLOBALS.MOD_STRUCTURE.update_build_config_list("resources")
 	return overall_result
 
 
