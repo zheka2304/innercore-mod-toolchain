@@ -8,7 +8,7 @@ from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Collection, Dict, List
 from zipfile import ZipFile
 
-from . import GLOBALS
+from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
 from .component import install_components
 from .shell import abort, debug, error, info, warn
@@ -98,7 +98,7 @@ def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 
 ### D8/L8/R8
 
-def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath: Collection[str], target_directory: str, debug_build: bool = False) -> int:
+def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath: Collection[str], target_directory: str) -> int:
 	classpath_targets = []
 	for filename in classpath:
 		classpath_targets += ["--classpath", filename]
@@ -123,7 +123,7 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 		"com.android.tools.r8.D8"
 	] + modified_libraries + classpath_targets + libraries + [
 		"--min-api", "19",
-		"--debug" if debug_build else "--release",
+		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
 		"--output", target_d8_directory
 	])
@@ -137,7 +137,7 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 		"com.android.tools.r8.D8"
 	] + modified_classes + classpath_targets + libraries + [
 		"--min-api", "19",
-		"--debug" if debug_build else "--release",
+		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
 		"--file-per-class",
 		"--output", target_d8_directory
@@ -151,7 +151,7 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 
 	return result
 
-def merge_compressed_dexes(target: BuildTarget, target_directory: str, debug_build: bool = False) -> int:
+def merge_compressed_dexes(target: BuildTarget, target_directory: str) -> int:
 	compressed_target = join(target_directory, "d8", target.relative_directory + ".zip")
 	output_directory = join(target_directory, "odex", target.relative_directory)
 	remove_tree(output_directory)
@@ -164,7 +164,7 @@ def merge_compressed_dexes(target: BuildTarget, target_directory: str, debug_bui
 		"com.android.tools.r8.D8",
 		compressed_target,
 		"--min-api", "19",
-		"--debug" if debug_build else "--release",
+		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
 		"--output", output_directory
 	])
@@ -195,7 +195,7 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 
 		classes_listing = join(target_compiler_directory, ".classes")
 		if not write_changed_source_files(target, source_directories, classes_listing):
-			info(f"* Directory {target.relative_directory!r} is not changed")
+			info(f"* Directory {target.relative_directory!r} is not changed.")
 			continue
 
 		if not javac_executable:
@@ -281,7 +281,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 
 		classes_listing = join(target_compiler_directory, ".classes")
 		if not write_changed_source_files(target, source_directories, classes_listing):
-			info(f"* Directory {target.relative_directory!r} is not changed")
+			info(f"* Directory {target.relative_directory!r} is not changed.")
 			continue
 
 		if not ecj_executable:
@@ -428,7 +428,7 @@ def build_java_with(tool: str, directories: Collection[str], target_directory: s
 		if target.relative_directory not in modified_targets:
 			# Otherwise it will be reported immediately.
 			if tool == "gradle":
-				info(f"* Directory {target.relative_directory!r} is not changed")
+				info(f"* Directory {target.relative_directory!r} is not changed.")
 		else:
 			debug(f"* Running d8 with {target.relative_directory!r}")
 			result = run_d8(target, modified_targets[target.relative_directory], classpath, target_directory)

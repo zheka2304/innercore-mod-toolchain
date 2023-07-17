@@ -78,10 +78,9 @@ class HashStorage:
 				**self.last_hashes,
 				**self.hashes
 			}, indent=None, separators=(",", ":")) + "\n")
-		self.read()
 
 	def is_path_changed(self, path: str, force: bool = False) -> bool:
-		hash = self.get_path_hash(path, force)
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
+		hash = self.get_path_hash(path, force)
 		return encoded not in self.last_hashes \
 			or self.last_hashes[encoded] != hash

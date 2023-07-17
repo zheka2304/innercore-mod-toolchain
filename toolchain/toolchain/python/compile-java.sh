@@ -1,1 +1,1 @@
-python3 -m icmtoolchain compileJavaDebug buildInfo
+python3 -m icmtoolchain compileJava buildInfo

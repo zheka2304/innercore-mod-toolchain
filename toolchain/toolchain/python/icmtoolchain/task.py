@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import time
@@ -5,7 +6,7 @@ from io import TextIOWrapper
 from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Any, Callable, Dict, Final, List, Optional
 
-from . import GLOBALS, colorama
+from . import GLOBALS, PROPERTIES, colorama
 from .make_config import MakeConfig
 from .shell import abort, confirm, error, info, printc, stringify, warn
 from .utils import (DEVNULL, copy_directory, copy_file, ensure_directory,
@@ -145,82 +146,71 @@ def task(name: str, description: Optional[str] = None, locks: Optional[List[str]
 
 	return decorator
 
-@task(
-	"compileNativeDebug",
-	locks=["native", "cleanup", "push"],
-	description="Compiles C++ in single debugging `debugAbi`, changed objects will be compiled."
-)
-def task_compile_native_debug() -> int:
-	abi = GLOBALS.MAKE_CONFIG.get_value("debugAbi", None)
-	if abi is None:
-		abi = "armeabi-v7a"
-		warn(f"* No `debugAbi` value in 'toolchain.json' config, using '{abi}' as default.")
-	from .native_build import compile_all_using_make_config
-	return compile_all_using_make_config([abi])
+### JAVASCRIPT, TYPESCRIPT, JAVA, C++
 
 @task(
-	"compileNativeRelease",
+	"compileNative",
 	locks=["native", "cleanup", "push"],
-	description="Compiles C++ for everything `abis`."
+	description="Компилирует нативные папки, используя NDK и линкует объекты."
 )
-def task_compile_native_release() -> int:
-	abis = GLOBALS.MAKE_CONFIG.get_value("abis", [])
-	if abis is None or not isinstance(abis, list) or len(abis) == 0:
-		abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
+def task_compile_native() -> int:
+	if PROPERTIES.get_value("release"):
+		abis = GLOBALS.MAKE_CONFIG.get_value("abis", [])
+		if abis is None or not isinstance(abis, list) or len(abis) == 0:
+			abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
+	else:
+		abi = GLOBALS.MAKE_CONFIG.get_value("debugAbi", None)
+		if not abi:
+			abi = "armeabi-v7a"
+			warn(f"* No `debugAbi` value in 'toolchain.json' config, using '{abi}' as default.")
+		abis = [abi]
 	from .native_build import compile_all_using_make_config
 	return compile_all_using_make_config(abis)
 
 @task(
-	"compileJavaDebug",
+	"compileJava",
 	locks=["java", "cleanup", "push"],
-	description="Compiles Java, changed classes will be packed into dex."
+	description="Компилирует жабные папки, используя Gradle, Javac или ECJ."
 )
-def task_compile_java_debug(tool: str = "gradle") -> int:
+def task_compile_java(tool: str = "gradle") -> int:
 	from .java_build import compile_java
 	return compile_java(tool)
 
 @task(
-	"compileJavaRelease",
-	locks=["java", "cleanup", "push"],
-	description="Compiles Java without debugging information."
-)
-def task_compile_java_release(tool: str = "gradle") -> int:
-	from .java_build import compile_java
-	return compile_java(tool)
-
-@task(
-	"buildScriptsDebug",
+	"buildScripts",
 	locks=["script", "cleanup", "push"],
-	description="Rebuilds changes scripts with excluded declarations."
+	description="Пересобирает скрипты, используя простое слияние файлов или TSC."
 )
-def task_build_scripts_debug() -> int:
+def task_build_scripts() -> int:
 	from .script_build import build_all_scripts
-	return build_all_scripts(debug_build=True)
-
-@task(
-	"buildScriptsRelease",
-	locks=["script", "cleanup", "push"],
-	description="Assembling scripts without excluding debug declarations, everything script hashes will be rebuilded too."
-)
-def task_build_scripts_release() -> int:
-	from .script_build import build_all_scripts
-	GLOBALS.OUTPUT_STORAGE.last_hashes = {}
-	GLOBALS.BUILD_STORAGE.last_hashes = {}
-	return build_all_scripts(debug_build=False)
+	return build_all_scripts()
 
 @task(
 	"watchScripts",
 	locks=["script", "cleanup", "push"],
-	description="Watches to script changes, availabled only for TypeScript."
+	description="Пересобирает измененные скрипты с помощью TSC мгновенно, прерывание завершит наблюдение."
 )
 def task_watch_scripts() -> int:
 	from .script_build import build_all_scripts
-	return build_all_scripts(debug_build=True, watch=True)
+	return build_all_scripts(watch=True)
+
+@task(
+	"updateIncludes",
+	description="Переопределяет содержимое 'tsconfig.json', основываясь на файлах скриптов."
+)
+def task_update_includes() -> int:
+	from .script_build import (compute_and_capture_changed_scripts,
+	                           get_allowed_languages)
+	compute_and_capture_changed_scripts(get_allowed_languages())
+	GLOBALS.WORKSPACE_COMPOSITE.flush()
+	return 0
+
+### RESOURCES & PACKAGE
 
 @task(
 	"buildResources",
 	locks=["resource", "cleanup", "push"],
-	description="Builds resource pathes, like gui and atlases."
+	description="Копирует предопределенные ресурсы, состоящие из текстур, внутреигровых паков и прочего."
 )
 def task_resources() -> int:
 	from .script_build import build_all_resources
@@ -229,13 +219,11 @@ def task_resources() -> int:
 @task(
 	"buildInfo",
 	locks=["cleanup", "push"],
-	description="Builds output 'mod.info' file."
+	description="Записывает файл описания 'mod.info' в выходную папку для отображения в менеджере браузера."
 )
 def task_build_info() -> int:
-	import json
-
 	from .utils import shortcodes
-	with open(GLOBALS.MAKE_CONFIG.get_path("output/mod.info"), "w") as info_file:
+	with open(GLOBALS.MAKE_CONFIG.get_path(join("output", "mod.info")), "w") as info_file:
 		info = dict(GLOBALS.MAKE_CONFIG.get_value("info", fallback={}))
 
 		if "name" in info:
@@ -262,7 +250,7 @@ def task_build_info() -> int:
 @task(
 	"buildAdditional",
 	locks=["cleanup", "push"],
-	description="Copies additional directories, like assets root."
+	description="Копирует дополнительные файлы и папки, помимо основных ресурсов и кода."
 )
 def task_build_additional() -> int:
 	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=[]):
@@ -282,28 +270,22 @@ def task_build_additional() -> int:
 	return 0
 
 @task(
-	"pushEverything",
-	locks=["push"],
-	description="Push everything 'output' directory."
-)
-def task_push_everything() -> int:
-	from .device import push
-	return push(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True))
-
-@task(
 	"clearOutput",
 	locks=["assemble", "push", "native", "java"],
-	description="Removes 'output' directory in selected project."
+	description="Опционально удаляет выходную папку, по умолчанию не имеет эффекта."
 )
 def task_clear_output(force: bool = False) -> int:
 	if GLOBALS.PREFERRED_CONFIG.get_value("development.clearOutput", False) or force:
 		remove_tree(GLOBALS.MOD_STRUCTURE.directory)
+	if PROPERTIES.get_value("release"):
+		from .package import cleanup_relative_directory
+		cleanup_relative_directory("toolchain/build/" + GLOBALS.MAKE_CONFIG.project_unique_name)
 	return 0
 
 @task(
 	"excludeDirectories",
 	locks=["push", "assemble", "native", "java"],
-	description="Removes excluded from release assembling directories."
+	description="Удаляет предопределенные конфигом файлы и папки, которые должны быть исключены перед публикацией."
 )
 def task_exclude_directories() -> int:
 	for path in GLOBALS.MAKE_CONFIG.get_value("excludeFromRelease", []):
@@ -317,7 +299,7 @@ def task_exclude_directories() -> int:
 @task(
 	"buildPackage",
 	locks=["push", "assemble", "native", "java"],
-	description="Performs release mod assembling, already builded 'output' will be used."
+	description="Собирает выходную папку проекта в архив, специально для публикации в браузере."
 )
 def task_build_package() -> int:
 	output_dir = GLOBALS.MOD_STRUCTURE.directory
@@ -340,15 +322,30 @@ def task_build_package() -> int:
 	os.rename(output_file_tmp, output_file)
 	return 0
 
+### CONNECTION
+
+@task(
+	"pushEverything",
+	locks=["push"],
+	description="Отправляет собранную выходную папку на подключенное устройство."
+)
+def task_push_everything() -> int:
+	from .device import push
+	return push(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True))
+
 @task(
 	"launchHorizon",
-	description="Launch Horizon with pack auto-launch."
+	description="Запускает лаунчер с предопределенным автозапуском на подключенном устройстве с помощью ADB."
 )
 def task_launch_horizon() -> int:
 	from subprocess import call
 	call(GLOBALS.ADB_COMMAND + [
 		"shell", "touch",
 		"/storage/emulated/0/games/horizon/.flag_auto_launch"
+	], stdout=DEVNULL, stderr=DEVNULL)
+	call(GLOBALS.ADB_COMMAND + [
+		"shell", "touch",
+		"/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/.flag_auto_launch"
 	], stdout=DEVNULL, stderr=DEVNULL)
 	return call(GLOBALS.ADB_COMMAND + [
 		"shell", "monkey",
@@ -358,7 +355,7 @@ def task_launch_horizon() -> int:
 
 @task(
 	"stopHorizon",
-	description="Force stops Horizon via ADB."
+	description="Завершает процесс лаунчера на подключенном устройстве с помощью ADB."
 )
 def stop_horizon() -> int:
 	from subprocess import call
@@ -370,34 +367,19 @@ def stop_horizon() -> int:
 	], stdout=DEVNULL, stderr=DEVNULL)
 
 @task(
-	"loadDocs"
-)
-def task_load_docs() -> int:
-	abort("Temporary disabled!")
-
-@task(
-	"updateIncludes",
-	description="Rebuilds composite 'tsconfig.json' without script building, used mostly to update typings."
-)
-def task_update_includes() -> int:
-	from .script_build import (compute_and_capture_changed_scripts,
-	                           get_allowed_languages)
-	compute_and_capture_changed_scripts(get_allowed_languages(), True)
-	GLOBALS.WORKSPACE_COMPOSITE.flush(True)
-	return 0
-
-@task(
 	"configureADB",
-	description="Interactively configures new ADB connections."
+	description="Добавляет новое подключение к мобильному устройству по кабелю или сети."
 )
 def task_configure_adb() -> int:
 	from . import device
 	device.setup_device_connection()
 	return 0
 
+### PROJECTS
+
 @task(
 	"newProject",
-	description="Interactively creates new project."
+	description="Создает проект, интерактивно запрашивая название, шаблон и прочие свойства."
 )
 def task_new_project() -> int:
 	from .package import new_project
@@ -414,7 +396,7 @@ def task_new_project() -> int:
 
 @task(
 	"importProject",
-	description="Import project by required location into output folder, if output is not specified, 'toolchain/<unique_name>' will be used by default."
+	description="Конвертирует проект для использования тулчейном, либо создает слияние нескольких проектов."
 )
 def task_import_project(path: str = "", target: str = "") -> int:
 	from import_project import import_project
@@ -429,7 +411,7 @@ def task_import_project(path: str = "", target: str = "") -> int:
 @task(
 	"removeProject",
 	locks=["cleanup"],
-	description="Removes project in interactive mode."
+	description="Удаляет проект, интерактивно выбранный пользователем."
 )
 def task_remove_project() -> int:
 	if GLOBALS.PROJECT_MANAGER.how_much() == 0:
@@ -457,7 +439,7 @@ def task_remove_project() -> int:
 @task(
 	"selectProject",
 	locks=["cleanup"],
-	description="Selects project by specified location, otherwise interactive project selection will be shown to explore availabled projects specified in 'projectLocations' property."
+	description="Выбирает проект из указанной папки, либо запрашивает интерактивную выборку у пользователя."
 )
 def task_select_project(path: str = "") -> int:
 	if len(path) > 0:
@@ -486,9 +468,11 @@ def task_select_project(path: str = "") -> int:
 		abort(f"Folder '{who}' not found!")
 	return 0
 
+### MISCELLANEOUS
+
 @task(
 	"updateToolchain",
-	description="Upgrades toolchain by downloading deploy branch, installed components will be upgraded if user accepts it."
+	description="Обновляет тулчейн, используя ветку разработки; дополнительно проверяет обновления установленных компонентов."
 )
 def task_update_toolchain() -> int:
 	from .update import update_toolchain
@@ -504,15 +488,18 @@ def task_update_toolchain() -> int:
 
 @task(
 	"componentIntegrity",
-	description="Upgrade and install new components, additionally used when startup phase is active."
+	description="Установка дополнительных компонентов для компиляции, либо повторная первоначальная настройка."
 )
-def task_component_integrity() -> int:
-	from .component import upgrade
-	return upgrade()
+def task_component_integrity(startup: bool = False) -> int:
+	from . import component
+	if startup:
+		component.startup()
+		return 0
+	return component.upgrade()
 
 @task(
 	"cleanup",
-	description="Performs project 'output' folder cleanup, if nothing selected everything build cache will be removed."
+	description="Очищает кеш выбранного проекта, либо все выходные файлы прошлых сборок, забывая измененные файлы."
 )
 def task_cleanup() -> int:
 	from .package import cleanup_relative_directory

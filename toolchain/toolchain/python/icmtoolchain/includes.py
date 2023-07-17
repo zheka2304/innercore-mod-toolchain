@@ -7,7 +7,7 @@ import subprocess
 from os.path import basename, isdir, isfile, join, normpath, relpath
 from typing import Any, Dict, Final, List
 
-from . import GLOBALS
+from . import GLOBALS, PROPERTIES
 from .shell import debug, info, warn
 from .utils import ensure_file_directory
 from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN
@@ -34,16 +34,15 @@ TEMPORARY_DIRECTORY: Final[str] = GLOBALS.MAKE_CONFIG.get_build_path("sources")
 
 
 class Includes:
-	directory: Final[str]; includes: Final[str]; path: Final[str]; debug_build: Final[bool]
+	directory: Final[str]; includes: Final[str]; path: Final[str]
 	include: List[str]; exclude: List[str]; params: Dict[str, Any]
 
-	def __init__(self, directory: str, includes_path: str, debug_build = False) -> None:
+	def __init__(self, directory: str, includes_path: str) -> None:
 		if not isdir(directory):
 			raise NotADirectoryError(directory)
 		self.directory = directory
 		self.includes = includes_path
 		self.path = join(directory, includes_path)
-		self.debug_build = debug_build
 		self.include = []
 		self.exclude = []
 		self.params = {}
@@ -129,8 +128,8 @@ class Includes:
 			])
 
 	@staticmethod
-	def create_from_directory(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
-		includes = Includes(directory, includes_path, debug_build)
+	def create_from_directory(directory: str, includes_path: str) -> 'Includes':
+		includes = Includes(directory, includes_path)
 		for dirpath, dirnames, filenames in os.walk(directory):
 			for filename in filenames:
 				if filename.endswith(".js") or filename.endswith(".ts"):
@@ -138,7 +137,7 @@ class Includes:
 		includes.parse(); return includes
 
 	@staticmethod
-	def create_from_tsconfig(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
+	def create_from_tsconfig(directory: str, includes_path: str) -> 'Includes':
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
 			params = config["compilerOptions"] if "compilerOptions" in config else {}
@@ -146,22 +145,22 @@ class Includes:
 			exclude = config["exclude"] if "exclude" in config else []
 			if "outFile" in params: del params["outFile"]
 
-		includes = Includes(directory, includes_path, debug_build)
+		includes = Includes(directory, includes_path)
 		includes.include = include
 		includes.exclude = exclude
 		includes.params = params
 		includes.parse(); return includes
 
 	@staticmethod
-	def invalidate(directory: str, includes_path: str, debug_build: bool = False) -> 'Includes':
+	def invalidate(directory: str, includes_path: str) -> 'Includes':
 		if not isfile(join(directory, includes_path)):
 			tsconfig_path = join(directory, "tsconfig.json")
 			if isfile(tsconfig_path):
-				includes = Includes.create_from_tsconfig(directory, includes_path, debug_build)
+				includes = Includes.create_from_tsconfig(directory, includes_path)
 			else:
-				includes = Includes.create_from_directory(directory, includes_path, debug_build)
+				includes = Includes.create_from_directory(directory, includes_path)
 		else:
-			includes = Includes(directory, includes_path, debug_build)
+			includes = Includes(directory, includes_path)
 			includes.read()
 		return includes
 
@@ -212,7 +211,7 @@ class Includes:
 			GLOBALS.BUILD_STORAGE.is_path_changed(self.directory, True)
 			GLOBALS.BUILD_STORAGE.save()
 		else:
-			info(f"* Build target {basename(target_path)} is not changed")
+			info(f"* Build target {basename(target_path)} is not changed.")
 
 		return result
 
@@ -225,8 +224,8 @@ class Includes:
 				"--project", self.get_tsconfig(),
 				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", [])
 			]
-			if self.debug_build:
-				# Do NOT resolve down-level declaration, like android.d.ts if it not included
+			if not PROPERTIES.get_value("release"):
+				# Do NOT resolve down-level declaration, like 'android.d.ts' if it not included
 				command.append("--noResolve")
 				# Do NOT check declarations to resolve conflicts and something else due to --noResolve
 				command.append("--skipLibCheck")

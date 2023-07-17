@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain compileNativeDebug buildInfo
+python -m icmtoolchain compileNative buildInfo

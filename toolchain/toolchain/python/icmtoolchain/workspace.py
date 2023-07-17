@@ -6,7 +6,7 @@ import subprocess
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, Final, List
 
-from . import GLOBALS
+from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
 
 
@@ -230,7 +230,7 @@ class WorkspaceComposite:
 		self.sources = []
 
 	@staticmethod
-	def resolve_declarations(debug_build: bool = False) -> List[str]:
+	def resolve_declarations() -> List[str]:
 		includes = GLOBALS.MAKE_CONFIG.get_value("declarations", [
 			"declarations"
 		])
@@ -247,7 +247,7 @@ class WorkspaceComposite:
 				GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
 				recursive=True
 			))
-		if debug_build:
+		if not PROPERTIES.get_value("release"):
 			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", []):
 				if exists(str(excluded).lstrip("/").partition("/")[0]):
 					for declaration in glob.glob(excluded, recursive=True):
@@ -259,7 +259,7 @@ class WorkspaceComposite:
 							declarations.remove(declaration)
 		return list(set(declarations))
 
-	def flush(self, debug_build: bool = False, **kwargs: Any) -> None:
+	def flush(self, **kwargs: Any) -> None:
 		from .includes import TEMPORARY_DIRECTORY
 		template = {
 			"compilerOptions": {
@@ -275,7 +275,7 @@ class WorkspaceComposite:
 			**kwargs
 		}
 
-		declarations = WorkspaceComposite.resolve_declarations(debug_build)
+		declarations = WorkspaceComposite.resolve_declarations()
 		if len(declarations) > 0:
 			template["files"] = declarations
 		if len(self.references) > 0:

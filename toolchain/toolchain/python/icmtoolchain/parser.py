@@ -3,8 +3,9 @@ import sys
 from collections import namedtuple
 from types import (BuiltinMethodType, ClassMethodDescriptorType,
                    DynamicClassAttribute)
-from typing import Any, Callable, Dict, Final, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Final, List, Mapping, Optional, Tuple
 
+from . import GLOBALS, PROPERTIES
 from .shell import printc, stringify
 from .task import Task
 
@@ -186,8 +187,12 @@ def dump(what: object, stack: int = 0, name: str = "", *, exclude_builtins: bool
 		return
 	dump_attribute(attribute, stack, exclude_builtins=exclude_builtins, recursive=recursive, sort_by_kinds=sort_by_kinds, inter_subclasses=inter_subclasses, limit_depth=limit_depth)
 
+NamedCallable = namedtuple('NamedCallable', 'name callable')
+
 def parse_argument_value(what: str, target: type, default: Any) -> Any:
 	try:
+		if target == bool or type(default) == bool:
+			return True if what.lower() == "true" else False if what.lower() == "false" else None
 		try:
 			return type(default).__call__(what)
 		except BaseException:
@@ -195,7 +200,6 @@ def parse_argument_value(what: str, target: type, default: Any) -> Any:
 		return target.__call__(what)
 	except BaseException:
 		pass
-	return what
 
 def parse_argument(argv: List[str], mappings: Mapping[str, inspect.Parameter]) -> Optional[Tuple[str, Any]]:
 	argument = argv[0]
@@ -254,7 +258,8 @@ def parse_argument(argv: List[str], mappings: Mapping[str, inspect.Parameter]) -
 		possibility = argv[0]
 		if possibility[:2] != "--":
 			value = parse_argument_value(possibility, target, default)
-			argv.pop(0)
+			if value is not None:
+				argv.pop(0)
 	if value is None:
 		value = True
 
@@ -319,8 +324,15 @@ def parse_callable_arguments(argv: List[str], callable: Callable, signature: ins
 
 	return wrapped
 
-def parse_arguments(argv: List[str], mappings: Mapping[str, Task], fallback: Optional[Callable[[str, Callable, dict], None]] = None) -> Dict[str, Callable]:
-	callables = dict()
+def apply_properties(**kwargs) -> int:
+	global PROPERTIES
+	for name, value in kwargs.items():
+		if value is not None:
+			PROPERTIES.set_value(name, value)
+	return 0
+
+def parse_arguments(argv: List[str], mappings: Mapping[str, Task], fallback: Optional[Callable[[str, Callable, List[NamedCallable]], None]] = None) -> List[NamedCallable]:
+	callables = list()
 
 	while True:
 		try:
@@ -331,15 +343,16 @@ def parse_arguments(argv: List[str], mappings: Mapping[str, Task], fallback: Opt
 			return callables
 		else:
 			if argument[:1] == "-":
-				# TODO: Parsing globals should be considered here.
-				continue
-			task = mappings.get(argument)
-			contains = task is not None
-			task = task if task else lambda *args, **kwargs: None
-			signature = inspect.signature(task.callable if contains else task)
-			target = parse_callable_arguments(argv, task, signature)
-			if contains:
-				callables[argument] = target
-			# Mapping is not availabled, fallback resulted arguments as-is.
-			elif fallback:
-				fallback(argument, target, callables)
+				argv.insert(0, argument)
+				target = parse_callable_arguments(argv, apply_properties, GLOBALS.PARAMETER_SIGNATURE)
+			else:
+				task = mappings.get(argument)
+				contains = task is not None
+				task = task if task else lambda *args, **kwargs: None
+				signature = inspect.signature(task.callable if contains else task)
+				target = parse_callable_arguments(argv, task, signature)
+				if not contains:
+					if fallback:
+						fallback(argument, target, callables)
+					continue
+			callables.append(NamedCallable(argument if argument[:1] != "-" else "globals", target))

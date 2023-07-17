@@ -2,7 +2,7 @@ from functools import cmp_to_key
 from os.path import basename, exists, isdir, isfile, join, relpath, splitext
 from typing import Any, Dict, List, Tuple
 
-from . import GLOBALS
+from . import GLOBALS, PROPERTIES
 from .includes import Includes
 from .shell import abort, debug, error, info, warn
 from .utils import copy_directory, copy_file, remove_tree, request_typescript
@@ -26,7 +26,7 @@ def get_allowed_languages() -> List[str]:
 
 	return allowed_languages
 
-def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
+def build_all_scripts(watch: bool = False) -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 
@@ -48,8 +48,8 @@ def build_all_scripts(debug_build: bool = False, watch: bool = False) -> int:
 	if "typescript" in allowed_languages and not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
 		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
 
-	overall_result += build_composite_project(allowed_languages, debug_build) \
-		if not watch else watch_composite_project(allowed_languages, debug_build)
+	overall_result += build_composite_project(allowed_languages) \
+		if not watch else watch_composite_project(allowed_languages)
 	return overall_result
 
 def rebuild_build_target(source, target_path: str) -> str:
@@ -78,7 +78,7 @@ def do_sorting(a: Dict[Any, Any], b: Dict[Any, Any]) -> int:
 	lb = b["type"] == "library"
 	return 0 if la == lb else -1 if la else 1
 
-def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescript"], debug_build: bool = False) -> Tuple[List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[Includes, str, str]], List[Tuple[str, str]]]:
+def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescript"]) -> Tuple[List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[Includes, str, str]], List[Tuple[str, str]]]:
 	composite = []
 	computed_composite = []
 	includes = []
@@ -120,7 +120,7 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 				and source["type"] == "library" and preffered_language == "javascript"
 
 			if isdir(source_path):
-				include = Includes.invalidate(source_path, make, debug_build)
+				include = Includes.invalidate(source_path, make)
 				# Computing in any cases, tsconfig normalizes environment usage
 				if include.compute(destination_path, language):
 					includes.append((
@@ -170,7 +170,7 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 
 	for included in composite:
 		# Single JavaScript sources when TypeScript is not forced just copies to output without
-		# temporary caching; might be breaking change in future
+		# temporary caching; might be breaking change in future.
 		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
 			temp_path = join(TEMPORARY_DIRECTORY, relpath(included[0], GLOBALS.MAKE_CONFIG.directory))
 		else:
@@ -191,14 +191,14 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 
 	GLOBALS.BUILD_STORAGE.save()
 
-def build_composite_project(allowed_languages: List[str] = ["typescript"], debug_build: bool = False) -> int:
+def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> int:
 	overall_result = 0
 
 	composite, computed_composite, includes, computed_includes = \
-		compute_and_capture_changed_scripts(allowed_languages, debug_build)
+		compute_and_capture_changed_scripts(allowed_languages)
 
 	if "typescript" in allowed_languages:
-		GLOBALS.WORKSPACE_COMPOSITE.flush(debug_build)
+		GLOBALS.WORKSPACE_COMPOSITE.flush()
 	for included in includes:
 		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
@@ -234,7 +234,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 			import datetime
 			start_time = datetime.datetime.now()
 			overall_result += GLOBALS.WORKSPACE_COMPOSITE.build(*(
-				[] if debug_build else ["--force"]
+				["--force"] if PROPERTIES.get_value("release") else []
 			))
 			end_time = datetime.datetime.now()
 			diff = end_time - start_time
@@ -248,7 +248,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"], debug
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("compile")
 	return overall_result
 
-def watch_composite_project(allowed_languages: List[str] = ["typescript"], debug_build: bool = True) -> int:
+def watch_composite_project(allowed_languages: List[str] = ["typescript"]) -> int:
 	if not "typescript" in allowed_languages:
 		error("Watching is not supported for legacy JavaScript!")
 		return 1
@@ -256,15 +256,15 @@ def watch_composite_project(allowed_languages: List[str] = ["typescript"], debug
 
 	# Recomputing existing changes before watching, changes here doesn't make sence
 	# since it will be recomputed after watching interruption
-	compute_and_capture_changed_scripts(allowed_languages, debug_build)
-	GLOBALS.WORKSPACE_COMPOSITE.flush(debug_build)
+	compute_and_capture_changed_scripts(allowed_languages)
+	GLOBALS.WORKSPACE_COMPOSITE.flush()
 	GLOBALS.WORKSPACE_COMPOSITE.watch()
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 	GLOBALS.WORKSPACE_COMPOSITE.reset()
 
 	composite, computed_composite, includes, computed_includes = \
-		compute_and_capture_changed_scripts(allowed_languages, debug_build)
+		compute_and_capture_changed_scripts(allowed_languages)
 
 	for included in includes:
 		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
@@ -327,8 +327,3 @@ def build_all_resources() -> int:
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("resources")
 	return overall_result
-
-
-if __name__ == "__main__":
-	build_all_resources()
-	build_all_scripts(debug_build=True)

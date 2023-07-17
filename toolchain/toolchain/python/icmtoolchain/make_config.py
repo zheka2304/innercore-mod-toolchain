@@ -30,17 +30,17 @@ class ToolchainConfig(BaseConfig):
 	def upgrade(self) -> bool:
 		changes = False
 		if "global" in self.json:
-			globalconfig = self.get_value("global", {})
-			for entry in globalconfig:
-				self.set_value(entry, globalconfig[entry])
+			global_config = self.get_value("global", {})
+			for entry in global_config:
+				self.set_value(entry, global_config[entry])
 			self.remove_value("global")
 			self.save(); changes |= True
 		if "make" in self.json:
-			makeconfig = self.get_value("make", {})
-			if "linkNative" in makeconfig:
-				self.set_value("linkNative", makeconfig["linkNative"])
-			if "excludeFromRelease" in makeconfig:
-				self.set_value("excludeFromRelease", makeconfig["excludeFromRelease"])
+			make_config = self.get_value("make", {})
+			if "linkNative" in make_config:
+				self.set_value("linkNative", make_config["linkNative"])
+			if "excludeFromRelease" in make_config:
+				self.set_value("excludeFromRelease", make_config["excludeFromRelease"])
 			self.remove_value("make")
 			self.save(); changes |= True
 		return changes

@@ -1,6 +1,8 @@
 import os
 from os.path import isfile, join, realpath
 
+from .base_config import BaseConfig
+
 
 def find_configuration(path: str, filename: str):
 	working_path = path.split(os.sep)
@@ -127,4 +129,20 @@ class Globals:
 			self.workspace_composite = WorkspaceComposite("tsconfig.json")
 		return self.workspace_composite
 
+	@property
+	def PARAMETER_SIGNATURE(self):
+		if not hasattr(self, "parameter_signature"):
+			import inspect
+			parameters = [
+				inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY, default=None, annotation=annotation) for name, annotation in PARAMETERS.items()
+			]
+			self.parameter_signature = inspect.Signature(parameters, return_annotation=int)
+		return self.parameter_signature
+
 GLOBALS = Globals()
+
+PARAMETERS = {
+	"release": bool
+}
+
+PROPERTIES = BaseConfig(dict())

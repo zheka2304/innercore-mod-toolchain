@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain clearOutput --force buildScriptsRelease buildResources compileNativeRelease compileJavaRelease buildAdditional buildInfo excludeDirectories buildPackage
+python -m icmtoolchain --release clearOutput --force buildScripts buildResources compileNative compileJava buildAdditional buildInfo excludeDirectories buildPackage

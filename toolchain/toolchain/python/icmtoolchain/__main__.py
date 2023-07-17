@@ -33,21 +33,21 @@ except (TypeError, ValueError) as err:
 	abort(cause=err)
 
 anything_performed = False
-tasks = iter(targets.items())
+tasks = iter(targets)
 while True:
 	try:
-		name, callable = next(tasks)
+		callable = next(tasks)
 	except StopIteration:
 		break
 	else:
 		try:
-			result = callable()
+			result = callable.callable()
 			if result != 0:
-				abort(f"* Task {name} failed with result {result}.", code=result)
+				abort(f"* Task {callable.name} failed with result {result}.", code=result)
 		except BaseException as err:
 			if isinstance(err, SystemExit):
 				raise err
-			abort(f"* Task {name} failed with unexpected error!", cause=err)
+			abort(f"* Task {callable.name} failed with unexpected error!", cause=err)
 		anything_performed = True
 
 if not anything_performed:

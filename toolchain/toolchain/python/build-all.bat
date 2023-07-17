@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain clearOutput buildScriptsDebug buildResources compileNativeDebug compileJavaDebug buildAdditional buildInfo
+python -m icmtoolchain clearOutput buildScripts buildResources compileNative compileJava buildAdditional buildInfo

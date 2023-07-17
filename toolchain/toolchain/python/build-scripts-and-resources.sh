@@ -1,1 +1,1 @@
-python3 -m icmtoolchain clearOutput buildScriptsDebug buildResources buildAdditional buildInfo
+python3 -m icmtoolchain clearOutput buildScripts buildResources buildAdditional buildInfo
