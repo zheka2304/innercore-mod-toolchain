@@ -24,7 +24,8 @@ Properties marked with \* can have absolute file paths.
 │  ├─ useReferences: false // whether or not compilate directories with other separate files and use same declarations; if project uses at least two directory sources, speeding up compilation with tsc
 │  ├─ compiledLibraries: false // included JavaScript libraries tracted as compiled-as-is and not assembling for declarations, use only in case when you're not needed minification or libraries regularly updates
 │  └─ quickRebuild: true // quick rebuilds single directory if only it changes, otherwise everything works as expected; usable when using `useReferences`
-├─ api: "CoreEngine" // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI", "Instant"
+├─ api: "CoreEngine" // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI", "Instant" (only with Instant Referrer)
+├─ *outputDirectory: "output" // target directory for project compilation, containment identical with data that will be sent to device (may be absolute path to launcher directory in emulators, then pushing to device is not required)
 ├─ optimizationLevel: -1 // value between -1..9, serves to unload scripts from memory
 ├─ setupScript: null // path to script that is triggered when unpacking project archive in mod browser
 │

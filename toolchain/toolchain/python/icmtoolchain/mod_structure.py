@@ -33,7 +33,7 @@ class ModStructure:
 	build_config: Optional[Dict[Any, Any]] = None
 
 	def __init__(self, output_directory: str) -> None:
-		self.directory = GLOBALS.MAKE_CONFIG.get_path(output_directory)
+		self.directory = GLOBALS.MAKE_CONFIG.get_absolute_path(output_directory)
 		self.targets = {}
 
 	def cleanup_build_target(self, keyword: str) -> None:

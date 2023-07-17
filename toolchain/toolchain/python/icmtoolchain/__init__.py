@@ -98,7 +98,7 @@ class Globals:
 	def MOD_STRUCTURE(self):
 		if not hasattr(self, "mod_structure"):
 			from .mod_structure import ModStructure
-			self.mod_structure = ModStructure("output")
+			self.mod_structure = ModStructure(self.MAKE_CONFIG.get_value("outputDirectory", "output"))
 		return self.mod_structure
 
 	@property
