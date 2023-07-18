@@ -27,6 +27,8 @@ def request_make_config(toolchain_config):
 class Globals:
 	@property
 	def ADB_COMMAND(self):
+		# TODO: Usually, 'adb shell' command returns exit code when
+		# something unexpected happen, but... Check it.
 		if not hasattr(self, "adb_command"):
 			from .device import get_adb_command
 			self.adb_command = get_adb_command()

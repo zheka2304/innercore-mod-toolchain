@@ -57,9 +57,9 @@ def get_modpack_push_directory() -> Optional[str]:
 
 	return directory
 
-def ls_pack(path: str) -> List[str]:
-	containment = [path + "/innercore"] if "mods" in ls(path + "/innercore") else list()
-	return containment + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")]
+def ls_packs_on_remote(path: str) -> List[str]:
+	containment = [path + "/innercore"] if "mods" in ls(path + "/innercore")[0] else list()
+	return containment + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")[0]]
 
 def person_readable_modpack_name(path: str) -> str:
 	what = path.split("/")[::-1]
@@ -77,16 +77,16 @@ def person_readable_modpack_name(path: str) -> str:
 	return basename(path)
 
 def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[str]:
-	pack_directories = ls("/storage/emulated/0/games/horizon/packs")
+	pack_directories = ls("/storage/emulated/0/games/horizon/packs")[0]
 	directories = list()
 	if locations:
 		directories += locations
 	for directory in pack_directories:
-		directories += ls_pack("/storage/emulated/0/games/horizon/packs/" + directory)
-	pack_directories = ls("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs")
+		directories += ls_packs_on_remote("/storage/emulated/0/games/horizon/packs/" + directory)
+	pack_directories = ls("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs")[0]
 	for directory in pack_directories:
-		directories += ls_pack("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs/" + directory)
-	if "mods" in ls("/storage/emulated/0/games/com.mojang"):
+		directories += ls_packs_on_remote("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs/" + directory)
+	if "mods" in ls("/storage/emulated/0/games/com.mojang")[0]:
 		directories.append("/storage/emulated/0/games/com.mojang")
 	if len(directories) == 0:
 		print(
@@ -99,18 +99,21 @@ def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[s
 	])
 	return None if which is None else directories[which]
 
-def ls(path: str, *args: str) -> List[str]:
+def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 	try:
 		pipe = subprocess.run(GLOBALS.ADB_COMMAND + [
-			"shell", "ls", path
+			"shell", "ls", "-F", path
 		] + list(args), text=True, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
 		if err.returncode != 1:
 			error("adb shell ls failed with code", err.returncode)
-		return list()
+		return (list(), list())
 	except KeyboardInterrupt:
-		return list()
-	return pipe.stdout.rstrip().splitlines()
+		return (list(), list())
+	files, directories = list(), list()
+	for partition in (entry.partition(" ") for entry in pipe.stdout.rstrip().splitlines()):
+		(directories if partition[0] == "d" else files).append(partition[2])
+	return directories, files
 
 def push(directory : str, push_unchanged: bool = False) -> int:
 	shell = Shell()
@@ -118,7 +121,7 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 	shell.interactables.append(progress)
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
-		Progress.notify(shell, progress, 1, "Nothing to push...")
+		Progress.notify(shell, progress, 1, "Nothing to push")
 		with shell: return 0
 
 	destination_directory = get_modpack_push_directory()

@@ -576,7 +576,7 @@ class Entry(SelectiveShell.Selectable):
 		self.arrow = arrow
 
 	def get_arrow(self, at_cursor: Optional[bool] = None) -> str:
-		return "" if not at_cursor else \
+		return "" if at_cursor is None else \
 			str(self.arrow) if at_cursor else " " * len(str(self.arrow))
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
