@@ -4,7 +4,7 @@ import socket
 import subprocess
 from glob import glob
 from os.path import basename, join, relpath
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import GLOBALS
 from .make_config import MakeConfig
@@ -15,16 +15,16 @@ from .utils import DEVNULL
 
 def get_modpack_push_directory() -> Optional[str]:
 	directory = GLOBALS.PREFERRED_CONFIG.get_value("pushTo", accept_prototype=False)
-	if directory is None:
+	if not directory:
 		directory = GLOBALS.TOOLCHAIN_CONFIG.get_value("pushTo")
-		if directory is not None:
-			if not isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) or GLOBALS.MAKE_CONFIG.current_project:
+		if directory:
+			if not isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) or not GLOBALS.MAKE_CONFIG.current_project:
 				return None
 			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project))
 
-	if directory is None:
+	if not directory:
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
-		if GLOBALS.PREFERRED_CONFIG.get_value("pushTo") is None:
+		if not GLOBALS.PREFERRED_CONFIG.get_value("pushTo"):
 			abort("Not found any modpacks, nothing to do.")
 		GLOBALS.TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
@@ -58,8 +58,8 @@ def get_modpack_push_directory() -> Optional[str]:
 	return directory
 
 def ls_pack(path: str) -> List[str]:
-	list = [path + "/innercore"] if "mods" in ls(path + "/innercore") else []
-	return list + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")]
+	containment = [path + "/innercore"] if "mods" in ls(path + "/innercore") else list()
+	return containment + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")]
 
 def person_readable_modpack_name(path: str) -> str:
 	what = path.split("/")[::-1]
@@ -78,8 +78,8 @@ def person_readable_modpack_name(path: str) -> str:
 
 def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[str]:
 	pack_directories = ls("/storage/emulated/0/games/horizon/packs")
-	directories = []
-	if locations is not None:
+	directories = list()
+	if locations:
 		directories += locations
 	for directory in pack_directories:
 		directories += ls_pack("/storage/emulated/0/games/horizon/packs/" + directory)
@@ -107,9 +107,9 @@ def ls(path: str, *args: str) -> List[str]:
 	except subprocess.CalledProcessError as err:
 		if err.returncode != 1:
 			error("adb shell ls failed with code", err.returncode)
-		return []
+		return list()
 	except KeyboardInterrupt:
-		return []
+		return list()
 	return pipe.stdout.rstrip().splitlines()
 
 def push(directory : str, push_unchanged: bool = False) -> int:
@@ -121,21 +121,21 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 		Progress.notify(shell, progress, 1, "Nothing to push...")
 		with shell: return 0
 
-	dst_root = get_modpack_push_directory()
-	if dst_root is None:
+	destination_directory = get_modpack_push_directory()
+	if not destination_directory:
 		return 1
 
 	with shell:
-		dst_root = dst_root.replace("\\", "/")
-		if not dst_root.startswith("/"):
-			dst_root = "/" + dst_root
-		src_root = directory.replace("\\", "/")
+		destination_directory = destination_directory.replace("\\", "/")
+		if not destination_directory.startswith("/"):
+			destination_directory = "/" + destination_directory
+		sources_directory = directory.replace("\\", "/")
 
 		percent = 0
 		for filename in items:
-			src = src_root + "/" + filename
-			dst = dst_root + "/" + filename
-			if shell is not None and progress is not None:
+			src = sources_directory + "/" + filename
+			dst = destination_directory + "/" + filename
+			if shell and progress:
 				progress.seek(percent / len(items), "Pushing " + filename)
 				shell.render()
 			try:
@@ -160,12 +160,12 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 	return 0
 
 def make_locks(*locks: str) -> int:
-	dst = get_modpack_push_directory()
-	if dst is None:
+	destination_directory = get_modpack_push_directory()
+	if not destination_directory:
 		return -1
 
 	for lock in locks:
-		lock = join(dst, lock).replace("\\", "/")
+		lock = join(destination_directory, lock).replace("\\", "/")
 		result = subprocess.call(GLOBALS.ADB_COMMAND + [
 			"shell", "touch", lock
 		])
@@ -186,11 +186,11 @@ def ensure_server_running(retry: int = 0) -> bool:
 			return False
 		return ensure_server_running(retry + 1)
 
-STATE_UNKNOWN: Final[int] = -1
-STATE_DEVICE_CONNECTED: Final[int] = 0
-STATE_NO_DEVICES: Final[int] = 1
-STATE_DISCONNECTED: Final[int] = 2
-STATE_DEVICE_AUTHORIZING: Final[int] = 3
+STATE_UNKNOWN = -1
+STATE_DEVICE_CONNECTED = 0
+STATE_NO_DEVICES = 1
+STATE_DISCONNECTED = 2
+STATE_DEVICE_AUTHORIZING = 3
 
 def which_state(what: Optional[str] = None) -> int:
 	if what is None:
@@ -239,7 +239,7 @@ def device_list() -> Optional[List[Dict[str, Any]]]:
 		return None
 	data = pipe.stdout.rstrip().splitlines()
 	data.pop(0)
-	devices = []
+	devices = list()
 	for device in data:
 		device = re.split(r"\s+", device)
 		devices.append({
@@ -283,7 +283,7 @@ def get_ip() -> str:
 
 def get_adb_command() -> List[str]:
 	ensure_server_running()
-	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list())
 	if len(devices) > 0:
 		subprocess.run([
 			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
@@ -299,14 +299,14 @@ def get_adb_command() -> List[str]:
 				], timeout=3.0, stdout=DEVNULL, stderr=DEVNULL)
 			except subprocess.TimeoutExpired:
 				print("Timeout")
-	list = device_list()
-	if list is not None:
-		itwillbe = []
-		for device in list:
+	pending = device_list()
+	if pending:
+		itwillbe = list()
+		for device in pending:
 			if device["serial"] in devices:
 				itwillbe.append(device)
-		device = which_device_will_be_connected(*(list if len(itwillbe) == 0 else itwillbe))
-		if device is not None:
+		device = which_device_will_be_connected(*(pending if len(itwillbe) == 0 else itwillbe))
+		if device:
 			return get_adb_command_by_serial(device["serial"])
 	if GLOBALS.PREFERRED_CONFIG.get_value("adb.doNothingIfDisconnected", False):
 		abort("Not found connected devices, nothing to do.")
@@ -317,7 +317,7 @@ def get_adb_command() -> List[str]:
 
 def get_adb_command_by_serial(serial: str) -> List[str]:
 	ensure_server_running()
-	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list())
 	if not serial in devices:
 		try:
 			from ipaddress import ip_address
@@ -333,15 +333,15 @@ def get_adb_command_by_serial(serial: str) -> List[str]:
 
 def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool = False) -> Optional[List[str]]:
 	ensure_server_running()
-	if get_adb_command_by_serialno_type("-e") is None:
+	if not get_adb_command_by_serialno_type("-e"):
 		if skip_error or not confirm("Are you sure want to save it?", False):
 			return None
 	device: dict[str, Any] = {
 		"ip": ip
 	}
-	if port is not None:
+	if port:
 		device["port"] = port
-	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])
+	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list())
 	if not device in devices:
 		devices.append(device)
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("devices", devices)
@@ -362,7 +362,7 @@ def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
 def setup_device_connection() -> Optional[List[str]]:
-	not_connected_any_device = len(GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", [])) == 0
+	not_connected_any_device = len(GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list())) == 0
 	if not_connected_any_device:
 		print(
 			"Howdy! " +
@@ -373,7 +373,7 @@ def setup_device_connection() -> Optional[List[str]]:
 		"I've connected device via cable",
 		"Over air/network will be best",
 		"Everything already performed"
-	] + (["Wha.. I don't understand!"] if not_connected_any_device else []) + [
+	] + (["Wha.. I don't understand!"] if not_connected_any_device else list()) + [
 		"It will be performed later"
 	], fallback=3 + (1 if not_connected_any_device else 0))
 	return setup_via_usb() if which == 0 else \
@@ -391,7 +391,7 @@ def setup_via_usb() -> Optional[List[str]]:
 			"wait-for-usb-device"
 		], check=True, timeout=90.0, stdout=DEVNULL, stderr=DEVNULL)
 		command = get_adb_command_by_serialno_type("-d")
-		if command is not None:
+		if command:
 			return command
 	except subprocess.CalledProcessError as err:
 		error("adb wait-for-usb-device failed with code", err.returncode)
@@ -422,7 +422,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 	progress = Progress(text="Connecting")
 	shell.interactables.append(progress)
 	with shell:
-		accepted = []
+		accepted = list()
 		try:
 			import asyncio
 			asyncio.run(ping_async(ip, shell, progress, accepted))
@@ -456,7 +456,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 					"connect", next
 				], check=True, timeout=5.0, stdout=DEVNULL, stderr=DEVNULL)
 				command = get_adb_command_by_tcp(next, skip_error=True)
-				if command is not None:
+				if command:
 					latest = command
 				else:
 					print()
@@ -467,7 +467,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 			except KeyboardInterrupt:
 				break
 			try:
-				ports = []
+				ports = list()
 				try:
 					import asyncio
 					asyncio.run(connect_async(next, shell, progress, ports))
@@ -475,7 +475,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 					pass
 				for port in ports:
 					command = get_adb_command_by_tcp(next + ":" + port, skip_error=True)
-					if command is not None:
+					if command:
 						latest = command
 					else:
 						print()
@@ -483,10 +483,10 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 				break
 			print()
 		print()
-	return latest if latest is not None else setup_via_network()
+	return latest or setup_via_network()
 
 def ping_via_shell(ip: str, shell: Optional[Shell], progress: Optional[Progress], index: int) -> int:
-	if shell is not None and progress is not None:
+	if shell and progress:
 		progress.seek(index / 255, f"Pinging {ip}")
 		shell.render()
 	return subprocess.call([
@@ -496,7 +496,7 @@ def ping_via_shell(ip: str, shell: Optional[Shell], progress: Optional[Progress]
 	], stdout=DEVNULL, stderr=DEVNULL) == 0
 
 async def ping(ip: str, shell: Optional[Shell], progress: Optional[Progress], index: int, accepted: List[str]) -> None:
-	if shell is not None and progress is not None and index % 15 == 0:
+	if shell and progress and index % 15 == 0:
 		progress.seek(index / 255, f"Pinging {ip}")
 		shell.render()
 	import asyncio
@@ -509,7 +509,7 @@ async def ping(ip: str, shell: Optional[Shell], progress: Optional[Progress], in
 
 async def ping_async(ip: Tuple[str, str, str], shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	import asyncio
-	tasks = []
+	tasks = list()
 	for index in range(256):
 		if str(index) == ip[2]:
 			continue
@@ -521,7 +521,7 @@ async def ping_async(ip: Tuple[str, str, str], shell: Optional[Shell], progress:
 async def connect(ip: str, port: int, shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	if len(accepted) > 0:
 		return
-	if shell is not None and progress is not None and port % 15 == 0:
+	if shell and progress and port % 15 == 0:
 		progress.seek(port / 65535, f"Connecting to {ip}:{str(port)}")
 		shell.render()
 	import asyncio
@@ -534,14 +534,14 @@ async def connect(ip: str, port: int, shell: Optional[Shell], progress: Optional
 
 async def connect_async(ip: str, shell: Optional[Shell], progress: Optional[Progress], accepted: List[str]) -> None:
 	import asyncio
-	tasks = []
+	tasks = list()
 	for index in range(1000, 65536):
 		task = asyncio.ensure_future(connect(ip, index, shell, progress, accepted))
 		tasks.append(task)
 	await asyncio.gather(*tasks, return_exceptions=True)
 
 def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, pairing_code: Optional[str] = None, with_pairing_code: bool = False) -> Optional[List[str]]:
-	if ip is None:
+	if not ip:
 		print("You are connected via", get_ip())
 		try:
 			tcp = input("Specify address: IP[:PORT] ")
@@ -553,8 +553,8 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 		tcp = tcp.split(":")
 		ip = tcp[0]
 		port = tcp[1] if len(tcp) > 1 else port
-	if with_pairing_code or pairing_code is not None:
-		if pairing_code is None:
+	if with_pairing_code or pairing_code:
+		if not pairing_code:
 			try:
 				pairing_code = input("Specify pairing code: ")
 			except KeyboardInterrupt:
@@ -564,7 +564,7 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 			subprocess.run([
 				GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 				"pair",
-				f"{ip}:{port}" if port is not None else ip,
+				f"{ip}:{port}" if port else ip,
 				pairing_code
 			], check=True, stderr=DEVNULL, stdout=DEVNULL)
 		except subprocess.CalledProcessError as err:
@@ -579,10 +579,10 @@ def setup_via_tcp_network(ip: Optional[str] = None, port: Optional[str] = None, 
 		subprocess.run([
 			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"connect",
-			f"{ip}:{port}" if port is not None else ip
+			f"{ip}:{port}" if port else ip
 		], check=True, timeout=10.0, stdout=DEVNULL, stderr=DEVNULL)
-		command = get_adb_command_by_tcp(ip, int(port) if port is not None else None)
-		return command if command is not None else setup_via_tcp_network()
+		command = get_adb_command_by_tcp(ip, int(port) if port else None)
+		return command or setup_via_tcp_network()
 	except subprocess.CalledProcessError as err:
 		error("adb connect failed with code", err.returncode)
 	except subprocess.TimeoutExpired:
@@ -595,18 +595,18 @@ def setup_externally(skip_input: bool = False) -> Optional[List[str]]:
 	state = get_device_state()
 	if state == STATE_DEVICE_CONNECTED or state == STATE_DEVICE_AUTHORIZING:
 		serial = get_device_serial()
-		if serial is not None:
-			if not serial in GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", []):
+		if serial:
+			if not serial in GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list()):
 				return get_adb_command_by_serial(serial)
 			else:
 				print("Connected device already saved, maybe another available too.")
 	else:
 		print("Not found connected devices, resolving everything...")
-	list = device_list()
-	if list is None:
+	devices = device_list()
+	if not devices:
 		return setup_device_connection()
-	device = which_device_will_be_connected(*list, state_not_matter=True)
-	if device is None:
+	device = which_device_will_be_connected(*devices, state_not_matter=True)
+	if not device:
 		print("Nope, nothing to perform here.")
 		if not skip_input:
 			try:

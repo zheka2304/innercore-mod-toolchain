@@ -1,8 +1,14 @@
+import sys
+
+if sys.version_info < (3, 7):
+	print("Unfortunatelly, Inner Core Mod Toolchain is not supported.")
+	print("Required Python: 3.7+")
+	exit(255)
+
 import os
 import platform
 import shutil
 import subprocess
-import sys
 import urllib.request as request
 from os.path import abspath, exists, isdir, isfile, join
 from typing import List, Optional, Union
@@ -11,33 +17,18 @@ from zipfile import ZipFile, ZipInfo
 
 
 class AttributeZipFile(ZipFile):
-	if sys.version_info < (3, 6):
-		def extract(self, member: Union[ZipInfo, str], path: Optional[str] = None, pwd: Optional[str] = None) -> str:
-			if not isinstance(member, ZipInfo):
-				member = self.getinfo(member)
+	def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:
+		if not isinstance(member, ZipInfo):
+			member = self.getinfo(member)
 
-			if path is None:
-				path = os.getcwd()
-			targetpath = self._extract_member(member, path, pwd)
+		targetpath = super()._extract_member(member, targetpath, pwd) # type: ignore
 
-			attr = member.external_attr >> 16
-			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
+		attr = member.external_attr >> 16
+		if platform.system() == "Windows":
+			attr |= 0o0000200 | 0o0000020 # issues/17
+		if attr != 0:
 			os.chmod(abspath(targetpath), attr)
-			return targetpath
-
-	else:
-		def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:
-			if not isinstance(member, ZipInfo):
-				member = self.getinfo(member)
-
-			targetpath = super()._extract_member(member, targetpath, pwd) # type: ignore
-
-			attr = member.external_attr >> 16
-			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # https://github.com/zheka2304/innercore-mod-toolchain/issues/17
-			os.chmod(abspath(targetpath), attr)
-			return targetpath
+		return targetpath
 
 def download_and_extract_toolchain(directory: str) -> None:
 	os.makedirs(directory, exist_ok=True)
@@ -67,7 +58,7 @@ def download_and_extract_toolchain(directory: str) -> None:
 			print("Inner Core Mod Toolchain installation not completed due to above error.")
 			exit(2)
 	else:
-		print("'toolchain.zip' already exists in " + readable_name + ".")
+		print("'toolchain.zip' already exists in '" + readable_name + "'.")
 
 	print("Extracting into " + readable_name)
 	with AttributeZipFile(toolchain, "r") as archive:

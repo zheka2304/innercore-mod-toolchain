@@ -15,7 +15,7 @@ class BaseConfig:
 			key = rawname.pop(0)
 			if key in value:
 				value = value[key]
-			elif accept_prototype and self.prototype is not None:
+			elif accept_prototype and self.prototype:
 				return self.prototype.get_value(name, fallback)
 			else:
 				return fallback
@@ -23,7 +23,7 @@ class BaseConfig:
 
 	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
 		value = self.get_value(name)
-		filtered = []
+		filtered = list()
 		if isinstance(value, list):
 			for obj in value:
 				if isinstance(obj, dict) and property in obj and obj[property] in values:
@@ -36,7 +36,7 @@ class BaseConfig:
 		while len(rawname) > 1 and len(rawname[0]) > 0:
 			key = rawname.pop(0)
 			if not key in value:
-				value[key] = {}
+				value[key] = dict()
 			value = value[key]
 		if len(rawname[0]) > 0:
 			value[rawname.pop()] = what
@@ -68,8 +68,8 @@ class BaseConfig:
 	def get_or_create_config(self, name: str) -> 'BaseConfig':
 		config = self.get_config(name)
 		if config is None:
-			self.set_value(name, {})
+			self.set_value(name, dict())
 		config = self.get_config(name)
 		if config is None:
-			raise RuntimeError(f"Property '{name}' should be created, but it still does not exists.")
+			raise RuntimeError(f"Property {name!r} should be created, but it still does not exists.")
 		return config

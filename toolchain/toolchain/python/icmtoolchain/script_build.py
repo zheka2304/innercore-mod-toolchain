@@ -12,7 +12,7 @@ VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", 
 
 
 def get_allowed_languages() -> List[str]:
-	allowed_languages = []
+	allowed_languages = list()
 
 	if len(GLOBALS.MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
 		if request_typescript() == "typescript":
@@ -31,7 +31,7 @@ def build_all_scripts(watch: bool = False) -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 
 	overall_result = 0
-	for source in GLOBALS.MAKE_CONFIG.get_value("sources", []):
+	for source in GLOBALS.MAKE_CONFIG.get_value("sources", list()):
 		if "source" not in source or "language" not in source or "type" not in source:
 			error("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
 			overall_result = 1
@@ -79,20 +79,20 @@ def do_sorting(a: Dict[Any, Any], b: Dict[Any, Any]) -> int:
 	return 0 if la == lb else -1 if la else 1
 
 def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescript"]) -> Tuple[List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[Includes, str, str]], List[Tuple[str, str]]]:
-	composite = []
-	computed_composite = []
-	includes = []
-	computed_includes = []
+	composite = list()
+	computed_composite = list()
+	includes = list()
+	computed_includes = list()
 
-	for source in sorted(GLOBALS.MAKE_CONFIG.get_value("sources", []), key=cmp_to_key(do_sorting)):
+	for source in sorted(GLOBALS.MAKE_CONFIG.get_value("sources", list()), key=cmp_to_key(do_sorting)):
 		make = source["includes"] if "includes" in source else ".includes"
 		preffered_language = source["language"] if "language" in source else None
-		language = preffered_language if preffered_language is not None \
+		language = preffered_language if preffered_language \
 			and source["language"] in allowed_languages else allowed_languages[0]
 
 		for source_path in GLOBALS.MAKE_CONFIG.get_paths(source["source"]):
 			if not exists(source_path):
-				warn("* Skipped non-existing source '", source["source"], "'!", sep="")
+				warn(f"* Skipped non-existing source {source['source']!r}!", sep="")
 				continue
 
 			# Supports assembling directories, JavaScript and TypeScript
@@ -135,13 +135,12 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 				))
 
 			elif isfile(source_path):
-				from .includes import TEMPORARY_DIRECTORY
 				if not appending_library:
 					if GLOBALS.MAKE_CONFIG.get_value("project.composite", True) and language == "typescript":
 						GLOBALS.WORKSPACE_COMPOSITE.coerce(source_path)
 					if GLOBALS.BUILD_STORAGE.is_path_changed(source_path) or (
 						language == "typescript" and not isfile(
-							join(TEMPORARY_DIRECTORY, relpath(source_path, GLOBALS.MAKE_CONFIG.directory))
+							join(GLOBALS.MAKE_CONFIG.get_build_path("sources"), relpath(source_path, GLOBALS.MAKE_CONFIG.directory))
 						)
 					):
 						composite.append((source_path, destination_path, language))
@@ -153,41 +152,41 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 	return composite, computed_composite, includes, computed_includes
 
 def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tuple[str, str]]) -> None:
-	from .includes import TEMPORARY_DIRECTORY
+	temporary_directory = GLOBALS.MAKE_CONFIG.get_build_path("sources")
 
 	for included in includes:
-		temp_path = join(TEMPORARY_DIRECTORY, basename(included[1]))
+		temporary_script = join(temporary_directory, basename(included[1]))
 
-		if not isfile(temp_path) or GLOBALS.BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
-			if isfile(temp_path):
-				copy_file(temp_path, included[1])
+		if not isfile(temporary_script) or GLOBALS.BUILD_STORAGE.is_path_changed(temporary_script) or not isfile(included[1]):
+			if isfile(temporary_script):
+				copy_file(temporary_script, included[1])
 			else:
-				warn(f"* Not found build target '{basename(temp_path)}', maybe it building emitted error or corresponding source is empty.")
+				warn(f"* Not found build target {basename(temporary_script)!r}, maybe it building emitted error or corresponding source is empty.")
 				continue
 
-		if not GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
-			info(f"* Build target '{basename(temp_path)}' is not changed.")
+		if not GLOBALS.BUILD_STORAGE.is_path_changed(temporary_script):
+			info(f"* Build target {basename(temporary_script)!r} is not changed.")
 
 	for included in composite:
 		# Single JavaScript sources when TypeScript is not forced just copies to output without
 		# temporary caching; might be breaking change in future.
 		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True) and included[2] != "javascript":
-			temp_path = join(TEMPORARY_DIRECTORY, relpath(included[0], GLOBALS.MAKE_CONFIG.directory))
+			temporary_script = join(temporary_directory, relpath(included[0], GLOBALS.MAKE_CONFIG.directory))
 		else:
-			temp_path = included[0]
+			temporary_script = included[0]
 
-		if temp_path == included[0] and isfile(temp_path) and GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
-			print(f"Flushing '{basename(included[1])}' from '{basename(included[0])}'")
+		if temporary_script == included[0] and isfile(temporary_script) and GLOBALS.BUILD_STORAGE.is_path_changed(temporary_script):
+			print(f"Flushing {basename(included[1])!r} from {basename(included[0])!r}")
 
-		if not isfile(temp_path) or GLOBALS.BUILD_STORAGE.is_path_changed(temp_path) or not isfile(included[1]):
-			if isfile(temp_path):
-				copy_file(temp_path, included[1])
+		if not isfile(temporary_script) or GLOBALS.BUILD_STORAGE.is_path_changed(temporary_script) or not isfile(included[1]):
+			if isfile(temporary_script):
+				copy_file(temporary_script, included[1])
 			else:
-				warn(f"* Not found build target '{basename(temp_path)}', but it directly included!")
+				warn(f"* Not found build target {basename(temporary_script)!r}, but it directly included!")
 				continue
 
-		if not GLOBALS.BUILD_STORAGE.is_path_changed(temp_path):
-			info(f"* Build target '{basename(temp_path)}' is not changed.")
+		if not GLOBALS.BUILD_STORAGE.is_path_changed(temporary_script):
+			info(f"* Build target {basename(temporary_script)!r} is not changed.")
 
 	GLOBALS.BUILD_STORAGE.save()
 
@@ -209,7 +208,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> in
 		and (GLOBALS.MAKE_CONFIG.get_value("project.composite", True) \
 			or GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False)):
 
-		which = []
+		which = list()
 		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True):
 			which += list(filter(lambda included: included[2] == "typescript", composite))
 
@@ -231,15 +230,17 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> in
 				basename(included[1]) for included in which
 			]))
 
-			import datetime
-			start_time = datetime.datetime.now()
+			from time import time
+			startup_millis = time()
 			overall_result += GLOBALS.WORKSPACE_COMPOSITE.build(*(
-				["--force"] if PROPERTIES.get_value("release") else []
+				["--force"] if PROPERTIES.get_value("release") else list()
 			))
-			end_time = datetime.datetime.now()
-			diff = end_time - start_time
 
-			print(f"Completed composite rebuild in {round(diff.total_seconds(), 2)}s with result {overall_result} - {'OK' if overall_result == 0 else 'ERROR'}")
+			startup_millis = time() - startup_millis
+			if overall_result == 0:
+				print(f"Completed composite script rebuild in {startup_millis:.2f}s!")
+			else:
+				error(f"Failed composite script rebuild in {startup_millis:.2f}s with result {overall_result}.")
 
 		if overall_result != 0:
 			return overall_result
@@ -283,7 +284,7 @@ def build_all_resources() -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 
-	for resource in GLOBALS.MAKE_CONFIG.get_value("resources", fallback=[]):
+	for resource in GLOBALS.MAKE_CONFIG.get_value("resources", fallback=list()):
 		if "path" not in resource or "type" not in resource:
 			error("Skipped invalid source json ", resource, ", it might contain `path` and `type` properties!", sep="")
 			overall_result = 1

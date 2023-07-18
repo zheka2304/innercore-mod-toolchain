@@ -2,7 +2,7 @@ import os
 import shutil
 import sys
 from os.path import isdir, isfile, join
-from typing import Dict, Final, List, Optional
+from typing import Final, List, Optional
 from urllib import request
 from urllib.error import URLError
 
@@ -22,16 +22,16 @@ class Component():
 		self.keyword = keyword
 		self.name = name
 		self.location = location
-		if branch is not None:
+		if branch:
 			self.packurl = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/" + branch
 			self.commiturl = "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/" + branch + "/.commit"
 			self.branch = branch
-		if packurl is not None:
+		if packurl:
 			self.packurl = packurl
-		if commiturl is not None:
+		if commiturl:
 			self.commiturl = commiturl
 
-COMPONENTS: Final[Dict[str, Component]] = {
+COMPONENTS = {
 	"adb": Component("adb", "Android Debug Bridge", "toolchain/adb", branch="adb"),
 	"declarations": Component("declarations", "TypeScript Declarations", "toolchain/declarations", branch="includes"),
 	"java": Component("java", "Java R8/D8 Compiler", "toolchain/bin/r8", branch="r8"),
@@ -40,20 +40,15 @@ COMPONENTS: Final[Dict[str, Component]] = {
 	"stdincludes": Component("stdincludes", "C++ Headers", "toolchain/stdincludes", branch="stdincludes")
 }
 
-def get_component_switches(installed_keywords: List[str]) -> List[Switch]:
-	return [
-		Switch("component:" + key, COMPONENTS[key].name, True if key in installed_keywords else False) for key in COMPONENTS
-	]
-
 def resolve_selected_components(interactables: List[Shell.Interactable]) -> List[str]:
-	keywords = []
+	keywords = list()
 	for interactable in interactables:
-		if isinstance(interactable, Switch) and interactable.key is not None and interactable.key.startswith("component:") and interactable.checked:
+		if isinstance(interactable, Switch) and interactable.key and interactable.key.startswith("component:") and interactable.checked:
 			keywords.append(interactable.key.partition(":")[2])
 	return keywords
 
 def which_installed() -> List[str]:
-	installed = []
+	installed = list()
 	for componentname in COMPONENTS:
 		component = COMPONENTS[componentname]
 		path = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
@@ -70,8 +65,8 @@ def to_megabytes(bytes_count: int) -> str:
 	return f"{(bytes_count / 1048576):.1f}MiB"
 
 def download_component(component: Component, shell: Optional[Shell], progress: Optional[Progress]) -> int:
-	if not hasattr(component, "packurl") or component.packurl is None:
-		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' property 'packurl' must be defined!")
+	if not hasattr(component, "packurl") or not component.packurl:
+		Progress.notify(shell, progress, 0, f"Component {component.keyword!r} property 'packurl' must be defined!")
 		return 1
 	path = GLOBALS.TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/{component.keyword}.zip")
 	ensure_file_directory(path)
@@ -86,7 +81,7 @@ def download_component(component: Component, shell: Optional[Shell], progress: O
 				if not buffer:
 					break
 				downloaded += len(buffer)
-				if shell is not None and progress is not None:
+				if shell and progress:
 					progress.seek(0.5, f"Downloading ({to_megabytes(downloaded)})")
 					shell.render()
 				archive.write(buffer)
@@ -97,17 +92,17 @@ def extract_component(component: Component, shell: Optional[Shell], progress: Op
 	temporary = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp")
 	archive_path = join(temporary, component.keyword + ".zip")
 	if not isfile(archive_path):
-		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not found!")
+		Progress.notify(shell, progress, 0, f"Component {component.keyword!r} is not found!")
 		return 1
-	if shell is not None and progress is not None:
+	if shell and progress:
 		progress.seek(0.33, f"Extracting to {component.location}")
 	extract_to = temporary if hasattr(component, "branch") else join(temporary, component.keyword)
 	with AttributeZipFile(archive_path, "r") as archive:
 		archive.extractall(extract_to)
-	if hasattr(component, "branch") and component.branch is not None:
+	if hasattr(component, "branch") and component.branch:
 		extract_to = join(extract_to, "innercore-mod-toolchain-" + component.branch)
 	if not isdir(extract_to):
-		Progress.notify(shell, progress, 0, f"Component '{component.keyword}' does not contain any content!")
+		Progress.notify(shell, progress, 0, f"Component {component.keyword!r} does not contain any content!")
 		return 2
 	output = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
 	if isdir(output):
@@ -128,7 +123,7 @@ def install_components(*keywords: str) -> None:
 	with shell:
 		for keyword in keywords:
 			if not keyword in COMPONENTS:
-				print(f"Component '{keyword}' not availabled!")
+				print(f"Component {keyword!r} not availabled!")
 				continue
 			if keyword == "cpp":
 				continue
@@ -150,21 +145,21 @@ def install_components(*keywords: str) -> None:
 				progress.seek(0, f"{component.keyword}: {err}")
 			shell.render()
 		if "cpp" in keywords:
-			abis = GLOBALS.TOOLCHAIN_CONFIG.get_value("abis", [])
+			abis = GLOBALS.TOOLCHAIN_CONFIG.get_value("abis", list())
 			if not isinstance(abis, list):
-				abis = []
+				abis = list()
 			abi = GLOBALS.TOOLCHAIN_CONFIG.get_value("debugAbi")
-			if abi is None and len(abis) == 0:
+			if not abi and len(abis) == 0:
 				abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
-			if abi is not None and not abi in abis:
+			if abi and not abi in abis:
 				abis.append(abi)
-			from .native_setup import abi_to_arch, check_installed, install
+			from .native_setup import abi_to_arch, check_installation, install_gcc
 			abis = list(filter(
-				lambda abi: not check_installed(abi_to_arch(abi)),
+				lambda abi: not check_installation(abi_to_arch(abi)),
 				abis
 			))
 			if len(abis) > 0:
-				install([
+				install_gcc([
 					abi_to_arch(abi) for abi in abis
 				], reinstall=True)
 		shell.interactables.append(Interrupt())
@@ -183,7 +178,7 @@ def fetch_component(component: Component) -> bool:
 	if not hasattr(component, "commiturl"):
 		return True
 	try:
-		if hasattr(component, "commiturl") and component.commiturl is not None:
+		if hasattr(component, "commiturl") and component.commiturl:
 			with open(join(output, ".commit")) as commit_file:
 				response = request.urlopen(component.commiturl)
 				return perform_diff(response.read().decode("utf-8"), commit_file.read())
@@ -195,10 +190,10 @@ def perform_diff(a: object, b: object) -> bool:
 	return str(a).strip() == str(b).strip()
 
 def fetch_components() -> List[str]:
-	upgradable = []
+	upgradable = list()
 	for keyword in which_installed():
 		if not keyword in COMPONENTS:
-			warn(f"* Not found component '{keyword}'!")
+			warn(f"* Not found component {keyword!r}!")
 			continue
 		if not fetch_component(COMPONENTS[keyword]):
 			upgradable.append(keyword)
@@ -206,7 +201,7 @@ def fetch_components() -> List[str]:
 
 def get_username() -> Optional[str]:
 	username = GLOBALS.TOOLCHAIN_CONFIG.get_value("template.author")
-	if username is not None:
+	if username:
 		return username
 	try:
 		from getpass import getuser
@@ -219,7 +214,7 @@ def startup() -> None:
 	shell = SelectiveShell()
 	shell.interactables += [
 		Separator(),
-		Notice("Today we're complete your distribution installation."),
+		Notice("Today we've complete your distribution installation."),
 		Notice("Just let realize some things before downloading, and"),
 		Notice("modding will be started in a few moments."),
 		Separator(),
@@ -242,11 +237,13 @@ def startup() -> None:
 
 	try:
 		import shutil
-		if shutil.which("adb") is None and not "adb" in preffered:
+		if shutil.which("adb") and not "adb" in preffered:
 			preffered.append("adb")
 	except BaseException:
 		pass
-	components = get_component_switches(preffered)
+	components = [
+		Switch("component:" + key, COMPONENTS[key].name, True if key in preffered else False) for key in COMPONENTS
+	]
 	interactables: List[Shell.Interactable] = [
 		Notice("Which components will be installed?")
 	]
@@ -297,23 +294,23 @@ def startup() -> None:
 	print()
 
 	username = ensure_not_whitespace(shell.get_interactable("user", Input).read())
-	if username is not None:
+	if username:
 		print("Who are you?", stringify(username, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("template.author", username)
 
 	typescript = shell.get_interactable("typescript", Switch).checked
 	if typescript:
-		print("You'll want to build everything with TypeScript")
+		print("You will want to build everything with TypeScript")
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
 
 	composite = shell.get_interactable("composite", Switch).checked
 	if not composite:
-		print("You've denied building separate files with each other")
+		print("You were denied building separate files with each other")
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.composite", composite)
 
 	references = shell.get_interactable("references", Switch).checked
 	if references:
-		print("You're preffer using few script directories in project")
+		print("You are preffer using few script directories in project")
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
 
 	GLOBALS.TOOLCHAIN_CONFIG.save()
@@ -326,7 +323,9 @@ def startup() -> None:
 def upgrade() -> int:
 	print("Which components will be upgraded?", end="")
 	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
-	shell.interactables += get_component_switches(which_installed())
+	shell.interactables += [
+		Switch("component:" + key, COMPONENTS[key].name, True if key in which_installed() else False) for key in COMPONENTS
+	]
 	shell.interactables.append(Interrupt())
 	try:
 		shell.loop()

@@ -1,7 +1,7 @@
 import json
 import os
 from os.path import isdir, isfile, join, relpath
-from typing import Any, Dict, Final, Iterable, List, Optional
+from typing import Any, Collection, Dict, Final, List, Optional
 
 from . import GLOBALS
 from .shell import warn
@@ -15,30 +15,33 @@ class BuildTargetType:
 		self.directory = directory
 		self.property = property
 
-BUILD_TARGETS: Final[Dict[str, BuildTargetType]] = {
-	"resource_directory": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.resource_directory", "resources"), "resources"),
-	"gui": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.gui", "gui"), "resources"),
-	"minecraft_resource_pack": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), "resources"),
-	"minecraft_behavior_pack": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), "resources"),
-
-	"script_source": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.source", "source"), "compile"),
-	"script_library": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.library", "library"), "compile"),
-	"native": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.native", "native"), "nativeDirs"),
-	"java": BuildTargetType(GLOBALS.PREFERRED_CONFIG.get_value("target.java", "java"), "javaDirs")
-}
-
-
 class ModStructure:
-	directory: Final[str]; targets: Final[Dict[str, List[Dict[Any, Any]]]]
+	directory: Final[str]
+	targets: Dict[str, List[Dict[Any, Any]]]
+	build_targets: Dict[str, BuildTargetType]
 	build_config: Optional[Dict[Any, Any]] = None
 
 	def __init__(self, output_directory: str) -> None:
 		self.directory = GLOBALS.MAKE_CONFIG.get_absolute_path(output_directory)
-		self.targets = {}
+		self.targets = dict()
+		self.setup_build_targets()
+
+	def setup_build_targets(self):
+		self.build_targets = {
+			"resource_directory": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.resource_directory", "resources"), "resources"),
+			"gui": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.gui", "gui"), "resources"),
+			"minecraft_resource_pack": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.minecraft_resource_pack", "minecraft_packs/resource"), "resources"),
+			"minecraft_behavior_pack": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.minecraft_behavior_pack", "minecraft_packs/behavior"), "resources"),
+
+			"script_source": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.source", "source"), "compile"),
+			"script_library": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.library", "library"), "compile"),
+			"native": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.native", "native"), "nativeDirs"),
+			"java": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.java", "java"), "javaDirs")
+		}
 
 	def cleanup_build_target(self, keyword: str) -> None:
-		target_type = BUILD_TARGETS[keyword]
-		self.targets[keyword] = []
+		target_type = self.build_targets[keyword]
+		self.targets[keyword] = list()
 		if target_type.directory == "":
 			return
 		directory = join(self.directory, target_type.directory)
@@ -50,7 +53,7 @@ class ModStructure:
 		ensure_directory(directory)
 
 	def new_build_target(self, keyword: str, name: str, **properties: Any) -> str:
-		target_type = BUILD_TARGETS[keyword]
+		target_type = self.build_targets[keyword]
 		formatted_name = name.format("")
 		if keyword in self.targets:
 			targets_by_name = list(map(lambda x: x["name"], self.targets[keyword]))
@@ -59,7 +62,7 @@ class ModStructure:
 				formatted_name = name.format(index)
 				index += 1
 		else:
-			self.targets[keyword] = []
+			self.targets[keyword] = list()
 
 		target_path = join(self.directory, str(target_type.directory), formatted_name)
 		self.targets[keyword].append({
@@ -69,8 +72,8 @@ class ModStructure:
 		})
 		return target_path
 
-	def get_all_targets(self, keyword: str, property: Any = None, values: Iterable[Any] = ()) -> List[str]:
-		targets = []
+	def get_all_targets(self, keyword: str, property: Any = None, values: Collection[Any] = ()) -> List[str]:
+		targets = list()
 		if keyword in self.targets:
 			for target in self.targets[keyword]:
 				if property is None or property in target and target[property] in values:
@@ -78,20 +81,20 @@ class ModStructure:
 		return targets
 
 	def get_target_directories(self, *names: str, filter_unchanged: bool = False) -> List[str]:
-		return list(map(lambda name: BUILD_TARGETS[name].directory,
+		return list(map(lambda name: self.build_targets[name].directory,
 			filter(lambda name: name in self.targets \
 				and len(self.targets[name]) > 0, names) if filter_unchanged else names
 		))
 
 	def create_build_config_list(self, name: str, overrides: Optional[Dict[Any, Any]] = None) -> List[Any]:
-		result = []
-		for target_name, target_type in BUILD_TARGETS.items():
+		result = list()
+		for target_name, target_type in self.build_targets.items():
 			if target_type.property == name and target_name in self.targets:
 				for target in self.targets[target_name]:
 					if "exclude" not in target or not target["exclude"]:
 						result.append({
 							"path": target_type.directory + "/" + target["name"],
-							**(target["declare"] if "declare" in target else {})
+							**(target["declare"] if "declare" in target else dict())
 						})
 					if overrides is not None and "declare_default" in target:
 						for key, value in target["declare_default"].items():
@@ -107,10 +110,10 @@ class ModStructure:
 					return
 				except json.JSONDecodeError as err:
 					warn("* Something went wrong while reading cached build config:", err.msg)
-		self.build_config = {}
+		self.build_config = dict()
 
 	def write_build_config(self) -> None:
-		if self.build_config is None:
+		if not self.build_config:
 			return
 		build_config_path = join(self.directory, "build.config")
 		if isdir(build_config_path):
@@ -122,10 +125,10 @@ class ModStructure:
 
 	def setup_default_config(self) -> None:
 		self.read_or_create_build_config()
-		if self.build_config is None:
+		if not self.build_config:
 			raise SystemError()
 		if "defaultConfig" not in self.build_config or not isinstance(self.build_config["defaultConfig"], dict):
-			self.build_config["defaultConfig"] = {}
+			self.build_config["defaultConfig"] = dict()
 		default_config = self.build_config["defaultConfig"]
 		default_config["readme"] = "this build config is generated automatically by mod development toolchain"
 		default_config["api"] = GLOBALS.MAKE_CONFIG.get_value("api", fallback="CoreEngine", accept_prototype=False)
@@ -133,16 +136,16 @@ class ModStructure:
 		if optimization_level is not None:
 			default_config["optimizationLevel"] = min(max(int(optimization_level), -1), 9)
 		setup_script = GLOBALS.MAKE_CONFIG.get_value("setupScript", accept_prototype=False)
-		if setup_script is not None:
+		if setup_script:
 			default_config["setupScript"] = setup_script
 		default_config["buildType"] = "develop"
 		if "buildDirs" not in self.build_config:
-			self.build_config["buildDirs"] = []
+			self.build_config["buildDirs"] = list()
 		self.write_build_config()
 
 	def update_build_config_list(self, name) -> None:
 		self.setup_default_config()
-		if self.build_config is None:
+		if not self.build_config:
 			raise SystemError()
 		self.build_config[name] = self.create_build_config_list(name, self.build_config["defaultConfig"])
 		self.write_build_config()

@@ -68,8 +68,8 @@ class Task:
 			except StopIteration:
 				break
 
-TASKS: Final[Dict[str, Task]] = dict()
-LOCKS: Final[Dict[str, TextIOWrapper]] = dict()
+TASKS: Dict[str, Task] = dict()
+LOCKS: Dict[str, TextIOWrapper] = dict()
 
 
 def assure_task(name: str) -> Task:
@@ -155,17 +155,17 @@ def task(name: str, description: Optional[str] = None, locks: Optional[List[str]
 )
 def task_compile_native() -> int:
 	if PROPERTIES.get_value("release"):
-		abis = GLOBALS.MAKE_CONFIG.get_value("abis", [])
-		if abis is None or not isinstance(abis, list) or len(abis) == 0:
+		abis = GLOBALS.MAKE_CONFIG.get_value("abis", list())
+		if not abis or not isinstance(abis, list) or len(abis) == 0:
 			abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
 	else:
 		abi = GLOBALS.MAKE_CONFIG.get_value("debugAbi", None)
 		if not abi:
 			abi = "armeabi-v7a"
-			warn(f"* No `debugAbi` value in 'toolchain.json' config, using '{abi}' as default.")
+			warn(f"* No `debugAbi` value in 'toolchain.json' config, using {abi!r} as default.")
 		abis = [abi]
-	from .native_build import compile_all_using_make_config
-	return compile_all_using_make_config(abis)
+	from .native_build import compile_native
+	return compile_native(abis)
 
 @task(
 	"compileJava",
@@ -224,7 +224,7 @@ def task_resources() -> int:
 def task_build_info() -> int:
 	from .utils import shortcodes
 	with open(GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")), "w") as info_file:
-		info = dict(GLOBALS.MAKE_CONFIG.get_value("info", fallback={}))
+		info = dict(GLOBALS.MAKE_CONFIG.get_value("info", fallback=dict()))
 
 		if "name" in info:
 			info["name"] = shortcodes(info["name"])
@@ -239,12 +239,12 @@ def task_build_info() -> int:
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
 	icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
-	if icon_path is not None:
+	if icon_path:
 		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(icon_path)
 		if isfile(icon_path):
 			copy_file(icon_path, GLOBALS.MAKE_CONFIG.get_path("output/mod_icon.png"))
 		else:
-			warn(f"* Icon '{icon_path}' described in 'make.json' not found!")
+			warn(f"* Icon {icon_path!r} described in 'make.json' not found!")
 	return 0
 
 @task(
@@ -253,7 +253,7 @@ def task_build_info() -> int:
 	description="Копирует дополнительные файлы и папки, помимо основных ресурсов и кода."
 )
 def task_build_additional() -> int:
-	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=[]):
+	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=list()):
 		if "source" in additional_dir and "targetDir" in additional_dir:
 			for additional_path in GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"]):
 				if not exists(additional_path):
@@ -288,7 +288,7 @@ def task_clear_output(force: bool = False) -> int:
 	description="Удаляет предопределенные конфигом файлы и папки, которые должны быть исключены перед публикацией."
 )
 def task_exclude_directories() -> int:
-	for path in GLOBALS.MAKE_CONFIG.get_value("excludeFromRelease", []):
+	for path in GLOBALS.MAKE_CONFIG.get_value("excludeFromRelease", list()):
 		for exclude in GLOBALS.MAKE_CONFIG.get_paths(join(relpath(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.MAKE_CONFIG.directory), path)):
 			if isdir(exclude):
 				remove_tree(exclude)
@@ -303,7 +303,7 @@ def task_exclude_directories() -> int:
 )
 def task_build_package() -> int:
 	output_dir = GLOBALS.MOD_STRUCTURE.directory
-	name = basename(GLOBALS.MAKE_CONFIG.current_project) if GLOBALS.MAKE_CONFIG.current_project is not None else "unknown"
+	name = basename(GLOBALS.MAKE_CONFIG.current_project) if GLOBALS.MAKE_CONFIG.current_project else "unknown"
 	output_dir_root_tmp = GLOBALS.MAKE_CONFIG.get_build_path("package")
 	output_dir_tmp = join(output_dir_root_tmp, name)
 	ensure_directory(output_dir)
@@ -419,7 +419,7 @@ def task_remove_project() -> int:
 	print("Selected project will be deleted forever, please think twice before removing anything!")
 
 	who = GLOBALS.PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
-	if who is None:
+	if not who:
 		return 0
 	if GLOBALS.PROJECT_MANAGER.how_much() > 1 and not confirm("Do you really want to delete it?", True):
 		return 0
@@ -431,7 +431,7 @@ def task_remove_project() -> int:
 		from .package import cleanup_relative_directory
 		cleanup_relative_directory("toolchain/build/" + MakeConfig.unique_folder_name(location))
 	except ValueError:
-		abort(f"Folder '{who}' not found!")
+		abort(f"Folder {who!r} not found!")
 
 	print("Project permanently deleted.")
 	return 0
@@ -448,24 +448,24 @@ def task_select_project(path: str = "") -> int:
 		where = relpath(path, GLOBALS.TOOLCHAIN_CONFIG.directory)
 		if isdir(path):
 			if where == ".":
-				abort("Requested project path must be reference to mod, not toolchain itself.")
+				abort("Requested path must be reference to project, not toolchain itself.")
 			if not isfile(join(path, "make.json")):
-				abort(f"Not found 'make.json' in '{where}', it not belongs to project yet.")
+				abort(f"Not found 'make.json' in {where!r}, it not belongs to project yet.")
 			GLOBALS.PROJECT_MANAGER.select_project_folder(folder=where)
 			return 0
 		else:
-			abort(f"Requested project path '{where}' does not exists.")
+			abort(f"Requested project path {where!r} does not exists.")
 
 	if GLOBALS.PROJECT_MANAGER.how_much() == 0:
 		abort("Not found any project to choice.")
 
 	who = GLOBALS.PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
-	if who is None:
+	if not who:
 		return 1
 	try:
 		GLOBALS.PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
-		abort(f"Folder '{who}' not found!")
+		abort(f"Folder {who!r} not found!")
 	return 0
 
 ### MISCELLANEOUS

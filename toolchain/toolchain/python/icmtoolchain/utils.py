@@ -3,16 +3,15 @@ import platform
 import re
 import shutil
 import subprocess
-import sys
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import (IO, Any, Callable, Collection, Final, Iterable, List,
-                    Literal, Optional, Union, overload)
+from typing import (Any, Callable, Iterable, List, Literal, Optional, Union,
+                    overload)
 from zipfile import ZipFile, ZipInfo
 
 from . import GLOBALS
 from .shell import confirm, info
 
-DEVNULL: Final[IO[Any]] = open(os.devnull, "w")
+DEVNULL = open(os.devnull, "w")
 
 
 def ensure_directory(directory: str) -> None:
@@ -70,9 +69,9 @@ def copy_directory(source: str, destination: str, clear_destination: bool = Fals
 	if not exists(destination):
 		os.makedirs(destination, exist_ok=True)
 	for filename in os.listdir(source):
-		relative_file = join(relative_path, filename) if relative_path is not None else filename
+		relative_file = join(relative_path, filename) if relative_path else filename
 		input = join(source, filename)
-		if ignore_list is not None:
+		if ignore_list:
 			if filename in ignore_list or relative_file in ignore_list:
 				continue
 			if input in ignore_list:
@@ -107,7 +106,7 @@ def merge_directory(source: str, destination: str, accept_squash: bool = True, i
 			shutil.move(source, destination)
 		return
 	for filename in os.listdir(source):
-		if ignore_list is not None and filename in ignore_list:
+		if ignore_list and filename in ignore_list:
 			continue
 		above = join(source, filename)
 		behind = join(destination, filename)
@@ -117,9 +116,9 @@ def merge_directory(source: str, destination: str, accept_squash: bool = True, i
 			ensure_file_directory(behind)
 			shutil.move(above, behind)
 		elif isdir(above) or accept_squash:
-			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else [], only_parent_ignore, accept_replace)
+			merge_directory(above, behind, accept_squash, ignore_list if not only_parent_ignore else list(), only_parent_ignore, accept_replace)
 
-def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str], Any], extensions: Collection[str] = ()) -> None:
+def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str], Any], extensions: Iterable[str] = ()) -> None:
 	"""
 	Recursively walks over directory contents and filters outputs
 	if any extension provided in collection.
@@ -128,13 +127,14 @@ def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str],
 		if isdir(directory):
 			for dirpath, dirnames, filenames in os.walk(directory):
 				for filename in filenames:
-					if len(extensions) == 0:
+					has_extensions = False
+					for extension in extensions:
+						has_extensions = True
+						if len(filename) >= len(extension) and filename[-len(extension):] == extension:
+							then(join(dirpath, filename))
+							break
+					if not has_extensions:
 						then(join(dirpath, filename))
-					else:
-						for extension in extensions:
-							if len(filename) >= len(extension) and filename[-len(extension):] == extension:
-								then(join(dirpath, filename))
-								break
 
 	if isinstance(directories, str):
 		walk_files(directories)
@@ -142,14 +142,30 @@ def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str],
 		for directory in directories:
 			walk_files(directory)
 
-def get_all_files(directories: Union[Iterable[str], str], extensions: Collection[str] = ()) -> List[str]:
+def get_all_files(directories: Union[Iterable[str], str], extensions: Iterable[str] = ()) -> List[str]:
 	"""
 	Recursively walks over directories contents and filters results
 	if any extension provided in collection.
 	"""
-	files = []
+	files = list()
 	walk_all_files(directories, lambda filename: files.append(filename), extensions)
 	return files
+
+def list_subdirectories(path: str, max_depth: int = 5, directories: Optional[List[str]] = None) -> List[str]:
+	"""
+	Recursively walks over directories and collects subdirectories
+	into passed or new list until maximum depth exceed.
+	"""
+	if not directories:
+		directories = list()
+	if not isdir(path):
+		return directories
+	directories.append(path)
+	for filename in os.listdir(path):
+		subpath = join(path, filename)
+		if max_depth > 0 and isdir(subpath):
+			list_subdirectories(subpath, max_depth - 1, directories)
+	return directories
 
 @overload 
 def ensure_not_whitespace(what: Optional[str], fallback: None = None) -> Optional[str]: ...
@@ -161,7 +177,7 @@ def ensure_not_whitespace(what: Optional[str], fallback: Optional[str] = None) -
 	Ensures that passed stroke is not none and contains any
 	non-whitespace characters or returns fallback instead.
 	"""
-	return fallback if what is None or len(what) == 0 or what.isspace() else what
+	return fallback if not what or len(what) == 0 or what.isspace() else what
 
 def name_to_identifier(name: str, delimiter: str = "") -> str:
 	"""
@@ -216,7 +232,7 @@ def request_typescript() -> Literal["javascript", "typescript"]:
 	"""
 	Utility to check and install tsc with npm.
 	"""
-	if shutil.which("tsc") is not None:
+	if shutil.which("tsc"):
 		return "typescript"
 	if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)?", True):
 		return "javascript"
@@ -256,32 +272,15 @@ def request_executable_version(executable: Union[str, List[str]]) -> float:
 	return 0.0
 
 class AttributeZipFile(ZipFile):
-	if sys.version_info < (3, 6):
-		def extract(self, member: Union[ZipInfo, str], path: Optional[str] = None, pwd: Optional[str] = None) -> str:
-			if not isinstance(member, ZipInfo):
-				member = self.getinfo(member)
+	def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:
+		if not isinstance(member, ZipInfo):
+			member = self.getinfo(member)
 
-			if path is None:
-				path = os.getcwd()
-			targetpath = self._extract_member(member, path, pwd)
+		targetpath = super()._extract_member(member, targetpath, pwd) # type: ignore
 
-			attr = member.external_attr >> 16
-			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # issues/17
-			if attr != 0:
-				os.chmod(abspath(targetpath), attr)
-			return targetpath
-
-	else:
-		def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:
-			if not isinstance(member, ZipInfo):
-				member = self.getinfo(member)
-
-			targetpath = super()._extract_member(member, targetpath, pwd) # type: ignore
-
-			attr = member.external_attr >> 16
-			if platform.system() == "Windows":
-				attr |= 0o0000200 | 0o0000020 # issues/17
-			if attr != 0:
-				os.chmod(abspath(targetpath), attr)
-			return targetpath
+		attr = member.external_attr >> 16
+		if platform.system() == "Windows":
+			attr |= 0o0000200 | 0o0000020 # issues/17
+		if attr != 0:
+			os.chmod(abspath(targetpath), attr)
+		return targetpath

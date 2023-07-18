@@ -58,4 +58,4 @@ from .task import unlock_all_tasks
 
 unlock_all_tasks()
 startup_millis = time() - startup_millis
-debug(f"* Tasks successfully completed in {startup_millis:.2f}s.")
+debug(f"* Tasks successfully completed in {startup_millis:.2f}s!")

@@ -3,18 +3,18 @@ import sys
 from collections import namedtuple
 from types import (BuiltinMethodType, ClassMethodDescriptorType,
                    DynamicClassAttribute)
-from typing import Any, Callable, Final, List, Mapping, Optional, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Tuple
 
 from . import GLOBALS, PROPERTIES
 from .shell import printc, stringify
 from .task import Task
 
-_MAGICS: Final[Tuple[str, ...]] = (
-	'__annotations__', '__bases__', '__class__', '__closure__',
-	'__code__', '__defaults__', '__dict__', '__doc__', '__file__',
-	'__func__', '__globals__', '__kwdefaults__', '__module__',
-	'__mro__', '__name__', '__objclass__', '__qualname__',
-	'__self__', '__slots__', '__weakref__')
+MAGICS = (
+	"__annotations__", "__bases__", "__class__", "__closure__",
+	"__code__", "__defaults__", "__dict__", "__doc__", "__file__",
+	"__func__", "__globals__", "__kwdefaults__", "__module__",
+	"__mro__", "__name__", "__objclass__", "__qualname__",
+	"__self__", "__slots__", "__weakref__")
 
 try:
 	import pygments
@@ -27,7 +27,7 @@ except ImportError:
 	def highlight(*values: object, sep: Optional[str] = " ", file: Optional[Any] = None):
 		printc(*values, file=file)
 
-Attribute = namedtuple('Attribute', 'name kind defining_class object type')
+Attribute = namedtuple("Attribute", "name kind defining_class object type")
 
 
 def classify_attrs(obj: object) -> List[Attribute]:
@@ -50,14 +50,14 @@ def classify_attrs(obj: object) -> List[Attribute]:
 		for k, v in base.__dict__.items():
 			if isinstance(v, DynamicClassAttribute):
 				names.append(k)
-	result = []
+	result = list()
 	processed = set()
 
 	for name in names:
 		homecls, get_obj, dict_obj = None, None, None
 		if name not in processed:
 			try:
-				if name == '__dict__':
+				if name == "__dict__":
 					raise Exception("__dict__ is special, don't want the proxy")
 				get_obj = getattr(cls, name) if hasattr(cls, name) else getattr(obj, name)
 			except Exception:
@@ -78,7 +78,7 @@ def classify_attrs(obj: object) -> List[Attribute]:
 							continue
 						if srch_obj is get_obj:
 							last_cls = srch_cls
-					if last_cls is not None:
+					if last_cls:
 						homecls = last_cls
 		for base in all_bases:
 			if name in base.__dict__: # type: ignore
@@ -86,7 +86,7 @@ def classify_attrs(obj: object) -> List[Attribute]:
 				if homecls not in metamro:
 					homecls = base
 				break
-		if homecls is None:
+		if not homecls:
 			continue
 		result.append(to_attribute(name, get_obj, dict_obj, homecls))
 		processed.add(name)
@@ -109,17 +109,17 @@ def to_attribute(name: str, what: object, dict_what: Optional[object] = None, cl
 	else:
 		kind = "data"
 	annotation = None
-	if cls is not None and hasattr(cls, "__annotations__"):
+	if cls and hasattr(cls, "__annotations__"):
 		annotations = cls.__annotations__
 		try:
-			if annotations is not None and name in annotations:
+			if annotations and name in annotations:
 				annotation = annotations[name]
 		except TypeError:
 			pass
 	return Attribute(name, kind, cls, what, annotation)
 
 def is_builtin(attribute: Attribute) -> bool:
-	return _MAGICS.__contains__(attribute.name) \
+	return MAGICS.__contains__(attribute.name) \
 		or getattr(type(attribute.object), "__module__", None) == "typing" \
 			or ((attribute.kind != "data" or (attribute.name[:2] == "__" and attribute.name[-2:] == "__")) \
        and inspect.getmodule(attribute.defining_class) is sys.modules["builtins"])
@@ -154,8 +154,8 @@ def dump_attribute(what: Attribute, stack: int = 0, *, exclude_builtins: bool = 
 	prefix = "@staticmethod " if what.kind == "static method" \
 		else "@classmethod " if what.kind == "class method" else ""
 	if what.kind == "data" or what.kind == "property":
-		annotation = what.type if what.type is not None else type(what.object) if what.object is not None else None
-		annotation = (": {}" if len(what.name) > 0 else "{}").format(annotation.__qualname__) if annotation is not None else ""
+		annotation = what.type or type(what.object) if what.object is not None else None
+		annotation = (": {}" if len(what.name) > 0 else "{}").format(annotation.__qualname__) if annotation else ""
 		try:
 			try:
 				from pprint import pformat
@@ -187,7 +187,7 @@ def dump(what: object, stack: int = 0, name: str = "", *, exclude_builtins: bool
 		return
 	dump_attribute(attribute, stack, exclude_builtins=exclude_builtins, recursive=recursive, sort_by_kinds=sort_by_kinds, inter_subclasses=inter_subclasses, limit_depth=limit_depth)
 
-NamedCallable = namedtuple('NamedCallable', 'name callable')
+NamedCallable = namedtuple("NamedCallable", "name callable")
 
 def parse_argument_value(what: str, target: type, default: Any) -> Any:
 	try:
@@ -207,7 +207,7 @@ def parse_argument(argv: List[str], mappings: Mapping[str, inspect.Parameter]) -
 	whitespace = len(argument) - len(buffer)
 
 	if whitespace > 2:
-		raise ValueError(f"Argument '{argument}' should starts with '-' or '--'.")
+		raise ValueError(f"Argument {argument!r} should starts with '-' or '--'.")
 
 	if whitespace == 1:
 		if len(buffer) == 0:
@@ -222,14 +222,14 @@ def parse_argument(argv: List[str], mappings: Mapping[str, inspect.Parameter]) -
 				try:
 					parameter = next(parameters)
 				except StopIteration:
-					raise TypeError("Short argument '{name}' should be considered from parameters, not found any association.")
+					raise TypeError("Short argument {name!r} should be considered from parameters, not found any association.")
 				else:
 					if parameter.name[:1] != name:
 						continue
 					name = parameter.name
 					break
 		argv.pop(0)
-		# Is not last argument in row of shorts, so value always should be boolean.
+		# Not last argument in row of shorts, so value always should be boolean.
 		if len(buffer) > 0 and buffer[:1] != "=":
 			argv.insert(0, f"-{buffer}")
 			return name, True
@@ -293,7 +293,7 @@ def parse_callable_arguments(argv: List[str], callable: Callable, signature: ins
 					break
 				value = linked_positionals.get(parameter.name)
 				if not value and parameter.default is inspect.Parameter.empty:
-					raise TypeError('missing a required argument: {arg!r}'.format(arg=parameter.name)) from None
+					raise TypeError(f"missing a required argument: {parameter.name!r}") from None
 				positionals.append(value)
 		else:
 			parsed = parse_argument(argv, parameters)

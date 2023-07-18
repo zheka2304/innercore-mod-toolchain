@@ -28,7 +28,7 @@ def prepare_directory_order(directory: str) -> List[str]:
 	return directories
 
 def prepare_build_targets(directories: Collection[str]) -> List[BuildTarget]:
-	targets = []
+	targets = list()
 	for directory in directories:
 		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
 			manifest = json.load(manifest)
@@ -58,12 +58,12 @@ def rebuild_library_cache(relative_directory: str, libraries: Collection[str], t
 	return [compressed_libraries]
 
 def update_modified_targets(targets: Collection[BuildTarget], target_directory: str) -> Dict[str, Dict[str, List[str]]]:
-	modified_files = {}
+	modified_files = dict()
 	for target in targets:
 		classes_directory = join(target_directory, "classes", target.relative_directory, "classes")
 		classes = GLOBALS.BUILD_STORAGE.get_modified_files(classes_directory, (".class"))
-		libraries = []
-		for library_path in target.manifest.get_value("library-dirs", []):
+		libraries = list()
+		for library_path in target.manifest.get_value("library-dirs", list()):
 			library_directory = join(target.directory, library_path)
 			libraries.extend(GLOBALS.BUILD_STORAGE.get_modified_files(library_directory, (".jar")))
 		if len(libraries) > 0:
@@ -78,7 +78,7 @@ def update_modified_targets(targets: Collection[BuildTarget], target_directory: 
 def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 	for target in targets:
 		if target.manifest.get_value("keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("java.keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("gradle.keepLibraries", True):
-			library_directories = target.manifest.get_value("library-dirs", [])
+			library_directories = target.manifest.get_value("library-dirs", list())
 			for relative_directory in library_directories:
 				directory = join(target.directory, relative_directory)
 				if isdir(directory):
@@ -86,7 +86,7 @@ def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 			target.manifest.remove_value("keepLibraries")
 
 		if target.manifest.get_value("keepSources", False) or GLOBALS.MAKE_CONFIG.get_value("java.keepSources", False) or GLOBALS.MAKE_CONFIG.get_value("gradle.keepSources", False):
-			source_directories = target.manifest.get_value("source-dirs", [])
+			source_directories = target.manifest.get_value("source-dirs", list())
 			for relative_directory in source_directories:
 				directory = join(target.directory, relative_directory)
 				if isdir(directory):
@@ -99,15 +99,15 @@ def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 ### D8/L8/R8
 
 def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath: Collection[str], target_directory: str) -> int:
-	classpath_targets = []
+	classpath_targets = list()
 	for filename in classpath:
 		classpath_targets += ["--classpath", filename]
 	compressed_libraries = join(target_directory, "classes", target.relative_directory, "libs", target.relative_directory + "-all.jar")
-	libraries = []
+	libraries = list()
 	if exists(compressed_libraries):
 		libraries += ["--lib", compressed_libraries]
 	else:
-		walk_all_files((join(target.directory, library) for library in target.manifest.get_value("library-dirs", [])), lambda filename: libraries.extend(("--lib", filename)), (".jar"))
+		walk_all_files((join(target.directory, library) for library in target.manifest.get_value("library-dirs", list())), lambda filename: libraries.extend(("--lib", filename)), (".jar"))
 
 	target_d8_directory = join(target_directory, "d8", target.relative_directory)
 	compressed_target = target_d8_directory + ".zip"
@@ -177,8 +177,8 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 	supports_modules = False
 
 	for target in targets:
-		source_directories = target.manifest.get_value("source-dirs", [])
-		library_directories = target.manifest.get_value("library-dirs", [])
+		source_directories = target.manifest.get_value("source-dirs", list())
+		library_directories = target.manifest.get_value("library-dirs", list())
 		if len(source_directories) == len(library_directories) == 0:
 			debug(f"* Directory {target.relative_directory!r} is empty")
 			continue
@@ -205,7 +205,7 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 			supports_modules = request_executable_version(javac_executable)
 			supports_modules = supports_modules >= 1.9 or supports_modules >= 9
 
-		options = target.manifest.get_value("options", [])
+		options = target.manifest.get_value("options", list())
 		if supports_modules:
 			options += ["--release", "8"]
 		else:
@@ -217,7 +217,7 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 			options.append("-verbose")
 		if len(source_directories) > 0:
 			options += ["-sourcepath", os.pathsep.join(join(target.directory, source) for source in source_directories)]
-		precompiled = []
+		precompiled = list()
 		if supports_modules:
 			precompiled += classpath
 		else:
@@ -265,8 +265,8 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 	ecj_executable = None
 
 	for target in targets:
-		source_directories = target.manifest.get_value("source-dirs", [])
-		library_directories = target.manifest.get_value("library-dirs", [])
+		source_directories = target.manifest.get_value("source-dirs", list())
+		library_directories = target.manifest.get_value("library-dirs", list())
 		if len(source_directories) == len(library_directories) == 0:
 			debug(f"* Directory {target.relative_directory!r} is empty")
 			continue
@@ -292,7 +292,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 			ecj_executables = GLOBALS.TOOLCHAIN_CONFIG.get_paths("toolchain/bin/*", lambda filename: isfile(filename) and re.fullmatch(ecj_pattern, basename(filename)) is not None)
 			if len(ecj_executables) == 0:
 				abort("Executable 'ecj-*.jar' is required for compilation, nothing to do.")
-			ecj_executable = []
+			ecj_executable = list()
 			for executable in ecj_executables:
 				ecj_executable = [java_executable, "-jar", executable]
 				if request_executable_version(ecj_executable) != 0.0:
@@ -301,7 +301,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 				error("Executable 'ecj-*.jar' is not supported, nothing to do.")
 				return result
 
-		options = target.manifest.get_value("options", [])
+		options = target.manifest.get_value("options", list())
 		if target.manifest.get_value("verbose", False):
 			options.append("-verbose")
 		if len(source_directories) > 0:
@@ -337,7 +337,7 @@ def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: s
 	gradle_executable = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
 		gradle_executable += ".bat"
-	options = []
+	options = list()
 	for target in targets:
 		if target.manifest.get_value("verbose", False):
 			options += ["--console", "verbose"]
@@ -365,8 +365,8 @@ def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str
 	ensure_directory(target_classes_directory)
 	for target in targets:
 		# if not exists(join(target.directory, "build.gradle")):
-		source_directories = target.manifest.get_value("source-dirs", [])
-		library_directories = target.manifest.get_value("library-dirs", [])
+		source_directories = target.manifest.get_value("source-dirs", list())
+		library_directories = target.manifest.get_value("library-dirs", list())
 		write_build_gradle(target.directory, classpath, target_classes_directory, source_directories, library_directories)
 
 def write_build_gradle(directory: str, classpath: Collection[str], target_classes_directory: str, source_directories: Collection[str], library_directories: Collection[str]) -> None:
@@ -462,7 +462,7 @@ def compile_java(tool: str = "gradle") -> int:
 	ensure_directory(target_directory)
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("java")
 
-	directories = []
+	directories = list()
 	for directory in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
 		if "source" not in directory:
 			warn(f"* Skipped invalid java directory {directory!r} json!")
@@ -477,6 +477,8 @@ def compile_java(tool: str = "gradle") -> int:
 	if overall_result != 0 or len(directories) == 0:
 		if len(directories) > 0:
 			error("Java compilation will be cancelled, because some directories skipped.")
+		else:
+			GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 		return overall_result
 
 	if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
@@ -491,7 +493,7 @@ def compile_java(tool: str = "gradle") -> int:
 	classpath_directories = GLOBALS.MAKE_CONFIG.get_value("java.classpath")
 	# Just in case if someone meaning to use outdated property.
 	if not classpath_directories:
-		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", [])
+		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", list())
 	if classpath_directory:
 		classpath_directories.insert(0, classpath_directory)
 

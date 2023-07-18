@@ -18,8 +18,8 @@ class HashStorage:
 
 	def __init__(self, path: str, comparing_mode: str = "content") -> None:
 		self.path = path
-		self.last_hashes = {}
-		self.hashes = {}
+		self.last_hashes = dict()
+		self.hashes = dict()
 		self.comparing_mode = comparing_mode
 		if isfile(path) or islink(path):
 			self.read()
@@ -27,7 +27,7 @@ class HashStorage:
 	def read(self) -> None:
 		with open(self.path, "r") as file:
 			self.last_hashes = json.load(file)
-		self.hashes = {}
+		self.hashes = dict()
 
 	def get_path_hash(self, path: str, force: bool = False) -> str:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()

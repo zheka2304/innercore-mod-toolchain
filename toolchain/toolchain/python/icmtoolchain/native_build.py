@@ -2,7 +2,7 @@ import json
 import os
 import subprocess
 from os.path import abspath, basename, exists, isdir, isfile, join, relpath
-from typing import Any, Final, Iterable, Optional
+from typing import Any, Collection, Optional
 
 from . import GLOBALS
 from .make_config import BaseConfig
@@ -11,17 +11,17 @@ from .shell import abort, debug, error, info, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, get_all_files, remove_tree)
 
-CODE_OK: Final[int] = 0
-CODE_FAILED_NO_GCC: Final[int] = 1001
-CODE_FAILED_INVALID_MANIFEST: Final[int] = 1002
-CODE_DUPLICATE_NAME: Final[int] = 1003
-CODE_INVALID_JSON: Final[int] = 1004
-CODE_INVALID_PATH: Final[int] = 1005
+CODE_OK = 0
+CODE_FAILED_NO_GCC = 1001
+CODE_FAILED_INVALID_MANIFEST = 1002
+CODE_DUPLICATE_NAME = 1003
+CODE_INVALID_JSON = 1004
+CODE_INVALID_PATH = 1005
 
 
 def prepare_compiler_executable(abi: str) -> Optional[str]:
 	arch = abi_to_arch(abi)
-	return require_compiler_executable(arch=abi if arch is None else arch, install_if_required=True)
+	return require_compiler_executable(arch=abi if not arch else arch, install_if_required=True)
 
 def get_manifest(directory: str) -> Any:
 	with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
@@ -34,20 +34,20 @@ def get_name_from_manifest(directory: str) -> Optional[str]:
 	except Exception:
 		return None
 
-def search_directory(parent: str, name: str) -> Optional[str]:
+def search_in_directory(parent: str, name: str) -> Optional[str]:
 	for dirpath, dirnames, filenames in os.walk(parent):
 		for dir in dirnames:
 			path = join(dirpath, dir)
 			if get_name_from_manifest(path) == name:
 				return path
 
-def get_fake_so_dir(abi: str) -> str:
+def get_fake_so_directory(abi: str) -> str:
 	fake_so_dir = GLOBALS.TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 
 def add_fake_so(gcc: str, abi: str, name: str) -> None:
-	file = join(get_fake_so_dir(abi), "lib" + name + ".so")
+	file = join(get_fake_so_directory(abi), "lib" + name + ".so")
 	if not isfile(file):
 		result = subprocess.call([
 			gcc, "-std=c++11",
@@ -56,99 +56,95 @@ def add_fake_so(gcc: str, abi: str, name: str) -> None:
 		])
 		print("Created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
 
-def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iterable[str], std_includes_path: str, rules: BaseConfig) -> int:
-	executables = {}
+def build_native_directory(directory: str, output_directory: str, target_directory: str, abis: Collection[str], std_includes_path: str, rules: BaseConfig) -> int:
+	executables = dict()
 	for abi in abis:
 		executable = prepare_compiler_executable(abi)
-		if executable is None:
-			abort("Failed to acquire GCC executable from NDK for ABI", abi, code=CODE_FAILED_NO_GCC)
+		if not executable:
+			abort(f"Failed to acquire GCC executable from NDK for ABI {abi!r}!", code=CODE_FAILED_NO_GCC)
 		executables[abi] = executable
 
 	try:
 		manifest = get_manifest(directory)
-		targets = {}
+		targets = dict()
 		soname = "lib" + manifest["shared"]["name"] + ".so"
 		for abi in abis:
-			targets[abi] = join(output_dir, "so", abi, soname)
+			targets[abi] = join(output_directory, "so", abi, soname)
 	except Exception as err:
 		abort("Failed to read manifest for directory {directory} with unexpected error!", code=CODE_FAILED_INVALID_MANIFEST, cause=err)
 
 	keep_sources = rules.get_value("keepSources", fallback=False)
 	if keep_sources:
-		# copy everything and clear build files
-		copy_directory(directory, output_dir, clear_destination=True)
-		remove_tree(join(output_dir, "so"))
-		os.remove(join(output_dir, soname))
+		# Copy everything without built directories.
+		copy_directory(directory, output_directory, clear_destination=True)
+		remove_tree(join(output_directory, "so"))
+		os.remove(join(output_directory, soname))
 	else:
-		remove_tree(output_dir)
+		remove_tree(output_directory)
 
-		# copy manifest
-		copy_file(join(directory, "manifest"), join(output_dir, "manifest"))
+		copy_file(join(directory, "manifest"), join(output_directory, "manifest"))
 
-		# copy includes
 		keep_includes = rules.get_value("keepIncludes", fallback=True)
 		for include_path in manifest["shared"]["include"]:
 			src_include_path = join(directory, include_path)
-			output_include_path = join(output_dir, include_path)
+			output_include_path = join(output_directory, include_path)
 			if keep_includes:
 				copy_directory(src_include_path, output_include_path, clear_destination=True)
 			else:
 				remove_tree(output_include_path)
 
-	std_includes = []
+	std_includes = list()
 	if exists(std_includes_path):
 		for std_includes_dir in os.listdir(std_includes_path):
 			std_includes_dirpath = join(std_includes_path, std_includes_dir)
 			if isdir(std_includes_dirpath):
 				std_includes.append(abspath(std_includes_dirpath))
 
-	# compile for every abi
 	overall_result = CODE_OK
 	for abi in abis:
-		info(f"* Compiling '{basename(directory)}' for '{abi}'")
+		info(f"* Compiling {basename(directory)!r} for {abi}")
 
 		executable = executables[abi]
 		gcc = [executable, "-std=c++11"]
-		includes = []
+		includes = list()
 		for std_includes_dir in std_includes:
 			includes.append(f"-I{std_includes_dir}")
-		dependencies = [f"-L{get_fake_so_dir(abi)}", "-landroid", "-lm", "-llog"]
-		for link in rules.get_value("link", fallback=[]) + GLOBALS.MAKE_CONFIG.get_value("linkNative", fallback=[]) + ["horizon"]:
+		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog"]
+		for link in rules.get_value("link", fallback=list()) + GLOBALS.MAKE_CONFIG.get_value("linkNative", fallback=list()) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 		if "depends" in manifest:
-			search_dir = abspath(join(directory, "..")) # always search for dependencies in current dir
+			 # Always search for dependencies in current directory.
+			search_directory = abspath(join(directory, ".."))
 			for dependency in manifest["depends"]:
-				if dependency is not None:
+				if dependency:
 					add_fake_so(executable, abi, dependency)
 					dependencies.append("-l" + dependency)
-					dependency_dir = search_directory(search_dir, dependency)
-					if dependency_dir is not None:
+					dependency_directory = search_in_directory(search_directory, dependency)
+					if dependency_directory:
 						try:
-							for include_dir in get_manifest(dependency_dir)["shared"]["include"]:
-								includes.append("-I" + join(dependency_dir, include_dir))
+							for include_dir in get_manifest(dependency_directory)["shared"]["include"]:
+								includes.append("-I" + join(dependency_directory, include_dir))
 						except KeyError:
 							pass
 				else:
 					warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
 
-		# prepare directories
 		source_files = get_all_files(directory, extensions=(".cpp", ".c"))
-		preprocessed_dir = abspath(join(cache_dir, "preprocessed", abi))
-		ensure_directory(preprocessed_dir)
-		object_dir = abspath(join(cache_dir, "object", abi))
-		ensure_directory(object_dir)
+		preprocessed_directory = abspath(join(target_directory, "preprocessed", abi))
+		ensure_directory(preprocessed_directory)
+		object_directory = abspath(join(target_directory, "object", abi))
+		ensure_directory(object_directory)
 
-		# pre-process and compile changes
 		import filecmp
-		object_files = []
+		object_files = list()
 		recompiled_count = 0
 		for file in source_files:
 			relative_file = relpath(file, directory)
-			debug("Preprocessing " + relative_file + " " * 48, end="\r")
+			debug(f"Preprocessing {relative_file}{' ' * 48}", end="\r")
 
-			object_file = join(object_dir, relative_file) + ".o"
-			preprocessed_file = join(preprocessed_dir, relative_file)
+			object_file = join(object_directory, relative_file) + ".o"
+			preprocessed_file = join(preprocessed_directory, relative_file)
 			tmp_preprocessed_file = preprocessed_file + ".tmp"
 			ensure_file_directory(preprocessed_file)
 			ensure_file_directory(object_file)
@@ -166,7 +162,7 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 					if isfile(object_file):
 						os.remove(object_file)
 
-					debug("Compiling '" + relative_file + "'" + " " * 48, end="\r")
+					debug(f"Compiling {relative_file}{' ' * 48}", end="\r")
 					result = max(result, subprocess.call(gcc + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))
@@ -183,74 +179,73 @@ def build_native_dir(directory: str, output_dir: str, cache_dir: str, abis: Iter
 
 		print()
 		if overall_result != CODE_OK:
-			error("Failed to compile with result ", overall_result)
 			return overall_result
-		else:
-			info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
+		info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
 
 		ensure_file_directory(targets[abi])
 
-		command = []
-		command += gcc
-		command += object_files
-		command.append("-shared")
-		command.append("-Wl,-soname=" + soname)
-		command.append("-o")
-		command.append(targets[abi])
-		command += includes
-		command += dependencies
+		linking_command = list()
+		linking_command += gcc
+		linking_command += object_files
+		linking_command.append("-shared")
+		linking_command.append("-Wl,-soname=" + soname)
+		linking_command.append("-o")
+		linking_command.append(targets[abi])
+		linking_command += includes
+		linking_command += dependencies
+
 		debug("Linking object files")
-		result = subprocess.call(command)
-		if result != CODE_OK:
-			error("Linker failed with result ", result)
-			overall_result = result
-			return overall_result
+		overall_result = subprocess.call(linking_command)
+		if overall_result != CODE_OK:
+			break
 	return overall_result
 
-def compile_all_using_make_config(abis: Iterable[str]) -> int:
-	import time
-	start_time = time.time()
-	directories = []
+def compile_native(abis: Collection[str]) -> int:
+	from time import time
+	startup_millis = time()
+	directories = list()
 	overall_result = CODE_OK
-
-	for native_dir in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
-		directories.append(native_dir)
-
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("native")
-	if len(directories) > 0:
-		std_includes = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
-		if not exists(std_includes):
-			warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
-		cache_dir = GLOBALS.MAKE_CONFIG.get_build_path("gcc")
-		ensure_directory(cache_dir)
 
-		for native_dir in directories:
-			if "source" not in native_dir:
-				warn("* Skipped invalid native directory json: ", native_dir)
-				overall_result = CODE_INVALID_JSON
-				continue
+	for native_directory in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
+		directories.append(native_directory)
+	if overall_result != CODE_OK or len(directories) == 0:
+		GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
+		return overall_result
 
-			for native_dir_path in GLOBALS.MAKE_CONFIG.get_paths(native_dir["source"]):
-				if isdir(native_dir_path):
-					directory_name = basename(native_dir_path)
-					overall_result = build_native_dir(
-						native_dir_path,
-						GLOBALS.MOD_STRUCTURE.new_build_target("native", directory_name + "{}"),
-						join(cache_dir, directory_name),
-						abis,
-						std_includes,
-						BaseConfig(native_dir["rules"] if "rules" in native_dir else {})
-					)
-					if overall_result == CODE_FAILED_NO_GCC:
-						return overall_result
-				else:
-					warn("* Skipped non-existing native directory: ", native_dir["source"])
-					overall_result = CODE_INVALID_PATH
+	std_includes = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
+	if not exists(std_includes):
+		warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
+	target_directory = GLOBALS.MAKE_CONFIG.get_build_path("gcc")
+	ensure_directory(target_directory)
+
+	for native_directory in directories:
+		if "source" not in native_directory:
+			warn(f"* Skipped invalid native directory {native_directory!r} json!")
+			overall_result = CODE_INVALID_JSON
+			continue
+
+		for relative_directory in GLOBALS.MAKE_CONFIG.get_paths(native_directory["source"]):
+			if isdir(relative_directory):
+				directory_name = basename(relative_directory)
+				overall_result = build_native_directory(
+					relative_directory,
+					GLOBALS.MOD_STRUCTURE.new_build_target("native", directory_name + "{}"),
+					join(target_directory, directory_name),
+					abis,
+					std_includes,
+					BaseConfig(native_directory["rules"] if "rules" in native_directory else dict())
+				)
+				if overall_result != CODE_OK:
+					return overall_result
+			else:
+				warn(f"* Skipped non-existing native directory {native_directory['source']!r}!")
+				overall_result = CODE_INVALID_PATH
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
-	print(f"Completed native build in {int((time.time() - start_time) * 100) / 100}s with result {overall_result} - {'OK' if overall_result == CODE_OK else 'ERROR'}")
+	startup_millis = time() - startup_millis
+	if len(directories) > 0 and overall_result == CODE_OK:
+		print(f"Completed native build in {startup_millis:.2f}s!")
+	if overall_result != CODE_OK:
+		error(f"Failed native build in {startup_millis:.2f}s with result {overall_result}.")
 	return overall_result
-
-
-if __name__ == "__main__":
-	compile_all_using_make_config(["x86"])

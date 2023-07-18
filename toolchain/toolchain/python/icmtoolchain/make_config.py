@@ -30,13 +30,13 @@ class ToolchainConfig(BaseConfig):
 	def upgrade(self) -> bool:
 		changes = False
 		if "global" in self.json:
-			global_config = self.get_value("global", {})
+			global_config = self.get_value("global", dict())
 			for entry in global_config:
 				self.set_value(entry, global_config[entry])
 			self.remove_value("global")
 			self.save(); changes |= True
 		if "make" in self.json:
-			make_config = self.get_value("make", {})
+			make_config = self.get_value("make", dict())
 			if "linkNative" in make_config:
 				self.set_value("linkNative", make_config["linkNative"])
 			if "excludeFromRelease" in make_config:
@@ -67,26 +67,26 @@ class ToolchainConfig(BaseConfig):
 		return relpath(absolute_path, self.directory)
 
 	def get_paths(self, relative_path: str, filter: Optional[Callable[[str], bool]] = None, locations: Optional[List[str]] = None) -> List[str]:
-		if locations is None:
-			locations = []
+		if not locations:
+			locations = list()
 		if len(relative_path) > 0 and relative_path[-1] == "*":
 			path = self.get_path(relative_path[:-1])
 			if not isdir(path):
 				return locations
 			for filename in os.listdir(path):
 				file = join(path, filename)
-				if filter is None or filter(file):
+				if not filter or filter(file):
 					locations.append(file)
 		else:
 			path = self.get_path(relative_path)
-			if filter is None or filter(path):
+			if not filter or filter(path):
 				locations.append(path)
 		return locations
 
 	def get_adb(self) -> str:
 		try:
 			import shutil
-			if shutil.which("adb") is not None:
+			if shutil.which("adb"):
 				return "adb"
 		except:
 			pass
@@ -99,14 +99,12 @@ class MakeConfig(ToolchainConfig):
 
 	def __init__(self, path: str, prototype: ToolchainConfig) -> None:
 		if not isfile(path):
-			abort(f"Not found '{basename(path)}', are you sure that selected project exists?")
+			abort(f"Not found {basename(path)!r}, are you sure that selected project exists?")
 		self.current_project = prototype.get_value("currentProject")
 		ToolchainConfig.__init__(self, path, prototype)
 		self.project_unique_name = self.unique_folder_name(self.directory)
 
 	def get_build_path(self, relative_path: str) -> str:
-		if self.prototype is None:
-			raise RuntimeError("MakeConfig prototype is `None`, config corrupted!")
 		return self.prototype.get_path(join(
 			"toolchain", "build", self.project_unique_name, relative_path
 		))

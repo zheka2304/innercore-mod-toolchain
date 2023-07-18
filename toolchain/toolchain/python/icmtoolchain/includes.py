@@ -8,11 +8,12 @@ from os.path import basename, isdir, isfile, join, normpath, relpath
 from typing import Any, Dict, Final, List
 
 from . import GLOBALS, PROPERTIES
-from .shell import debug, info, warn
+from .shell import debug, error, info, warn
 from .utils import ensure_file_directory
-from .workspace import TSCONFIG, TSCONFIG_TOOLCHAIN
+from .workspace import TSCONFIG
 
-TSCONFIG_DEPENDENTS: Final[Dict[str, Any]] = {
+# Will be excluded with toolchain overriden options
+TSCONFIG_DEPENDENTS: Dict[str, Any] = {
 	"allowSyntheticDefaultImports": "esModuleInterop",
 	"alwaysStrict": "strict",
 	"noImplicitAny": "strict",
@@ -25,13 +26,6 @@ TSCONFIG_DEPENDENTS: Final[Dict[str, Any]] = {
 	"declaration": "composite"
 }
 
-# Exclude toolchain overrided options
-for key in TSCONFIG_TOOLCHAIN:
-	if key in TSCONFIG_DEPENDENTS:
-		del TSCONFIG_DEPENDENTS[key]
-
-TEMPORARY_DIRECTORY: Final[str] = GLOBALS.MAKE_CONFIG.get_build_path("sources")
-
 
 class Includes:
 	directory: Final[str]; includes: Final[str]; path: Final[str]
@@ -43,21 +37,21 @@ class Includes:
 		self.directory = directory
 		self.includes = includes_path
 		self.path = join(directory, includes_path)
-		self.include = []
-		self.exclude = []
-		self.params = {}
+		self.include = list()
+		self.exclude = list()
+		self.params = dict()
 
 	def read(self) -> None:
-		dependents = []
+		dependents = list()
 		with open(self.path, encoding="utf-8") as includes:
 			for line in includes:
 				self.decode_line(line.strip(), dependents)
 		for dependent in dependents:
-			if (dependent in TSCONFIG_DEPENDENTS and TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[TSCONFIG_DEPENDENTS[dependent]] == True):
-				self.params[TSCONFIG_DEPENDENTS[dependent]] = not self.params[TSCONFIG_DEPENDENTS[dependent]]
+			if (dependent in GLOBALS.TSCONFIG_DEPENDENTS and GLOBALS.TSCONFIG_DEPENDENTS[dependent] in self.params and self.params[GLOBALS.TSCONFIG_DEPENDENTS[dependent]] == True):
+				self.params[GLOBALS.TSCONFIG_DEPENDENTS[dependent]] = not self.params[GLOBALS.TSCONFIG_DEPENDENTS[dependent]]
 
 	def decode_param(self, key: str, value: Any, dependents: List[str]) -> None:
-		default = TSCONFIG_TOOLCHAIN[key] if key in TSCONFIG_TOOLCHAIN else TSCONFIG[key]
+		default = GLOBALS.TSCONFIG_TOOLCHAIN[key] if key in GLOBALS.TSCONFIG_TOOLCHAIN else TSCONFIG[key]
 		if value is not None:
 			if value.lower() in ["true", "false"]:
 				self.params[key] = value.lower() == "true"
@@ -86,7 +80,7 @@ class Includes:
 					self.decode_param(key, values[0] if len(values) > 0 else None, dependents)
 				else:
 					key = key[1:].strip()
-					if key in TSCONFIG_TOOLCHAIN and key in TSCONFIG:
+					if key in GLOBALS.TSCONFIG_TOOLCHAIN and key in TSCONFIG:
 						self.params[key] = TSCONFIG[key]
 					elif key in self.params:
 						del self.params[key]
@@ -140,9 +134,9 @@ class Includes:
 	def create_from_tsconfig(directory: str, includes_path: str) -> 'Includes':
 		with open(join(directory, "tsconfig.json")) as tsconfig:
 			config = json.load(tsconfig)
-			params = config["compilerOptions"] if "compilerOptions" in config else {}
-			include = config["include"] if "include" in config else []
-			exclude = config["exclude"] if "exclude" in config else []
+			params = config["compilerOptions"] if "compilerOptions" in config else dict()
+			include = config["include"] if "include" in config else list()
+			exclude = config["exclude"] if "exclude" in config else list()
 			if "outFile" in params: del params["outFile"]
 
 		includes = Includes(directory, includes_path)
@@ -167,11 +161,11 @@ class Includes:
 	def get_tsconfig(self) -> str:
 		return join(self.directory, "tsconfig.json")
 
-	def create_tsconfig(self, temp_path) -> None:
+	def create_tsconfig(self, temporary_path: str) -> None:
 		template = {
 			"extends": relpath(GLOBALS.WORKSPACE_COMPOSITE.get_tsconfig(), self.directory),
 			"compilerOptions": {
-				"outFile": temp_path
+				"outFile": temporary_path
 			},
 			"exclude": self.exclude,
 			"include": self.include,
@@ -183,46 +177,47 @@ class Includes:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
 	def compute(self, target_path: str, language: str = "typescript") -> bool:
-		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
+		temp_path = join(GLOBALS.MAKE_CONFIG.get_build_path("sources"), basename(target_path))
 		if GLOBALS.BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
 			if language == "typescript":
-				debug(f"Computing '{basename(target_path)}' tsconfig from '{self.includes}'")
+				debug(f"Computing {basename(target_path)!r} tsconfig from {self.includes!r}")
 				self.create_tsconfig(temp_path)
 			return True
 		return False
 
 	def build(self, target_path: str, language: str = "typescript") -> int:
-		temp_path = join(TEMPORARY_DIRECTORY, basename(target_path))
-		result = 0
+		temporary_path = join(GLOBALS.MAKE_CONFIG.get_build_path("sources"), basename(target_path))
+		overall_result = 0
 
-		if GLOBALS.BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temp_path):
-			debug(f"Building '{basename(target_path)}' from '{self.includes}'")
+		from time import time
+		if GLOBALS.BUILD_STORAGE.is_path_changed(self.directory) or not isfile(temporary_path):
+			debug(f"Building {basename(target_path)!r} from {self.includes!r}")
 
-			import datetime
-			start_time = datetime.datetime.now()
-			result = self.build_source(temp_path, language)
-			end_time = datetime.datetime.now()
-			diff = end_time - start_time
+			startup_millis = time()
+			overall_result = self.build_source(temporary_path, language)
 
-			print(f"Completed '{basename(target_path)}' build in {round(diff.total_seconds(), 2)}s with result {result} - {'OK' if result == 0 else 'ERROR'}")
-			if result != 0:
-				return result
+			startup_millis = time() - startup_millis
+			if overall_result == 0:
+				print(f"Completed {basename(target_path)!r} flushing in {startup_millis:.2f}s!")
+			else:
+				error(f"Failed {basename(target_path)!r} flushing in {startup_millis:.2f}s with result {overall_result}.")
+				return overall_result
 
 			GLOBALS.BUILD_STORAGE.is_path_changed(self.directory, True)
 			GLOBALS.BUILD_STORAGE.save()
 		else:
 			info(f"* Build target {basename(target_path)} is not changed.")
 
-		return result
+		return overall_result
 
-	def build_source(self, temp_path: str, language: str = "typescript") -> int:
-		ensure_file_directory(temp_path)
+	def build_source(self, temporary_path: str, language: str = "typescript") -> int:
+		ensure_file_directory(temporary_path)
 
 		if language.lower() == "typescript":
 			command = [
 				"tsc",
 				"--project", self.get_tsconfig(),
-				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", [])
+				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", list())
 			]
 			if not PROPERTIES.get_value("release"):
 				# Do NOT resolve down-level declaration, like 'android.d.ts' if it not included
@@ -232,7 +227,7 @@ class Includes:
 			return subprocess.call(command, shell=platform.system() == "Windows")
 
 		else:
-			with open(temp_path, "w", encoding="utf-8") as source:
+			with open(temporary_path, "w", encoding="utf-8") as source:
 				first_file = True
 				for search_path in self.include:
 					for filepath in glob.glob(join(self.directory, search_path), recursive=True):

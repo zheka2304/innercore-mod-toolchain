@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 from os.path import isfile, join, realpath
 
 from .base_config import BaseConfig
@@ -77,13 +78,6 @@ class Globals:
 			self.make_config = make_config
 		return self.make_config
 
-	@MAKE_CONFIG.deleter
-	def MAKE_CONFIG(self):
-		if not hasattr(self, "make_config"):
-			return
-		self.make_config.save()
-		del self.make_config
-
 	@property
 	def PREFERRED_CONFIG(self):
 		if hasattr(self, "make_config"):
@@ -109,10 +103,34 @@ class Globals:
 		return self.project_manager
 
 	@property
+	def TSCONFIG_DEPENDENTS(self):
+		if not hasattr(self, "tsconfig_dependents"):
+			from .includes import TSCONFIG_DEPENDENTS
+			tsconfig = deepcopy(TSCONFIG_DEPENDENTS)
+			for key in self.TSCONFIG_TOOLCHAIN:
+				if key in tsconfig:
+					del tsconfig[key]
+			self.tsconfig_dependents = tsconfig
+		return self.tsconfig_dependents
+
+	@property
+	def TSCONFIG_TOOLCHAIN(self):
+		if not hasattr(self, "tsconfig_toolchain"):
+			from .workspace import TSCONFIG_TOOLCHAIN
+			tsconfig = deepcopy(TSCONFIG_TOOLCHAIN)
+			for key, value in self.MAKE_CONFIG.get_value("tsconfig", dict()).items():
+				if value is None:
+					del tsconfig[key]
+				else:
+					tsconfig[key] = value
+			self.tsconfig_toolchain = tsconfig
+		return self.tsconfig_toolchain
+
+	@property
 	def CODE_WORKSPACE(self):
 		if not hasattr(self, "code_workspace"):
 			from .workspace import CodeWorkspace
-			self.code_workspace = CodeWorkspace(self.TOOLCHAIN_CONFIG.get_absolute_path(self.PREFERRED_CONFIG.get_value("workspaceFile", "toolchain.code-workspace")))
+			self.code_workspace = CodeWorkspace(self.TOOLCHAIN_CONFIG.get_absolute_path(self.TOOLCHAIN_CONFIG.get_value("workspaceFile", "toolchain.code-workspace")))
 		return self.code_workspace
 
 	@property
@@ -138,6 +156,37 @@ class Globals:
 			]
 			self.parameter_signature = inspect.Signature(parameters, return_annotation=int)
 		return self.parameter_signature
+
+	def shutdown(self):
+		self.shutdown_project()
+		if hasattr(self, "code_settings"):
+			del self.code_settings
+		if hasattr(self, "code_workspace"):
+			del self.code_workspace
+		if hasattr(self, "parameter_signature"):
+			del self.parameter_signature
+		if hasattr(self, "project_manager"):
+			del self.project_manager
+		if hasattr(self, "toolchain_config"):
+			del self.toolchain_config
+
+	def shutdown_project(self):
+		if hasattr(self, "adb_command"):
+			del self.adb_command
+		if hasattr(self, "build_storage"):
+			del self.build_storage
+		if hasattr(self, "make_config"):
+			del self.make_config
+		if hasattr(self, "mod_structure"):
+			del self.mod_structure
+		if hasattr(self, "output_storage"):
+			del self.output_storage
+		if hasattr(self, "tsconfig_dependents"):
+			del self.tsconfig_dependents
+		if hasattr(self, "tsconfig_toolchain"):
+			del self.tsconfig_toolchain
+		if hasattr(self, "workspace_composite"):
+			del self.workspace_composite
 
 GLOBALS = Globals()
 

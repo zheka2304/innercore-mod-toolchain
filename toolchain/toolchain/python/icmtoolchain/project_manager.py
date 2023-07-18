@@ -13,9 +13,9 @@ class ProjectManager:
 	projects: Final[List[str]]; templates: Final[List[str]]
 
 	def __init__(self) -> None:
-		self.projects = []
-		self.templates = []
-		locations = GLOBALS.PREFERRED_CONFIG.get_value("projectLocations", [])
+		self.projects = list()
+		self.templates = list()
+		locations = GLOBALS.PREFERRED_CONFIG.get_value("projectLocations", list())
 		for location in ["", *locations]:
 			path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(location)
 			if not exists(path) or not isdir(path):
@@ -33,19 +33,19 @@ class ProjectManager:
 	def create_project(self, template: str, folder: str, name: Optional[str] = None, author: Optional[str] = None, version: Optional[str] = None, description: Optional[str] = None, clientOnly: bool = False)-> int:
 		location = GLOBALS.TOOLCHAIN_CONFIG.get_path(folder)
 		if exists(location):
-			abort(f"Folder '{folder}' already exists!")
+			abort(f"Folder {folder!r} already exists!")
 		template_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template)
 		if not exists(template_path):
-			abort(f"Not found '{template}' template, nothing to do.")
-		template_make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
+			abort(f"Not found {template!r} template, nothing to do.")
+		template_make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(join(template, "template.json"))
 		if not isfile(template_make_path):
-			abort(f"Not found 'template.json' in template '{template}', nothing to do.")
+			abort(f"Not found 'template.json' in template {template!r}, nothing to do.")
 
 		with open(template_make_path, "r", encoding="utf-8") as make_file:
 			template_obj = json.loads(make_file.read())
 
 		if not "info" in template_obj:
-			template_obj["info"] = {}
+			template_obj["info"] = dict()
 		template_info = template_obj["info"]
 		template_info["name"] = ensure_not_whitespace(name, ensure_not_whitespace(
 			template_info["name"] if "name" in template_info else None, "Mod"
@@ -56,8 +56,8 @@ class ProjectManager:
 		template_info["version"] = ensure_not_whitespace(version, ensure_not_whitespace(
 			template_info["version"] if "version" in template_info else None, "1.0"
 		))
-		template_info["description"] = description if description is not None else ensure_not_whitespace(
-			template_info["description"] if "description" in template_info else None, "My brand new mod."
+		template_info["description"] = description or ensure_not_whitespace(
+			template_info["description"] if "description" in template_info else None, "Describe your creation just in a few words."
 		)
 		template_info["clientOnly"] = clientOnly if clientOnly is not None else \
 			template_info["clientOnly"] if "clientOnly" in template_info else False
@@ -76,7 +76,7 @@ class ProjectManager:
 				self.append_workspace_folder(folder, template_info["name"])
 
 		if GLOBALS.CODE_SETTINGS.available():
-			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else {}
+			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else dict()
 			if not folder.startswith("../"):
 				exclude[folder] = True
 				GLOBALS.CODE_SETTINGS.json["files.exclude"] = exclude
@@ -97,7 +97,7 @@ class ProjectManager:
 		if GLOBALS.CODE_WORKSPACE.available():
 			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)
 			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) > 0:
-				folders = GLOBALS.CODE_WORKSPACE.get_value("folders", [])
+				folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 				for entry in folders:
 					if isinstance(entry, dict) and "path" in entry and entry["path"] == location:
 						folders.remove(entry)
@@ -105,7 +105,7 @@ class ProjectManager:
 				GLOBALS.CODE_WORKSPACE.save()
 
 		if GLOBALS.CODE_SETTINGS.available():
-			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else {}
+			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else dict()
 			if folder in exclude:
 				del exclude[folder]
 				GLOBALS.CODE_SETTINGS.json["files.exclude"] = exclude
@@ -116,7 +116,7 @@ class ProjectManager:
 
 	def append_workspace_folder(self, folder: str, name: Optional[object] = "Mod") -> None:
 		if GLOBALS.CODE_WORKSPACE.available():
-			folders = GLOBALS.CODE_WORKSPACE.get_value("folders", [])
+			folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 			if len(folders) == 0:
 				folders.append({
 					"path": GLOBALS.CODE_WORKSPACE.get_toolchain_path(),
@@ -133,29 +133,29 @@ class ProjectManager:
 		if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) and GLOBALS.MAKE_CONFIG.current_project == folder:
 			return
 
-		if folder is None:
+		if not folder:
 			GLOBALS.TOOLCHAIN_CONFIG.remove_value("currentProject")
 		else:
 			GLOBALS.TOOLCHAIN_CONFIG.set_value("currentProject", folder)
 		GLOBALS.TOOLCHAIN_CONFIG.save()
 
-		del GLOBALS.MAKE_CONFIG
+		GLOBALS.shutdown_project()
 
 	def select_project(self, index: Optional[int] = None, folder: Optional[str] = None) -> None:
 		index, folder = self.get_folder(index, folder)
 
-		if folder is not None and GLOBALS.CODE_WORKSPACE.available():
+		if folder and GLOBALS.CODE_WORKSPACE.available():
 			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)
 			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) == 0:
-				make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(folder + "/make.json")
+				make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(join(folder, "make.json"))
 				if not isfile(make_path):
-					abort(f"Not found 'make.json' in project '{folder}', nothing to do.")
+					abort(f"Not found 'make.json' in project {folder!r}, nothing to do.")
 				with open(make_path, "r", encoding="utf-8") as make_file:
 					make_obj = json.loads(make_file.read())
 				self.append_workspace_folder(folder, self.resolve_mod_name(folder, make_obj))
 
-		if folder is not None and GLOBALS.CODE_SETTINGS.available():
-			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else {}
+		if folder and GLOBALS.CODE_SETTINGS.available():
+			exclude = GLOBALS.CODE_SETTINGS.json["files.exclude"] if "files.exclude" in GLOBALS.CODE_SETTINGS.json else dict()
 			if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig):
 				if not GLOBALS.MAKE_CONFIG.current_project.startswith("../") and not exists(abspath(GLOBALS.MAKE_CONFIG.current_project)):
 					exclude[GLOBALS.MAKE_CONFIG.current_project] = True
@@ -165,10 +165,10 @@ class ProjectManager:
 			GLOBALS.CODE_SETTINGS.save()
 
 		self.select_project_folder(folder)
-		print(f"Project '{folder}' selected.")
+		print(f"Project {folder!r} selected.")
 
 	def resolve_mod_name(self, path: str, make_obj: Optional[Dict[Any, Any]] = None) -> str:
-		if make_obj is None:
+		if not make_obj:
 			try:
 				make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path + "/make.json")
 				if isfile(make_path):
@@ -176,7 +176,7 @@ class ProjectManager:
 						make_obj = json.loads(make_file.read())
 			except BaseException:
 				pass
-		return make_obj["info"]["name"] if make_obj is not None and "info" in make_obj and "name" in make_obj["info"] else basename(path)
+		return make_obj["info"]["name"] if make_obj and "info" in make_obj and "name" in make_obj["info"] else basename(path)
 
 	def get_shortcut(self, path: str, make_obj: Optional[Dict[Any, Any]] = None) -> str:
 		if len(path) == 0:
@@ -202,7 +202,7 @@ class ProjectManager:
 		from .package import select_project
 		if self.how_much() == 1:
 			itwillbe = self.projects[0]
-			if prompt_when_single is None:
+			if not prompt_when_single:
 				return itwillbe
 			else:
 				if not confirm(prompt_when_single.format(self.get_shortcut(itwillbe)), True):

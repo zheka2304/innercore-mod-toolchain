@@ -15,17 +15,17 @@ from .utils import (copy_file, ensure_not_whitespace, get_all_files,
 
 
 def get_path_set(locations: List[str], error_sensitive: bool = False) -> Optional[List[str]]:
-	directories = []
+	directories = list()
 	for path in locations:
 		for directory in GLOBALS.MAKE_CONFIG.get_paths(path):
 			if isdir(directory):
 				directories.append(directory)
 			else:
 				if error_sensitive:
-					error(f"Declared invalid directory {path}, task will be terminated")
+					error(f"Declared invalid directory {path}, task will be terminated!")
 					return None
 				else:
-					warn(f"* Declared invalid directory {path}, it will be skipped")
+					warn(f"* Declared invalid directory {path}, it will be skipped.")
 	return directories
 
 def cleanup_relative_directory(path: str, absolute: bool = False) -> None:
@@ -46,7 +46,7 @@ def select_template() -> Optional[str]:
 	)
 
 def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
-	if template is None or not exists(GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template)):
+	if not template or not exists(GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template)):
 		return new_project(template=select_template())
 	template_make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 	try:
@@ -69,14 +69,14 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 		def observe_key(self, what: str) -> bool:
 			input = shell.get_interactable("name", Input)
 			self.directory = get_project_folder_by_name(GLOBALS.TOOLCHAIN_CONFIG.directory, input.read() or "")
+			shell.blocked_in_page = not self.directory
 			header = shell.get_interactable("header", Separator)
-			header.size = (1 if self.directory is None else 0) + (0 if len(GLOBALS.PROJECT_MANAGER.templates) > 1 else 1)
+			header.size = (1 if shell.blocked_in_page else 0) + (0 if len(GLOBALS.PROJECT_MANAGER.templates) > 1 else 1)
 			location = shell.get_interactable("location", Notice)
-			location.text = "" if self.directory is None else "It will be in " + self.directory + "\n"
+			location.text = "" if not self.directory else "It will be in " + self.directory + "\n"
 			progress = shell.get_interactable("step", Progress)
-			progress.progress = 0 if self.directory is None else progress_step
-			progress.text = " " + "Name your creation".center(45) + (" " if self.directory is None else ">")
-			shell.blocked_in_page = self.directory is None
+			progress.progress = 0 if shell.blocked_in_page else progress_step
+			progress.text = " " + "Name your creation".center(45) + (" " if shell.blocked_in_page else ">")
 			return False
 
 	shell = SelectiveShell()
@@ -131,9 +131,9 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 		return None
 	if shell.what() == "template":
 		return new_project(None)
-	if not hasattr(observer, "directory") or observer.directory is None:
+	if not hasattr(observer, "directory") or not observer.directory:
 		abort("Not found 'directory' property in observer!")
-	print(f"Copying template '{template}' to '{observer.directory}'")
+	print(f"Copying template {template!r} to {observer.directory!r}")
 	return GLOBALS.PROJECT_MANAGER.create_project(
 		template, observer.directory,
 		shell.get_interactable("name", Input).read(),
@@ -144,7 +144,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 	)
 
 def resolve_make_format_map(make_obj: Dict[Any, Any], path: str) -> Dict[Any, Any]:
-	make_obj_info = make_obj["info"] if "info" in make_obj else {}
+	make_obj_info = make_obj["info"] if "info" in make_obj else dict()
 	identifier = name_to_identifier(basename(path))
 	while len(identifier) > 0 and identifier[0].isdecimal():
 		identifier = identifier[1:]
@@ -172,7 +172,7 @@ def setup_project(make_obj: Dict[Any, Any], template: str, path: str) -> None:
 			try:
 				dirmap[dir] = dirmap[dir].format_map(makemap)
 			except BaseException:
-				warn(f"* Source '{dirmap[dir]}' contains malformed name!")
+				warn(f"* Source {dirmap[dir]!r} contains malformed name!")
 			os.mkdir(join(path, dirmap[dir]))
 		for filename in filenames:
 			if dirpath == template and filename == "template.json":
@@ -191,10 +191,10 @@ def setup_project(make_obj: Dict[Any, Any], template: str, path: str) -> None:
 			source_file.writelines(lines)
 
 def select_project(variants: List[str], prompt: Optional[str] = "Which project do you want?", selected: Optional[str] = None, *additionals: str) -> Optional[str]:
-	if prompt is not None:
+	if prompt:
 		print(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
-	binding = {}
+	binding = dict()
 	for variant in variants:
 		if not variant in binding:
 			binding[variant] = GLOBALS.PROJECT_MANAGER.get_shortcut(variant)
@@ -212,9 +212,9 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 		return None
 	try:
 		what = shell.what()
-		if what is None or what in additionals:
+		if not what or what in additionals:
 			print(); print("Abort."); return
-		print((prompt + " " if prompt is not None else "") + stringify(what, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+		print((prompt + " " if prompt else "") + stringify(what, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		return what
 	except ValueError:
 		return None

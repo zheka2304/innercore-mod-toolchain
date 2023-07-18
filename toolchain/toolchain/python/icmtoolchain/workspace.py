@@ -4,48 +4,13 @@ import os
 import platform
 import subprocess
 from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
-from typing import Any, Dict, Final, List
+from typing import Any, Dict, List
 
 from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
 
-
-class WorkspaceNotAvailable(RuntimeError):
-	def __init__(self, *args: object) -> None:
-		RuntimeError.__init__(self, "Workspace is not available", *args)
-
-class CodeWorkspace(BaseConfig):
-	def __init__(self, path: str) -> None:
-		if not isfile(path):
-			return BaseConfig.__init__(self, {})
-		self.path = path
-		self.directory = abspath(join(self.path, ".."))
-		with open(path, encoding="utf-8") as file:
-			self.json = json.load(file)
-		BaseConfig.__init__(self, self.json)
-
-	def available(self) -> bool:
-		return hasattr(self, "path") and isfile(self.path)
-
-	def get_path(self, relative_path: str) -> str:
-		if not self.available():
-			raise WorkspaceNotAvailable()
-		return abspath(join(self.directory, relative_path))
-
-	def get_toolchain_path(self, relative_path: str = "") -> str:
-		if not self.available():
-			raise WorkspaceNotAvailable()
-		return relpath(GLOBALS.TOOLCHAIN_CONFIG.get_path(relative_path), self.directory)
-
-	def save(self) -> None:
-		if not self.available():
-			raise WorkspaceNotAvailable()
-		with open(self.path, "w", encoding="utf-8") as workspace_file:
-			workspace_file.write(json.dumps(self.json, indent="\t") + "\n")
-
-
 # The TypeScript Compiler - Version 4.8.3
-TSCONFIG: Final[Dict[str, Any]] = {
+TSCONFIG: Dict[str, Any] = {
 	# JavaScript Support
 	"allowJs": False,
 	"checkJs": False,
@@ -63,14 +28,14 @@ TSCONFIG: Final[Dict[str, Any]] = {
 	"baseUrl": None,
 	"module": None,
 	"moduleResolution": "classic",
-	"moduleSuffixes": [],
+	"moduleSuffixes": list(),
 	"noResolve": False,
-	"paths": [],
+	"paths": list(),
 	"resolveJsonModule": False,
-	"rootDir": [],
-	"rootDirs": [],
-	"typeRoots": [],
-	"types": [],
+	"rootDir": list(),
+	"rootDirs": list(),
+	"typeRoots": list(),
+	"types": list(),
 
 	# Type Checking
 	"allowUnreachableCode": None,
@@ -150,7 +115,7 @@ TSCONFIG: Final[Dict[str, Any]] = {
 
 	# Editor Support
 	"disableSizeLimit": False,
-	"plugins": [],
+	"plugins": list(),
 
 	# Language and Environment
 	"emitDecoratorMetadata": False,
@@ -158,7 +123,7 @@ TSCONFIG: Final[Dict[str, Any]] = {
 	"jsx": None,
 	"jsxFactory": "React.Fragment",
 	"jsxImportSource": "react",
-	"lib": [],
+	"lib": list(),
 	"moduleDetection": "auto",
 	"noLib": False,
 	"reactNamespace": "React",
@@ -176,7 +141,7 @@ TSCONFIG: Final[Dict[str, Any]] = {
 }
 
 # Basic prototype that will be changed when building
-TSCONFIG_TOOLCHAIN: Final[Dict[str, Any]] = {
+TSCONFIG_TOOLCHAIN: Dict[str, Any] = {
 	"target": "es5", # Most of ES6 not realized in Rhino 1.7.7
 	"lib": ["esnext"],
 	"module": "none",
@@ -191,11 +156,39 @@ TSCONFIG_TOOLCHAIN: Final[Dict[str, Any]] = {
 	"allowJs": True
 }
 
-for key, value in GLOBALS.PREFERRED_CONFIG.get_value("tsconfig", {}).items():
-	if value is None:
-		del TSCONFIG_TOOLCHAIN[key]
-	else:
-		TSCONFIG_TOOLCHAIN[key] = value
+
+class WorkspaceNotAvailable(RuntimeError):
+	def __init__(self, *args: object) -> None:
+		RuntimeError.__init__(self, "Workspace is not available", *args)
+
+class CodeWorkspace(BaseConfig):
+	def __init__(self, path: str) -> None:
+		if not isfile(path):
+			return BaseConfig.__init__(self, dict())
+		self.path = path
+		self.directory = abspath(join(self.path, ".."))
+		with open(path, encoding="utf-8") as file:
+			self.json = json.load(file)
+		BaseConfig.__init__(self, self.json)
+
+	def available(self) -> bool:
+		return hasattr(self, "path") and isfile(self.path)
+
+	def get_path(self, relative_path: str) -> str:
+		if not self.available():
+			raise WorkspaceNotAvailable()
+		return abspath(join(self.directory, relative_path))
+
+	def get_toolchain_path(self, relative_path: str = "") -> str:
+		if not self.available():
+			raise WorkspaceNotAvailable()
+		return relpath(GLOBALS.TOOLCHAIN_CONFIG.get_path(relative_path), self.directory)
+
+	def save(self) -> None:
+		if not self.available():
+			raise WorkspaceNotAvailable()
+		with open(self.path, "w", encoding="utf-8") as workspace_file:
+			workspace_file.write(json.dumps(self.json, indent="\t") + "\n")
 
 
 class WorkspaceComposite:
@@ -226,15 +219,15 @@ class WorkspaceComposite:
 		})
 
 	def reset(self) -> None:
-		self.references = []
-		self.sources = []
+		self.references = list()
+		self.sources = list()
 
 	@staticmethod
 	def resolve_declarations() -> List[str]:
 		includes = GLOBALS.MAKE_CONFIG.get_value("declarations", [
 			"declarations"
 		])
-		declarations = []
+		declarations = list()
 		for filepath in [
 			GLOBALS.MAKE_CONFIG.get_absolute_path(include) for include in includes
 		]:
@@ -248,7 +241,7 @@ class WorkspaceComposite:
 				recursive=True
 			))
 		if not PROPERTIES.get_value("release"):
-			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", []):
+			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", list()):
 				if exists(str(excluded).lstrip("/").partition("/")[0]):
 					for declaration in glob.glob(excluded, recursive=True):
 						if declaration in declarations:
@@ -260,18 +253,17 @@ class WorkspaceComposite:
 		return list(set(declarations))
 
 	def flush(self, **kwargs: Any) -> None:
-		from .includes import TEMPORARY_DIRECTORY
 		template = {
 			"compilerOptions": {
-				"outDir": TEMPORARY_DIRECTORY,
-				**TSCONFIG_TOOLCHAIN
+				"outDir": GLOBALS.MAKE_CONFIG.get_build_path("sources"),
+				**GLOBALS.TSCONFIG_TOOLCHAIN
 			},
 			"compileOnSave": False,
 			"exclude": [
 				"dom",
 				"webpack"
-			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", []),
-			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", []),
+			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", list()),
+			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", list()),
 			**kwargs
 		}
 
@@ -287,7 +279,7 @@ class WorkspaceComposite:
 		return subprocess.call([
 			"tsc",
 			"--build", self.get_tsconfig(),
-			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", []),
+			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", list()),
 			*args
 		], shell=platform.system() == "Windows")
 
@@ -296,7 +288,7 @@ class WorkspaceComposite:
 			return subprocess.call([
 				"tsc",
 				"--watch",
-				*GLOBALS.MAKE_CONFIG.get_value("development.watch", []),
+				*GLOBALS.MAKE_CONFIG.get_value("development.watch", list()),
 				*args
 			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=platform.system() == "Windows")
 		except KeyboardInterrupt:

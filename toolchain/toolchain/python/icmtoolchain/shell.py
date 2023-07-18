@@ -22,9 +22,9 @@ class Shell():
 	interactables: List['Interactable']
 
 	def __init__(self, stdin: Optional[IO[str]] = None, stdout: Optional[IO[str]] = None) -> None:
-		self.stdin = stdin if stdin is not None else sys.stdin
-		self.stdout = stdout if stdout is not None else sys.stdout
-		self.interactables = []
+		self.stdin = stdin if stdin else sys.stdin
+		self.stdout = stdout if stdout else sys.stdout
+		self.interactables = list()
 
 	def read(self, count: int = 1) -> str:
 		return self.stdin.read(count)
@@ -107,7 +107,7 @@ class Shell():
 			self.line = 0
 		self.offset = 0
 
-	IT = TypeVar("IT", bound='Interactable')
+	IT = TypeVar("IT", bound="Interactable")
 	@overload
 	def get_interactable(self, criteria: Optional[Union[int, str]], type: Type[IT]) -> IT: ...
 	@overload
@@ -117,7 +117,7 @@ class Shell():
 		try:
 			if isinstance(criteria, int):
 				interactable = self.interactables[criteria]
-				if type is None or isinstance(interactable, type):
+				if not type or isinstance(interactable, type):
 					return interactable
 				raise ValueError(f"Criteria {criteria} does not match any interactable!")
 		except IndexError:
@@ -125,7 +125,7 @@ class Shell():
 		except TypeError:
 			pass
 		for interactable in self.interactables:
-			if interactable.key == criteria and (type is None or isinstance(interactable, type)):
+			if interactable.key == criteria and (not type or isinstance(interactable, type)):
 				return interactable
 		raise ValueError(f"Criteria {criteria} does not match any interactable!")
 
@@ -192,7 +192,7 @@ class Shell():
 
 	@staticmethod
 	def notify(shell: Optional['Shell'], message: str) -> None:
-		if shell is None:
+		if not shell:
 			printc(message); return
 		shell.interactables.append(
 			Notice(f"print{len(shell.interactables)}", message)
@@ -271,7 +271,7 @@ class InteractiveShell(Shell):
 				while index < len(self.interactables):
 					lines = self.interactables[index].lines(self)
 					if lines > self.lines_per_page or lines < 0:
-						raise BufferError(f"'{lines}' out of bounds [0, {self.lines_per_page}]")
+						raise BufferError(f"{lines!r} out of bounds [0, {self.lines_per_page}]")
 
 					if page_occupied_lines + lines > self.lines_per_page:
 						page_occupied_lines = page_buffer_offset = 0
@@ -291,7 +291,7 @@ class InteractiveShell(Shell):
 		while index > 0:
 			lines = self.interactables[index - 1].lines(self)
 			if lines > self.lines_per_page or lines < 0:
-				raise BufferError(f"'{lines}' out of bounds [0, {self.lines_per_page}]")
+				raise BufferError(f"{lines!r} out of bounds [0, {self.lines_per_page}]")
 
 			if page_occupied_lines + lines > self.lines_per_page:
 				break
@@ -333,7 +333,7 @@ class InteractiveShell(Shell):
 			interactable = self.interactables[self.global_buffer_offset + self.page_buffer_offset]
 			lines = interactable.lines(self)
 			if lines > self.lines_per_page or lines < 0:
-				raise BufferError(f"'{lines}' out of bounds [0, {self.lines_per_page}]")
+				raise BufferError(f"{lines!r} out of bounds [0, {self.lines_per_page}]")
 			if page_occupied_lines + lines > self.lines_per_page:
 				break
 			self.draw(interactable, self.page, page_occupied_lines)
@@ -559,7 +559,7 @@ class Notice(Shell.Interactable):
 
 	def __init__(self, key: Optional[str], text: Optional[str] = None) -> None:
 		Shell.Interactable.__init__(self, key)
-		self.text = text if text is not None else key
+		self.text = text or key
 
 	def render(self, shell: Shell, offset: int, line: int) -> None:
 		shell.write(str(self.text) + "\n")
@@ -572,11 +572,11 @@ class Entry(SelectiveShell.Selectable):
 
 	def __init__(self, key: Optional[str], text: Optional[str] = None, arrow: Optional[str] = "> ") -> None:
 		SelectiveShell.Selectable.__init__(self, key)
-		self.text = text if text is not None else key
+		self.text = text or key
 		self.arrow = arrow
 
 	def get_arrow(self, at_cursor: Optional[bool] = None) -> str:
-		return "" if at_cursor is None else \
+		return "" if not at_cursor else \
 			str(self.arrow) if at_cursor else " " * len(str(self.arrow))
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
@@ -619,11 +619,11 @@ class Input(Entry):
 		self.maximum_length = maximum_length
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
-		text = str(self.text) if len(str(self.text)) > 0 or self.hovered else "..." if self.template is None else self.template
-		shell.write(self.get_arrow(at_cursor) + (self.hint if self.hint is not None else "") + (text if self.hovered else stringify(text, color=colorama.Style.DIM, reset=colorama.Style.NORMAL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
+		text = str(self.text) if len(str(self.text)) > 0 or self.hovered else "..." if not self.template else self.template
+		shell.write(self.get_arrow(at_cursor) + (self.hint or "") + (text if self.hovered else stringify(text, color=colorama.Style.DIM, reset=colorama.Style.NORMAL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
 
 	def read(self) -> Optional[str]:
-		return self.template if not self.hovered and len(str(self.text)) == 0 and self.template is not None else self.text
+		return self.template if not self.hovered and len(str(self.text)) == 0 and self.template else self.text
 
 	def observe_key(self, what: str, at_cursor: Optional[bool] = None) -> bool:
 		if at_cursor:
@@ -632,12 +632,12 @@ class Input(Entry):
 				return True
 			if self.hovered:
 				if what in ("\x7f", "\x08"): # backspace
-					if self.text is not None and len(self.text) > 0:
+					if self.text and len(self.text) > 0:
 						self.text = self.text[::-1][1:][::-1]
 					else:
 						self.hovered = False
 				elif what.isprintable() and len(str(self.text) + what) <= self.maximum_length:
-					if self.text is None:
+					if not self.text:
 						self.text = ""
 					self.text += what
 				return True
@@ -654,21 +654,21 @@ class Progress(Shell.Interactable):
 		self.text = text
 
 	def render(self, shell: Shell, offset: int, line: int) -> None:
-		text = (str(self.text) if self.text is not None else str(int(self.progress * 100)) + "%").center(self.weight)
+		text = (str(self.text) if self.text else str(int(self.progress * 100)) + "%").center(self.weight)
 		size = int(self.weight * self.progress)
 		shell.write(stringify(text[:size], color=7, reset=colorama.Style.RESET_ALL) + stringify(text[size:self.weight], color=colorama.Style.DIM, reset=colorama.Style.NORMAL) + "\n")
 
 	def seek(self, progress: float, text: Optional[str] = None) -> None:
 		self.progress = progress
-		if text is not None:
+		if text:
 			self.text = text
 
 	def lines(self, shell: Shell) -> int:
-		return (str(self.text).count("\n") if self.text is not None else 0) + 1
+		return (str(self.text).count("\n") if self.text else 0) + 1
 
 	@staticmethod
 	def notify(shell: Optional[Shell], progress: Optional['Progress'], percent: float, message: str) -> None:
-		if shell is None or progress is None:
+		if not shell or not progress:
 			Shell.notify(shell, message); return
 		progress.seek(percent, message)
 		shell.render()
@@ -697,11 +697,11 @@ class Debugger(SelectiveShell.Selectable):
 		return False
 
 def select_prompt_internal(prompt: Optional[str] = None, *variants: Optional[str], fallback: Optional[int] = None) -> Tuple[Optional[int], Optional[Any]]:
-	if prompt is not None:
+	if prompt:
 		printc(prompt, end="")
 	shell = SelectiveShell(infinite_scroll=True, implicit_page_indicator=True)
 	for variant in variants:
-		if variant is not None:
+		if variant:
 			shell.interactables.append(Entry(variant))
 	try:
 		shell.loop()
@@ -714,7 +714,7 @@ def select_prompt_internal(prompt: Optional[str] = None, *variants: Optional[str
 		return None, None
 	try:
 		if isinstance(interactable, SelectiveShell.Selectable):
-			printc((prompt + " " if prompt is not None else "") + stringify(interactable.placeholder(), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+			printc((prompt + " " if prompt else "") + stringify(interactable.placeholder(), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 	except ValueError:
 		pass
 	return result, interactable
@@ -727,7 +727,7 @@ def select_prompt(prompt: Optional[str] = None, *variants: Optional[str], fallba
 def select_prompt(prompt: Optional[str] = None, *variants: Optional[str], fallback: Optional[int] = None, returns_what: bool = False) -> Optional[Union[str, int]]:
 	if returns_what:
 		interactable = select_prompt_internal(prompt, *variants, fallback=fallback)[1]
-		return interactable.key if interactable is not None else None
+		return interactable.key if interactable else None
 	return select_prompt_internal(prompt, *variants, fallback=fallback)[0]
 
 def confirm(prompt: str, fallback: bool, prints_abort: bool = True) -> bool:
@@ -743,11 +743,11 @@ def confirm(prompt: str, fallback: bool, prints_abort: bool = True) -> bool:
 	return fallback
 
 def link(text: str, url: Optional[str] = None) -> str:
-	return f"{colorama.ansi.OSC}8;;{url if url is not None else text}{colorama.ansi.BEL}{text}{colorama.ansi.OSC}8;;{colorama.ansi.BEL}"
+	return f"{colorama.ansi.OSC}8;;{url or text}{colorama.ansi.BEL}{text}{colorama.ansi.OSC}8;;{colorama.ansi.BEL}"
 
 def image(base64: str, options: Optional[Dict[str, object]] = None) -> str:
 	returnValue = colorama.ansi.OSC + "1337;File=inline=1"
-	if options is not None:
+	if options:
 		if "width" in options:
 			returnValue += ";width=" + str(options["width"])
 		if "height" in options:
@@ -761,7 +761,7 @@ def printc(*values: object, color: Optional[Union[int, str]] = None, reset: Opti
 		if isinstance(color, int):
 			color = colorama.ansi.code_to_chars(color)
 		print(color, end="", file=file, flush=flush)
-	print(*values, end=end if reset is None else "", sep=sep, file=file, flush=flush)
+	print(*values, end=end if not reset else "", sep=sep, file=file, flush=flush)
 	if reset is not None:
 		if isinstance(reset, int):
 			reset = colorama.ansi.code_to_chars(reset)
@@ -789,14 +789,14 @@ def stringify(*values: object, color: Optional[Union[int, str]] = None, reset: O
 	return buffer.value
 
 def abort(*values: object, sep: Optional[str] = " ", code: int = 255, cause: Optional[BaseException] = None) -> NoReturn:
-	if cause is not None:
+	if cause:
 		from traceback import print_exception
 		buffer = StringBuffer()
 		print_exception(cause.__class__, cause, cause.__traceback__, file=buffer)
 		error(os.linesep.join(buffer.value.rsplit(os.linesep, 8)[1:-1]))
 	if len(values) != 0:
 		printc(stringify(*values, sep=sep, color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL), color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET)
-	elif cause is None:
+	elif not cause:
 		print("Abort.")
 	try:
 		from .task import unlock_all_tasks

@@ -33,7 +33,7 @@ def might_be_updated(directory: Optional[str] = None) -> bool:
 	commit_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/.commit")
 	if not isfile(commit_path):
 		return True
-	if directory is not None and isfile(join(directory, "toolchain.zip")):
+	if directory and isfile(join(directory, "toolchain.zip")):
 		return True
 	try:
 		with open(join(commit_path)) as commit_file:
@@ -109,11 +109,7 @@ def update_toolchain() -> None:
 		else:
 			with open(commit_path) as file:
 				branch_commit = file.read().strip()
-			if commit is not None:
+			if commit:
 				print(f"Successfully installed {branch_commit[:7]} above {commit[:7]} revision!")
 			else:
 				print(f"Successfully installed under {branch_commit[:7]} revision!")
-
-
-if __name__ == "__main__":
-	update_toolchain()
