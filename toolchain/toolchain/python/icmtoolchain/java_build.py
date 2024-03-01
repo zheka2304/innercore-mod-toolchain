@@ -4,7 +4,7 @@ import platform
 import re
 import subprocess
 from collections import namedtuple
-from os.path import basename, exists, isdir, isfile, join, relpath
+from os.path import basename, exists, isdir, isfile, join, relpath, splitext
 from typing import Collection, Dict, List
 from zipfile import ZipFile
 
@@ -13,8 +13,8 @@ from .base_config import BaseConfig
 from .component import install_components
 from .shell import abort, debug, error, info, warn
 from .utils import (copy_directory, copy_file, ensure_directory, get_all_files,
-                    remove_tree, request_executable_version, request_tool,
-                    walk_all_files)
+                    get_next_filename, remove_tree, request_executable_version,
+                    request_tool, walk_all_files)
 
 BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest")
 
@@ -32,7 +32,7 @@ def prepare_build_targets(directories: Collection[str]) -> List[BuildTarget]:
 	for directory in directories:
 		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
 			manifest = json.load(manifest)
-		# relative_directory = GLOBALS.MAKE_CONFIG.get_relative_path(directory)
+		# TODO: relative_directory = GLOBALS.MAKE_CONFIG.get_relative_path(directory)
 		relative_directory = basename(directory)
 		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", relative_directory)
 		ensure_directory(output_directory)
@@ -61,7 +61,7 @@ def update_modified_targets(targets: Collection[BuildTarget], target_directory: 
 	modified_files = dict()
 	for target in targets:
 		classes_directory = join(target_directory, "classes", target.relative_directory, "classes")
-		classes = GLOBALS.BUILD_STORAGE.get_modified_files(classes_directory, (".class"))
+		classes = GLOBALS.BUILD_STORAGE.get_modified_files(classes_directory, (".class")) if isdir(classes_directory) else []
 		libraries = list()
 		for library_path in target.manifest.get_value("library-dirs", list()):
 			library_directory = join(target.directory, library_path)
@@ -179,8 +179,7 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 	for target in targets:
 		source_directories = target.manifest.get_value("source-dirs", list())
 		library_directories = target.manifest.get_value("library-dirs", list())
-		if len(source_directories) == len(library_directories) == 0:
-			debug(f"* Directory {target.relative_directory!r} is empty")
+		if len(source_directories) == 0 and len(library_directories) == 0:
 			continue
 
 		from time import time
@@ -255,7 +254,7 @@ def write_changed_source_files(target: BuildTarget, directories: Collection[str]
 			except StopIteration:
 				continue
 			contains_modifications = True
-			output.writelines(modification + os.linesep for modification in modifications)
+			output.writelines(json.dumps(modification) + os.linesep for modification in modifications)
 	return contains_modifications
 
 ### ECJ
@@ -267,8 +266,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 	for target in targets:
 		source_directories = target.manifest.get_value("source-dirs", list())
 		library_directories = target.manifest.get_value("library-dirs", list())
-		if len(source_directories) == len(library_directories) == 0:
-			debug(f"* Directory {target.relative_directory!r} is empty")
+		if len(source_directories) == 0 and len(library_directories) == 0:
 			continue
 
 		from time import time
@@ -364,10 +362,10 @@ def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str
 	target_classes_directory = join(target_directory, "classes")
 	ensure_directory(target_classes_directory)
 	for target in targets:
-		# if not exists(join(target.directory, "build.gradle")):
-		source_directories = target.manifest.get_value("source-dirs", list())
-		library_directories = target.manifest.get_value("library-dirs", list())
-		write_build_gradle(target.directory, classpath, target_classes_directory, source_directories, library_directories)
+		if not GLOBALS.MAKE_CONFIG.get_value("gradle.configurable", False) or not exists(join(target.directory, "build.gradle")):
+			source_directories = target.manifest.get_value("source-dirs", list())
+			library_directories = target.manifest.get_value("library-dirs", list())
+			write_build_gradle(target.directory, classpath, target_classes_directory, source_directories, library_directories)
 
 def write_build_gradle(directory: str, classpath: Collection[str], target_classes_directory: str, source_directories: Collection[str], library_directories: Collection[str]) -> None:
 	with open(join(directory, "build.gradle"), "w", encoding="utf-8") as build_gradle:
@@ -403,10 +401,11 @@ sourceSets {
 """)
 
 def cleanup_gradle_scripts(targets: Collection[BuildTarget]) -> None:
-	for target in targets:
-		gradle_script = join(target.directory, "build.gradle")
-		if isfile(gradle_script):
-			os.remove(gradle_script)
+	if not GLOBALS.MAKE_CONFIG.get_value("gradle.configurable", False):
+		for target in targets:
+			gradle_script = join(target.directory, "build.gradle")
+			if isfile(gradle_script):
+				os.remove(gradle_script)
 
 ### TASKS
 
@@ -440,11 +439,22 @@ def build_java_with(tool: str, directories: Collection[str], target_directory: s
 				error(f"Failed to merge {target.relative_directory!r} with result {result}.")
 				return result
 
+		built_successfully = False
+
 		target_odex_directory = join(target_directory, "odex", target.relative_directory)
 		for dirpath, dirnames, filenames in os.walk(target_odex_directory):
 			for filename in filenames:
 				relative_directory = relpath(dirpath, target_odex_directory)
 				copy_file(join(dirpath, filename), join(target.output_directory, relative_directory, filename))
+				built_successfully = True
+		for filename in os.listdir(target.directory):
+			filepath = join(target.directory, filename)
+			if splitext(filename)[1] == ".dex" and isfile(filepath):
+				copy_file(filepath, join(target.output_directory, get_next_filename(target.output_directory, "classes", extension=".dex", start_index=2)))
+				built_successfully = True
+
+		if not built_successfully:
+			warn(f"* Directory {target.relative_directory!r} is empty.")
 
 	copy_additional_sources(targets)
 	GLOBALS.BUILD_STORAGE.save()
@@ -493,7 +503,10 @@ def compile_java(tool: str = "gradle") -> int:
 	classpath_directories = GLOBALS.MAKE_CONFIG.get_value("java.classpath")
 	# Just in case if someone meaning to use outdated property.
 	if not classpath_directories:
-		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", list())
+		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", ["classpath"])
+	classpath_directories = [
+		GLOBALS.MAKE_CONFIG.get_absolute_path(filename) for filename in classpath_directories
+	]
 	if classpath_directory:
 		classpath_directories.insert(0, classpath_directory)
 

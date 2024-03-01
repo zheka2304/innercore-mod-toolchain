@@ -18,7 +18,8 @@
 		],
 		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
 		"window.titleSeparator": " \u2014 ",
-		"search.useParentIgnoreFiles": true
+		"search.useParentIgnoreFiles": true,
+		"java.project.explorer.showNonJavaResources": false
 	},
 	"extensions": {
 		"recommendations": [

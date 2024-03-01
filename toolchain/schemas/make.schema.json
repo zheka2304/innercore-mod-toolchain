@@ -333,6 +333,11 @@
 		"gradle": {
 			"description": "Exclusive to Java modding.",
 			"properties": {
+				"configurable": {
+					"type": "boolean",
+					"default": false,
+					"description": "Allows to customize build.gradle to perform building, requires skilled hands!"
+				},
 				"keepLibraries": {
 					"type": "boolean",
 					"default": true,
