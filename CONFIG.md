@@ -29,7 +29,7 @@ Properties marked with \* can have absolute file paths.
 ├─ optimizationLevel: -1 // value between -1..9, serves to unload scripts from memory
 ├─ setupScript: null // path to script that is triggered when unpacking project archive in mod browser
 │
-├─ sources: [] // directories for compiling scripts, such as launcher script to run or main.js
+├─ sources: [] // directories for compiling scripts, such as launcher script to run or main.js, or scripts themselves
 │  └─ {}
 │     ├─ type // "main", "launcher", "preloader", "instant", "custom", "library"
 │     ├─ source // relative path to script or folder, /* format is supported to include subfolders in folder
@@ -37,8 +37,9 @@ Properties marked with \* can have absolute file paths.
 │     ├─ target: "<source>.js" // script file name for output compilation
 │     ├─ sourceName: null // exclusive to "custom" build types, but script name is also displayed, for example, on errors
 │     ├─ includes: ".includes" // file for building scripts, there can be several of them in one folder
-│     ├─ api: api // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI"
-│     └─ optimizationLevel: optimizationLevel // value between -1..9, serves to unload scripts from memory
+│     ├─ api: "<../../api>" // "CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI"
+│     ├─ optimizationLevel: optimizationLevel // value between -1..9, serves to unload scripts from memory
+│     └─ shared: false // declarations will be shared between project files, needed just for specific cases
 │
 ├─ compile: [] // directories for compiling C++ and Java code, this of course does not mean that you can just take source code from Forge, but this is no less interesting thing
 │  └─ {}
