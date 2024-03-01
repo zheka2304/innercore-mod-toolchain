@@ -1,13 +1,14 @@
-import glob
 import json
 import os
 import platform
 import subprocess
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath
+from os.path import abspath, dirname, exists, isdir, isfile, join, relpath, basename, splitext
 from typing import Any, Dict, List
 
 from . import GLOBALS, PROPERTIES
+from .hglob import glob
 from .base_config import BaseConfig
+from .utils import ensure_directory, ensure_file_directory
 
 # The TypeScript Compiler - Version 4.8.3
 TSCONFIG: Dict[str, Any] = {
@@ -142,11 +143,9 @@ TSCONFIG: Dict[str, Any] = {
 
 # Basic prototype that will be changed when building
 TSCONFIG_TOOLCHAIN: Dict[str, Any] = {
-	"target": "es5", # Most of ES6 not realized in Rhino 1.7.7
-	"lib": ["esnext"],
+	"target": "es5", # Most of ES6 is not realized in Rhino 1.7.7
+	"lib": ["es5", "es2015.core", "es2015.generator"],
 	"module": "none",
-	"moduleDetection": "legacy",
-	"moduleResolution": "classic",
 	"skipDefaultLibCheck": True,
 	"composite": True,
 	"downlevelIteration": True,
@@ -234,20 +233,20 @@ class WorkspaceComposite:
 			if exists(filepath):
 				if isdir(filepath):
 					filepath = f"{filepath}/**/*.d.ts"
-				declarations.extend(glob.glob(filepath, recursive=True))
+				declarations.extend(glob(filepath, recursive=True))
 		if exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-			declarations.extend(glob.glob(
+			declarations.extend(glob(
 				GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
 				recursive=True
 			))
 		if not PROPERTIES.get_value("release"):
 			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", list()):
 				if exists(str(excluded).lstrip("/").partition("/")[0]):
-					for declaration in glob.glob(excluded, recursive=True):
+					for declaration in glob(excluded, recursive=True):
 						if declaration in declarations:
 							declarations.remove(declaration)
 				else:
-					for declaration in glob.glob(GLOBALS.TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
+					for declaration in glob(GLOBALS.TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
 						if declaration in declarations:
 							declarations.remove(declaration)
 		return list(set(declarations))
@@ -261,7 +260,12 @@ class WorkspaceComposite:
 			"compileOnSave": False,
 			"exclude": [
 				"dom",
-				"webpack"
+				"dom.iterable",
+				"es2015.iterable",
+				"scripthost",
+				"webworker",
+				"webworker.importscripts",
+				"webworker.iterable"
 			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", list()),
 			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", list()),
 			**kwargs
