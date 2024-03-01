@@ -1,8 +1,8 @@
 {
+	"$schema": "schemas/toolchain.schema.json",
 	"debugAbi": "armeabi-v7a",
 	"abis": [
-		"armeabi-v7a",
-		"x86"
+		"armeabi-v7a"
 	],
 	"linkNative": [
 		"minecraftpe",

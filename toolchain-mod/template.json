@@ -1,8 +1,8 @@
 {
+	"$schema": "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/develop/toolchain/schemas/make.schema.json",
 	"info": {
 		"name": "Template Mod"
 	},
-	"api": "CoreEngine",
 	"resources": [
 		{
 			"path": "assets/res",
@@ -39,7 +39,6 @@
 			"language": "javascript"
 		}
 	],
-	"compile": [],
 	"additional": [
 		{
 			"source": "assets/root/*",
