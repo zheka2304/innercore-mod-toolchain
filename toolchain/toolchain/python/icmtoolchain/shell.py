@@ -20,6 +20,7 @@ class Shell():
 	offset: int = 0; line: int = 0
 	stdin: IO[str]; stdout: IO[str]; eof_when_enter: bool = False
 	interactables: List['Interactable']
+	inline_flushing: bool = False
 
 	def __init__(self, stdin: Optional[IO[str]] = None, stdout: Optional[IO[str]] = None) -> None:
 		self.stdin = stdin if stdin else sys.stdin
@@ -142,7 +143,8 @@ class Shell():
 
 	def render(self) -> None:
 		self.clear()
-		self.write("\n")
+		if not self.inline_flushing:
+			self.write("\n")
 		for interactable in self.interactables:
 			self.draw(interactable)
 

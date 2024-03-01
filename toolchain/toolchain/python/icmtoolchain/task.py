@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 from io import TextIOWrapper
-from os.path import basename, exists, isdir, isfile, join, relpath
+from os.path import basename, exists, isdir, isfile, join, relpath, dirname
 from typing import Any, Callable, Dict, Final, List, Optional
 
 from . import GLOBALS, PROPERTIES, colorama
@@ -172,8 +172,12 @@ def task_compile_native() -> int:
 	locks=["java", "cleanup", "push"],
 	description="Компилирует жабные папки, используя Gradle, Javac или ECJ."
 )
-def task_compile_java(tool: str = "gradle") -> int:
+def task_compile_java(tool: Optional[str] = None) -> int:
 	from .java_build import compile_java
+	if not tool:
+		tool = GLOBALS.MAKE_CONFIG.get_value("java.compiler", "gradle")
+	if not tool:
+		return 1
 	return compile_java(tool)
 
 @task(
@@ -238,13 +242,12 @@ def task_build_info() -> int:
 			info["instantLaunch"] = info["instantLaunch"]
 
 		info_file.write(json.dumps(info, indent="\t") + "\n")
-	icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
-	if icon_path:
-		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(icon_path)
-		if isfile(icon_path):
-			copy_file(icon_path, GLOBALS.MAKE_CONFIG.get_path("output/mod_icon.png"))
-		else:
-			warn(f"* Icon {icon_path!r} described in 'make.json' not found!")
+	optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
+	icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
+	if isfile(icon_path):
+		copy_file(icon_path, GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod_icon.png")))
+	elif optional_icon_path:
+			warn(f"* Icon {icon_path!r} described in 'make.json' is not found!")
 	return 0
 
 @task(
@@ -334,37 +337,72 @@ def task_push_everything() -> int:
 	return push(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True))
 
 @task(
-	"launchHorizon",
+	"launchApplication",
 	description="Запускает лаунчер с предопределенным автозапуском на подключенном устройстве с помощью ADB."
 )
-def task_launch_horizon() -> int:
-	from subprocess import call
-	call(GLOBALS.ADB_COMMAND + [
-		"shell", "touch",
-		"/storage/emulated/0/games/horizon/.flag_auto_launch"
+def task_monkey_launcher() -> int:
+	from subprocess import run
+	run(GLOBALS.ADB_COMMAND + [
+		"shell", "input",
+		"keyevent", "KEYCODE_WAKEUP"
 	], stdout=DEVNULL, stderr=DEVNULL)
-	call(GLOBALS.ADB_COMMAND + [
-		"shell", "touch",
-		"/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/.flag_auto_launch"
-	], stdout=DEVNULL, stderr=DEVNULL)
-	return call(GLOBALS.ADB_COMMAND + [
-		"shell", "monkey",
-		"-p", "com.zheka.horizon",
-		"-c", "android.intent.category.LAUNCHER", "1"
-	], stdout=DEVNULL, stderr=DEVNULL)
+	try:
+		process = run(GLOBALS.ADB_COMMAND + [
+			"shell", "monkey",
+			"-p", "com.zheka.horizon",
+			"-c", "android.intent.category.LAUNCHER", "1"
+		], check=True, capture_output=True, text=True)
+		successful = False
+		for line in process.stdout.splitlines():
+			if line[:15] == "Events injected":
+				successful = True
+				break
+		if not successful:
+			raise RuntimeError()
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "touch",
+			"/storage/emulated/0/games/horizon/.flag_auto_launch"
+		], stdout=DEVNULL, stderr=DEVNULL)
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "touch",
+			"/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/.flag_auto_launch"
+		], stdout=DEVNULL, stderr=DEVNULL)
+	except BaseException:
+		try:
+			process = run(GLOBALS.ADB_COMMAND + [
+				"shell", "monkey",
+				"-p", "com.zhekasmirnov.innercore",
+				"-c", "android.intent.category.LAUNCHER", "1"
+			], check=True, capture_output=True, text=True)
+			successful = False
+			for line in process.stdout.splitlines():
+				if line[:15] == "Events injected":
+					successful = True
+					break
+			if not successful:
+				raise RuntimeError()
+		except BaseException:
+			warn("* Horizon is not installed, nothing to launch.")
+	return 0
 
 @task(
-	"stopHorizon",
+	"stopApplication",
 	description="Завершает процесс лаунчера на подключенном устройстве с помощью ADB."
 )
-def stop_horizon() -> int:
-	from subprocess import call
-	return call(GLOBALS.ADB_COMMAND + [
-		"shell",
-		"am",
-		"force-stop",
-		"com.zheka.horizon"
-	], stdout=DEVNULL, stderr=DEVNULL)
+def task_stop_launcher() -> int:
+	from subprocess import run, CalledProcessError
+	try:
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "am",
+			"force-stop", "com.zheka.horizon"
+		], check=True, stdout=DEVNULL, stderr=DEVNULL)
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "am",
+			"force-stop", "com.zhekasmirnov.innercore"
+		], check=True, stdout=DEVNULL, stderr=DEVNULL)
+	except CalledProcessError as err:
+		return err.returncode
+	return 0
 
 @task(
 	"configureADB",
@@ -399,7 +437,7 @@ def task_new_project() -> int:
 	description="Конвертирует проект для использования тулчейном, либо создает слияние нескольких проектов."
 )
 def task_import_project(path: str = "", target: str = "") -> int:
-	from import_project import import_project
+	from .import_project import import_project
 	path = import_project(path if len(path) > 0 else None, target if len(target) > 0 else None)
 	print("Project successfully imported!")
 
@@ -443,18 +481,18 @@ def task_remove_project() -> int:
 )
 def task_select_project(path: str = "") -> int:
 	if len(path) > 0:
-		if isfile(path):
-			path = join(path, "..")
-		where = relpath(path, GLOBALS.TOOLCHAIN_CONFIG.directory)
-		if isdir(path):
-			if where == ".":
+		where = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path)
+		if isfile(where) and basename(where) == "make.json":
+			where = dirname(where)
+		if isdir(where):
+			if where == GLOBALS.TOOLCHAIN_CONFIG.directory:
 				abort("Requested path must be reference to project, not toolchain itself.")
-			if not isfile(join(path, "make.json")):
-				abort(f"Not found 'make.json' in {where!r}, it not belongs to project yet.")
-			GLOBALS.PROJECT_MANAGER.select_project_folder(folder=where)
+			if not isfile(join(where, "make.json")):
+				abort(f"Not found 'make.json' in {path!r}, it not belongs to project yet.")
+			GLOBALS.PROJECT_MANAGER.select_project(folder=path)
 			return 0
 		else:
-			abort(f"Requested project path {where!r} does not exists.")
+			abort(f"Requested project path {path!r} does not exists.")
 
 	if GLOBALS.PROJECT_MANAGER.how_much() == 0:
 		abort("Not found any project to choice.")

@@ -161,15 +161,18 @@ def list_subdirectories(path: str, max_depth: int = 5, directories: Optional[Lis
 	if not isdir(path):
 		return directories
 	directories.append(path)
-	for filename in os.listdir(path):
-		subpath = join(path, filename)
-		if max_depth > 0 and isdir(subpath):
-			list_subdirectories(subpath, max_depth - 1, directories)
+
+	if max_depth == -1 or max_depth > 0:
+		with os.scandir(path) as it:
+			for entry in it:
+				if entry.is_dir():
+					list_subdirectories(entry.path, max_depth - 1, directories)
+
 	return directories
 
-@overload 
+@overload
 def ensure_not_whitespace(what: Optional[str], fallback: None = None) -> Optional[str]: ...
-@overload 
+@overload
 def ensure_not_whitespace(what: Optional[str], fallback: str) -> str: ...
 
 def ensure_not_whitespace(what: Optional[str], fallback: Optional[str] = None) -> Optional[str]:
@@ -205,16 +208,16 @@ def get_project_folder_by_name(directory: str, name: str) -> Optional[str]:
 	folder = name_to_identifier(name, "-").strip("-")
 	return get_next_filename(directory, folder, "-") if len(folder) > 0 else None
 
-def get_next_filename(directory: str, name: str, delimiter: str = "") -> str:
+def get_next_filename(directory: str, name: str, delimiter: str = "", extension: str = "", start_index: int = 1) -> str:
 	"""
 	Recursive checking existing pathes, counting additional postfix, which
 	is separated from provided name with delimiter.
 	"""
-	buffer_name = name
-	buffer_index = 0
+	buffer_name = name + extension
+	buffer_index = start_index
 	while exists(join(directory, buffer_name)):
+		buffer_name = f"{name}{delimiter}{buffer_index}{extension}"
 		buffer_index += 1
-		buffer_name = f"{name}{delimiter}{buffer_index}"
 	return buffer_name
 
 def shortcodes(source: str) -> str:

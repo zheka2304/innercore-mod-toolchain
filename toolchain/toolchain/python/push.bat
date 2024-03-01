@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain stopHorizon pushEverything launchHorizon
+python -m icmtoolchain stopApplication pushEverything launchApplication

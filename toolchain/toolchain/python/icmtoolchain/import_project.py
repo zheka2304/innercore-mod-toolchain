@@ -1,11 +1,11 @@
 import json
 import os
 import sys
-from glob import glob
 from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import GLOBALS
+from .hglob import glob
 from .base_config import BaseConfig
 from .shell import abort, confirm, debug, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
@@ -273,7 +273,8 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	with open(make_project, "w", encoding="utf-8") as make_file:
 		make_file.write(json.dumps(make_obj, indent="\t") + "\n")
 
-	if not confirm("Do you want to copy reassigned directories in directory itself?", False, prints_abort=False):
+	if destination == path and not \
+			confirm("Do you want to copy reassigned directories in directory itself?", False, prints_abort=False):
 		abort()
 
 	debug("Copying files and directories")

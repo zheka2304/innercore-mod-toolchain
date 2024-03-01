@@ -1,12 +1,12 @@
 import os
 import shutil
-from glob import glob
 from os.path import exists, isdir, isfile, join
 from typing import Optional
 from urllib import request
 from urllib.error import URLError
 
 from . import GLOBALS
+from .hglob import glob
 from .shell import abort, error, warn
 from .utils import AttributeZipFile, merge_directory
 

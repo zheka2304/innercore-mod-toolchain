@@ -1,4 +1,3 @@
-import glob
 import json
 import os
 import platform
@@ -8,6 +7,7 @@ from os.path import basename, isdir, isfile, join, normpath, relpath
 from typing import Any, Dict, Final, List
 
 from . import GLOBALS, PROPERTIES
+from .hglob import glob
 from .shell import debug, error, info, warn
 from .utils import ensure_file_directory
 from .workspace import TSCONFIG
@@ -90,7 +90,7 @@ class Includes:
 			line = line[1:].strip()
 			search_path = (join(self.directory, line[:-2], ".") + "/**/*") \
 				if line.endswith("/.") else join(self.directory, line)
-			for file in glob.glob(search_path, recursive=True):
+			for file in glob(search_path, recursive=True):
 				file = normpath(file)
 				if file not in self.include:
 					self.exclude.append(relpath(file, self.directory).replace("\\", "/"))
@@ -230,7 +230,7 @@ class Includes:
 			with open(temporary_path, "w", encoding="utf-8") as source:
 				first_file = True
 				for search_path in self.include:
-					for filepath in glob.glob(join(self.directory, search_path), recursive=True):
+					for filepath in glob(join(self.directory, search_path), recursive=True):
 						filename = relpath(filepath, self.directory)
 						if not filename in self.exclude and filename.endswith(".js") and isfile(filepath):
 							if first_file: first_file = False

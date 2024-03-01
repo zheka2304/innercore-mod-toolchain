@@ -2,11 +2,11 @@ import platform
 import re
 import socket
 import subprocess
-from glob import glob
 from os.path import basename, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import GLOBALS
+from .hglob import glob
 from .make_config import MakeConfig
 from .shell import (Progress, Shell, abort, confirm, error, link,
                     select_prompt, warn)
@@ -20,7 +20,8 @@ def get_modpack_push_directory() -> Optional[str]:
 		if directory:
 			if not isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) or not GLOBALS.MAKE_CONFIG.current_project:
 				return None
-			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project))
+			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project)) if "/horizon/packs/" in directory \
+				else join(directory, basename(GLOBALS.MAKE_CONFIG.current_project))
 
 	if not directory:
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("pushTo", setup_modpack_directory())
@@ -112,16 +113,19 @@ def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 		return (list(), list())
 	files, directories = list(), list()
 	for partition in (entry.partition(" ") for entry in pipe.stdout.rstrip().splitlines()):
-		(directories if partition[0] == "d" else files).append(partition[2])
+		is_directory = (len(partition[2]) != 0 and partition[0] == "d") or partition[0][-1] == "/"
+		filename = partition[2] if len(partition[2]) > 0 else partition[0][:-1] if partition[0][-1] == "/" else partition[0]
+		(directories if is_directory else files).append(filename)
 	return directories, files
 
 def push(directory : str, push_unchanged: bool = False) -> int:
 	shell = Shell()
+	shell.inline_flushing = True
 	progress = Progress("Pushing")
 	shell.interactables.append(progress)
 	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)]
 	if len(items) == 0:
-		Progress.notify(shell, progress, 1, "Nothing to push")
+		Progress.notify(shell, progress, 1, "Already pushed")
 		with shell: return 0
 
 	destination_directory = get_modpack_push_directory()
@@ -212,11 +216,13 @@ def get_device_state() -> int:
 		pipe = subprocess.run([
 			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"get-state"
-		], text=True, check=True, capture_output=True)
+		], text=True, timeout=3.0, check=True, capture_output=True)
 	except subprocess.CalledProcessError as err:
 		if err.returncode == 1:
 			return STATE_NO_DEVICES
 		error("adb get-state failed with code", err.returncode)
+		return STATE_UNKNOWN
+	except subprocess.TimeoutExpired:
 		return STATE_UNKNOWN
 	return which_state(pipe.stdout.strip())
 
@@ -286,6 +292,8 @@ def get_ip() -> str:
 
 def get_adb_command() -> List[str]:
 	ensure_server_running()
+	if get_device_state() == STATE_DEVICE_CONNECTED:
+		return [GLOBALS.TOOLCHAIN_CONFIG.get_adb()]
 	devices = GLOBALS.TOOLCHAIN_CONFIG.get_value("devices", list())
 	if len(devices) > 0:
 		subprocess.run([
@@ -294,14 +302,14 @@ def get_adb_command() -> List[str]:
 		], stdout=DEVNULL, stderr=DEVNULL)
 	for device in devices:
 		if isinstance(device, dict):
+			target = f"{device['ip']}:{device['port']}" if "port" in device else device["ip"]
 			try:
 				subprocess.run([
 					GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
-					"connect",
-					f"{device['ip']}:{device['port']}" if "port" in device else device["ip"]
+					"connect", target
 				], timeout=3.0, stdout=DEVNULL, stderr=DEVNULL)
 			except subprocess.TimeoutExpired:
-				print("Timeout")
+				print(f"Connection to {target} timeout")
 	pending = device_list()
 	if pending:
 		itwillbe = list()
@@ -336,7 +344,7 @@ def get_adb_command_by_serial(serial: str) -> List[str]:
 
 def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool = False) -> Optional[List[str]]:
 	ensure_server_running()
-	if not get_adb_command_by_serialno_type("-e"):
+	if not get_adb_command_by_serialno_type("-e", silent=skip_error):
 		if skip_error or not confirm("Are you sure want to save it?", False):
 			return None
 	device: dict[str, Any] = {
@@ -354,13 +362,14 @@ def get_adb_command_by_tcp(ip: str, port: Optional[int] = None, skip_error: bool
 		"-e"
 	]
 
-def get_adb_command_by_serialno_type(which: str) -> Optional[List[str]]:
+def get_adb_command_by_serialno_type(which: str, silent: bool = False) -> Optional[List[str]]:
 	serial = subprocess.run([
 		GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 		which, "get-serialno"
 	], text=True, capture_output=True)
 	if serial.returncode != 0:
-		warn("adb get-serialno failed with code", serial.returncode)
+		if not silent:
+			warn("adb get-serialno failed with code", serial.returncode)
 		return None
 	return get_adb_command_by_serial(serial.stdout.rstrip())
 
@@ -447,10 +456,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"disconnect"
 		], stdout=DEVNULL, stderr=DEVNULL)
-		print()
-		print("\n".join(accepted))
-		print("Pinging every port, interrupt operation if you already know it.")
-		print()
+		print("Found connections: " + ", ".join(accepted))
 		latest = None
 		for next in accepted:
 			try:
@@ -461,6 +467,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 				command = get_adb_command_by_tcp(next, skip_error=True)
 				if command:
 					latest = command
+					break
 				else:
 					print()
 			except subprocess.CalledProcessError as err:
@@ -469,6 +476,10 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 				print("Timeout")
 			except KeyboardInterrupt:
 				break
+		if latest:
+			return latest
+		print("Pinging every port, interrupt operation if you already know it.")
+		for next in accepted:
 			try:
 				ports = list()
 				try:
@@ -480,6 +491,7 @@ def setup_via_ping_localhost() -> Optional[List[str]]:
 					command = get_adb_command_by_tcp(next + ":" + port, skip_error=True)
 					if command:
 						latest = command
+						break
 					else:
 						print()
 			except KeyboardInterrupt:

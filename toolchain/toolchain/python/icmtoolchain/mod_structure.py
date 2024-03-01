@@ -125,7 +125,7 @@ class ModStructure:
 
 	def setup_default_config(self) -> None:
 		self.read_or_create_build_config()
-		if not self.build_config:
+		if not isinstance(self.build_config, dict):
 			raise SystemError()
 		if "defaultConfig" not in self.build_config or not isinstance(self.build_config["defaultConfig"], dict):
 			self.build_config["defaultConfig"] = dict()

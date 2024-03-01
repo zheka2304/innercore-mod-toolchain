@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple
 from . import GLOBALS, PROPERTIES
 from .includes import Includes
 from .shell import abort, debug, error, info, warn
-from .utils import copy_directory, copy_file, remove_tree, request_typescript
+from .utils import copy_directory, copy_file, remove_tree, request_tool, request_typescript
 
 VALID_SOURCE_TYPES = ("main", "launcher", "preloader", "instant", "custom", "library")
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
@@ -17,6 +17,9 @@ def get_allowed_languages() -> List[str]:
 	if len(GLOBALS.MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
 		if request_typescript() == "typescript":
 			allowed_languages.append("typescript")
+	# Otherwise check tsc directly, allowing dynamically rebuilding references
+	elif request_tool("tsc"):
+		allowed_languages.append("typescript")
 
 	if not GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
 		allowed_languages.append("javascript")
@@ -55,7 +58,7 @@ def build_all_scripts(watch: bool = False) -> int:
 def rebuild_build_target(source, target_path: str) -> str:
 	declare = {
 		# make.json source type -> build.config source type
-		"sourceType": "mod" if source["type"] == "main" else source["type"]
+		"sourceType": "mod" if source["type"] == "main" else "custom" if source["type"] == "instant" else source["type"]
 	}
 
 	if "api" in source and source["type"] != "preloader":
@@ -121,8 +124,8 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 
 			if isdir(source_path):
 				include = Includes.invalidate(source_path, make)
-				# Computing in any cases, tsconfig normalizes environment usage
-				if include.compute(destination_path, language):
+				# Computing in any case, tsconfig normalises environment usage
+				if include.compute(destination_path, "typescript" if "typescript" in allowed_languages and not appending_library else "javascript"):
 					includes.append((
 						include,
 						destination_path,
@@ -148,7 +151,6 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 					source_path, destination_path, "javascript" if appending_library else language
 				))
 
-	GLOBALS.BUILD_STORAGE.save()
 	return composite, computed_composite, includes, computed_includes
 
 def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tuple[str, str]]) -> None:

@@ -20,6 +20,6 @@
 	},
 	"java.dependency.packagePresentation": "flat",
 	"java.dependency.syncWithFolderExplorer": true,
-	"java.project.outputPath": "toolchain/build/java",
-	"C_Cpp.errorSquiggles": "enabledIfIncludesResolve"
+	"C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+	"python.analysis.typeCheckingMode": "basic"
 }
