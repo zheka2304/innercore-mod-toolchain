@@ -105,7 +105,7 @@ All documentation is available at <https://docs.mineprogramming.org>. Here you c
 
 Slightly outdated, but no less useful information can be found at <https://wiki.mineprogramming.org>.
 
-## Working with CLI
+### Working with CLI
 
 There are several options for using toolchain through the console or terminal. The first, and easiest, is to open the *toolchain/toolchain/python* folder in the console, manually running scripts there. You can add the same folder to `PATH` environment variable, how to do it on your platform can be found [here](https://www.java.com/en/download/help/path.html).
 
