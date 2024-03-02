@@ -297,3 +297,129 @@ class WorkspaceComposite:
 			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=platform.system() == "Windows")
 		except KeyboardInterrupt:
 			return 0
+
+
+def get_idea_project_run_configuration(name: str, path: str):
+	relative_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
+	relative_path = "$PROJECT_DIR$/" + relative_path if relative_path[:2] != ".." else None
+	attribute_independent = "true" if relative_path is None else "false"
+
+	from xml.dom import minidom
+	document = minidom.Document()
+
+	component = document.createElement("component")
+	component.setAttribute("name", "ProjectRunConfigurationManager")
+	configuration = document.createElement("configuration")
+	configuration.setAttribute("name", name)
+	configuration.setAttribute("default", "false")
+	configuration.setAttribute("type", "ShConfigurationType")
+	component.appendChild(configuration)
+
+	script_path = document.createElement("option")
+	script_path.setAttribute("name", "SCRIPT_PATH")
+	script_path.setAttribute("value", relative_path or abspath(path))
+	configuration.appendChild(script_path)
+	script_options = document.createElement("option")
+	script_options.setAttribute("name", "SCRIPT_OPTIONS")
+	script_options.setAttribute("value", "")
+	configuration.appendChild(script_options)
+	independent_script_path = document.createElement("option")
+	independent_script_path.setAttribute("name", "INDEPENDENT_SCRIPT_PATH")
+	independent_script_path.setAttribute("value", attribute_independent)
+	configuration.appendChild(independent_script_path)
+
+	script_working_directory = document.createElement("option")
+	script_working_directory.setAttribute("name", "SCRIPT_WORKING_DIRECTORY")
+	script_working_directory.setAttribute("value", dirname(relative_path or abspath(path)))
+	configuration.appendChild(script_working_directory)
+	independent_script_working_directory = document.createElement("option")
+	independent_script_working_directory.setAttribute("name", "INDEPENDENT_SCRIPT_WORKING_DIRECTORY")
+	independent_script_working_directory.setAttribute("value", attribute_independent)
+	configuration.appendChild(independent_script_working_directory)
+
+	interpreter_path = document.createElement("option")
+	interpreter_path.setAttribute("name", "INTERPRETER_PATH")
+	interpreter_path.setAttribute("value", "")
+	configuration.appendChild(interpreter_path)
+	interpreter_options = document.createElement("option")
+	interpreter_options.setAttribute("name", "INTERPRETER_OPTIONS")
+	interpreter_options.setAttribute("value", "")
+	configuration.appendChild(interpreter_options)
+	independent_interpreter_path = document.createElement("option")
+	independent_interpreter_path.setAttribute("name", "INDEPENDENT_INTERPRETER_PATH")
+	independent_interpreter_path.setAttribute("value", "true")
+	configuration.appendChild(independent_interpreter_path)
+
+	method = document.createElement("method")
+	method.setAttribute("v", "2")
+	configuration.appendChild(method)
+	return component.toprettyxml(indent=" " * 2)
+
+def write_idea_project_run_configurations(name: str, path: str):
+	from re import sub
+	configurations_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".idea", "runConfigurations"))
+	ensure_directory(configurations_path)
+	with open(join(configurations_path, sub(r"\W", "_", name) + ".xml"), "w") as wrapper:
+		wrapper.write(get_idea_project_run_configuration(name, path + ".bat"))
+	with open(join(configurations_path, sub(r"\W", "_", name + " (Unix)") + ".xml"), "w") as wrapper:
+		wrapper.write(get_idea_project_run_configuration(name, path + ".sh"))
+
+def get_vscode_build_task(name: str, path: str, icon: str = "run", hidden: bool = False):
+	absolute_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
+	absolute_path = join(".", absolute_path) if absolute_path[:2] != ".." else abspath(path)
+	task = {
+		"label": name,
+		"icon": {
+			"id": icon
+		}
+	}
+	if hidden:
+		task["hide"] = True
+	task.update({
+		"type": "shell",
+		"command": f"./{basename(path)}.sh",
+		"options": {
+			"cwd": dirname(absolute_path)
+		}
+	})
+	task["windows"] = {
+		"command": task["command"][:-3].replace("/", "\\") + ".bat",
+		"options": {
+			"cwd": task["options"]["cwd"].replace("/", "\\")
+		}
+	}
+	task.update({
+		"group": {
+			"kind": "build",
+			"isDefault": True
+		},
+		"problemMatcher": list()
+	})
+	return task
+
+def write_vscode_build_tasks(name: str, path: str, icon: str = "run", hidden: bool = False):
+	tasks_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".vscode", "tasks.json"))
+	ensure_file_directory(tasks_path)
+
+	configuration = None
+	if isfile(tasks_path):
+		with open(tasks_path) as tasks:
+			configuration = json.load(tasks)
+	if not isinstance(configuration, dict):
+		configuration = {}
+		configuration["version"] = "2.0.0"
+	if "tasks" not in configuration:
+		configuration["tasks"] = list()
+
+	duplicates = list()
+	for task in configuration["tasks"]:
+		if "command" in task and "options" in task and "cwd" in task["options"]:
+			absolute_path = abspath(join(task["options"]["cwd"], splitext(task["command"])[0]))
+			if absolute_path == abspath(path):
+				duplicates.append(task)
+	for task in duplicates:
+		configuration["tasks"].remove(task)
+
+	configuration["tasks"].append(get_vscode_build_task(name, path, icon=icon, hidden=hidden))
+	with open(tasks_path, "w") as tasks:
+		json.dump(configuration, tasks, indent="\t")
