@@ -362,7 +362,7 @@ def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str
 	target_classes_directory = join(target_directory, "classes")
 	ensure_directory(target_classes_directory)
 	for target in targets:
-		if not GLOBALS.MAKE_CONFIG.get_value("gradle.configurable", False) or not exists(join(target.directory, "build.gradle")):
+		if not GLOBALS.MAKE_CONFIG.get_value("java.configurable", False) or not exists(join(target.directory, "build.gradle")):
 			source_directories = target.manifest.get_value("source-dirs", list())
 			library_directories = target.manifest.get_value("library-dirs", list())
 			write_build_gradle(target.directory, classpath, target_classes_directory, source_directories, library_directories)
@@ -401,7 +401,7 @@ sourceSets {
 """)
 
 def cleanup_gradle_scripts(targets: Collection[BuildTarget]) -> None:
-	if not GLOBALS.MAKE_CONFIG.get_value("gradle.configurable", False):
+	if not GLOBALS.MAKE_CONFIG.get_value("java.configurable", False):
 		for target in targets:
 			gradle_script = join(target.directory, "build.gradle")
 			if isfile(gradle_script):

@@ -3,7 +3,7 @@ import os
 import shutil
 import time
 from io import TextIOWrapper
-from os.path import basename, exists, isdir, isfile, join, relpath, dirname
+from os.path import basename, dirname, exists, isdir, isfile, join, relpath
 from typing import Any, Callable, Dict, Final, List, Optional
 
 from . import GLOBALS, PROPERTIES, colorama
@@ -151,7 +151,7 @@ def task(name: str, description: Optional[str] = None, locks: Optional[List[str]
 @task(
 	"compileNative",
 	locks=["native", "cleanup", "push"],
-	description="Компилирует нативные папки, используя NDK и линкует объекты."
+	description="Compiles native folders using NDK and links objects."
 )
 def task_compile_native() -> int:
 	if PROPERTIES.get_value("release"):
@@ -170,7 +170,7 @@ def task_compile_native() -> int:
 @task(
 	"compileJava",
 	locks=["java", "cleanup", "push"],
-	description="Компилирует жабные папки, используя Gradle, Javac или ECJ."
+	description="Compiles java folders using Gradle, Javac or ECJ."
 )
 def task_compile_java(tool: Optional[str] = None) -> int:
 	from .java_build import compile_java
@@ -178,12 +178,15 @@ def task_compile_java(tool: Optional[str] = None) -> int:
 		tool = GLOBALS.MAKE_CONFIG.get_value("java.compiler", "gradle")
 	if not tool:
 		return 1
+	if not tool == "gradle" and GLOBALS.MAKE_CONFIG.get_value("java.configurable", False):
+		warn("* Project uses configurable Gradle, different tools cannot be applied.")
+		tool = "gradle"
 	return compile_java(tool)
 
 @task(
 	"buildScripts",
 	locks=["script", "cleanup", "push"],
-	description="Пересобирает скрипты, используя простое слияние файлов или TSC."
+	description="Recompiles scripts using simple file concatenation or tsc."
 )
 def task_build_scripts() -> int:
 	from .script_build import build_all_scripts
@@ -192,7 +195,7 @@ def task_build_scripts() -> int:
 @task(
 	"watchScripts",
 	locks=["script", "cleanup", "push"],
-	description="Пересобирает измененные скрипты с помощью TSC мгновенно, прерывание завершит наблюдение."
+	description="Recompiles changed scripts instantly using tsc, interruption will end watching."
 )
 def task_watch_scripts() -> int:
 	from .script_build import build_all_scripts
@@ -200,7 +203,7 @@ def task_watch_scripts() -> int:
 
 @task(
 	"updateIncludes",
-	description="Переопределяет содержимое 'tsconfig.json', основываясь на файлах скриптов."
+	description="Overrides the contents of 'tsconfig.json' based on script files."
 )
 def task_update_includes() -> int:
 	from .script_build import (compute_and_capture_changed_scripts,
@@ -214,7 +217,7 @@ def task_update_includes() -> int:
 @task(
 	"buildResources",
 	locks=["resource", "cleanup", "push"],
-	description="Копирует предопределенные ресурсы, состоящие из текстур, внутреигровых паков и прочего."
+	description="Copies predefined resources consisting of textures, in-game packs, etc."
 )
 def task_resources() -> int:
 	from .script_build import build_all_resources
@@ -223,7 +226,7 @@ def task_resources() -> int:
 @task(
 	"buildInfo",
 	locks=["cleanup", "push"],
-	description="Записывает файл описания 'mod.info' в выходную папку для отображения в менеджере браузера."
+	description="Writes the description file 'mod.info' to output folder for display in mod browser."
 )
 def task_build_info() -> int:
 	from .utils import shortcodes
@@ -253,7 +256,7 @@ def task_build_info() -> int:
 @task(
 	"buildAdditional",
 	locks=["cleanup", "push"],
-	description="Копирует дополнительные файлы и папки, помимо основных ресурсов и кода."
+	description="Copies additional files and directories, besides main resources and code."
 )
 def task_build_additional() -> int:
 	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=list()):
@@ -275,7 +278,7 @@ def task_build_additional() -> int:
 @task(
 	"clearOutput",
 	locks=["assemble", "push", "native", "java"],
-	description="Опционально удаляет выходную папку, по умолчанию не имеет эффекта."
+	description="Optionally deletes the output folder; has no effect by default."
 )
 def task_clear_output(force: bool = False) -> int:
 	if GLOBALS.PREFERRED_CONFIG.get_value("development.clearOutput", False) or force:
@@ -288,7 +291,7 @@ def task_clear_output(force: bool = False) -> int:
 @task(
 	"excludeDirectories",
 	locks=["push", "assemble", "native", "java"],
-	description="Удаляет предопределенные конфигом файлы и папки, которые должны быть исключены перед публикацией."
+	description="Deletes predefined config files and directories that should be excluded prior to publication."
 )
 def task_exclude_directories() -> int:
 	for path in GLOBALS.MAKE_CONFIG.get_value("excludeFromRelease", list()):
@@ -302,7 +305,7 @@ def task_exclude_directories() -> int:
 @task(
 	"buildPackage",
 	locks=["push", "assemble", "native", "java"],
-	description="Собирает выходную папку проекта в архив, специально для публикации в браузере."
+	description="Assembles project's output folder into an archive, specifically for publishing in a mod browser."
 )
 def task_build_package() -> int:
 	output_dir = GLOBALS.MOD_STRUCTURE.directory
@@ -330,7 +333,7 @@ def task_build_package() -> int:
 @task(
 	"pushEverything",
 	locks=["push"],
-	description="Отправляет собранную выходную папку на подключенное устройство."
+	description="Sends assembled output folder to a connected device."
 )
 def task_push_everything() -> int:
 	from .device import push
@@ -338,7 +341,7 @@ def task_push_everything() -> int:
 
 @task(
 	"launchApplication",
-	description="Запускает лаунчер с предопределенным автозапуском на подключенном устройстве с помощью ADB."
+	description="Starts launcher with predefined autostart setting on a connected device using ADB."
 )
 def task_monkey_launcher() -> int:
 	from subprocess import run
@@ -387,10 +390,10 @@ def task_monkey_launcher() -> int:
 
 @task(
 	"stopApplication",
-	description="Завершает процесс лаунчера на подключенном устройстве с помощью ADB."
+	description="Terminates launcher process on a connected device using ADB."
 )
 def task_stop_launcher() -> int:
-	from subprocess import run, CalledProcessError
+	from subprocess import CalledProcessError, run
 	try:
 		run(GLOBALS.ADB_COMMAND + [
 			"shell", "am",
@@ -406,7 +409,7 @@ def task_stop_launcher() -> int:
 
 @task(
 	"configureADB",
-	description="Добавляет новое подключение к мобильному устройству по кабелю или сети."
+	description="Adds a new connection to a mobile device/emulator via cable or network."
 )
 def task_configure_adb() -> int:
 	from . import device
@@ -417,7 +420,7 @@ def task_configure_adb() -> int:
 
 @task(
 	"newProject",
-	description="Создает проект, интерактивно запрашивая название, шаблон и прочие свойства."
+	description="Creates a project, prompting interactive input for name, template, and other properties."
 )
 def task_new_project() -> int:
 	from .package import new_project
@@ -434,7 +437,7 @@ def task_new_project() -> int:
 
 @task(
 	"importProject",
-	description="Конвертирует проект для использования тулчейном, либо создает слияние нескольких проектов."
+	description="Converts a project for utilization with toolchains or creates a merge of several projects."
 )
 def task_import_project(path: str = "", target: str = "") -> int:
 	from .import_project import import_project
@@ -449,7 +452,7 @@ def task_import_project(path: str = "", target: str = "") -> int:
 @task(
 	"removeProject",
 	locks=["cleanup"],
-	description="Удаляет проект, интерактивно выбранный пользователем."
+	description="Removes a project, selected interactively by user."
 )
 def task_remove_project() -> int:
 	if GLOBALS.PROJECT_MANAGER.how_much() == 0:
@@ -477,7 +480,7 @@ def task_remove_project() -> int:
 @task(
 	"selectProject",
 	locks=["cleanup"],
-	description="Выбирает проект из указанной папки, либо запрашивает интерактивную выборку у пользователя."
+	description="Selects a project from a specified folder or requests interactive pickings from user."
 )
 def task_select_project(path: str = "") -> int:
 	if len(path) > 0:
@@ -510,7 +513,7 @@ def task_select_project(path: str = "") -> int:
 
 @task(
 	"updateToolchain",
-	description="Обновляет тулчейн, используя ветку разработки; дополнительно проверяет обновления установленных компонентов."
+	description="Updates the toolchain using a development branch; additionally verifies updates for installed components."
 )
 def task_update_toolchain() -> int:
 	from .update import update_toolchain
@@ -526,7 +529,7 @@ def task_update_toolchain() -> int:
 
 @task(
 	"componentIntegrity",
-	description="Установка дополнительных компонентов для компиляции, либо повторная первоначальная настройка."
+	description="Installs additional components required for compilation or performs a initial setup."
 )
 def task_component_integrity(startup: bool = False) -> int:
 	from . import component
@@ -537,7 +540,7 @@ def task_component_integrity(startup: bool = False) -> int:
 
 @task(
 	"cleanup",
-	description="Очищает кеш выбранного проекта, либо все выходные файлы прошлых сборок, забывая измененные файлы."
+	description="Clears cache of a selected project or all output files from previous builds, forgetting modified files."
 )
 def task_cleanup() -> int:
 	from .package import cleanup_relative_directory

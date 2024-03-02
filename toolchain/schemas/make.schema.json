@@ -330,7 +330,7 @@
 			"$ref": "https://json.schemastore.org/tsconfig.json#/definitions/compilerOptionsDefinition/properties/compilerOptions",
 			"description": "TypeScript configuration options. Use IntelliSense within this file or run 'tsc --all' for more information."
 		},
-		"gradle": {
+		"java": {
 			"description": "Exclusive to Java modding.",
 			"properties": {
 				"configurable": {
@@ -355,9 +355,18 @@
 					},
 					"uniqueItems": true,
 					"description": "Additional paths to include as part of system libraries. They won't be added to the final archive."
+				},
+				"compiler": {
+					"enum": ["gradle", "javac", "ecj"],
+					"default": "gradle",
+					"description": "Determines how to compile java folders, ECJ requires 'ecj-version.jar' placement to 'toolchain/bin' directory."
 				}
 			},
 			"additionalProperties": false
+		},
+		"gradle": {
+			"$ref": "#/properties/java",
+			"deprecated": true
 		},
 		"linkNative": {
 			"type": "array",

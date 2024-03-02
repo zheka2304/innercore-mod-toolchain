@@ -5,8 +5,8 @@ from os.path import basename, exists, isdir, isfile, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import GLOBALS
-from .hglob import glob
 from .base_config import BaseConfig
+from .hglob import glob
 from .shell import abort, confirm, debug, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
                     get_project_folder_by_name)
@@ -228,7 +228,9 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	if not (isfile(join(path, "build.config")) or isfile(join(path, "make.json"))):
 		abort("Not found 'build.config' or 'make.json' entry to import, nothing to do!")
 	print(f"Importing {path!r} into {basename(destination)!r}")
+
 	make_obj = dict()
+	make_obj["$schema"] = "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/develop/toolchain/schemas/make.schema.json"
 
 	if destination_may_changed:
 		make = join(path, "make.json")

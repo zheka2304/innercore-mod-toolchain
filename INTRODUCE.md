@@ -8,7 +8,7 @@ Now, you can use same toolchain on different platforms. Scripts work with relati
 
 ## Multiproject
 
-Each project has become a separate component and separated from global toolchain config. Now *make.json* contains only information that is really needed for build, it is more convenient to publish it in open repositories. Create, import and delete as much as your disk space allows. Settings specified in *toolchain.json* main configuration can be used as default values ​​for all projects. You can learn more about configurations in [configuration article](CONFIG.md).
+Each project has become a separate component and separated from global toolchain config. Now *make.json* contains only information that is really needed for build, it is more convenient to publish it in open repositories. Create, import and delete as much as your disk space allows. Settings specified in *toolchain.json* main configuration can be used as default values ​​for all projects.
 
 ## New projects by template
 

@@ -59,17 +59,11 @@ Most of the features are also implemented to work with [IntelliJ IDEA](https://w
 
 Inner Core Mod Toolchain does not require an installed editor, much less an environment, to develop mods. You can run build and configuration scripts directly from console or by opening files located in *toolchain/toolchain/python* folder. We recommend checking out the [Working with CLI](#working-with-cli) for details.
 
-## Multiproject? I really want it?
-
-Now toolchain works with projects as separate components. We've just made things easier for you by separating the settings of toolchain from most build.
-
-Use the imports below to simply copy your *make.json* project into updated toolchain, and if you don't like something, you can always revert to old one. Shall we try?
-
 ## First build
 
 To start the first build, use `Build` task or run `./build-all.bat` or `./build-all.sh` from console. You will be prompted to select a project, install additional components, and connect to the device. Most of these operations will no longer be required.
 
-## Configuration files
+### Configuration files
 
 There are three types of configurations for managing projects, builds, and the toolchain itself. They describe complete process of building your project.
 
@@ -77,15 +71,15 @@ There are three types of configurations for managing projects, builds, and the t
 - toolchain.json — toolchain configuration and basic properties for *make.json*
 - template.json — template for subsequent generation *make.json*
 
-A detailed description of each of the files can be found in [article](CONFIG.md).
+Path selections can contain /\*\*/ to select folders and all subfolders, as well as /\* to select all files, /\*.js or /\*.jar to select all files with the desired extension.
 
-## Importing, creating and removing projects
+### Importing, creating and removing projects
 
 For each of the operations, tasks `Import Project`, `New Project` and `Remove Project` are provided, respectively, as well as commands `./import-project.bat`, `./import-project.sh`, `./new- project.bat`, `./new-project.sh`, `./remove-project.bat` and `./remove-project.sh`. All operations are accompanied by interactions in console, which means that a detailed description of each of them is not required.
 
 ![Project management with Visual Studio Code](.github/project-management.jpg)
 
-## Selection between your projects
+### Selection between your projects
 
 Use the `Select Project` task or `./select-project.bat` or `./select-project.sh` command to open selection menu. In case you can't find your project, check `projectLocations` property in your *toolchain.json* or import the project using toolchain.
 
@@ -104,6 +98,12 @@ Components can be installed using `Integrity Components` or commands `./componen
 ## Publishing project
 
 Once development is complete, the next step is to publish to [Mod Browser](https://icmods.mineprogramming.org/). Execute the `Assemble Mod for Release` task or `./assemble-release.bat` or `./assemble-release.sh` command. An archive *<folder_name>.icmod* will be created at the root of folder. It is already completely ready for publication to site. Read [article](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md) for details.
+
+## Documentation and further steps
+
+All documentation is available at <https://docs.mineprogramming.org>. Here you can find information about available APIs, learn the basics of modding and get acquainted with existing projects.
+
+Slightly outdated, but no less useful information can be found at <https://wiki.mineprogramming.org>.
 
 ## Working with CLI
 
@@ -124,12 +124,6 @@ Now you can use scripts from the console without changing your working directory
 from icmtoolchain import device
 device.setup_device_connection()
 ```
-
-## Documentation and further steps
-
-All documentation is available at <https://docs.mineprogramming.org>. Here you can find information about available APIs, learn the basics of modding and get acquainted with existing projects.
-
-Slightly outdated, but no less useful information can be found at <https://wiki.mineprogramming.org>.
 
 ## Contribution
 
