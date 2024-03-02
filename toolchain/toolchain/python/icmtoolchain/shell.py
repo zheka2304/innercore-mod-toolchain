@@ -795,7 +795,7 @@ def abort(*values: object, sep: Optional[str] = " ", code: int = 255, cause: Opt
 		from traceback import print_exception
 		buffer = StringBuffer()
 		print_exception(cause.__class__, cause, cause.__traceback__, file=buffer)
-		error(os.linesep.join(buffer.value.rsplit(os.linesep, 8)[1:-1]))
+		error("\n".join(buffer.value.rsplit("\n", 8)[1:-1]))
 	if len(values) != 0:
 		printc(stringify(*values, sep=sep, color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL), color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET)
 	elif not cause:
