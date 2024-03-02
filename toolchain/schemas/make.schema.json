@@ -158,7 +158,7 @@
 							},
 							"keepIncludes": {
 								"type": "boolean",
-								"default": true,
+								"default": false,
 								"description": "Whether to preserve header files (included, headers) in the project following compilation."
 							},
 							"link": {
@@ -340,7 +340,7 @@
 				},
 				"keepLibraries": {
 					"type": "boolean",
-					"default": true,
+					"default": false,
 					"description": "Keep libraries in the project after compiling."
 				},
 				"keepSources": {

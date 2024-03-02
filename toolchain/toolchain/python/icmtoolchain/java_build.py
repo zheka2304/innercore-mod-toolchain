@@ -77,7 +77,7 @@ def update_modified_targets(targets: Collection[BuildTarget], target_directory: 
 
 def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 	for target in targets:
-		if target.manifest.get_value("keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("java.keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("gradle.keepLibraries", True):
+		if target.manifest.get_value("keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("java.keepLibraries", False) or GLOBALS.MAKE_CONFIG.get_value("gradle.keepLibraries", False):
 			library_directories = target.manifest.get_value("library-dirs", list())
 			for relative_directory in library_directories:
 				directory = join(target.directory, relative_directory)

@@ -84,7 +84,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 
 		copy_file(join(directory, "manifest"), join(output_directory, "manifest"))
 
-		keep_includes = rules.get_value("keepIncludes", fallback=True)
+		keep_includes = rules.get_value("keepIncludes", fallback=False)
 		for include_path in manifest["shared"]["include"]:
 			src_include_path = join(directory, include_path)
 			output_include_path = join(output_directory, include_path)
