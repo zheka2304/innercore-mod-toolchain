@@ -4,7 +4,7 @@
 			"name": "Android",
 			"includePath": [
 				"${workspaceFolder}/toolchain/stdincludes/horizon",
-				"${workspaceFolder}/toolchain/stdincludes/gnu_stl/stl",
+				"${workspaceFolder}/toolchain/stdincludes/gnu_stl",
 				"${workspaceFolder}/toolchain/ndk/arm/sysroot/usr/include",
 				"${workspaceFolder}/toolchain/ndk/arm/include/c++/4.9.x/tr1",
 				"${workspaceFolder}/toolchain/ndk/arm/include/c++/4.9.x",

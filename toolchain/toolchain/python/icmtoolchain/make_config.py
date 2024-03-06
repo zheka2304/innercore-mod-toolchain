@@ -24,7 +24,7 @@ class ToolchainConfig(BaseConfig):
 		with open(path, encoding="utf-8") as file:
 			self.json = json.load(file)
 		BaseConfig.__init__(self, self.json, prototype)
-		if not prototype:
+		if not prototype and basename(path) in ("make.json", "toolchain.json"):
 			self.upgrade()
 
 	def upgrade(self) -> bool:
@@ -42,6 +42,14 @@ class ToolchainConfig(BaseConfig):
 			if "excludeFromRelease" in make_config:
 				self.set_value("excludeFromRelease", make_config["excludeFromRelease"])
 			self.remove_value("make")
+			self.save(); changes |= True
+		if "gradle" in self.json:
+			gradle_config = self.get_value("gradle", dict())
+			java_config = self.get_value("java", dict())
+			for entry in gradle_config:
+				java_config.set_value(entry, gradle_config[entry])
+			self.set_value("java", java_config)
+			self.remove_value("gradle")
 			self.save(); changes |= True
 		return changes
 

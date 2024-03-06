@@ -46,6 +46,8 @@ def copy_file(source: str, destination: str) -> None:
 	Copies source file to destination file or directory,
 	non-existing parent folders will be created.
 	"""
+	source = abspath(source)
+	destination = abspath(destination)
 	ensure_file_directory(destination)
 	try:
 		shutil.copy(source, destination)

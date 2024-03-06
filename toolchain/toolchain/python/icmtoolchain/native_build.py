@@ -5,7 +5,7 @@ from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Any, Collection, Optional
 
 from . import GLOBALS
-from .make_config import BaseConfig
+from .make_config import BaseConfig, ToolchainConfig
 from .native_setup import abi_to_arch, require_compiler_executable
 from .shell import abort, debug, error, info, warn
 from .utils import (copy_directory, copy_file, ensure_directory,
@@ -23,15 +23,13 @@ def prepare_compiler_executable(abi: str) -> Optional[str]:
 	arch = abi_to_arch(abi)
 	return require_compiler_executable(arch=abi if not arch else arch, install_if_required=True)
 
-def get_manifest(directory: str) -> Any:
-	with open(join(directory, "manifest"), "r", encoding="utf-8") as file:
-		manifest = json.load(file)
-	return manifest
+def get_manifest(directory: str) -> ToolchainConfig:
+	return ToolchainConfig(join(directory, "manifest"))
 
 def get_name_from_manifest(directory: str) -> Optional[str]:
 	try:
-		return get_manifest(directory)["shared"]["name"]
-	except Exception:
+		return get_manifest(directory).get_value("shared.name", basename(directory))
+	except:
 		return None
 
 def search_in_directory(parent: str, name: str) -> Optional[str]:
@@ -54,7 +52,10 @@ def add_fake_so(gcc: str, abi: str, name: str) -> None:
 			GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
 			"-shared", "-o", file
 		])
-		print("Created fake so:", name, result, "OK" if result == CODE_OK else "ERROR")
+		if result == 0:
+			debug(f"Created linking fake so {name!r} successfully")
+		else:
+			warn(f"Stubbing fake so failed with result {result}!")
 
 def build_native_directory(directory: str, output_directory: str, target_directory: str, abis: Collection[str], std_includes_path: str, rules: BaseConfig) -> int:
 	executables = dict()
@@ -64,14 +65,33 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			abort(f"Failed to acquire GCC executable from NDK for ABI {abi!r}!", code=CODE_FAILED_NO_GCC)
 		executables[abi] = executable
 
+	# if exists(join(directory, ".precompiled")):
+		# info(f"* Library directory {directory} skipped, because precompiled flag is set.")
+		# return CODE_OK
+
 	try:
 		manifest = get_manifest(directory)
-		targets = dict()
-		soname = "lib" + manifest["shared"]["name"] + ".so"
-		for abi in abis:
-			targets[abi] = join(output_directory, "so", abi, soname)
 	except Exception as err:
-		abort("Failed to read manifest for directory {directory} with unexpected error!", code=CODE_FAILED_INVALID_MANIFEST, cause=err)
+		abort(f"Failed to read manifest for directory {directory} with unexpected error!", code=CODE_FAILED_INVALID_MANIFEST, cause=err)
+	targets = dict()
+	library_name = manifest.get_value("shared.name", basename(directory))
+	if len(library_name) == 0 or library_name.isspace() or (manifest.get_value("shared") and library_name == "unnamed"):
+		abort(f"Library directory {directory} uses illegal name {library_name!r}!", code=CODE_FAILED_INVALID_MANIFEST)
+	soname = "lib" + library_name + ".so"
+	if manifest.get_value("library.version", -1) < 0 and manifest.get_value("library"):
+		abort(f"Library directory {directory} shares library with illegal version!", code=CODE_FAILED_INVALID_MANIFEST)
+	if len(abis) == 1:
+		for abi in abis:
+			targets[abi] = abspath(join(output_directory, soname))
+	else:
+		for abi in abis:
+			targets[abi] = abspath(join(output_directory, "so", abi, soname))
+	make_path = join(directory, "make.txt")
+	if exists(make_path):
+		with open(make_path, encoding="utf-8") as file:
+			make = file.read().strip()
+	else:
+		make = None
 
 	keep_sources = rules.get_value("keepSources", fallback=False)
 	if keep_sources:
@@ -81,11 +101,10 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 		os.remove(join(output_directory, soname))
 	else:
 		remove_tree(output_directory)
-
-		copy_file(join(directory, "manifest"), join(output_directory, "manifest"))
+		copy_file(manifest.path, join(output_directory, "manifest"))
 
 		keep_includes = rules.get_value("keepIncludes", fallback=False)
-		for include_path in manifest["shared"]["include"]:
+		for include_path in manifest.get_value("shared.include", fallback=list()):
 			src_include_path = join(directory, include_path)
 			output_include_path = join(output_directory, include_path)
 			if keep_includes:
@@ -102,7 +121,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 
 	overall_result = CODE_OK
 	for abi in abis:
-		info(f"* Compiling {basename(directory)!r} for {abi}")
+		info(f"* Compiling {library_name!r} for {abi}")
 
 		executable = executables[abi]
 		gcc = [executable, "-std=c++11"]
@@ -113,22 +132,22 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 		for link in rules.get_value("link", fallback=list()) + GLOBALS.MAKE_CONFIG.get_value("linkNative", fallback=list()) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
-		if "depends" in manifest:
-			 # Always search for dependencies in current directory.
-			search_directory = abspath(join(directory, ".."))
-			for dependency in manifest["depends"]:
-				if dependency:
-					add_fake_so(executable, abi, dependency)
-					dependencies.append("-l" + dependency)
-					dependency_directory = search_in_directory(search_directory, dependency)
-					if dependency_directory:
-						try:
-							for include_dir in get_manifest(dependency_directory)["shared"]["include"]:
-								includes.append("-I" + join(dependency_directory, include_dir))
-						except KeyError:
-							pass
-				else:
-					warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
+
+		# Always search for dependencies in current directory.
+		search_directory = abspath(join(directory, ".."))
+		for dependency in manifest.get_value("depends", fallback=list()):
+			if dependency:
+				add_fake_so(executable, abi, dependency)
+				dependencies.append("-l" + dependency)
+				dependency_directory = search_in_directory(search_directory, dependency)
+				if dependency_directory:
+					try:
+						for include_dir in get_manifest(dependency_directory).get_value("shared.include", fallback=list()):
+							includes.append("-I" + join(dependency_directory, include_dir))
+					except KeyError:
+						pass
+			else:
+				warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
 
 		source_files = get_all_files(directory, extensions=(".cpp", ".c"))
 		preprocessed_directory = abspath(join(target_directory, "preprocessed", abi))
@@ -184,20 +203,22 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 
 		ensure_file_directory(targets[abi])
 
+		debug("Linking object files")
 		linking_command = list()
 		linking_command += gcc
 		linking_command += object_files
+		if make and len(make) != 0 and not make.isspace():
+			linking_command.append(make)
 		linking_command.append("-shared")
 		linking_command.append("-Wl,-soname=" + soname)
 		linking_command.append("-o")
 		linking_command.append(targets[abi])
 		linking_command += includes
 		linking_command += dependencies
-
-		debug("Linking object files")
 		overall_result = subprocess.call(linking_command)
 		if overall_result != CODE_OK:
 			break
+
 	return overall_result
 
 def compile_native(abis: Collection[str]) -> int:
