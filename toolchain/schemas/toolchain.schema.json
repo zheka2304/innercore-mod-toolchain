@@ -1,0 +1,141 @@
+{
+	"$schema": "https://json-schema.org/draft-07/schema#",
+	"$id": "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/develop/toolchain/schemas/toolchain.schema.json",
+	"allOf": [
+		{
+			"$ref": "make.schema.json#"
+		},
+		{
+			"$ref": "#/definitions/sharedDefinition"
+		},
+		{
+			"$ref": "#/definitions/templateDefinition"
+		}
+	],
+	"properties": {
+		"projectLocations": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Relative or absolute path(s) to projects, scans entire folder for make.json and template.json configurations.",
+			"default": [".."]
+		},
+		"workspaceFile": {
+			"type": "string",
+			"default": "../toolchain.code-workspace",
+			"description": "Path to workspace file, exclusive to Visual Studio Code, all opened and created projects are added into this file."
+		},
+		"defaultTemplate": {
+			"type": "string",
+			"default": "../toolchain-mod",
+			"description": "Default template selected upon creating a new project, may be relative or absolute path to the template directory."
+		},
+		"currentProject": {
+			"type": "string",
+			"description": "Path of currently selected project, also editable via associated task or console command."
+		},
+		"ndkPath": {
+			"type": "string",
+			"description": "May be provided if you have already installed NDK for native code compilation, recommended version is r16b. By default, toolchain searches for the compiler in PATH or installs itself."
+		},
+		"devices": {
+			"type": "array",
+			"items": {
+				"type": ["object", "string"]
+			},
+			"description": "List of saved devices, editable during ADB configuration setup; contains private information, thus editing here isn't allowed."
+		},
+		"componentInstallationWithoutCommit": {
+			"type": "boolean",
+			"default": false,
+			"description": "Are '.commit' markers required for installed components? Disabling prevents update installations but considers a component installed if there's a folder present."
+		},
+		"updateAcceptReplaceConfiguration": {
+			"type": "boolean",
+			"default": true,
+			"description": "Should configuration files in the main toolchain directory (e.g., .vscode/tasks.json). Otherwise, your modifications won't change even after updates."
+		}
+	},
+	"definitions": {
+		"sharedDefinition": {
+			"properties": {
+				"denyJavaScript": {
+					"type": "boolean",
+					"default": true,
+					"description": "Forces TypeScript compiler even if the project contains exclusively JavaScript files."
+				},
+				"debugIncludesExclude": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Declarations excluded by TypeScript compiler during development compilation, helps shorten compile time. If the given path isn't found, there will be another attempt with the absolute variant."
+				},
+				"abis": {
+					"type": "array",
+					"items": {
+						"enum": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
+					},
+					"uniqueItems": true,
+					"minItems": 1,
+					"description": "List of ABIs supported by your project.",
+					"default": ["armeabi-v7a"]
+				},
+				"debugAbi": {
+					"enum": ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"],
+					"default": "armeabi-v7a",
+					"description": "Primary architecture for native code compilation during development."
+				},
+				"pushTo": {
+					"type": "string",
+					"description": "Main output folder of modpack on device, chosen at any connection point; toolchain path to the mod, in Make it points directly to the mod itself."
+				},
+				"adb": {
+					"properties": {
+						"pushAnyLocation": {
+							"type": "boolean",
+							"default": false,
+							"description": "By default, if property 'pushTo' does not indicate an installation of Inner Core package, a warning will be shown when sending to unusual locations; this option turns off that behavior."
+						},
+						"pushUnchangedFiles": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether or not to send all files to the device rather than only those which are modified."
+						},
+						"doNothingIfDisconnected": {
+							"type": "boolean",
+							"default": false,
+							"description": "Rather than prompting for device setup via console, simply exits build process if no devices are connected."
+						}
+					},
+					"description": "Additional settings for ADB debugging bridge."
+				}
+			}
+		},
+		"templateDefinition": {
+			"properties": {
+				"template": {
+					"allOf": [
+						{
+							"$ref": "make.schema.json#/definitions/info"
+						},
+						{
+							"properties": {
+								"skipDescription": {
+									"type": "boolean",
+									"default": false,
+									"description": "Skips the description page while creating a project using the template, i.e., only enter the name, other properties will be taken from the template or replaced by specified ones."
+								}
+							}
+						}
+					],
+					"description": "Values automatically filled when creating new project, overwrites properties if they're already defined within the template.",
+					"default": {
+						"author": ""
+					}
+				}
+			}
+		}
+	}
+}

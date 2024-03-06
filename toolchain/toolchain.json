@@ -1,0 +1,19 @@
+{
+	"$schema": "schemas/toolchain.schema.json",
+	"debugAbi": "armeabi-v7a",
+	"abis": [
+		"armeabi-v7a"
+	],
+	"linkNative": [
+		"minecraftpe",
+		"innercore",
+		"nativejs"
+	],
+	"debugIncludesExclude": [
+		"toolchain/declarations/android.d.ts"
+	],
+	"projectLocations": [
+		"../"
+	],
+	"workspaceFile": "../toolchain.code-workspace"
+}

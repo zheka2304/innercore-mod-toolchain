@@ -1,0 +1,1 @@
+python3 -m icmtoolchain stopApplication pushEverything launchApplication
