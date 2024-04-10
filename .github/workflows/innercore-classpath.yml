@@ -44,7 +44,7 @@ jobs:
       - name: Fetch curl raw manifest
         run: |
           GITLAB_MANIFEST=$(curl --silent --fail --show-error \
-            https://gitlab.com/${{ secrets.GITLAB_INNERCORE_PROJECT_PACK }}/-/raw/master/innercore-test/pack.zip?ref_type=heads&inline=false)
+            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore-test%2Fmanifest.json/raw?ref=master)
           echo "GITLAB_MANIFEST<<EOF" >> $GITHUB_ENV
           echo "$GITLAB_MANIFEST" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -58,8 +58,8 @@ jobs:
             return `${pack} v${packVersion}`
       - name: Download curl pack.zip
         run: |
-          curl --silent --fail --show-error --output pack.zip -L -H "Accept:application/octet-stream"  \
-            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore-test%2Fpack.zip/raw?ref=master
+          curl --silent --fail --show-error --output pack.zip -L -H "Accept:application/octet-stream" \
+            https://gitlab.com/${{ secrets.GITLAB_INNERCORE_PROJECT_PACK }}/-/raw/master/innercore-test/pack.zip
       - name: Unpack pack.zip *.dex to innercore-test
         run: |
           unzip pack.zip -d innercore-test -C java/**/*.dex 2>&1 || :
