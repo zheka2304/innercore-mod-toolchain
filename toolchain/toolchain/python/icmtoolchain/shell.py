@@ -45,6 +45,8 @@ class Shell():
 				key = self.stdin.read(count)
 			except NameError:
 				key = msvcrt.getwch() # type: ignore
+				if key == "\000" or key == "\xe0":
+					key = msvcrt.getwch() # type: ignore
 				count -= 1
 				while count > 0:
 					key += msvcrt.getwch() # type: ignore
