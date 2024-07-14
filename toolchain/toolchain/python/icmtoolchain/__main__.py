@@ -1,10 +1,11 @@
 import sys
 
 if "--help" in sys.argv or len(sys.argv) <= 1:
-	print("Usage: icmtoolchain [options] ... <task> [options]")
-	print(" " * 2 + "--help: Just show this message.")
-	print(" " * 2 + "--list: See all availabled tasks.")
-	print("Executes declared by @task decorator requested tasks.")
+	print("Usage: icmtoolchain [options] ... <task1> [arguments1] ...")
+	print(" " * 2 + "--help: Display this message.")
+	print(" " * 2 + "--list: See available tasks.")
+	print("Performs commands marked with a special decorator @task.")
+	print("Example: icmtoolchain selectProject --path mod1 pushEverything selectProject --path mod2 pushEverything launchApplication")
 	exit(0)
 
 from .task import TASKS
