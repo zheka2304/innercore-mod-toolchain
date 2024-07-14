@@ -38,15 +38,13 @@ class Shell():
 			fd = self.stdin.fileno()
 			term_attrs = termios.tcgetattr(fd)
 		except NameError:
-			return "\0"
+			pass
 		try:
 			try:
 				tty.setraw(fd)
 				key = self.stdin.read(count)
 			except NameError:
 				key = msvcrt.getwch() # type: ignore
-				if key == "\000" or key == "\x00" or key == "\xe0":
-					key = msvcrt.getwch() # type: ignore
 				count -= 1
 				while count > 0:
 					key += msvcrt.getwch() # type: ignore
