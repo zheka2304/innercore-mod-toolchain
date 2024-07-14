@@ -1,0 +1,9 @@
+{
+	"source-dirs": [
+		"src"
+	],
+	"library-dirs": [],
+	"boot-classes": [
+		"com.sample_mod.sample_package.Boot"
+	]
+}

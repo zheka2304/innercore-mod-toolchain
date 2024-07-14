@@ -1,0 +1,1 @@
+python3 -m icmtoolchain clearOutput buildScripts buildResources compileNative compileJava buildAdditional buildInfo

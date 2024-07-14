@@ -1,0 +1,10 @@
+.vscode/.ropeproject
+output
+**/__pycache__
+**/tsconfig.json
+*.cache
+.gradle
+
+*.log
+*.icmod
+.*commit

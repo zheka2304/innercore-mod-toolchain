@@ -1,0 +1,8 @@
+# decribe tsconfig exclusive to this source
+# noUnusedLocals
+# lib: es2016
+# or exclude default properties with !property
+
+# include everything in folder (order-independent)
+**/*
+# use !path/to/file to exclude files or directories

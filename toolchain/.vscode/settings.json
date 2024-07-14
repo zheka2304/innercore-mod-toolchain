@@ -1,0 +1,25 @@
+{
+	"files.exclude": {
+		"**/__pycache__/": true,
+		".settings/": true,
+		".idea/": true,
+		"toolchain/adb/": true,
+		"toolchain/bin/": true,
+		"toolchain/ndk/": true,
+		"toolchain/temp/": true,
+		"toolchain/**/.*commit": true,
+		".classpath": true,
+		".project": true,
+		"**/*.log": true
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"**/*.code-search": true,
+		"toolchain/**/*": true
+	},
+	"java.dependency.packagePresentation": "flat",
+	"java.dependency.syncWithFolderExplorer": true,
+	"C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+	"python.analysis.typeCheckingMode": "basic"
+}
