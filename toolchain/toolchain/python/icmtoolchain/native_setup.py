@@ -3,7 +3,8 @@ import re
 import subprocess
 import zipfile
 from os import environ, getenv, listdir, makedirs
-from os.path import abspath, basename, dirname, isdir, isfile, join, realpath
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
+                     realpath)
 from typing import List, Optional, Union
 from urllib.error import URLError
 
@@ -24,18 +25,35 @@ def abi_to_arch(abi: str) -> str:
 		return ABIS[abi]
 	raise ValueError(f"Unsupported ABI {abi!r}!")
 
-def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
+def search_ndk_subdirectories(dir: str) -> Optional[str]:
 	preferred_ndk_versions = [
 		"android-ndk-r16b",
 		"android-ndk-.*",
+		"16(\\.[0-9]*)+",
 		"ndk-bundle"
 	]
-	possible_ndk_dirs = list_subdirectories(home_dir if contains_ndk else join(home_dir, "Android"))
+	possible_ndk_dirs = list_subdirectories(dir)
 	for ndk_dir_regex in preferred_ndk_versions:
 		compiled_pattern = re.compile(ndk_dir_regex)
 		for possible_ndk_dir in possible_ndk_dirs:
 			if re.findall(compiled_pattern, possible_ndk_dir):
 				return possible_ndk_dir
+
+def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
+	if contains_ndk:
+		ndk = search_ndk_subdirectories(home_dir)
+		if ndk is not None: return ndk
+	try:
+		android_tools = environ["ANDROID_SDK_ROOT"]
+	except KeyError:
+		android_tools = join(home_dir, "Android")
+	if exists(android_tools):
+		ndk = search_ndk_subdirectories(android_tools)
+		if ndk is not None: return ndk
+	android_tools = join(android_tools, "ndk")
+	if exists(android_tools):
+		ndk = search_ndk_subdirectories(android_tools)
+		if ndk is not None: return ndk
 
 def get_ndk_path() -> Optional[str]:
 	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath")
@@ -54,11 +72,11 @@ def get_ndk_path() -> Optional[str]:
 def search_for_gcc_executable(ndk_directory: str) -> Optional[str]:
 	search_directory = join(realpath(ndk_directory), "bin")
 	if isdir(search_directory):
-		pattern = re.compile(r"[0-9A-Za-z]*-linux-android(eabi)*-g\+\+.*")
+		pattern = re.compile(r"[0-9_A-Za-z]*-linux-android(eabi)*-g\+\+.*")
 		for filename in listdir(search_directory):
 			if re.match(pattern, filename):
 				return abspath(join(search_directory, filename))
-		print(f"searching gcc in {search_directory} with {len(listdir(search_directory))} files")
+		print(f"Searching GCC in {search_directory} with {len(listdir(search_directory))} files...")
 
 def require_compiler_executable(arch: str, install_if_required: bool = False) -> Optional[str]:
 	ndk_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
