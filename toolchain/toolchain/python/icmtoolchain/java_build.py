@@ -99,6 +99,10 @@ def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 ### D8/L8/R8
 
 def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath: Collection[str], target_directory: str) -> int:
+	java_executable = request_tool("java")
+	if not java_executable:
+		abort("Executable 'java' is required for compilation, nothing to do.")
+
 	classpath_targets = list()
 	for filename in classpath:
 		classpath_targets += ["--classpath", filename]
@@ -123,8 +127,8 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 		modified.writelines(path + "\n" for path in modified_library_pathes)
 
 	debug("Dexing libraries")
-	result = subprocess.call([
-		"java",
+	result = subprocess.run([
+		java_executable,
 		"-classpath", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8",
 		f"@{modified_libraries}"
@@ -133,13 +137,14 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
 		"--output", target_d8_directory
-	])
-	if result != 0:
-		return result
+	], text=True, capture_output=True)
+	if result.returncode != 0:
+		error(result.stderr.strip())
+		return result.returncode
 
 	debug("Dexing classes")
-	result = subprocess.call([
-		"java",
+	result = subprocess.run([
+		java_executable,
 		"-classpath", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8",
 		f"@{modified_classes}"
@@ -149,15 +154,16 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 		"--intermediate",
 		"--file-per-class",
 		"--output", target_d8_directory
-	])
-	if result != 0:
-		return result
+	], text=True, capture_output=True)
+	if result.returncode != 0:
+		error(result.stderr.strip())
+		return result.returncode
 
 	debug("Compressing archives")
 	with ZipFile(compressed_target, "w") as archive:
 		walk_all_files(target_d8_directory, lambda filename: archive.write(filename, arcname=filename[len(target_d8_directory) + 1:]), (".dex"))
 
-	return result
+	return 0
 
 def merge_compressed_dexes(target: BuildTarget, target_directory: str) -> int:
 	compressed_target = join(target_directory, "d8", target.relative_directory + ".zip")
@@ -165,9 +171,13 @@ def merge_compressed_dexes(target: BuildTarget, target_directory: str) -> int:
 	remove_tree(output_directory)
 	ensure_directory(output_directory)
 
+	java_executable = request_tool("java")
+	if not java_executable:
+		abort("Executable 'java' is required for compilation, nothing to do.")
+
 	debug("Merging dex")
-	return subprocess.call([
-		"java",
+	result = subprocess.run([
+		java_executable,
 		"-classpath", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
 		"com.android.tools.r8.D8",
 		compressed_target,
@@ -175,12 +185,16 @@ def merge_compressed_dexes(target: BuildTarget, target_directory: str) -> int:
 		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
 		"--output", output_directory
-	])
+	], text=True, capture_output=True)
+	if result.returncode != 0:
+		error(result.stderr.strip())
+		return result.returncode
+
+	return 0
 
 ### JAVAC
 
 def build_java_with_javac(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
-	result = 0
 	javac_executable = None
 	supports_modules = False
 
@@ -234,7 +248,7 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
 		options += ["-classpath", os.pathsep.join(precompiled)]
 
-		result = subprocess.call([
+		result = subprocess.run([
 			javac_executable
 		] + options + [
 			"-Xlint",
@@ -244,11 +258,12 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 			"-s", target_sources_directory,
 			"-h", target_headers_directory,
 			f"@{classes_listing}"
-		])
+		], text=True, capture_output=True)
 		startup_millis = time() - startup_millis
-		if result != 0:
-			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result}.")
-			return result
+		if result.returncode != 0:
+			error(result.stderr.strip())
+			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result.returncode}.")
+			return result.returncode
 		debug(f"Completed {target.relative_directory!r} compilation in {startup_millis:.2f}s!")
 	return 0
 
@@ -268,7 +283,6 @@ def write_changed_source_files(target: BuildTarget, directories: Collection[str]
 ### ECJ
 
 def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
-	result = 0
 	ecj_executable = None
 
 	for target in targets:
@@ -303,9 +317,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 				ecj_executable = [java_executable, "-jar", executable]
 				if request_executable_version(ecj_executable) != 0.0:
 					break
-			if result != 0:
-				error("Executable 'ecj-*.jar' is not supported, nothing to do.")
-				return result
+			# TODO: error("Executable 'ecj-*.jar' is not supported, nothing to do.")
 
 		options = target.manifest.get_value("options", list())
 		if target.manifest.get_value("verbose", False):
@@ -317,7 +329,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
 		options += ["-classpath", ":".join(precompiled)]
 
-		result = subprocess.call(ecj_executable + [
+		result = subprocess.run(ecj_executable + [
 			"--release", "8",
 			"-Xlint",
 			"-Xlint:-cast",
@@ -327,13 +339,14 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 			"-s", target_sources_directory
 		] + options + [
 			f"@{classes_listing}"
-		])
+		], text=True, capture_output=True)
 		startup_millis = time() - startup_millis
-		if result == 0:
+		if result.returncode == 0:
 			debug(f"Completed {target.relative_directory!r} compilation in {startup_millis:.2f}s!")
 		else:
-			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result}.")
-			return result
+			error(result.stderr.strip())
+			error(f"Failed {target.relative_directory!r} compilation in {startup_millis:.2f}s with result {result.returncode}.")
+			return result.returncode
 	return 0
 
 ### GRADLE
@@ -343,20 +356,29 @@ def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: s
 	gradle_executable = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
 		gradle_executable += ".bat"
+
 	options = list()
 	for target in targets:
 		if target.manifest.get_value("verbose", False):
 			options += ["--console", "verbose"]
 			break
-	result = subprocess.call([
+
+	result = subprocess.run([
 		gradle_executable,
 		"-p", target_directory, "shadowJar"
-	] + options)
+	] + options, text=True, capture_output=True)
 	cleanup_gradle_scripts(targets)
-	if result != 0:
-		return result
-	print()
-	return result
+	if result.returncode != 0:
+		fallback = result.stderr.splitlines()
+		if "Could not initialize class org.codehaus.groovy.runtime.InvokerHelper" in fallback or \
+				"java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.vmplugin.v7.Java7" in fallback:
+			warn("It seems that you are using an incompatible version of Java. We need OpenJDK 8 to compile sources (e.g., https://github.com/corretto/corretto-8/releases).")
+		else:
+			error(result.stderr.strip())
+		return result.returncode
+
+	print(result.stdout.strip())
+	return 0
 
 def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> None:
 	with open(join(target_directory, "settings.gradle"), "w", encoding="utf-8") as settings_gradle:
