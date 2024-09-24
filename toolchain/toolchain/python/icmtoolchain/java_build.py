@@ -113,15 +113,22 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 	compressed_target = target_d8_directory + ".zip"
 	ensure_directory(target_d8_directory)
 
-	modified_classes = modified_pathes["classes"]
-	modified_libraries = modified_pathes["libraries"]
+	modified_class_pathes = modified_pathes["classes"]
+	modified_classes = join(target_d8_directory, "modified_classes.txt")
+	with open(modified_classes, "w", encoding="utf-8") as modified:
+		modified.writelines(path + "\n" for path in modified_class_pathes)
+	modified_library_pathes = modified_pathes["libraries"]
+	modified_libraries = join(target_d8_directory, "modified_libraries.txt")
+	with open(modified_libraries, "w", encoding="utf-8") as modified:
+		modified.writelines(path + "\n" for path in modified_library_pathes)
 
 	debug("Dexing libraries")
 	result = subprocess.call([
 		"java",
 		"-classpath", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
-		"com.android.tools.r8.D8"
-	] + modified_libraries + classpath_targets + libraries + [
+		"com.android.tools.r8.D8",
+		f"@{modified_libraries}"
+	] + classpath_targets + libraries + [
 		"--min-api", "19",
 		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
@@ -134,8 +141,9 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 	result = subprocess.call([
 		"java",
 		"-classpath", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8/r8.jar"),
-		"com.android.tools.r8.D8"
-	] + modified_classes + classpath_targets + libraries + [
+		"com.android.tools.r8.D8",
+		f"@{modified_classes}"
+	] + classpath_targets + libraries + [
 		"--min-api", "19",
 		"--release" if PROPERTIES.get_value("release") else "--debug",
 		"--intermediate",
