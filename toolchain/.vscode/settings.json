@@ -8,8 +8,6 @@
 		"toolchain/ndk/": true,
 		"toolchain/temp/": true,
 		"toolchain/**/.*commit": true,
-		".classpath": true,
-		".project": true,
 		"**/*.log": true
 	},
 	"search.exclude": {
