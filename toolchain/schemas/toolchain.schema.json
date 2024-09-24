@@ -26,6 +26,24 @@
 			"default": "../toolchain.code-workspace",
 			"description": "Path to workspace file, exclusive to Visual Studio Code, all opened and created projects are added into this file."
 		},
+		"tools": {
+			"type": "object",
+			"properties": {
+				"tsc": {
+					"type": "string",
+					"description": "The TypeScript Compiler"
+				},
+				"java": {
+					"type": "string",
+					"description": "OpenJDK Runtime Environment"
+				},
+				"javac": {
+					"type": "string",
+					"description": "OpenJDK Primary Compiler"
+				}
+			},
+			"description": "Full paths to necessary CLI tools on your device, such as Java or TypeScript Compiler."
+		},
 		"defaultTemplate": {
 			"type": "string",
 			"default": "../toolchain-mod",
