@@ -36,12 +36,12 @@ class Shell():
 	def inputraw(self, count: int = 1) -> str:
 		try:
 			fd = self.stdin.fileno()
-			term_attrs = termios.tcgetattr(fd)
+			term_attrs = termios.tcgetattr(fd) # type: ignore
 		except NameError:
 			pass
 		try:
 			try:
-				tty.setraw(fd)
+				tty.setraw(fd) # type: ignore
 				key = self.stdin.read(count)
 			except NameError:
 				key = msvcrt.getwch() # type: ignore
@@ -51,7 +51,7 @@ class Shell():
 					count -= 1
 		finally:
 			try:
-				termios.tcsetattr(fd, termios.TCSADRAIN, term_attrs)
+				termios.tcsetattr(fd, termios.TCSADRAIN, term_attrs) # type: ignore
 			except NameError:
 				pass
 		return key
@@ -795,7 +795,7 @@ def abort(*values: object, sep: Optional[str] = " ", code: int = 255, cause: Opt
 		from traceback import print_exception
 		buffer = StringBuffer()
 		print_exception(cause.__class__, cause, cause.__traceback__, file=buffer)
-		error("\n".join(buffer.value.rsplit("\n", 8)[1:-1]))
+		error("\n".join(buffer.value.rsplit("\n", 9)[1:-1]))
 	if len(values) != 0:
 		printc(stringify(*values, sep=sep, color=colorama.Style.BRIGHT, reset=colorama.Style.NORMAL), color=colorama.Fore.LIGHTRED_EX, reset=colorama.Fore.RESET)
 	elif not cause:

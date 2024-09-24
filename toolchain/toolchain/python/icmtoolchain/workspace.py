@@ -2,12 +2,13 @@ import json
 import os
 import platform
 import subprocess
-from os.path import abspath, dirname, exists, isdir, isfile, join, relpath, basename, splitext
+from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
+                     relpath, splitext)
 from typing import Any, Dict, List
 
 from . import GLOBALS, PROPERTIES
-from .hglob import glob
 from .base_config import BaseConfig
+from .hglob import glob
 from .utils import ensure_directory, ensure_file_directory
 
 # The TypeScript Compiler - Version 4.8.3
@@ -276,7 +277,7 @@ class WorkspaceComposite:
 			template["files"] = declarations
 		if len(self.references) > 0:
 			template["references"] = self.references
-		with open(self.get_tsconfig(), "w") as tsconfig:
+		with open(self.get_tsconfig(), "w", encoding="utf-8") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
 	def build(self, *args: str) -> int:
@@ -359,9 +360,9 @@ def write_idea_project_run_configurations(name: str, path: str):
 	from re import sub
 	configurations_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".idea", "runConfigurations"))
 	ensure_directory(configurations_path)
-	with open(join(configurations_path, sub(r"\W", "_", name) + ".xml"), "w") as wrapper:
+	with open(join(configurations_path, sub(r"\W", "_", name) + ".xml"), "w", encoding="utf-8") as wrapper:
 		wrapper.write(get_idea_project_run_configuration(name, path + ".bat"))
-	with open(join(configurations_path, sub(r"\W", "_", name + " (Unix)") + ".xml"), "w") as wrapper:
+	with open(join(configurations_path, sub(r"\W", "_", name + " (Unix)") + ".xml"), "w", encoding="utf-8") as wrapper:
 		wrapper.write(get_idea_project_run_configuration(name, path + ".sh"))
 
 def get_vscode_build_task(name: str, path: str, icon: str = "run", hidden: bool = False):
@@ -403,7 +404,7 @@ def write_vscode_build_tasks(name: str, path: str, icon: str = "run", hidden: bo
 
 	configuration = None
 	if isfile(tasks_path):
-		with open(tasks_path) as tasks:
+		with open(tasks_path, encoding="utf-8") as tasks:
 			configuration = json.load(tasks)
 	if not isinstance(configuration, dict):
 		configuration = {}
@@ -421,5 +422,5 @@ def write_vscode_build_tasks(name: str, path: str, icon: str = "run", hidden: bo
 		configuration["tasks"].remove(task)
 
 	configuration["tasks"].append(get_vscode_build_task(name, path, icon=icon, hidden=hidden))
-	with open(tasks_path, "w") as tasks:
+	with open(tasks_path, "w", encoding="utf-8") as tasks:
 		json.dump(configuration, tasks, indent="\t")

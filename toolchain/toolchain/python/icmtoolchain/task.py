@@ -230,7 +230,7 @@ def task_resources() -> int:
 )
 def task_build_info() -> int:
 	from .utils import shortcodes
-	with open(GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")), "w") as info_file:
+	with open(GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")), "w", encoding="utf-8") as info_file:
 		info = dict(GLOBALS.MAKE_CONFIG.get_value("info", fallback=dict()))
 
 		if "name" in info:

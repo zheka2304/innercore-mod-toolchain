@@ -17,9 +17,9 @@ MAGICS = (
 	"__self__", "__slots__", "__weakref__")
 
 try:
-	import pygments
-	from pygments.formatters.terminal import TerminalFormatter
-	from pygments.lexers.python import PythonLexer
+	import pygments  # type: ignore
+	from pygments.formatters.terminal import TerminalFormatter  # type: ignore
+	from pygments.lexers.python import PythonLexer  # type: ignore
 
 	def highlight(*values: object, sep: Optional[str] = " ", file: Optional[Any] = None):
 		printc(pygments.highlight(stringify(*values, sep=sep), PythonLexer(), TerminalFormatter()), file=file)

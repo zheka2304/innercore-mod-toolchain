@@ -50,7 +50,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 		return new_project(template=select_template())
 	template_make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(template + "/template.json")
 	try:
-		with open(template_make_path) as template_make:
+		with open(template_make_path, encoding="utf-8") as template_make:
 			template_config = BaseConfig(json.loads(template_make.read()))
 	except BaseException as err:
 		if len(GLOBALS.PROJECT_MANAGER.templates) > 1:
@@ -180,14 +180,14 @@ def setup_project(make_obj: Dict[Any, Any], template: str, path: str) -> None:
 			file = join(path, join(dirmap[dirpath], filename))
 			copy_file(join(dirpath, filename), file)
 	for source in get_all_files(path, extensions=(".json", ".js", ".ts", "manifest", ".java", ".cpp")):
-		with open(source, "r") as source_file:
+		with open(source, "r", encoding="utf-8") as source_file:
 			lines = source_file.readlines()
 		for index in range(len(lines)):
 			try:
 				lines[index] = lines[index].format_map(makemap)
 			except BaseException:
 				pass
-		with open(source, "w") as source_file:
+		with open(source, "w", encoding="utf-8") as source_file:
 			source_file.writelines(lines)
 
 def select_project(variants: List[str], prompt: Optional[str] = "Which project do you want?", selected: Optional[str] = None, *additionals: str) -> Optional[str]:

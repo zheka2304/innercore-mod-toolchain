@@ -99,7 +99,7 @@ class Includes:
 			self.include.append(search_path.replace("\\", "/"))
 
 	def parse(self) -> None:
-		with open(self.path, "w") as includes:
+		with open(self.path, "w", encoding="utf-8") as includes:
 			for key, value in self.params.items():
 				if value is None:
 					includes.write("# !" + key + "\n")
@@ -132,7 +132,7 @@ class Includes:
 
 	@staticmethod
 	def create_from_tsconfig(directory: str, includes_path: str) -> 'Includes':
-		with open(join(directory, "tsconfig.json")) as tsconfig:
+		with open(join(directory, "tsconfig.json"), encoding="utf-8") as tsconfig:
 			config = json.load(tsconfig)
 			params = config["compilerOptions"] if "compilerOptions" in config else dict()
 			include = config["include"] if "include" in config else list()
@@ -173,7 +173,7 @@ class Includes:
 
 		for key, value in self.params.items():
 			template["compilerOptions"][key] = value
-		with open(self.get_tsconfig(), "w") as tsconfig:
+		with open(self.get_tsconfig(), "w", encoding="utf-8") as tsconfig:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
 	def compute(self, target_path: str, language: str = "typescript") -> bool:
