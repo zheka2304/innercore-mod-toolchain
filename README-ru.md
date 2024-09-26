@@ -1,8 +1,9 @@
 # Inner Core Mod Toolchain
 
 [![FAQ](https://img.shields.io/badge/разобраться-FAQ-888888?style=for-the-badge)](FAQ-ru.md)
-[![Windows](https://img.shields.io/badge/windows-совместимо-blue?style=for-the-badge&logo=windows&logoColor=white)](README-ru.md)
-[![Linux](https://img.shields.io/badge/linux-совместимо-yellowgreen?style=for-the-badge&logo=linux&logoColor=white)](README-ru.md)
+![Windows](https://img.shields.io/badge/windows-совместимо-blue?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0ODc1IDQ4NzUiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0wIDBoMjMxMXYyMzEwSDB6bTI1NjQgMGgyMzExdjIzMTBIMjU2NHpNMCAyNTY0aDIzMTF2MjMxMUgwem0yNTY0IDBoMjMxMXYyMzExSDI1NjQiLz48L3N2Zz4=)
+![Linux](https://img.shields.io/badge/linux-совместимо-yellowgreen?style=for-the-badge&logoColor=white&logo=linux)
+[![English](https://img.shields.io/badge/english-gray?style=for-the-badge&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCAzMCIgd2lkdGg9IjEwMDAiIGhlaWdodD0iNjAwIj4KCTxjbGlwUGF0aCBpZD0idCI+CgkJPHBhdGggZD0iTTI1LDE1aDI1djE1enYxNWgtMjV6aC0yNXYtMTV6di0xNWgyNXoiLz4KCTwvY2xpcFBhdGg+Cgk8cGF0aCBkPSJNMCwwdjMwaDUwdi0zMHoiIGZpbGw9IiMwMTIxNjkiLz4KCTxwYXRoIGQ9Ik0wLDAgNTAsMzBNNTAsMCAwLDMwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iNiIvPgoJPHBhdGggZD0iTTAsMCA1MCwzME01MCwwIDAsMzAiIGNsaXAtcGF0aD0idXJsKCN0KSIgc3Ryb2tlPSIjQzgxMDJFIiBzdHJva2Utd2lkdGg9IjQiLz4KCTxwYXRoIGQ9Ik0tMSAxMWgyMnYtMTJoOHYxMmgyMnY4aC0yMnYxMmgtOHYtMTJoLTIyeiIgZmlsbD0iI0M4MTAyRSIgc3Ryb2tlPSIjRkZGIiBzdHJva2Utd2lkdGg9IjIiLz4KPC9zdmc+)](README.md)
 
 **Inner Core Mod Toolchain для Horizon** это тулчейн, позволяющий вам эффективно разрабатывать и собирать модификации для мобильной игры Майнкрафт прямо с вашего компьютера.
 
