@@ -512,6 +512,52 @@ def task_select_project(path: str = "") -> int:
 ### MISCELLANEOUS
 
 @task(
+	"configureIde",
+	description="Configures tasks in most useful IDEs for mods to use from the interface."
+)
+def task_configure_ide() -> int:
+	from .workspace import (write_universal_build_tasks,
+	                        write_universal_sequence_tasks,
+	                        write_vscode_build_tasks, write_vscode_sequence_tasks)
+
+	write_universal_build_tasks("Select Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), False, "folder-opened", focus=True)
+	write_vscode_build_tasks("Select Project by Active File", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), True, "repo-force-push", globbing="**/*", args=("${fileWorkspaceFolder}", ))
+	write_universal_build_tasks("Push", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/push"), False, "rocket")
+	write_universal_build_tasks("Assemble Mod for Release", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/assemble-release"), False, "archive")
+
+	write_universal_build_tasks("Build (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-all"), True, "debug-all")
+	write_universal_sequence_tasks("Build", ("Build (No push)", "Push"), False, "debug-all")
+	write_vscode_sequence_tasks("Build by Active File", ("Select Project by Active File", "Build"), True, "debug-all", globbing="**/*")
+
+	write_universal_build_tasks("Build Scripts and Resources (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-scripts-and-resources"), True, "debug-alt")
+	write_universal_sequence_tasks("Build Scripts and Resources", ("Build Scripts and Resources (No push)", "Push"), False, "debug-alt")
+	write_vscode_sequence_tasks("Build Scripts and Resources by Active File", ("Select Project by Active File", "Build Scripts and Resources"), False, "debug-alt", globbing="**/*")
+
+	write_universal_build_tasks("Build Java (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-java"), True, "run")
+	write_universal_sequence_tasks("Build Java", ("Build Java (No push)", "Push"), False, "run-above")
+	write_vscode_sequence_tasks("Build Java by Active File", ("Select Project by Active File", "Build Java"), True, "run-above", globbing="**/*")
+
+	write_universal_build_tasks("Build Native (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-native"), True, "run")
+	write_universal_sequence_tasks("Build Native", ("Build Native (No push)", "Push"), False, "run-above")
+	write_vscode_sequence_tasks("Build Native by Active File", ("Select Project by Active File", "Build Native"), True, "run-above", globbing="**/*")
+
+	write_universal_build_tasks("Watch Scripts (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/watch-scripts"), True, "debug-coverage")
+	write_universal_sequence_tasks("Watch Scripts", ("Watch Scripts (No push)", "Push"), False, "debug-coverage")
+	write_vscode_sequence_tasks("Watch Scripts by Active File", ("Select Project by Active File", "Watch Scripts"), True, "debug-coverage", globbing="**/*")
+
+	write_universal_build_tasks("Configure ADB", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/configure-adb"), False, "device-mobile", focus=True)
+	write_universal_build_tasks("New Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/new-project"), False, "new-folder", focus=True)
+	write_universal_build_tasks("Import Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/import-project"), False, "repo-pull", focus=True)
+	write_universal_build_tasks("Remove Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/remove-project"), False, "root-folder-opened", focus=True)
+	write_universal_build_tasks("Rebuild Declarations", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/rebuild-declarations"), True, "milestone")
+	write_vscode_sequence_tasks("Rebuild Declarations by Active File", ("Select Project by Active File", "Rebuild Declarations"), True, "milestone", globbing="**/*")
+	write_universal_build_tasks("Check for Updates", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/update-toolchain"), False, "cloud", focus=True)
+	write_universal_build_tasks("Reinstall Components", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/component-integrity"), False, "package", focus=True)
+	write_universal_build_tasks("Invalidate Caches", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/cleanup"), False, "flame", focus=True)
+
+	return 0
+
+@task(
 	"updateToolchain",
 	description="Updates the toolchain using a development branch; additionally verifies updates for installed components."
 )
@@ -522,7 +568,7 @@ def task_update_toolchain() -> int:
 	upgradable = fetch_components()
 	if len(upgradable) > 0:
 		info("Found new updates for components: ", ", ".join(upgradable), ".", sep="")
-		if not confirm("Do you want to upgrade it?", True):
+		if not confirm("Do you want to upgrade them?", True):
 			return 0
 		install_components(*upgradable)
 	return 0
