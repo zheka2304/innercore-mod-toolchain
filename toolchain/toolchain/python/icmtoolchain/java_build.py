@@ -363,22 +363,23 @@ def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: s
 			options += ["--console", "verbose"]
 			break
 
-	result = subprocess.run([
+	result = subprocess.call([
 		gradle_executable,
 		"-p", target_directory, "shadowJar"
-	] + options, text=True, capture_output=True)
+	] + options)
 	cleanup_gradle_scripts(targets)
-	if result.returncode != 0:
-		fallback = result.stderr.splitlines()
-		if "Could not initialize class org.codehaus.groovy.runtime.InvokerHelper" in fallback or \
-				"java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.vmplugin.v7.Java7" in fallback:
-			warn("It seems that you are using an incompatible version of Java. We need OpenJDK 8 to compile sources (e.g., https://github.com/corretto/corretto-8/releases).")
-		else:
-			error(result.stderr.strip())
-		return result.returncode
+	# if result.returncode != 0:
+		# fallback = result.stderr.splitlines()
+		# if "Could not initialize class org.codehaus.groovy.runtime.InvokerHelper" in fallback or \
+				# "java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.vmplugin.v7.Java7" in fallback:
+			# warn("It seems that you are using an incompatible version of Java. We need OpenJDK 8 to compile sources (e.g., https://github.com/corretto/corretto-8/releases).")
+		# else:
+			# error(result.stderr.strip())
+		# return result.returncode
 
-	print(result.stdout.strip())
-	return 0
+	# print(result.stdout.strip())
+	print() # TODO: Reimplement to support async logging.
+	return result
 
 def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> None:
 	with open(join(target_directory, "settings.gradle"), "w", encoding="utf-8") as settings_gradle:
