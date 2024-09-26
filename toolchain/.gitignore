@@ -2,6 +2,3 @@ toolchain/bin/.gradle
 toolchain/build
 toolchain/temp
 toolchain/ndk
-
-.idea
-!.idea/runConfigurations

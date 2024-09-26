@@ -1,0 +1,645 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Select Project",
+			"icon": {
+				"id": "folder-opened"
+			},
+			"type": "shell",
+			"command": "./select-project.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\select-project.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Select Project by Active File",
+			"icon": {
+				"id": "repo-force-push"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./select-project.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\select-project.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"args": [
+				"${fileWorkspaceFolder}"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Push",
+			"icon": {
+				"id": "rocket"
+			},
+			"type": "shell",
+			"command": "./push.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\push.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Assemble Mod for Release",
+			"icon": {
+				"id": "archive"
+			},
+			"type": "shell",
+			"command": "./assemble-release.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\assemble-release.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build (No push)",
+			"icon": {
+				"id": "debug-all"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./build-all.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\build-all.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build",
+			"icon": {
+				"id": "debug-all"
+			},
+			"dependsOn": [
+				"Build (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build by Active File",
+			"icon": {
+				"id": "debug-all"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Build"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Scripts and Resources (No push)",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./build-scripts-and-resources.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\build-scripts-and-resources.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Scripts and Resources",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"dependsOn": [
+				"Build Scripts and Resources (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Scripts and Resources by Active File",
+			"icon": {
+				"id": "debug-alt"
+			},
+			"dependsOn": [
+				"Select Project by Active File",
+				"Build Scripts and Resources"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Java (No push)",
+			"icon": {
+				"id": "run"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./compile-java.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\compile-java.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Java",
+			"icon": {
+				"id": "run-above"
+			},
+			"dependsOn": [
+				"Build Java (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Java by Active File",
+			"icon": {
+				"id": "run-above"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Build Java"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Native (No push)",
+			"icon": {
+				"id": "run"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./compile-native.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\compile-native.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Native",
+			"icon": {
+				"id": "run-above"
+			},
+			"dependsOn": [
+				"Build Native (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Native by Active File",
+			"icon": {
+				"id": "run-above"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Build Native"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Scripts (No push)",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./watch-scripts.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\watch-scripts.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Scripts",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"dependsOn": [
+				"Watch Scripts (No push)",
+				"Push"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Watch Scripts by Active File",
+			"icon": {
+				"id": "debug-coverage"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Watch Scripts"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Configure ADB",
+			"icon": {
+				"id": "device-mobile"
+			},
+			"type": "shell",
+			"command": "./configure-adb.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\configure-adb.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "New Project",
+			"icon": {
+				"id": "new-folder"
+			},
+			"type": "shell",
+			"command": "./new-project.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\new-project.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Import Project",
+			"icon": {
+				"id": "repo-pull"
+			},
+			"type": "shell",
+			"command": "./import-project.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\import-project.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Remove Project",
+			"icon": {
+				"id": "root-folder-opened"
+			},
+			"type": "shell",
+			"command": "./remove-project.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\remove-project.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Rebuild Declarations",
+			"icon": {
+				"id": "milestone"
+			},
+			"hide": true,
+			"type": "shell",
+			"command": "./rebuild-declarations.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\rebuild-declarations.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Rebuild Declarations by Active File",
+			"icon": {
+				"id": "milestone"
+			},
+			"hide": true,
+			"dependsOn": [
+				"Select Project by Active File",
+				"Rebuild Declarations"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"panel": "shared",
+				"showReuseMessage": false
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Check for Updates",
+			"icon": {
+				"id": "cloud"
+			},
+			"type": "shell",
+			"command": "./update-toolchain.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\update-toolchain.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Reinstall Components",
+			"icon": {
+				"id": "package"
+			},
+			"type": "shell",
+			"command": "./component-integrity.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\component-integrity.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Invalidate Caches",
+			"icon": {
+				"id": "flame"
+			},
+			"type": "shell",
+			"command": "./cleanup.sh",
+			"options": {
+				"cwd": "./../toolchain/python"
+			},
+			"windows": {
+				"command": ".\\cleanup.bat",
+				"options": {
+					"cwd": ".\\..\\toolchain\\python"
+				}
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		}
+	]
+}

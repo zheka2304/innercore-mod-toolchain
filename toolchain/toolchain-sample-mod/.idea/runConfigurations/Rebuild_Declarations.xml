@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration name="Rebuild Declarations" default="false" type="ShConfigurationType">
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/../toolchain/python/rebuild-declarations.bat"/>
+    <option name="SCRIPT_OPTIONS" value=""/>
+    <option name="INDEPENDENT_SCRIPT_PATH" value="false"/>
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/../toolchain/python"/>
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="false"/>
+    <option name="INTERPRETER_PATH" value=""/>
+    <option name="INTERPRETER_OPTIONS" value=""/>
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true"/>
+    <method v="2"/>
+  </configuration>
+</component>
