@@ -1,8 +1,8 @@
 import json
 import os
 import platform
-from os.path import (abspath, basename, exists, isdir, isfile, join, realpath,
-                     relpath)
+from os.path import (abspath, basename, exists, isdir, isfile, join, normpath,
+                     realpath, relpath)
 from typing import Callable, Final, List, Optional
 
 from .base_config import BaseConfig
@@ -59,7 +59,7 @@ class ToolchainConfig(BaseConfig):
 			file.write(json.dumps(self.json, indent="\t") + "\n")
 
 	def get_path(self, relative_path: str) -> str:
-		return abspath(join(self.directory, relative_path))
+		return abspath(join(self.directory, normpath(relative_path)))
 
 	def get_absolute_path(self, path: str) -> str:
 		relative_path = self.get_path(path)

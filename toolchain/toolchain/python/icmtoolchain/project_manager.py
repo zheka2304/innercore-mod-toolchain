@@ -1,5 +1,6 @@
 import json
 import os
+import posixpath
 from os.path import abspath, basename, exists, isdir, isfile, join
 from typing import Any, Dict, Final, List, Optional, Tuple
 
@@ -95,7 +96,7 @@ class ProjectManager:
 			self.select_project_folder()
 
 		if GLOBALS.CODE_WORKSPACE.available():
-			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)
+			location = posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder))
 			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) > 0:
 				folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 				for entry in folders:
@@ -119,11 +120,11 @@ class ProjectManager:
 			folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 			if len(folders) == 0:
 				folders.append({
-					"path": GLOBALS.CODE_WORKSPACE.get_toolchain_path(),
+					"path": posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path()),
 					"name": "Inner Core Mod Toolchain"
 				})
 			folders.append({
-				"path": GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder),
+				"path": posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)),
 				"name": str(name)
 			})
 			GLOBALS.CODE_WORKSPACE.set_value("folders", folders)
