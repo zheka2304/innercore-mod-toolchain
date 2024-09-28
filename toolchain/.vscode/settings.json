@@ -8,7 +8,8 @@
 		"toolchain/ndk/": true,
 		"toolchain/temp/": true,
 		"toolchain/**/.*commit": true,
-		"**/*.log": true
+		"**/*.log": true,
+		"toolchain-sample-mod": false
 	},
 	"search.exclude": {
 		"**/node_modules": true,

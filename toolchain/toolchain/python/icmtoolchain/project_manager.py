@@ -93,7 +93,7 @@ class ProjectManager:
 		index, folder = self.get_folder(index, folder)
 
 		if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) and folder == GLOBALS.MAKE_CONFIG.current_project:
-			self.select_project_folder()
+			self.unselect_project(silent=True)
 
 		if GLOBALS.CODE_WORKSPACE.available():
 			location = posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder))
@@ -167,6 +167,11 @@ class ProjectManager:
 
 		self.select_project_folder(folder)
 		print(f"Project {folder!r} selected.")
+
+	def unselect_project(self, *, silent: bool = False):
+		self.select_project_folder()
+		if not silent:
+			print(f"Project unselected.")
 
 	def resolve_mod_name(self, path: str, make_obj: Optional[Dict[Any, Any]] = None) -> str:
 		if not make_obj:

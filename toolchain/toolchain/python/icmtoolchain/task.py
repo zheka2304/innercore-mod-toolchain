@@ -461,6 +461,7 @@ def task_remove_project() -> int:
 
 	who = GLOBALS.PROJECT_MANAGER.require_selection("Which project will be deleted?", "Do you really want to delete {}?", "I don't want it anymore")
 	if not who:
+		print("Nothing will happen.")
 		return 0
 	if GLOBALS.PROJECT_MANAGER.how_much() > 1 and not confirm("Do you really want to delete it?", True):
 		return 0
@@ -501,7 +502,8 @@ def task_select_project(path: str = "") -> int:
 
 	who = GLOBALS.PROJECT_MANAGER.require_selection("Which project do you choice?", "Do you want to select {}?")
 	if not who:
-		return 1
+		GLOBALS.PROJECT_MANAGER.unselect_project()
+		return 0
 	try:
 		GLOBALS.PROJECT_MANAGER.select_project(folder=who)
 	except ValueError:
