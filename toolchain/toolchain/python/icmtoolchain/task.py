@@ -517,44 +517,43 @@ def task_select_project(path: str = "") -> int:
 	description="Configures tasks in most useful IDEs for mods to use from the interface."
 )
 def task_configure_ide() -> int:
-	from .workspace import (write_universal_build_tasks,
-	                        write_universal_sequence_tasks,
-	                        write_vscode_build_tasks, write_vscode_sequence_tasks)
+	from .workspace import (flush_compound_tasks, flush_shell_tasks,
+	                        flush_vscode_compound_task, flush_vscode_shell_task)
 
-	write_universal_build_tasks("Select Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), False, "folder-opened", focus=True)
-	write_vscode_build_tasks("Select Project by Active File", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), True, "repo-force-push", globbing="**/*", args=("${fileWorkspaceFolder}", ))
-	write_universal_build_tasks("Push", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/push"), False, "rocket")
-	write_universal_build_tasks("Assemble Mod for Release", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/assemble-release"), False, "archive")
+	flush_shell_tasks("Select Project", "folder-opened", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), focus=True)
+	flush_vscode_shell_task("Select Project by Active File", "repo-force-push", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/select-project"), hidden=True, globbing="**/*", options=("${fileWorkspaceFolder}", ))
+	flush_shell_tasks("Push", "rocket", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/push"))
+	flush_shell_tasks("Assemble Mod for Release", "archive", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/assemble-release"))
 
-	write_universal_build_tasks("Build (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-all"), True, "debug-all")
-	write_universal_sequence_tasks("Build", ("Build (No push)", "Push"), False, "debug-all")
-	write_vscode_sequence_tasks("Build by Active File", ("Select Project by Active File", "Build"), True, "debug-all", globbing="**/*")
+	flush_shell_tasks("Build (No push)", "debug-all", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-all"), hidden=True)
+	flush_compound_tasks("Build", "debug-all", ("Build (No push)", "Push"))
+	flush_vscode_compound_task("Build by Active File", "debug-all", ("Select Project by Active File", "Build"), hidden=True, globbing="**/*")
 
-	write_universal_build_tasks("Build Scripts and Resources (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-scripts-and-resources"), True, "debug-alt")
-	write_universal_sequence_tasks("Build Scripts and Resources", ("Build Scripts and Resources (No push)", "Push"), False, "debug-alt")
-	write_vscode_sequence_tasks("Build Scripts and Resources by Active File", ("Select Project by Active File", "Build Scripts and Resources"), False, "debug-alt", globbing="**/*")
+	flush_shell_tasks("Build Scripts and Resources (No push)", "debug-alt", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/build-scripts-and-resources"), hidden=True)
+	flush_compound_tasks("Build Scripts and Resources", "debug-alt", ("Build Scripts and Resources (No push)", "Push"))
+	flush_vscode_compound_task("Build Scripts and Resources by Active File", "debug-alt", ("Select Project by Active File", "Build Scripts and Resources"), hidden=True, globbing="**/*")
 
-	write_universal_build_tasks("Build Java (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-java"), True, "run")
-	write_universal_sequence_tasks("Build Java", ("Build Java (No push)", "Push"), False, "run-above")
-	write_vscode_sequence_tasks("Build Java by Active File", ("Select Project by Active File", "Build Java"), True, "run-above", globbing="**/*")
+	flush_shell_tasks("Build Java (No push)", "run-above", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-java"), hidden=True)
+	flush_compound_tasks("Build Java", "run-above", ("Build Java (No push)", "Push"))
+	flush_vscode_compound_task("Build Java by Active File", "run-above", ("Select Project by Active File", "Build Java"), hidden=True, globbing="**/*")
 
-	write_universal_build_tasks("Build Native (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-native"), True, "run")
-	write_universal_sequence_tasks("Build Native", ("Build Native (No push)", "Push"), False, "run-above")
-	write_vscode_sequence_tasks("Build Native by Active File", ("Select Project by Active File", "Build Native"), True, "run-above", globbing="**/*")
+	flush_shell_tasks("Build Native (No push)", "run", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/compile-native"), hidden=True)
+	flush_compound_tasks("Build Native", "run", ("Build Native (No push)", "Push"))
+	flush_vscode_compound_task("Build Native by Active File", "run", ("Select Project by Active File", "Build Native"), hidden=True, globbing="**/*")
 
-	write_universal_build_tasks("Watch Scripts (No push)", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/watch-scripts"), True, "debug-coverage")
-	write_universal_sequence_tasks("Watch Scripts", ("Watch Scripts (No push)", "Push"), False, "debug-coverage")
-	write_vscode_sequence_tasks("Watch Scripts by Active File", ("Select Project by Active File", "Watch Scripts"), True, "debug-coverage", globbing="**/*")
+	flush_shell_tasks("Watch Scripts (No push)", "debug-coverage", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/watch-scripts"), hidden=True)
+	flush_compound_tasks("Watch Scripts", "debug-coverage", ("Watch Scripts (No push)", "Push"))
+	flush_vscode_compound_task("Watch Scripts by Active File", "debug-coverage", ("Select Project by Active File", "Watch Scripts"), hidden=True, globbing="**/*")
 
-	write_universal_build_tasks("Configure ADB", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/configure-adb"), False, "device-mobile", focus=True)
-	write_universal_build_tasks("New Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/new-project"), False, "new-folder", focus=True)
-	write_universal_build_tasks("Import Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/import-project"), False, "repo-pull", focus=True)
-	write_universal_build_tasks("Remove Project", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/remove-project"), False, "root-folder-opened", focus=True)
-	write_universal_build_tasks("Rebuild Declarations", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/rebuild-declarations"), True, "milestone")
-	write_vscode_sequence_tasks("Rebuild Declarations by Active File", ("Select Project by Active File", "Rebuild Declarations"), True, "milestone", globbing="**/*")
-	write_universal_build_tasks("Check for Updates", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/update-toolchain"), False, "cloud", focus=True)
-	write_universal_build_tasks("Reinstall Components", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/component-integrity"), False, "package", focus=True)
-	write_universal_build_tasks("Invalidate Caches", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/cleanup"), False, "flame", focus=True)
+	flush_shell_tasks("Configure ADB", "device-mobile", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/configure-adb"), focus=True)
+	flush_shell_tasks("New Project", "new-folder", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/new-project"), focus=True)
+	flush_shell_tasks("Import Project", "repo-pull", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/import-project"), focus=True)
+	flush_shell_tasks("Remove Project", "root-folder-opened", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/remove-project"), focus=True)
+	flush_shell_tasks("Rebuild Declarations", "milestone", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/rebuild-declarations"), hidden=True)
+	flush_vscode_compound_task("Rebuild Declarations by Active File", "milestone", ("Select Project by Active File", "Rebuild Declarations"), hidden=True, globbing="**/*")
+	flush_shell_tasks("Check for Updates", "cloud", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/update-toolchain"), focus=True)
+	flush_shell_tasks("Reinstall Components", "package", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/component-integrity"), focus=True)
+	flush_shell_tasks("Invalidate Caches", "flame", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/python/cleanup"), focus=True)
 
 	return 0
 

@@ -5,7 +5,8 @@ import posixpath
 import subprocess
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
                      relpath, splitext)
-from typing import Any, Collection, Dict, List, Optional
+from re import sub
+from typing import Any, Callable, Collection, Dict, List, Optional
 
 from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
@@ -301,232 +302,205 @@ class WorkspaceComposite:
 			return 0
 
 
-def get_idea_project_run_configuration(name: str, path: str):
-	relative_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
-	relative_path = "$PROJECT_DIR$/" + relative_path.replace("\\", "/") # if relative_path[:2] != ".." else None
-	attribute_independent = "true" if relative_path is None else "false"
-
-	from xml.dom import minidom
-	document = minidom.Document()
-
-	component = document.createElement("component")
-	component.setAttribute("name", "ProjectRunConfigurationManager")
-	configuration = document.createElement("configuration")
-	configuration.setAttribute("name", name)
-	configuration.setAttribute("default", "false")
-	configuration.setAttribute("type", "ShConfigurationType")
-	component.appendChild(configuration)
-
-	script_path = document.createElement("option")
-	script_path.setAttribute("name", "SCRIPT_PATH")
-	script_path.setAttribute("value", relative_path or posixpath.abspath(path))
-	configuration.appendChild(script_path)
-	script_options = document.createElement("option")
-	script_options.setAttribute("name", "SCRIPT_OPTIONS")
-	script_options.setAttribute("value", "")
-	configuration.appendChild(script_options)
-	independent_script_path = document.createElement("option")
-	independent_script_path.setAttribute("name", "INDEPENDENT_SCRIPT_PATH")
-	independent_script_path.setAttribute("value", attribute_independent)
-	configuration.appendChild(independent_script_path)
-
-	script_working_directory = document.createElement("option")
-	script_working_directory.setAttribute("name", "SCRIPT_WORKING_DIRECTORY")
-	script_working_directory.setAttribute("value", posixpath.dirname(relative_path or posixpath.abspath(path)))
-	configuration.appendChild(script_working_directory)
-	independent_script_working_directory = document.createElement("option")
-	independent_script_working_directory.setAttribute("name", "INDEPENDENT_SCRIPT_WORKING_DIRECTORY")
-	independent_script_working_directory.setAttribute("value", attribute_independent)
-	configuration.appendChild(independent_script_working_directory)
-
-	interpreter_path = document.createElement("option")
-	interpreter_path.setAttribute("name", "INTERPRETER_PATH")
-	interpreter_path.setAttribute("value", "")
-	configuration.appendChild(interpreter_path)
-	interpreter_options = document.createElement("option")
-	interpreter_options.setAttribute("name", "INTERPRETER_OPTIONS")
-	interpreter_options.setAttribute("value", "")
-	configuration.appendChild(interpreter_options)
-	independent_interpreter_path = document.createElement("option")
-	independent_interpreter_path.setAttribute("name", "INDEPENDENT_INTERPRETER_PATH")
-	independent_interpreter_path.setAttribute("value", "true")
-	configuration.appendChild(independent_interpreter_path)
-
-	method = document.createElement("method")
-	method.setAttribute("v", "2")
-	configuration.appendChild(method)
-	return component.toprettyxml(indent=" " * 2)
-
-def get_idea_project_compound_configuration(name: str, compound: Collection[str]):
-	from xml.dom import minidom
-	document = minidom.Document()
-
-	component = document.createElement("component")
-	component.setAttribute("name", "ProjectRunConfigurationManager")
-	configuration = document.createElement("configuration")
-	configuration.setAttribute("name", name)
-	configuration.setAttribute("default", "false")
-	configuration.setAttribute("type", "CompoundRunConfigurationType")
-	component.appendChild(configuration)
-
-	for script_name in compound:
-		to_run = document.createElement("toRun")
-		to_run.setAttribute("name", script_name)
-		to_run.setAttribute("type", "ShConfigurationType")
-		configuration.appendChild(to_run)
-
-	method = document.createElement("method")
-	method.setAttribute("v", "2")
-	configuration.appendChild(method)
-	return component.toprettyxml(indent=" " * 2)
-
-def write_idea_project_run_configurations(name: str, path: str):
-	from re import sub
-	configurations_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".idea", "runConfigurations"))
-	ensure_directory(configurations_path)
-	with open(join(configurations_path, sub(r"\W", "_", name) + ".xml"), "w", encoding="utf-8") as wrapper:
-		wrapper.write(get_idea_project_run_configuration(name, path + ".bat"))
-	with open(join(configurations_path, sub(r"\W", "_", name + " (Unix)") + ".xml"), "w", encoding="utf-8") as wrapper:
-		wrapper.write(get_idea_project_run_configuration(name, path + ".sh"))
-
-def write_idea_project_compound_configurations(name: str, compound: Collection[str]):
-	from re import sub
-	configurations_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".idea", "runConfigurations"))
-	ensure_directory(configurations_path)
-	with open(join(configurations_path, sub(r"\W", "_", name) + ".xml"), "w", encoding="utf-8") as wrapper:
-		wrapper.write(get_idea_project_compound_configuration(name, compound))
-
-
-def get_vscode_build_task(name: str, path: str, hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	absolute_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
-	absolute_path = "./" + absolute_path.replace("\\", "/") # if absolute_path[:2] != ".." else posixpath.abspath(path)
-	task = {
-		"label": name,
-		"icon": {
-			"id": icon
-		}
-	}
-	if hidden:
-		task["hide"] = True
-	task.update({
-		"type": "shell",
-		"command": f"./{basename(path)}.sh",
-		"options": {
-			"cwd": posixpath.dirname(absolute_path)
-		}
-	})
-	task["windows"] = {
-		"command": task["command"][:-3].replace("/", "\\") + ".bat",
-		"options": {
-			"cwd": task["options"]["cwd"].replace("/", "\\")
-		}
-	}
-	if focus:
+class WorkspaceBuildConfiguration:
+	@staticmethod
+	def get_vscode_task(name: str, icon: str, **kwargs):
+		task = dict()
 		task.update({
-			"presentation": {
-				"focus": True
+			"label": name,
+			"icon": {
+				"id": icon
 			}
 		})
-	if args:
-		task["args"] = args
-	task.update({
-		"group": {
-			"kind": "build",
-			"isDefault": True
-		},
-		"problemMatcher": list()
-	})
-	if globbing:
-		task["group"]["glob"] = globbing
-	return task
+		if "hidden" in kwargs and kwargs["hidden"]:
+			task["hide"] = True
+		if "focus" in kwargs and kwargs["focus"]:
+			task["presentation"] = {
+				"focus": True
+			}
+		task.update({
+			"group": {
+				"kind": "build",
+				"isDefault": True
+			},
+			"problemMatcher": list()
+		})
+		if "globbing" in kwargs:
+			task["group"]["glob"] = kwargs["globbing"]
+		return task
 
-def get_vscode_sequence_task(name: str, order: Collection[str], hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	task = {
-		"label": name,
-		"icon": {
-			"id": icon
+	@staticmethod
+	def get_vscode_shell_task(name: str, icon: str, path: str, **kwargs):
+		task = WorkspaceBuildConfiguration.get_vscode_task(name, icon, **kwargs)
+		absolute_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path).replace("\\", "/")
+		absolute_path = absolute_path if absolute_path.startswith("..") else "./" + absolute_path
+		task.update({
+			"type": "shell",
+			"command": f"./{basename(path)}.sh",
+			"options": {
+				"cwd": posixpath.dirname(absolute_path)
+			}
+		})
+		task["windows"] = {
+			"command": task["command"][:-3].replace("/", "\\") + ".bat",
+			"options": {
+				"cwd": task["options"]["cwd"].replace("/", "\\")
+			}
 		}
-	}
-	if hidden:
-		task["hide"] = True
-	task.update({
-		"dependsOn": order,
-		"dependsOrder": "sequence",
-		"presentation": {
+		if "options" in kwargs:
+			task["args"] = kwargs["options"]
+		return task
+
+	@staticmethod
+	def get_vscode_compound_task(name: str, icon: str, order: Collection[str], **kwargs):
+		task = WorkspaceBuildConfiguration.get_vscode_task(name, icon, **kwargs)
+		task.update({
+			"dependsOn": order,
+			"dependsOrder": "sequence"
+		})
+		if not "presentation" in task:
+			task["presentation"] = {}
+		task["presentation"].update({
 			"panel": "shared",
 			"showReuseMessage": False
-		}
-	})
-	if focus:
-		task["presentation"]["focus"] = True
-	if args:
-		task["args"] = args
-	task.update({
-		"group": {
-			"kind": "build",
-			"isDefault": True
-		},
-		"problemMatcher": list()
-	})
-	if globbing:
-		task["group"]["glob"] = globbing
-	return task
+		})
+		return task
 
-def write_vscode_build_tasks(name: str, path: str, hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	tasks_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".vscode", "tasks.json"))
-	ensure_file_directory(tasks_path)
+	@staticmethod
+	def flush_vscode_task(name: str, icon: str, method: Callable, *args, **kwargs):
+		tasks_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".vscode", "tasks.json"))
+		ensure_file_directory(tasks_path)
+		configuration: dict = method(name, icon, *args, **kwargs)
 
-	configuration = None
-	if isfile(tasks_path):
-		with open(tasks_path, encoding="utf-8") as tasks:
-			configuration = json.load(tasks)
-	if not isinstance(configuration, dict):
-		configuration = {}
-		configuration["version"] = "2.0.0"
-	if "tasks" not in configuration:
-		configuration["tasks"] = list()
+		definition = None
+		if isfile(tasks_path):
+			with open(tasks_path, encoding="utf-8") as tasks:
+				definition = json.load(tasks)
+		if not isinstance(definition, dict):
+			definition = {}
+			definition["version"] = "2.0.0"
+		if "tasks" not in definition:
+			definition["tasks"] = list()
 
-	duplicates = list()
-	for task in configuration["tasks"]:
-		if "label" in task and task["label"] == name:
-			duplicates.append(task)
-	for task in duplicates:
-		configuration["tasks"].remove(task)
+		duplicates = list()
+		for task in definition["tasks"]:
+			if "label" in task and task["label"] == name:
+				duplicates.append(task)
+		for task in duplicates:
+			definition["tasks"].remove(task)
 
-	configuration["tasks"].append(get_vscode_build_task(name, path, hidden=hidden, icon=icon, focus=focus, globbing=globbing, args=args))
-	with open(tasks_path, "w", encoding="utf-8") as tasks:
-		json.dump(configuration, tasks, indent="\t")
+		definition["tasks"].append(configuration)
+		with open(tasks_path, "w", encoding="utf-8") as tasks:
+			json.dump(definition, tasks, indent="\t")
+			tasks.write("\n")
 
-def write_vscode_sequence_tasks(name: str, order: Collection[str], hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	tasks_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".vscode", "tasks.json"))
-	ensure_file_directory(tasks_path)
+	@staticmethod
+	def get_idea_task(name: str, type: str):
+		from xml.dom import minidom
+		document = minidom.Document()
+		component = document.createElement("component")
+		component.setAttribute("name", "ProjectRunConfigurationManager")
 
-	configuration = None
-	if isfile(tasks_path):
-		with open(tasks_path, encoding="utf-8") as tasks:
-			configuration = json.load(tasks)
-	if not isinstance(configuration, dict):
-		configuration = {}
-		configuration["version"] = "2.0.0"
-	if "tasks" not in configuration:
-		configuration["tasks"] = list()
+		configuration = document.createElement("configuration")
+		configuration.setAttribute("name", name[:-7] if name.endswith(" (Unix)") else name)
+		configuration.setAttribute("default", "false")
+		configuration.setAttribute("type", type)
+		component.appendChild(configuration)
 
-	duplicates = list()
-	for task in configuration["tasks"]:
-		if "label" in task and task["label"] == name:
-			duplicates.append(task)
-	for task in duplicates:
-		configuration["tasks"].remove(task)
+		method = document.createElement("method")
+		method.setAttribute("v", "2")
+		configuration.appendChild(method)
 
-	configuration["tasks"].append(get_vscode_sequence_task(name, order, hidden=hidden, icon=icon, focus=focus, globbing=globbing, args=args))
-	with open(tasks_path, "w", encoding="utf-8") as tasks:
-		json.dump(configuration, tasks, indent="\t")
+		return component
 
+	@staticmethod
+	def get_idea_shell_task(name: str, path: str, **kwargs):
+		from xml.dom import minidom
+		component = WorkspaceBuildConfiguration.get_idea_task(name, "ShConfigurationType")
+		configuration: minidom.Node = component.childNodes[0]
+		document: minidom.Document = component.ownerDocument
+		relative_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
+		relative_path = "$PROJECT_DIR$/" + relative_path.replace("\\", "/")
 
-def write_universal_build_tasks(name: str, path: str, hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	write_idea_project_run_configurations(name, path)
-	write_vscode_build_tasks(name, path, hidden=hidden, icon=icon, focus=focus, globbing=globbing, args=args)
+		script_path = document.createElement("option")
+		script_path.setAttribute("name", "SCRIPT_PATH")
+		script_path.setAttribute("value", relative_path)
+		configuration.appendChild(script_path)
+		script_options = document.createElement("option")
+		script_options.setAttribute("name", "SCRIPT_OPTIONS")
+		script_options.setAttribute("value", " ".join(kwargs["options"]) if "options" in kwargs else "")
+		configuration.appendChild(script_options)
+		independent_script_path = document.createElement("option")
+		independent_script_path.setAttribute("name", "INDEPENDENT_SCRIPT_PATH")
+		independent_script_path.setAttribute("value", "false")
+		configuration.appendChild(independent_script_path)
 
-def write_universal_sequence_tasks(name: str, order: Collection[str], hidden: bool = False, icon: str = "run", focus: bool = False, globbing: Optional[str] = None, args: Optional[Collection[str]] = None):
-	write_idea_project_compound_configurations(name, order)
-	write_vscode_sequence_tasks(name, order, hidden=hidden, icon=icon, focus=focus, globbing=globbing, args=args)
+		script_working_directory = document.createElement("option")
+		script_working_directory.setAttribute("name", "SCRIPT_WORKING_DIRECTORY")
+		script_working_directory.setAttribute("value", posixpath.dirname(relative_path))
+		configuration.appendChild(script_working_directory)
+		independent_script_working_directory = document.createElement("option")
+		independent_script_working_directory.setAttribute("name", "INDEPENDENT_SCRIPT_WORKING_DIRECTORY")
+		independent_script_working_directory.setAttribute("value", "false")
+		configuration.appendChild(independent_script_working_directory)
+
+		interpreter_path = document.createElement("option")
+		interpreter_path.setAttribute("name", "INTERPRETER_PATH")
+		interpreter_path.setAttribute("value", "")
+		configuration.appendChild(interpreter_path)
+		interpreter_options = document.createElement("option")
+		interpreter_options.setAttribute("name", "INTERPRETER_OPTIONS")
+		interpreter_options.setAttribute("value", "")
+		configuration.appendChild(interpreter_options)
+		independent_interpreter_path = document.createElement("option")
+		independent_interpreter_path.setAttribute("name", "INDEPENDENT_INTERPRETER_PATH")
+		independent_interpreter_path.setAttribute("value", "true")
+		configuration.appendChild(independent_interpreter_path)
+
+		return component
+
+	@staticmethod
+	def get_idea_compound_task(name: str, order: Collection[str]):
+		from xml.dom import minidom
+		component = WorkspaceBuildConfiguration.get_idea_task(name, "CompoundRunConfigurationType")
+		document: minidom.Document = component.ownerDocument
+		configuration: minidom.Node = component.childNodes[0]
+
+		for task_name in order:
+			to_run = document.createElement("toRun")
+			to_run.setAttribute("name", task_name)
+			to_run.setAttribute("type", "CompoundRunConfigurationType")
+			configuration.appendChild(to_run)
+
+		return component
+
+	@staticmethod
+	def flush_idea_task(name: str, method: Callable, *args, **kwargs):
+		from xml.dom import minidom
+		configurations_path = GLOBALS.PREFERRED_CONFIG.get_path(join(".idea", "runConfigurations"))
+		ensure_directory(configurations_path)
+		component: minidom.Node = method(name, *args, **kwargs)
+		unescaped_name = sub(r"\W", "_", name) + ".xml"
+		with open(join(configurations_path, unescaped_name), "w", encoding="utf-8") as task:
+			task.write(component.toprettyxml(indent=" " * 2))
+
+def flush_vscode_shell_task(name: str, icon: str, path: str, **kwargs):
+	WorkspaceBuildConfiguration.flush_vscode_task(name, icon, WorkspaceBuildConfiguration.get_vscode_shell_task, path, **kwargs)
+
+def flush_vscode_compound_task(name: str, icon: str, order: Collection[str], **kwargs):
+	WorkspaceBuildConfiguration.flush_vscode_task(name, icon, WorkspaceBuildConfiguration.get_vscode_compound_task, order, **kwargs)
+
+def flush_idea_shell_task(name: str, path: str, **kwargs):
+	WorkspaceBuildConfiguration.flush_idea_task(name, WorkspaceBuildConfiguration.get_idea_shell_task, path + ".bat", **kwargs)
+	WorkspaceBuildConfiguration.flush_idea_task(f"{name} (Unix)", WorkspaceBuildConfiguration.get_idea_shell_task, path + ".sh", **kwargs)
+
+def flush_idea_compound_task(name: str, order: Collection[str], **kwargs):
+	WorkspaceBuildConfiguration.flush_idea_task(name, WorkspaceBuildConfiguration.get_idea_compound_task, order, **kwargs)
+
+def flush_shell_tasks(name: str, icon: str, path: str, **kwargs):
+	flush_vscode_shell_task(name, icon, path, **kwargs)
+	flush_idea_shell_task(name, path, **kwargs)
+
+def flush_compound_tasks(name: str, icon: str, order: Collection[str], **kwargs):
+	flush_vscode_compound_task(name, icon, order, **kwargs)
+	flush_idea_compound_task(name, order, **kwargs)

@@ -14,7 +14,7 @@ Check `pushTo` property in your configuration files, it probably contains wrong 
 
 ### What if I want just single project
 
-Then just place the working files in the root folder of the toolchain, it does not need to be selected and if such a project exists, it will be selected by default. You will still be able to use all the features, the main folder will only act as a project. If necessary, change the `projectLocations` property to exclude the root folder (*..*) from the list of projects to prevent them from being duplicated in the selection interface. Once the `selectedProject` property is changed by you personally, the "global" project has no meaning.
+Then just place the working files in the root folder of the toolchain, it does not need to be selected and if such a project exists, it will be selected by default. You will still be able to use all the features, the main folder will only act as a project. If necessary, change the `projectLocations` property to exclude the root folder (*..*) from the list of projects to prevent them from being duplicated in the selection interface. Once the `currentProject` property is changed by you personally, the "global" project has no meaning.
 
 ### How to change import path
 

@@ -1,5 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration name="Select Project" default="false" type="ShConfigurationType">
+    <method v="2"/>
     <option name="SCRIPT_PATH" value="$PROJECT_DIR$/toolchain/python/select-project.sh"/>
     <option name="SCRIPT_OPTIONS" value=""/>
     <option name="INDEPENDENT_SCRIPT_PATH" value="false"/>
@@ -8,6 +9,5 @@
     <option name="INTERPRETER_PATH" value=""/>
     <option name="INTERPRETER_OPTIONS" value=""/>
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true"/>
-    <method v="2"/>
   </configuration>
 </component>

@@ -6,6 +6,14 @@
 			"icon": {
 				"id": "folder-opened"
 			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./select-project.sh",
 			"options": {
@@ -16,15 +24,7 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"presentation": {
-				"focus": true
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Select Project by Active File",
@@ -32,6 +32,12 @@
 				"id": "repo-force-push"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./select-project.sh",
 			"options": {
@@ -45,19 +51,18 @@
 			},
 			"args": [
 				"${fileWorkspaceFolder}"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			]
 		},
 		{
 			"label": "Push",
 			"icon": {
 				"id": "rocket"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./push.sh",
 			"options": {
@@ -68,18 +73,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Assemble Mod for Release",
 			"icon": {
 				"id": "archive"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./assemble-release.sh",
 			"options": {
@@ -90,12 +95,7 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build (No push)",
@@ -103,6 +103,11 @@
 				"id": "debug-all"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./build-all.sh",
 			"options": {
@@ -113,18 +118,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build",
 			"icon": {
 				"id": "debug-all"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Build (No push)",
 				"Push"
@@ -133,12 +138,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build by Active File",
@@ -146,6 +146,12 @@
 				"id": "debug-all"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Build"
@@ -154,13 +160,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Scripts and Resources (No push)",
@@ -168,6 +168,11 @@
 				"id": "debug-alt"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./build-scripts-and-resources.sh",
 			"options": {
@@ -178,18 +183,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Scripts and Resources",
 			"icon": {
 				"id": "debug-alt"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Build Scripts and Resources (No push)",
 				"Push"
@@ -198,18 +203,20 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Scripts and Resources by Active File",
 			"icon": {
 				"id": "debug-alt"
 			},
+			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Build Scripts and Resources"
@@ -218,20 +225,19 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Java (No push)",
 			"icon": {
-				"id": "run"
+				"id": "run-above"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./compile-java.sh",
 			"options": {
@@ -242,18 +248,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Java",
 			"icon": {
 				"id": "run-above"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Build Java (No push)",
 				"Push"
@@ -262,12 +268,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Java by Active File",
@@ -275,6 +276,12 @@
 				"id": "run-above"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Build Java"
@@ -283,13 +290,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Native (No push)",
@@ -297,6 +298,11 @@
 				"id": "run"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./compile-native.sh",
 			"options": {
@@ -307,18 +313,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "Build Native",
+			"icon": {
+				"id": "run"
 			},
 			"group": {
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Build Native",
-			"icon": {
-				"id": "run-above"
-			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Build Native (No push)",
 				"Push"
@@ -327,19 +333,20 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Build Native by Active File",
 			"icon": {
-				"id": "run-above"
+				"id": "run"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Build Native"
@@ -348,13 +355,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Watch Scripts (No push)",
@@ -362,6 +363,11 @@
 				"id": "debug-coverage"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./watch-scripts.sh",
 			"options": {
@@ -372,18 +378,18 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Watch Scripts",
 			"icon": {
 				"id": "debug-coverage"
 			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Watch Scripts (No push)",
 				"Push"
@@ -392,12 +398,7 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Watch Scripts by Active File",
@@ -405,6 +406,12 @@
 				"id": "debug-coverage"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Watch Scripts"
@@ -413,19 +420,21 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Configure ADB",
 			"icon": {
 				"id": "device-mobile"
 			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./configure-adb.sh",
 			"options": {
@@ -436,6 +445,12 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "New Project",
+			"icon": {
+				"id": "new-folder"
 			},
 			"presentation": {
 				"focus": true
@@ -444,13 +459,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "New Project",
-			"icon": {
-				"id": "new-folder"
-			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./new-project.sh",
 			"options": {
@@ -461,6 +470,12 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "Import Project",
+			"icon": {
+				"id": "repo-pull"
 			},
 			"presentation": {
 				"focus": true
@@ -469,13 +484,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Import Project",
-			"icon": {
-				"id": "repo-pull"
-			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./import-project.sh",
 			"options": {
@@ -486,6 +495,12 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "Remove Project",
+			"icon": {
+				"id": "root-folder-opened"
 			},
 			"presentation": {
 				"focus": true
@@ -494,13 +509,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Remove Project",
-			"icon": {
-				"id": "root-folder-opened"
-			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./remove-project.sh",
 			"options": {
@@ -511,15 +520,7 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"presentation": {
-				"focus": true
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Rebuild Declarations",
@@ -527,6 +528,11 @@
 				"id": "milestone"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./rebuild-declarations.sh",
 			"options": {
@@ -537,12 +543,7 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Rebuild Declarations by Active File",
@@ -550,6 +551,12 @@
 				"id": "milestone"
 			},
 			"hide": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true,
+				"glob": "**/*"
+			},
+			"problemMatcher": [],
 			"dependsOn": [
 				"Select Project by Active File",
 				"Rebuild Declarations"
@@ -558,19 +565,21 @@
 			"presentation": {
 				"panel": "shared",
 				"showReuseMessage": false
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true,
-				"glob": "**/*"
-			},
-			"problemMatcher": []
+			}
 		},
 		{
 			"label": "Check for Updates",
 			"icon": {
 				"id": "cloud"
 			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./update-toolchain.sh",
 			"options": {
@@ -581,6 +590,12 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "Reinstall Components",
+			"icon": {
+				"id": "package"
 			},
 			"presentation": {
 				"focus": true
@@ -589,13 +604,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Reinstall Components",
-			"icon": {
-				"id": "package"
-			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./component-integrity.sh",
 			"options": {
@@ -606,6 +615,12 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
+			}
+		},
+		{
+			"label": "Invalidate Caches",
+			"icon": {
+				"id": "flame"
 			},
 			"presentation": {
 				"focus": true
@@ -614,13 +629,7 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"problemMatcher": []
-		},
-		{
-			"label": "Invalidate Caches",
-			"icon": {
-				"id": "flame"
-			},
+			"problemMatcher": [],
 			"type": "shell",
 			"command": "./cleanup.sh",
 			"options": {
@@ -631,15 +640,7 @@
 				"options": {
 					"cwd": ".\\toolchain\\python"
 				}
-			},
-			"presentation": {
-				"focus": true
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"problemMatcher": []
+			}
 		}
 	]
 }
