@@ -72,8 +72,8 @@ class ProjectManager:
 			make_file.write(json.dumps(template_obj, indent="\t") + "\n")
 
 		if GLOBALS.CODE_WORKSPACE.available():
-			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)
-			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) == 0:
+			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder).replace("\\", "/")
+			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", location)) == 0:
 				self.append_workspace_folder(folder, template_info["name"])
 
 		if GLOBALS.CODE_SETTINGS.available():
@@ -96,8 +96,8 @@ class ProjectManager:
 			self.unselect_project(silent=True)
 
 		if GLOBALS.CODE_WORKSPACE.available():
-			location = posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder))
-			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) > 0:
+			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder).replace("\\", "/")
+			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", location)) > 0:
 				folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 				for entry in folders:
 					if isinstance(entry, dict) and "path" in entry and entry["path"] == location:
@@ -120,11 +120,11 @@ class ProjectManager:
 			folders = GLOBALS.CODE_WORKSPACE.get_value("folders", list())
 			if len(folders) == 0:
 				folders.append({
-					"path": posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path()),
+					"path": GLOBALS.CODE_WORKSPACE.get_toolchain_path().replace("\\", "/"),
 					"name": "Inner Core Mod Toolchain"
 				})
 			folders.append({
-				"path": posixpath.normpath(GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)),
+				"path": GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder).replace("\\", "/"),
 				"name": str(name)
 			})
 			GLOBALS.CODE_WORKSPACE.set_value("folders", folders)
@@ -146,8 +146,8 @@ class ProjectManager:
 		index, folder = self.get_folder(index, folder)
 
 		if folder and GLOBALS.CODE_WORKSPACE.available():
-			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder)
-			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", (location))) == 0:
+			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder).replace("\\", "/")
+			if len(GLOBALS.CODE_WORKSPACE.get_filtered_list("folders", "path", location)) == 0:
 				make_path = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(join(folder, "make.json"))
 				if not isfile(make_path):
 					abort(f"Not found 'make.json' in project {folder!r}, nothing to do.")
