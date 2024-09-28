@@ -76,13 +76,13 @@ Path selections can contain /\*\*/ to select folders and all subfolders, as well
 
 ### Importing, creating and removing projects
 
-For each of the operations, tasks `Import Project`, `New Project` and `Remove Project` are provided, respectively, as well as commands `./import-project.bat`, `./import-project.sh`, `./new- project.bat`, `./new-project.sh`, `./remove-project.bat` and `./remove-project.sh`. All operations are accompanied by interactions in console, which means that a detailed description of each of them is not required.
+For each of the operations, tasks `Import Project`, `New Project` and `Remove Project` are provided, respectively, as well as commands `./import-project.bat`, `./import-project.sh`, `./new-project.bat`, `./new-project.sh`, `./remove-project.bat` and `./remove-project.sh`. All operations are accompanied by interactions in console, which means that a detailed description of each of them is not required.
 
 ![Project management with Visual Studio Code](.github/project-management.jpg)
 
 ### Selection between your projects
 
-Use the `Select Project` task or `./select-project.bat` or `./select-project.sh` command to open selection menu. In case you can't find your project, check `projectLocations` property in your *toolchain.json* or import the project using toolchain.
+Use the `Select Project` task or `./select-project.bat` and `./select-project.sh` command to open selection menu. In case you can't find your project, check `projectLocations` property in your *toolchain.json* or import the project using toolchain.
 
 In addition, for Visual Studio Code tasks `Select Project by Active File`, `Build by Active File`, e.g. are provided. They are hidden from *Ctrl+P > Tasks: Run Task* menu by default, but are available from the build menu *Ctrl+Shift+B* and can be displayed by changing *.vscode/tasks.json* manually.
 
@@ -90,15 +90,63 @@ In addition, for Visual Studio Code tasks `Select Project by Active File`, `Buil
 
 ## Distribution update
 
-Run the `Check for Updates` task or `./update-toolchain.bat` or `./update-toolchain.sh` command. Local components and toolchain itself will be rechecked for updates. When updating, only the folder of toolchain itself is affected, only configuration files and scripts are changed. The rest of files cannot be deleted under any circumstances, or they will be moved to a copy with *.bak* suffix.
+Run the `Check for Updates` task or `./update-toolchain.bat` and `./update-toolchain.sh` command. Local components and toolchain itself will be rechecked for updates. When updating, only the folder of toolchain itself is affected, only configuration files and scripts are changed. The rest of files cannot be deleted under any circumstances, or they will be moved to a copy with *.bak* suffix.
 
 ### Component management
 
-Components can be installed using `Integrity Components` or commands `./component-integrity.bat` or `./component-integrity.sh`. You can install or update them at any time using the same command, there is no uninstallation for components.
+Components can be installed using `Reinstall Components` or commands `./component-integrity.bat` and `./component-integrity.sh`. You can install or update them at any time using the same command, there is no uninstallation for components.
+
+## Advanced features
+
+In addition to standard TypeScript build, this toolchain has built-in Java and C/C++ support. Tools for working with them are embedded in additional components that [can be installed at any time](#component-management) if necessary.
+
+### Using Java
+
+Install [Java Development Kit 1.8](https://adoptium.net/temurin/releases/?version=8) (JDK) on a computer for Java development. Now, you need to download components `Java R8/D8 Compiler` (to optimize and bring compiled code to format of Android devices, it allows you to use lambdas and other useful features) and `Java Classpath' (contains Horizon, Inner Core and Android libraries to work with any part of engine). If at least one of these components is not installed, correct operation of environment is not guaranteed.
+
+By default, new project contains environment settings for Java support in Visual Studio Code and IntelliJ IDEA environments. It is most convenient to use Eclipse configuration files, since they are supported "out of box" in most existing code editors. This is a project file [*.project*](toolchain/toolchain-sample-mod/.project), as well as [*.classpath*](toolchain/toolchain-sample-mod/.classpath) with a list of built-in libraries, sources and JDK version.
+
+The build system files are not included in new project by default, because environments will automatically create an excessive load. A simple example of using Eclipse build system is in fashion-an example, links to settings of which are in previous paragraph.
+
+#### Java in Visual Studio Code
+
+First of all, you need to install [Extension Pack for Java](vscode:extension/vscjava.vscode-java-pack) for full support of mod projects. It contains necessary tools for all build systems supported by toolchain. Now, when you open any project folder or workspace (workspace), source files will get highlighted and will display errors and hints.
+
+![Opened project in Visual Studio Code](.github/vscode-java.png)
+
+#### Java in IntelliJ IDEA
+
+You won't need to install anything else, but a little additional configuration is needed for projects. By default, new mods contain necessary configurations. If such a project is opened (for example, mod example contains a fully configured project), sources, libraries and everything else will be determined automatically.
+
+![Opened project in IntelliJ IDEA](.github/idea-java.png)
+
+If this does not happen and errors are not analyzed, hints are not displayed, and project reports that JDK is not configured, you need to import project. Build system (by default Eclipse) must be configured in advance, settings will be added to existing folder after import.
+
+##### Importing project with build system
+
+Open menu *File* > *New* > *Project from Existing Sources...* to import a project if another project is already open. Close open mod project if it is open.
+
+![Project from existing sources](.github/idea-project-from-existing-sources.png)
+
+If project is not open and start screen is here, press *Ctrl+Shift+A* to display a list of available tasks. Start searching for *Import Project from Existing Sources...* and select appropriate task.
+
+![Press Ctrl+Shift+A](.github/idea-press-ctrl-shift-a.png)
+
+Now, find folder with toolchain and your project in it, find build system file (by type *.gradle*, *.project*, *.classpath*) and select it.
+
+![Find your project](.github/idea-find-your-project.png)
+
+If you are using Eclipse build system, be sure to check *Link created IntelliJ IDEA modules to Eclipse project files*. This will ensure that environment configurations are automatically updated after it is restarted.
+
+![Check imported modules](.github/idea-import-modules.png)
+
+Check that JDK version is defined correctly, and finally, create a project using *Create*. Now, hints, error information and all other features should be available in environment.
+
+![Finally create a project](.github/idea-then-create.png)
 
 ## Publishing project
 
-Once development is complete, the next step is to publish to [Mod Browser](https://icmods.mineprogramming.org/). Execute the `Assemble Mod for Release` task or `./assemble-release.bat` or `./assemble-release.sh` command. An archive *<folder_name>.icmod* will be created at the root of folder. It is already completely ready for publication to site. Read [article](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md) for details.
+Once development is complete, next step is to publish to [Mod Browser](https://icmods.mineprogramming.org/). Execute the `Assemble Mod for Release` task or `./assemble-release.bat` and `./assemble-release.sh` command. An archive *<folder_name>.icmod* will be created at the root of folder. It is already completely ready for publication to site. Read [article](https://github.com/zheka2304/InnerCore/blob/master/developer-guide-en.md) for details.
 
 ## Documentation and further steps
 

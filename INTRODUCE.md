@@ -44,7 +44,7 @@ No less important is the fact that now installing a component with a classpatch 
 
 Run the `Check for Updates` task and you are done! Updates are installed for the toolchain scripts, task configs if it is not disabled, and the mod sample if it is. Projects cannot be affected in any way. However, the toolchain is now rich in more than one toolchain. The same task will check for updates for all installed components.
 
-What are components? Android Debug Bridge, TypeScript declarations, Java Compiler, Classpatch with automatic updates for the latest versions of Inner Core, Native GCC Compiler and headers, including GNU STL. Each component is updated only when changes are made to it remotely. You will be able to install the components using the install script or later by using the `Integrity Components` task if the need arises.
+What are components? Android Debug Bridge, TypeScript declarations, Java Compiler, Classpatch with automatic updates for the latest versions of Inner Core, Native GCC Compiler and headers, including GNU STL. Each component is updated only when changes are made to it remotely. You will be able to install the components using the install script or later by using the `Reinstall Components` task if the need arises.
 
 ## Work without leaving terminal
 
