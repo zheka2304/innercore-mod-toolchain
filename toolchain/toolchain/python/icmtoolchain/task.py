@@ -479,7 +479,6 @@ def task_remove_project() -> int:
 
 @task(
 	"selectProject",
-	locks=["cleanup"],
 	description="Selects a project from a specified folder or requests interactive pickings from user."
 )
 def task_select_project(path: str = "") -> int:

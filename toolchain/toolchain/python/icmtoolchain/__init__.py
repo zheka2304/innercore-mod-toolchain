@@ -16,13 +16,13 @@ def find_configuration(path: str, filename: str):
 def request_make_config(toolchain_config):
 	selected_project = toolchain_config.get_value("currentProject")
 	if selected_project:
-		preferred_config = toolchain_config.get_absolute_path(join(selected_project, "make.json"))
+		preffered_config = toolchain_config.get_absolute_path(join(selected_project, "make.json"))
 	else:
-		preferred_config = find_configuration(os.getcwd(), "make.json")
-	if not preferred_config or not isfile(preferred_config):
+		preffered_config = find_configuration(os.getcwd(), "make.json")
+	if not preffered_config or not isfile(preffered_config):
 		return None
 	from .make_config import MakeConfig
-	return MakeConfig(preferred_config, toolchain_config)
+	return MakeConfig(preffered_config, toolchain_config)
 
 class Globals:
 	@property

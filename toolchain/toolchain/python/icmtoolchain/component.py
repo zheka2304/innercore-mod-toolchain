@@ -336,6 +336,7 @@ def upgrade() -> int:
 		print("Which components will be upgraded?", stringify(", ".join(installed), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
 		install_components(*installed)
 	else:
+		print()
 		print("Nothing to perform.")
 	return 0
 
