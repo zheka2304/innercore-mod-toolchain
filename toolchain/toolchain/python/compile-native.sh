@@ -1,1 +1,1 @@
-python3 -m icmtoolchain compileNative buildInfo
+python3 -m icmtoolchain ensureProjectExists compileNative buildInfo

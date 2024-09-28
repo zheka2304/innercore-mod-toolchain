@@ -323,7 +323,7 @@ def get_adb_command() -> List[str]:
 		abort("Not found connected devices, nothing to do.")
 	which = setup_externally(True) if len(devices) > 0 else setup_device_connection()
 	if which is None:
-		abort("Nothing will happened, adb set up interrupted.")
+		abort("Nothing will happen, adb set up interrupted.")
 	return which
 
 def get_adb_command_by_serial(serial: str) -> List[str]:

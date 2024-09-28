@@ -1,1 +1,1 @@
-python3 -m icmtoolchain clearOutput watchScripts buildInfo
+python3 -m icmtoolchain ensureProjectExists clearOutput watchScripts buildInfo

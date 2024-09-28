@@ -1,1 +1,1 @@
-python3 -m icmtoolchain clearOutput buildScripts buildResources compileNative compileJava buildAdditional buildInfo
+python3 -m icmtoolchain ensureProjectExists clearOutput buildScripts buildResources compileNative compileJava buildAdditional buildInfo

@@ -71,10 +71,6 @@ class Globals:
 		if not hasattr(self, "make_config"):
 			make_config = request_make_config(self.TOOLCHAIN_CONFIG)
 			if not make_config:
-				from .task import execute_task
-				if execute_task("selectProject") == 0:
-					make_config = request_make_config(self.TOOLCHAIN_CONFIG)
-			if not make_config:
 				from .shell import abort
 				abort("Not found any opened project, nothing to do.")
 			self.make_config = make_config

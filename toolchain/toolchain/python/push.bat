@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain stopApplication pushEverything launchApplication
+python -m icmtoolchain ensureProjectExists stopApplication pushEverything launchApplication

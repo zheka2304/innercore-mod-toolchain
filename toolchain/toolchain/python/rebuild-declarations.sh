@@ -1,1 +1,1 @@
-python3 -m icmtoolchain updateIncludes
+python3 -m icmtoolchain ensureProjectExists updateIncludes

@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain clearOutput watchScripts buildInfo
+python -m icmtoolchain ensureProjectExists clearOutput watchScripts buildInfo

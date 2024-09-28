@@ -2,7 +2,7 @@ import json
 import os
 import platform
 from os.path import (abspath, basename, exists, isdir, isfile, join, normpath,
-                     realpath, relpath)
+                     relpath)
 from typing import Callable, Final, List, Optional
 
 from .base_config import BaseConfig

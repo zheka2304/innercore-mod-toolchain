@@ -510,6 +510,26 @@ def task_select_project(path: str = "") -> int:
 		abort(f"Folder {who!r} not found!")
 	return 0
 
+@task(
+	"ensureProjectExists",
+	description="Ensures that selected project is opened and exists."
+)
+def task_ensure_project_exists() -> int:
+	if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig):
+		return 0
+	if GLOBALS.PROJECT_MANAGER.how_much() == 0:
+		abort("Not found any project to choice.")
+
+	who = GLOBALS.PROJECT_MANAGER.require_selection("Which project do you choice to continue?", "Do you want to select {} to continue?")
+	if not who:
+		print("Nothing will happen.")
+		return 1
+	try:
+		GLOBALS.PROJECT_MANAGER.select_project(folder=who)
+	except ValueError:
+		abort(f"Folder {who!r} not found!")
+	return 0
+
 ### MISCELLANEOUS
 
 @task(
@@ -591,12 +611,11 @@ def task_component_integrity(startup: bool = False) -> int:
 def task_cleanup() -> int:
 	from .package import cleanup_relative_directory
 	if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig):
-		if confirm("Do you want to clear only selected project (everything cache will be cleaned otherwise)?", True, prints_abort=False):
-			cleanup_relative_directory("toolchain/build/" + GLOBALS.MAKE_CONFIG.project_unique_name)
-			cleanup_relative_directory(GLOBALS.MOD_STRUCTURE.directory, True)
+		if not confirm("Do you want to clear selected project cache?", True):
 			return 0
-	else:
-		if not confirm("Do you want to clear all projects cache?", True):
-			return 0
+		cleanup_relative_directory("toolchain/build/" + GLOBALS.MAKE_CONFIG.project_unique_name)
+		cleanup_relative_directory(GLOBALS.MOD_STRUCTURE.directory, True)
+	if not confirm("Do you want to clear all projects cache?", True):
+		return 0
 	cleanup_relative_directory("toolchain/build")
 	return 0

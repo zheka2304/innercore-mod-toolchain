@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain compileJava buildInfo
+python -m icmtoolchain ensureProjectExists compileJava buildInfo

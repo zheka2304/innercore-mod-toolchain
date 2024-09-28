@@ -1,1 +1,1 @@
-python3 -m icmtoolchain compileJava buildInfo
+python3 -m icmtoolchain ensureProjectExists compileJava buildInfo

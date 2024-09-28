@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain updateIncludes
+python -m icmtoolchain ensureProjectExists updateIncludes

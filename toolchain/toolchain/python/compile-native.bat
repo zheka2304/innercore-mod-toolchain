@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain compileNative buildInfo
+python -m icmtoolchain ensureProjectExists compileNative buildInfo

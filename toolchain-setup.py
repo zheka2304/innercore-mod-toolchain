@@ -151,7 +151,7 @@ elif not "--no-startup" in sys.argv:
 if "--import" in sys.argv:
 	where = sys.argv.index("--import")
 	if len(sys.argv) < where + 1 or sys.argv[where + 1].startswith("--"):
-		print("Not found import path, nothing will happened.")
+		print("Not found import path, nothing will happen.")
 		exit(5)
 	folder = sys.argv[where + 1]
 	subprocess.run([
