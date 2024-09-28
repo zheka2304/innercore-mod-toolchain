@@ -3,13 +3,15 @@
 		"**/__pycache__/": true,
 		".settings/": true,
 		".idea/": true,
+		"schemas/": true,
 		"toolchain/adb/": true,
 		"toolchain/bin/": true,
 		"toolchain/ndk/": true,
 		"toolchain/temp/": true,
 		"toolchain/**/.*commit": true,
 		"**/*.log": true,
-		"toolchain-sample-mod": false
+		"toolchain-mod": true,
+		"toolchain-sample-mod": true
 	},
 	"search.exclude": {
 		"**/node_modules": true,
