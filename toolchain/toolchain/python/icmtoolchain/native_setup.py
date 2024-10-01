@@ -165,6 +165,7 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		return 0
 	else:
 		shell = Shell()
+		shell.inline_flushing = True
 		ndk_path = get_ndk_path()
 		if not ndk_path:
 			if not reinstall:
@@ -186,27 +187,30 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		result = 0
 
 		progress = None
+		captured_errors = dict()
 		if not isinstance(arches, list):
 			arches = [arches]
 		for arch in arches:
 			progress = None
 			if shell:
-				progress = Progress(text=f"Installing {str(arch)}")
+				progress = Progress(text=f"Installing {arch}")
 				shell.interactables.append(progress)
 				shell.render()
-			result += subprocess.call([
+			output = subprocess.run([
 				"python3" if platform.system() != "Windows" else "python",
 				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 				"--arch", str(arch),
-				"--api", "19",
+				"--api", "21" if str(arch) == "arm64" else "19",
 				"--install-dir", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
 				"--force"
-			])
-			open(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
-			if result != 0:
-				Progress.notify(shell, progress, 0.5, f"Installation of {str(arch)} failed with result {str(result)}")
+			], capture_output=True, text=True)
+			if output.returncode != 0:
+				captured_errors[arch] = output.stderr.strip()
+				Progress.notify(shell, progress, 1, f"Installation of {arch} failed with result {str(result)}")
 			else:
-				Progress.notify(shell, progress, 1, f"Successfully installed {str(arch)}")
+				open(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
+				Progress.notify(shell, progress, 1, f"Successfully installed {arch}")
+			result += output.returncode
 
 		if result == 0:
 			progress = None
@@ -221,11 +225,13 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 			except OSError as exc:
 				Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
 		else:
-			Progress.notify(shell, progress, 0.5, f"Installation failed with result {str(result)}")
+			Progress.notify(shell, progress, 1, f"Installation failed with result {str(result)}")
 
 		if shell:
 			shell.render()
 			shell.leave()
 		if result != 0:
-			print("You are must install it manually by running 'toolchain/temp/../build/tools/make_standalone_toolchain.py', or reextracting NDK.")
+			error("You are must install it manually by running 'toolchain/temp/ndk/build/tools/make_standalone_toolchain.py':")
+			for arch in captured_errors:
+				error(f"{arch}: {captured_errors[arch]}")
 		return result

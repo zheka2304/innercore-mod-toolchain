@@ -7,8 +7,6 @@
 #ifndef HORIZON_HOOK_H
 #define HORIZON_HOOK_H
 
-typedef long long int64_t;
-
 namespace SubstrateInterface {
     /** change protection mode of given memory address and surrounding pages
      * - address - address to change protection
