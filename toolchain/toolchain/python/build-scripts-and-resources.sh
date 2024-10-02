@@ -1,0 +1,1 @@
+python3 -m icmtoolchain ensureProjectExists clearOutput buildScripts buildResources buildAdditional buildInfo
