@@ -26,6 +26,13 @@
 			"default": "../toolchain.code-workspace",
 			"description": "Path to workspace file, exclusive to Visual Studio Code, all opened and created projects are added into this file."
 		},
+		"environment": {
+			"type": "object",
+			"additionalProperties": {
+				"type": "string"
+			},
+			"description": "Environment variables that being set globally for every command this toolchain execute."
+		},
 		"tools": {
 			"type": "object",
 			"properties": {

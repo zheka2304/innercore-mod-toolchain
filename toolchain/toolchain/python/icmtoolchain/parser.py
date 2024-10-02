@@ -1,4 +1,5 @@
 import inspect
+import os
 import sys
 from collections import namedtuple
 from types import (BuiltinMethodType, ClassMethodDescriptorType,
@@ -222,7 +223,7 @@ def parse_argument(argv: List[str], mappings: Mapping[str, inspect.Parameter]) -
 				try:
 					parameter = next(parameters)
 				except StopIteration:
-					raise TypeError("Short argument {name!r} should be considered from parameters, not found any association.")
+					raise TypeError(f"Short argument {name!r} should be considered from parameters, not found any association.")
 				else:
 					if parameter.name[:1] != name:
 						continue
@@ -324,11 +325,26 @@ def parse_callable_arguments(argv: List[str], callable: Callable, signature: ins
 
 	return wrapped
 
+def apply_environment_properties(ignore_config: bool = False) -> None:
+	if ignore_config:
+		return
+	from .shell import warn
+	environ = GLOBALS.TOOLCHAIN_CONFIG.get_value("environment", ())
+	if not isinstance(environ, dict):
+		warn("Environment variables should be in format `{ \"property\": \"value\" }`, please check your 'environment' property in 'toolchain.json'!")
+		return
+	for key in environ:
+		if isinstance(key, str) and isinstance(environ[key], str):
+			os.environ[key] = environ[key]
+		else:
+			warn(f"Environment variable {key!r} expected to be string, please check your 'environment' property in 'toolchain.json'!")
+
 def apply_properties(**kwargs) -> int:
 	global PROPERTIES
 	for name, value in kwargs.items():
 		if value is not None:
 			PROPERTIES.set_value(name, value)
+	apply_environment_properties(ignore_config=True)
 	return 0
 
 def parse_arguments(argv: List[str], mappings: Mapping[str, Task], fallback: Optional[Callable[[str, Callable, List[NamedCallable]], None]] = None) -> List[NamedCallable]:

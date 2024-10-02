@@ -24,7 +24,7 @@ from time import time
 startup_millis = time()
 argv = sys.argv[1:]
 
-from .parser import parse_arguments
+from .parser import apply_environment_properties, parse_arguments
 from .shell import abort, debug, error, warn
 
 try:
@@ -32,6 +32,8 @@ try:
 except (TypeError, ValueError) as err:
 	error(" ".join(argv))
 	abort(cause=err)
+
+apply_environment_properties()
 
 anything_performed = False
 tasks = iter(targets)

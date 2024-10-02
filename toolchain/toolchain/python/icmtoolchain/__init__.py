@@ -152,6 +152,7 @@ class Globals:
 			parameters = [
 				inspect.Parameter(name, inspect.Parameter.KEYWORD_ONLY, default=None, annotation=annotation) for name, annotation in PARAMETERS.items()
 			]
+			parameters.append(inspect.Parameter("kwargs", inspect.Parameter.VAR_KEYWORD))
 			self.parameter_signature = inspect.Signature(parameters, return_annotation=int)
 		return self.parameter_signature
 

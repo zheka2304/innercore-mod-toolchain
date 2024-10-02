@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, List, Optional
 
 
@@ -20,15 +21,6 @@ class BaseConfig:
 			else:
 				return fallback
 		return value
-
-	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
-		value = self.get_value(name)
-		filtered = list()
-		if isinstance(value, list):
-			for obj in value:
-				if isinstance(obj, dict) and property in obj and obj[property] in values:
-					filtered.append(obj)
-		return filtered
 
 	def set_value(self, name: str, what: Any) -> None:
 		rawname = name.split(".")
@@ -59,6 +51,28 @@ class BaseConfig:
 			if value != self.json and len(value) == 0:
 				removed |= self.remove_value(name.rsplit(".", 1)[0])
 		return removed
+
+	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
+		value = self.get_value(name)
+		filtered = list()
+		if isinstance(value, list):
+			for obj in value:
+				if isinstance(obj, dict) and property in obj and obj[property] in values:
+					filtered.append(obj)
+		return filtered
+
+	def iterate_entries(self, filter: Optional[str | re.Pattern[str]] = None, recursive: bool = False, *, json: Optional[Dict[Any, Any]] = None, relative_key: Optional[str] = None):
+		if not json:
+			json = self.json
+		if filter and isinstance(filter, str):
+			filter = re.compile(filter)
+		for property in json:
+			key = relative_key + "." + property if relative_key else property
+			if not filter or re.search(filter, property):
+				yield key, json[property]
+			if recursive and isinstance(json[property], dict):
+				for subkey, subvalue in self.iterate_entries(filter, recursive, json=json[property], relative_key=key):
+					yield subkey, subvalue
 
 	def get_config(self, name: str) -> Optional['BaseConfig']:
 		value = self.get_value(name)
