@@ -329,15 +329,13 @@ def apply_environment_properties(ignore_config: bool = False) -> None:
 	if ignore_config:
 		return
 	from .shell import warn
-	environ = GLOBALS.TOOLCHAIN_CONFIG.get_value("environment", ())
-	if not isinstance(environ, dict):
-		warn("Environment variables should be in format `{ \"property\": \"value\" }`, please check your 'environment' property in 'toolchain.json'!")
-		return
-	for key in environ:
-		if isinstance(key, str) and isinstance(environ[key], str):
-			os.environ[key] = environ[key]
-		else:
-			warn(f"Environment variable {key!r} expected to be string, please check your 'environment' property in 'toolchain.json'!")
+	environ = GLOBALS.TOOLCHAIN_CONFIG.get_value("environment", None)
+	if isinstance(environ, dict):
+		for key in environ:
+			if isinstance(key, str) and isinstance(environ[key], str):
+				os.environ[key] = environ[key]
+			else:
+				warn(f"Environment variable {key!r} expected to be string, please check your 'environment' property in 'toolchain.json'!")
 
 def apply_properties(**kwargs) -> int:
 	global PROPERTIES
