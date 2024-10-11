@@ -277,6 +277,14 @@ declare module com {
                          */
                         constructor(path: string);
                         /**
+                         * @since 2.2.1b96
+                         */
+                        getPath(): string;
+                        /**
+                         * @since 2.2.1b96
+                         */
+                        reload(): void;
+                        /**
                          * Writes configuration JSON to the file.
                          */
                         save(): void;
@@ -873,6 +881,7 @@ declare module com {
                      * @param id enchantment ID, one of the {@link EEnchantment} constants
                      * @param level enchantment level, generally between 1 and 5
                      * @returns Enchantment name by it's ID and level.
+                     * @since 2.2.1b94 (not worked before)
                      */
                     getEnchantName(id: number, level: number): string;
                     getRawEnchants(): number[][];
@@ -1273,12 +1282,18 @@ declare module com {
                             constructor(resolution: number);
                             constructor();
                             addBox(box: GuiBlockModel.Box): void;
+                            /**
+                             * @since 2.2.1b96
+                             */
                             clear(): void;
                             constructor(textures: string[], ids: number[], shape: unlimited.BlockShape);
                             constructor(textures: string[], ids: number[]);
                             updateShape(shape: unlimited.BlockShape): void;
                             genTexture(): android.graphics.Bitmap;
                             addToMesh(mesh: NativeRenderMesh, x: number, y: number, z: number): void;
+                            /**
+                             * @since 2.2.0b75
+                             */
                             addToRenderModelPart(modelPart: NativeRenderer.ModelPart, x: number, y: number, z: number): void;
                             static createModelForBlockVariant(variant: unlimited.BlockVariant): GuiBlockModel;
                         }
@@ -1488,6 +1503,12 @@ declare module com {
                             export interface WindowLocationDescription extends IWindowLocation {
                                 forceScrollX?: boolean, forceScrollY?: boolean,
                                 /**
+                                 * Determines whether the interface needs to be resized based
+                                 * on its size or a global unit system should be used.
+                                 * @since 2.3.1b115
+                                 */
+                                globalScale?: boolean,
+                                /**
                                  * Paddings are distances from the window bounds to the elements in the
                                  * window.
                                  */
@@ -1513,6 +1534,12 @@ declare module com {
                                 static readonly PADDING_TOP: number;
                                 forceScrollX: boolean;
                                 forceScrollY: boolean;
+                                /**
+                                 * Determines whether the interface needs to be resized based
+                                 * on its size or a global unit system should be used.
+                                 * @since 2.3.1b115
+                                 */
+                                globalScale: boolean;
                                 /**
                                  * Window height.
                                  */
@@ -3565,10 +3592,12 @@ declare module com {
                                  */
                                 needClean?: boolean,
                                 /**
+                                 * @default 0.82
                                  * @since 2.2.1b96
                                  */
                                 iconScale?: number,
                                 /**
+                                 * @default false
                                  * @since 2.2.1b96
                                  */
                                 disablePixelPerfect?: boolean,
@@ -3876,10 +3905,9 @@ declare module com {
                              * It means that each element must have coords on the GUI by X, Y, and additionally Z axis,
                              * and also you can specify how the element will behave when touched, in clicker object (optional).
                              */
-                            export interface BasicElementDescription {
+                            export interface BasicElementDescription extends Scriptable {
                                 x?: number, y?: number, z?: number,
-                                clicker?: UIClickEvent,
-                                [key: string]: any
+                                clicker?: UIClickEvent
                             }
                             /**
                              * This is the base Java abstract class, which are all Inner Core element types inherited from.
@@ -4479,9 +4507,18 @@ declare module com {
                                  */
                                 getFieldSlot(slot: number): Slot;
                                 /**
+                                 * @since 2.2.1b108
+                                 */
+                                getFieldSlot(x: number, y: number): AbstractSlot;
+                                /**
                                  * @returns JS array of all slots.
                                  */
                                 asScriptableField(): Slot[];
+                                /**
+                                 * @returns `9`
+                                 * @since 2.2.1b106
+                                 */
+                                getWorkbenchFieldSize(): number;
                                 /**
                                  * @returns `false` if container supports multiplayer, `true` otherwise.
                                  */
@@ -4765,6 +4802,14 @@ declare module com {
                                 });
                                 asScriptableField(): ui.container.AbstractSlot[];
                                 getFieldSlot(i: number): ui.container.AbstractSlot;
+                                /**
+                                 * @since 2.2.1b108
+                                 */
+                                getFieldSlot(x: number, y: number): innercore.api.mod.ui.container.AbstractSlot;
+                                /**
+                                 * @since 2.2.1b106
+                                 */
+                                getWorkbenchFieldSize(): number;
                             }
                         }
                     }
@@ -5673,8 +5718,17 @@ declare module com {
                          */
                         setSlot(id: number, count: number, data: number): void;
                         setSlot(id: number, count: number, data: number, extra: Nullable<innercore.api.NativeItemInstanceExtra>): void;
+                        /**
+                         * @since 2.2.0b82
+                         */
                         resetSavingEnabled(): void;
+                        /**
+                         * @since 2.2.0b82
+                         */
                         setSavingEnabled(enabled: boolean): void;
+                        /**
+                         * @since 2.2.0b82
+                         */
                         isSavingEnabled(): boolean;
                         /**
                          * @returns Numeric ID of the item in slot.
@@ -5731,7 +5785,7 @@ declare module com {
                             (container: ItemContainer, client: NetworkClient): void;
                         }
                         export interface ServerOnOpenListener {
-                            (container: ItemContainer, client: NetworkClient, str: string): void;
+                            (container: ItemContainer, client: NetworkClient, screenName: string): void;
                         }
                         export interface Transaction {
                             (container: ItemContainer, str: string): void;
@@ -5981,16 +6035,37 @@ declare module com {
                          * @returns `false` if container supports multiplayer, `true` otherwise.
                          */
                         isLegacyContainer(): false;
+                        /**
+                         * @since 2.2.0b82
+                         */
                         asLegacyContainer(allSlots: boolean): innercore.api.mod.ui.container.Container;
                         asLegacyContainer(): innercore.api.mod.ui.container.Container;
                         setWorkbenchFieldPrefix(prefix: string): void;
+                        /**
+                         * @since 2.2.1b106
+                         */
+                        setWorkbenchFieldSize(workbenchFieldSize: number): void;
                         getFieldSlot(index: number): innercore.api.mod.ui.container.AbstractSlot;
+                        /**
+                         * @since 2.2.1b108
+                         */
+                        getFieldSlot(x: number, y: number): innercore.api.mod.ui.container.AbstractSlot;
                         asScriptableField(): innercore.api.mod.ui.container.AbstractSlot[];
+                        /**
+                         * @since 2.2.1b106
+                         */
+                        getWorkbenchFieldSize(): number;
                     }
                 }
             }
         }
     }
+}
+/**
+ * @since 2.2.0b1 pre-alpha
+ */
+declare namespace WorldRenderer {
+	function getGlobalUniformSet(): ShaderUniformSet;
 }
 /**
  * Module that allows to work with current Minecraft world.
@@ -6328,6 +6403,11 @@ declare namespace World {
      */
     function getSeed(): number;
 }
+/**
+ * Minecraft version code, for now, always `16`.
+ * @since 2.2.0b75
+ */
+declare var __version__: number;
 /**
  * Mostly internal variable determined to be useful for control
  * mod lifecycle, configuration and executables.
@@ -7879,26 +7959,28 @@ declare enum VanillaBlockID {
 declare namespace Updatable {
     /**
      * Adds object to updatables list.
-     * @param obj object to be added to updatables list
+     * @param updatable object to be added to updatables list
      */
-	function addUpdatable(obj: Updatable): any;
+	function addUpdatable(updatable: Updatable): void;
     /**
      * Adds object to updatables list, that ticks on client
      * thread and never saves.
-     * @param obj object to be added to updatables list
+     * @param updatable object to be added to updatables list
      * @since 2.0.4b40
      */
-    function addAnimator(obj: Updatable): any;
+    function addAnimator(updatable: Updatable): void;
 	/**
-     * Adds object to updatables list.
-     * @param obj object to be added to updatables list
+     * Adds object to updatables list, that ticks on client
+     * thread and never saves.
+     * @param updatable object to be added to updatables list
+     * @since 2.0.4b40
      */
-    function addLocalUpdatable(obj: Updatable): any;
+    function addLocalUpdatable(updatable: Updatable): void;
     /**
      * @returns ArrayList instance containing all defined
      * {@link Updatable} objects.
      */
-    function getAll(): java.util.ArrayList<Updatable>;
+    function getAll(): java.util.List<Updatable>;
     /**
      * @returns Current thread tick number.
      */
@@ -7908,7 +7990,7 @@ declare namespace Updatable {
  * Updatable is an object that is notified every tick via it's
  * {@link Updatable.update} method call.
  */
-interface Updatable {
+interface Updatable extends Scriptable {
     /**
      * Called every tick.
      */
@@ -7918,11 +8000,11 @@ interface Updatable {
      * longer receive update calls.
      */
     remove?: boolean;
-    /**
-     * Any other user-defined properties.
-     */
-    [key: string]: any;
 }
+/**
+ * @deprecated Use {@link Updatable} instead.
+ */
+declare const UpdatableAPI: typeof Updatable;
 declare module UI {
     type ElementName = string | number | symbol;
 	/**
@@ -8300,6 +8382,18 @@ declare module UI {
 		 */
         static put(name: string, bitmap: android.graphics.Bitmap): void;
     }
+	/**
+	 * Determines the overall size of game interface, which can vary
+	 * depending on specific settings that are in place.
+	 * @since 2.3.1b115
+	 */
+	export function getMinecraftUiScale(): number;
+	/**
+	 * Defines the size of interface relative to the {@link UI.getMinecraftUiScale},
+	 * with dimensions specified in units used within Inner Core interfaces.
+	 * @since 2.3.1b115
+	 */
+	export function getRelMinecraftUiScale(): number;
     /**
 	 * Same as {@link UI.getScreenHeight}.
 	 */
@@ -8309,8 +8403,12 @@ declare module UI {
 	 */
     export function getScreenHeight(): number;
     /**
-	 * @returns Current {@link android.app.Activity} instance that can be used as
-	 * {@link android.content.Context} wherever required.
+	 * Returns the currently running Android Activity, which can be
+	 * used for various actions: opening dialogs, instantiating widgets,
+	 * and many other operations with {@link android.content.Context}.
+	 * @remarks
+	 * It is not recommended to use it if it is possible to find
+	 * a replacement in the presented Inner Core API.
 	 */
     export function getContext(): android.app.Activity;
 }
@@ -8684,9 +8782,9 @@ declare namespace ToolAPI {
     }
     /**
      * Object containing additional parameters and functions used by Core Engine
-     * to work with the tool
+     * to work with the tool.
      */
-    interface ToolParams {
+    interface ToolParams extends Scriptable {
         /**
          * Numeric ID of the item that replaces tool item when it's broken.
          * By default the tool disappears.
@@ -8866,11 +8964,7 @@ declare namespace ToolAPI {
              * Entity UID of the player that destroyed the block.
              */
             player: number
-        ) => void,
-		/**
-         * Any other user-defined methods and properties
-         */
-		[key: string]: any
+        ) => void
     }
     /**
      * Object containing some of the enchants that are used to calculate block
@@ -8900,7 +8994,11 @@ declare namespace ToolAPI {
          * Specifies the amount of additional experience that is dropped when
          * player breaks block with specified item.
          */
-        experience: number
+        experience: number,
+        /**
+         * @since 2.2.1b106
+         */
+        all: { [id: number]: number }
     }
 }
 /**
@@ -8911,9 +9009,27 @@ declare namespace TileEntity {
     /**
      * @internal
      */
+    const tileEntityPrototypes: {
+        [blockId: number]: TileEntityPrototype
+    };
+    /**
+     * @internal
+     */
+    const tileEntityList: TileEntity[];
+    /**
+     * @internal
+     * @since 2.2.1b106
+     */
+    const tileEntityCacheMap: {
+        [location: string]: TileEntity
+    };
+    /**
+     * Clears active game tile list, maintaining updatable states.
+     * @internal
+     */
     function resetEngine(): void;
     /**
-     * Registers block as a TileEntity
+     * Registers block as a ticking tile entity.
      * @param blockID numeric block ID to be used
      * @param customPrototype a set of defining parameters
      * behavior
@@ -8954,14 +9070,28 @@ declare namespace TileEntity {
      * @returns `true` if the it was destroyed successfully, `false`
      * otherwise.
      */
-    function destroyTileEntity(tileEntity: TileEntity, fromDestroyBlock?: boolean, isDropAllowed?: boolean): boolean;
+    function destroyTileEntity(tileEntity: TileEntity): boolean;
+    /**
+     * Destroys {@link TileEntity}, dropping it's container.
+     * @returns `true` if the it was destroyed successfully, `false`
+     * otherwise.
+     * @since 2.2.0b82
+     */
+    function destroyTileEntity(tileEntity: TileEntity, fromDestroyBlock: boolean): boolean;
+    /**
+     * Destroys {@link TileEntity}, dropping it's container.
+     * @returns `true` if the it was destroyed successfully, `false`
+     * otherwise.
+     * @since 2.2.0b83
+     */
+    function destroyTileEntity(tileEntity: TileEntity, fromDestroyBlock: boolean, isDropAllowed: boolean): boolean;
     /**
      * If the block on the specified coordinates is a {@link TileEntity}, destroys
      * it, dropping it's container.
      * @returns `true` if the it was destroyed successfully, `false`
      * otherwise.
      */
-    function destroyTileEntityAtCoords(x: number, y: number, z: number, region?: BlockSource): boolean;
+    function destroyTileEntityAtCoords(x: number, y: number, z: number, region?: BlockSource, isDropAllowed?: boolean): boolean;
     /**
      * Checks whether the {@link TileEntity} is in the loaded chunk or not.
      * @param tileEntity to be verified
@@ -8983,9 +9113,48 @@ declare namespace TileEntity {
      */
     function checkTileEntityForIndex(index: number): void;
     /**
+     * Interface passed to {@link TileEntity.registerPrototype} function
+     * as `client` property.
+     */
+    interface LocalTileEntityPrototype extends Scriptable {
+        /**
+         * Called when the client copy is created.
+         * @since 2.0.2b29
+         */
+        load?: () => void,
+        /**
+         * Called on destroying the client copy.
+         * @since 2.0.2b29
+         */
+        unload?: () => void,
+        /**
+         * Called every tick on client thread; you cannot set
+         * tick later if there is no function at all.
+         */
+        tick?: () => void,
+        /**
+         * Events that receive packets on the client side.
+         */
+        events?: {
+            /**
+             * Example of the client packet event function.
+             */
+            [packetName: string]: (packetData: any, packetExtra: any) => void;
+        },
+        /**
+         * Events of the container's client copy.
+         */
+        containerEvents?: {
+            /**
+             * Example of the client container event function.
+             */
+            [eventName: string]: (container: ItemContainer, window: UI.Window | UI.StandartWindow | UI.StandardWindow | UI.TabbedWindow | null, windowContent: UI.WindowContent | null, eventData: any) => void;
+        }
+    }
+    /**
      * Interface passed to {@link TileEntity.registerPrototype} function.
      */
-    interface TileEntityPrototype {
+    interface TileEntityPrototype extends Scriptable {
 		/**
          * Use ItemContainer that supports multiplayer.
          */
@@ -8993,57 +9162,11 @@ declare namespace TileEntity {
         /**
          * Default data values, will be initially added to {@link TileEntity.data} field.
          */
-        defaultValues?: Scriptable,
-        /**
-         * Called when a {@link TileEntity} is created.
-         */
-		created?: () => void,
+        defaultValues?: Scriptable;
 		/**
-         * Client TileEntity prototype copy.
+         * Client tile entity prototype copy.
          */
-        client?: {
-            /**
-             * Called when the client copy is created.
-             * @since 2.0.2b29
-             */
-            load?: () => void,
-            /**
-             * Called on destroying the client copy.
-             * @since 2.0.2b29
-             */
-            unload?: () => void,
-            /**
-             * Called when every client ticking.
-             * @since 2.0.2b29
-             */
-            onCheckerTick?: (isInitialized: boolean, isLoaded: boolean, wasLoaded: boolean) => void,
-            /**
-             * Called every tick on client thread.
-             */
-            tick?: () => void,
-            /**
-             * Events that receive packets on the client side.
-             */
-            events?: {
-                /**
-                 * Example of the client packet event function.
-                 */
-                [packetName: string]: (packetData: any, packetExtra: any) => void;
-            },
-            /**
-             * Events of the container's client copy.
-             */
-            containerEvents?: {
-                /**
-                 * Example of the client container event function.
-                 */
-                [eventName: string]: (container: ItemContainer, window: UI.Window | UI.StandartWindow | UI.StandardWindow | UI.TabbedWindow | null, windowContent: UI.WindowContent | null, eventData: any) => void;
-            }
-            /**
-              * Any other user-defined methods and properties.
-              */
-            [key: string]: any
-        },
+        client?: LocalTileEntityPrototype;
         /**
          * Events that receive packets on the server side.
          */
@@ -9053,7 +9176,7 @@ declare namespace TileEntity {
              * 'this.sendResponse' method is only available here.
              */
             [packetName: string]: (packetData: any, packetExtra: any, connectedClient: NetworkClient) => void;
-        },
+        };
         /**
          * Events of the container on the server side.
          */
@@ -9062,37 +9185,56 @@ declare namespace TileEntity {
              * Example of the server container event function.
              */
             [eventName: string]: (container: ItemContainer, window: UI.Window | UI.StandartWindow | UI.StandardWindow | UI.TabbedWindow | null, windowContent: UI.WindowContent | null, eventData: any) => void;
-        }
+        };
         /**
-         * Called when a {@link TileEntity} is initialised in the world.
+         * Called when a {@link TileEntity} is created.
          */
-        init?: () => void,
+		created?: () => void;
+        /**
+         * Called when a {@link TileEntity} is initialized in the world.
+         */
+        init?: () => void;
+        /**
+         * Called when the client copy is created.
+         * @since 2.0.2b29
+         */
+        load?: () => void;
+        /**
+         * Called on destroying the client copy.
+         * @since 2.0.2b29
+         */
+        unload?: () => void;
         /**
          * Called every tick and should be used for all the updates of the {@link TileEntity}.
          */
-        tick?: () => void,
+        tick?: () => void;
+        /**
+         * Called before every tile ticking to remove them.
+         * @since 2.0.2b29
+         */
+        onCheckerTick?: (isInitialized: boolean, isLoaded: boolean, wasLoaded: boolean) => void;
         /**
          * Called when player uses some item on a {@link TileEntity}.
          * @returns `true` if the event is handled and should not be propagated to
          * the next handlers. Return `true` if you don't want the user interface
          * to be opened.
          */
-        click?: (id: number, count: number, data: number, coords: Callback.ItemUseCoordinates, player: number, extra: ItemExtraData) => boolean | void,
+        click?: (id: number, count: number, data: number, coords: Callback.ItemUseCoordinates, player: number, extra: ItemExtraData) => boolean | void;
         /**
          * Occurs when a block of the {@link TileEntity} is being destroyed. See
          * {@link Callback.DestroyBlockFunction} for details.
          */
-        destroyBlock?: (coords: Callback.ItemUseCoordinates, player: number) => void,
+        destroyBlock?: (coords: Callback.ItemUseCoordinates, player: number) => void;
         /**
          * Occurs when the {@link TileEntity} should handle redstone signal. See
          * {@link Callback.RedstoneSignalFunction} for details.
          */
-        redstone?: (params: { power: number, signal: number, onLoad: boolean }) => void,
+        redstone?: (params: Callback.RedstoneSignalParams) => void;
         /**
          * Occurs when a projectile entity hits the {@link TileEntity}. See
          * {@link Callback.ProjectileHitFunction} for details.
          */
-        projectileHit?: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void,
+        projectileHit?: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void;
         /**
          * Occurs when the {@link TileEntity} is being destroyed.
          * @returns `true` to prevent it.
@@ -9103,17 +9245,17 @@ declare namespace TileEntity {
         /**
          * Called to get the {@link UI.IWindow} object for the current {@link TileEntity}. The
          * window is then opened within {@link TileEntity.container} when the player clicks it.
-		 * @deprecated Client method only.
+		 * @deprecated Client-side method only.
          */
-		getGuiScreen?: () => com.zhekasmirnov.innercore.api.mod.ui.window.IWindow;
+		getGuiScreen?: () => Nullable<UI.IWindow>;
 		/**
          * Called on server side and returns UI name to open on click.
          */
-        getScreenName?: (player: number, coords: Vector) => string;
+        getScreenName?: (player: number, coords: Vector) => Nullable<string>;
         /**
          * Called on client side, returns the window to open.
          */
-        getScreenByName?: (screenName?: string) => com.zhekasmirnov.innercore.api.mod.ui.window.IWindow;
+        getScreenByName?: (screenName?: string) => Nullable<UI.IWindow>;
         /**
          * Called when more liquid is required.
          */
@@ -9130,57 +9272,155 @@ declare namespace TileEntity {
          * @since 2.3.1b116-3
          */
         onDisconnectionPlayer?: (client: NetworkClient) => void;
-        /**
-         * Any other user-defined methods and properties.
-         */
-        [key: string]: any;
     }
 }
 declare interface TileEntity extends TileEntity.TileEntityPrototype {
     /**
-     * X coord of the TileEntity in it's dimension.
+     * X coord of the tile in it's dimension.
      */
-    readonly x: number,
+    readonly x: number;
     /**
-     * Y coord of the TileEntity in it's dimension.
+     * Y coord of the tile in it's dimension.
      */
-    readonly y: number,
+    readonly y: number;
     /**
-     * Z coord of the TileEntity in it's dimension.
+     * Z coord of the tile in it's dimension.
      */
-    readonly z: number,
+    readonly z: number;
     /**
-     * Dimension where the TileEntity is located.
+     * Dimension where the tile is located.
      */
-    readonly dimension: number,
+    readonly dimension: number;
     /**
-     * Block ID of TileEntity.
+     * Block ID of tile.
      */
-    readonly blockID: number,
+    readonly blockID: number;
     /**
-     * TileEntity data values object.
+     * BlockSource object to manipulate tile position in world.
      */
-    data: Scriptable,
+    blockSource: BlockSource;
     /**
-     * TileEntity's item container.
+     * SyncedNetworkData object of the tile.
      */
-    container: ItemContainer | UI.Container,
+    readonly networkData: SyncedNetworkData;
     /**
-     * TileEntity's liquid storage.
+     * Instance of {@link TileEntity.networkEntityType} for the tile.
      */
-    liquidStorage: LiquidRegistry.Storage,
+    readonly networkEntity: NetworkEntity;
     /**
-     * `true` if TileEntity is loaded in the world.
+     * NetworkEntityType object of the tile.
+     */
+    readonly networkEntityType: NetworkEntityType;
+    /**
+     * @since 2.2.1b92
+     */
+    readonly networkEntityTypeName: string;
+    /**
+     * Tile data values object.
+     */
+    data: Scriptable;
+    /**
+     * Default data values, will be initially added to {@link TileEntity.data} field.
+     */
+    defaultValues: Scriptable;
+    /**
+     * Tile item container.
+     */
+    container: ItemContainer | UI.Container;
+    /**
+     * Tile liquid storage.
+     */
+    liquidStorage: LiquidRegistry.Storage;
+    /**
+     * `true` if tile is loaded in the world.
      */
     isLoaded: boolean;
     /**
-     * `true` if TileEntity was destroyed.
+     * `true` if tile has been destroyed.
      */
     remove: boolean;
     /**
-     * Destroys the TileEntity prototype.
+     * `true` if tile cannot tick, update functions will
+     * not work in that case.
      */
-    selfDestroy: () => void;
+    noupdate: boolean;
+    /**
+     * Called when a {@link TileEntity} is created.
+     */
+    created: () => void,
+    /**
+     * Called when a {@link TileEntity} is initialized in the world.
+     */
+    init: () => void,
+    /**
+     * Called when the client copy is created.
+     * @since 2.0.2b29
+     */
+    load: () => void,
+    /**
+     * Called on destroying the client copy.
+     * @since 2.0.2b29
+     */
+    unload: () => void,
+    /**
+     * Called every tick to {@link TileEntity.TileEntityPrototype.tick} each
+     * tile if {@link TileEntity.noupdate} not active.
+     */
+    update: () => void,
+    /**
+     * Called before every tile ticking to remove them.
+     * @since 2.0.2b29
+     */
+    onCheckerTick: (isInitialized: boolean, isLoaded: boolean, wasLoaded: boolean) => void,
+    /**
+     * Called when player uses some item on a {@link TileEntity}.
+     * @returns `true` if the event is handled and should not be propagated to
+     * the next handlers. Return `true` if you don't want the user interface
+     * to be opened.
+     */
+    click: (id: number, count: number, data: number, coords: Callback.ItemUseCoordinates, player: number, extra: ItemExtraData) => boolean | void,
+    /**
+     * Occurs when a block of the {@link TileEntity} is being destroyed. See
+     * {@link Callback.DestroyBlockFunction} for details.
+     */
+    destroyBlock: (coords: Callback.ItemUseCoordinates, player: number) => void,
+    /**
+     * Occurs when the {@link TileEntity} should handle redstone signal. See
+     * {@link Callback.RedstoneSignalFunction} for details.
+     */
+    redstone: (params: Callback.RedstoneSignalParams) => void,
+    /**
+     * Occurs when a projectile entity hits the {@link TileEntity}. See
+     * {@link Callback.ProjectileHitFunction} for details.
+     */
+    projectileHit: (coords: Callback.ItemUseCoordinates, target: Callback.ProjectileHitTarget) => void,
+    /**
+     * Occurs when the {@link TileEntity} is being destroyed.
+     * @returns `true` to prevent it.
+     * {@link TileEntity} object from destroying (but if the block was destroyed, returning
+     * true from this function doesn't replace the missing block with a new one)
+     */
+    destroy: () => boolean | void;
+    /**
+     * Called to get the {@link UI.IWindow} object for the current {@link TileEntity}. The
+     * window is then opened within {@link TileEntity.container} when the player clicks it.
+     * @deprecated Client-side method only.
+     */
+    getGuiScreen: () => Nullable<UI.IWindow>;
+    /**
+     * Called on client side, returns the window to open.
+     */
+    getScreenByName: (screenName?: string) => Nullable<UI.IWindow>;
+    /**
+     * Emulates click on this tile, calling {@link TileEntity.TileEntityPrototype.click}
+     * or opening screen otherwise if window has present.
+     * @returns `true` if clicked or screen opened success, `false` otherwise
+     */
+    onItemClick: (id: number, count: number, data: number, coords: Callback.ItemUseCoordinates, player: number, extra: Nullable<ItemExtraData>) => boolean | void;
+    /**
+     * Called when more liquid is required.
+     */
+    requireMoreLiquid: (liquid: string, amount: number) => void;
     /**
      * Sends the packet from server to all clients.
      */
@@ -9192,17 +9432,48 @@ declare interface TileEntity extends TileEntity.TileEntityPrototype {
      */
     sendResponse: (packetName: string, someData: object) => void;
     /**
-     * BlockSource object to manipulate TileEntity's position in world.
+     * Destroys the tile prototype.
      */
-    blockSource: BlockSource;
+    selfDestroy: () => void;
+}
+declare interface LocalTileEntity extends TileEntity.LocalTileEntityPrototype {
     /**
-     * SyncedNetworkData object of the TileEntity.
+     * X coord of the tile in it's dimension.
+     */
+    readonly x: number;
+    /**
+     * Y coord of the tile in it's dimension.
+     */
+    readonly y: number;
+    /**
+     * Z coord of the tile in it's dimension.
+     */
+    readonly z: number;
+    /**
+     * Dimension where the tile is located.
+     */
+    readonly dimension: number;
+    /**
+     * SyncedNetworkData object of the tile.
      */
     readonly networkData: SyncedNetworkData;
     /**
-     * NetworkEntity object of the TileEntity.
+     * Instance of {@link TileEntity.networkEntityType} for the tile.
      */
     readonly networkEntity: NetworkEntity;
+    /**
+     * `true` if tile has been destroyed.
+     */
+    remove: boolean;
+    /**
+     * `true` if tile cannot tick, update functions will
+     * not work in that case.
+     */
+    noupdate: boolean;
+    /**
+     * Sends the packet from client to server.
+     */
+    sendPacket: (name: string, data: object) => void;
 }
 /**
  * Module used to create and manipulate threads. Threads let you execute
@@ -9210,15 +9481,23 @@ declare interface TileEntity extends TileEntity.TileEntityPrototype {
  */
 declare namespace Threading {
     /**
-     * Function used to format error messages in a custom way.
+     * Running threads, use {@link Threading.getThread} to directly
+     * access required thread by name.
      * @internal
      */
-    type ErrorMessageFormatFunction =
+    const threads: {
+        [name: string]: java.lang.Thread
+    };
+    /**
+     * Function used to format error messages in a custom way.
+     */
+    interface ErrorMessageFormatFunction {
         /**
          * @param error java.lang.Throwable instance or javascript exception
          * @param priority current thread priority
          */
-        (error: any, priority: number) => string;
+        (error: any, priority: number): string;
+    }
     /**
      * Function used to create formatted error message with the full debug
      * information about exception in one of the threads.
@@ -9237,7 +9516,7 @@ declare namespace Threading {
      * user interfaces
      * @param priority priority of the thread (integer value). The higher
      * priority is, the quicker the task will be executed. Default value is 0
-     * @param isErrorFatal if true, all errors in the thread are considered
+     * @param isErrorFatal if `true`, all errors in the thread are considered
      * fatal and lead to fatal error AlertDialog, formatted with *formatFunc*
      * @param formatFunc function that formats exceptions in the thread to
      * display in fatal error AlertDialog
@@ -9250,12 +9529,6 @@ declare namespace Threading {
      * @returns Instance representing the thread.
      */
     function getThread(name: string): Nullable<java.lang.Thread>;
-    /**
-     * Running threads, use {@link Threading.getThread} to directly
-     * access required thread by name.
-     * @internal
-     */
-    let threads: { [name: string]: java.lang.Thread };
 }
 /**
  * Class representing texture that can be animated.
@@ -9303,6 +9576,200 @@ declare class Texture {
      * Sets pixel scale for the texture.
      */
     setPixelScale(scale: number): Texture;
+}
+/**
+ * Tag system allows you to assign tags to objects
+ * and put them into groups for further object search.
+ * @since 2.0.4b38
+ *
+ * @example
+ * Use constant to define group in global scope to reuse/export it:
+ *
+ * ```js
+ * const ENCHANT_TAG_GROUP = TagRegistry.getOrCreateGroup("enchant");
+ *
+ * BlockRegistry.registerDropFunctionForID(BlockID.tin_ore, function(coords, id, data, level, enchant, item, region) {
+ * 	if (level >= 2) {
+ * 		// Check item for "smelting" tag, which can be set to obtain smelted result
+ * 		if (ENCHANT_TAG_GROUP.getTags(item).contains("smelting")) {
+ * 			ToolAPI.dropOreExp(coords, 2, 2, enchant.experience, blockSource);
+ * 			return [[ItemID.tin_ingot, 1, 0]];
+ * 		} else {
+ * 			// Do default logic otherwise (if no tag has been set)
+ * 			return [[BlockID.tin_ore, 1, 0]]
+ * 		}
+ * 	}
+ * 	return [];
+ * }, 2);
+ *
+ * // Register tag factory, which are called to obtain tags every iteration
+ * ENCHANT_TAG_GROUP.addTagFactory(function(object, tags) {
+ * 	// In case if our object is item-like and equals smelting tool
+ * 	if (object && object.id == ItemID.smelting_multitool) {
+ * 		// Smelt our BlockID.tin_ore and a few vanilla ones
+ * 		tags.add("smelting");
+ * 	}
+ * });
+ * ```
+ *
+ * @example
+ * Obtain tag group automatically via registry:
+ *
+ * ```js
+ * BlockRegistry.registerDropFunctionForID(BlockID.tin_ore, function(coords, id, data, level, enchant, item, region) {
+ * 	if (level >= 2) {
+ * 		// Check item for "smelting" tag, which can be set to obtain smelted result
+ * 		if (TagRegistry.getTagsFor("enchant", item).contains("smelting")) {
+ * 			ToolAPI.dropOreExp(coords, 2, 2, enchant.experience, blockSource);
+ * 			return [[ItemID.tin_ingot, 1, 0]];
+ * 		} else {
+ * 			// Do default logic otherwise (if no tag has been set)
+ * 			return [[BlockID.tin_ore, 1, 0]]
+ * 		}
+ * 	}
+ * 	return [];
+ * }, 2);
+ *
+ * // Register tag factory, which are called to obtain tags every iteration
+ * TagRegistry.addTagFactory("enchant", function(object, tags) {
+ * 	// In case if our object is item-like and equals smelting tool
+ * 	if (object && object.id == ItemID.smelting_multitool) {
+ * 		// Smelt our BlockID.tin_ore and a few vanilla ones
+ * 		tags.add("smelting");
+ * 	}
+ * });
+ * ```
+ */
+declare namespace TagRegistry {
+	interface TagGroup {
+		readonly name: string;
+		/**
+		 * Tag factory determines additional tags, which should
+		 * be added for specific object in group.
+		 */
+		addTagFactory(factory: TagFactory): void;
+		/**
+		 * Appends object to group to use in iterator and
+		 * filtering functions like {@link TagGroup.getAllWhere}, etc.
+		 * @param tags primary tags to be added for object
+		 */
+		addCommonObject(obj: any, ...tags: string[]): void;
+		/**
+		 * Removes object from group, so it no longer can
+		 * be fetched via {@link TagGroup.getAllWhere}, etc.
+		 */
+		removeCommonObject(obj: any): void;
+		/**
+		 * Appends primary tags for object; regardless of whether
+		 * object is in group or not, tags will be added.
+		 * @param tags primary tags to be added for object
+		 */
+		addTagsFor(obj: any, ...tags: string[]): void;
+		/**
+		 * Fetches object tags and appends it to a present
+		 * collection in fixed order: primary tags added via
+		 * {@link TagGroup.addTags}, serialized tags from object `_tags`
+		 * property, tags added from {@link TagGroup.addTagFactory}.
+		 * @param tags collection tor which tags applies
+		 */
+		addTags(obj: any, tags: java.util.Collection<string>): void;
+		/**
+		 * Removes primary tags from object.
+		 * @param tags primary tags to be removed from object
+		 */
+		removeTagsFor(obj: any, ...tags: string[]): void;
+		/**
+		 * Fetches object tags in fixed order: primary tags added via
+		 * {@link TagGroup.addTags}, serialized tags from object `_tags`
+		 * property, tags added from {@link TagGroup.addTagFactory}.
+		 */
+		getTags(obj: any): java.util.HashSet<string>;
+		/**
+		 * Iterates over existing common objects added via
+		 * {@link TagGroup.addCommonObject} and collects objects
+		 * matched predicate to list.
+		 */
+		getAllWhere(predicate: TagPredicate): java.util.List<any>;
+		/**
+		 * Fetches objects which have all of presented tags.
+		 */
+		getAllWithTags(tags: java.util.Collection<string>): java.util.List<any>;
+		/**
+		 * Fetches objects which has presented tag.
+		 */
+		getAllWithTag(tag: string): java.util.List<any>;
+	}
+	/**
+	 * Gets or creates a new tag group to append tags
+	 * for any objects.
+	 */
+	function getOrCreateGroup(name: string): TagGroup;
+	interface TagFactory {
+		/**
+		 * @param obj object from group
+		 * @param tags changeable tags collection
+		 */
+		(obj: any, tags: java.util.Collection<string>): void;
+	}
+	/**
+	 * Tag factory determines additional tags, which should
+	 * be added for specific object in group.
+	 */
+	function addTagFactory(group: string, factory: TagFactory): void;
+	/**
+	 * Appends object to group to use in iterator and
+	 * filtering functions like {@link TagRegistry.getAllWith}, etc.
+	 * @param tags primary tags to be added for object
+	 */
+	function addCommonObject(group: string, obj: any, tags: string[]): void;
+	/**
+	 * Removes object from group, so it no longer can
+	 * be fetched via {@link TagRegistry.getAllWith}, etc.
+	 */
+	function removeCommonObject(group: string, obj: any): void;
+	/**
+	 * Appends primary tags for object in group; regardless of whether
+	 * object is in group or not, tags will be added.
+	 * @param tags primary tags to be added for object
+	 */
+	function addTagsFor(group: string, obj: any, tags: string[], useExistingObject: boolean): void;
+	/**
+	 * Appends primary tag for object in group.
+	 * @param tags primary tags to be added for object
+	 */
+	function addTagFor(group: string, obj: any, tag: string, useExistingObject: boolean): void;
+	/**
+	 * Removes primary tags from object in group.
+	 * @param tags primary tags to be removed from object
+	 */
+	function removeTagsFor(group: string, obj: any, tags: string[]): void;
+	/**
+	 * Fetches object tags in fixed order: primary tags added via
+	 * {@link TagRegistry.addTagsFor}, serialized tags from object `_tags`
+	 * property, tags added from {@link TagRegistry.addTagFactory}.
+	 */
+	function getTagsFor(group: string, obj: any): string[];
+	interface TagPredicate {
+		/**
+		 * @param obj object from group
+		 * @param tags collection with all tags
+		 */
+		(obj: any, tags: java.util.Collection<string>): boolean;
+	}
+	/**
+	 * Iterates over existing common objects in group added via
+	 * {@link TagGroup.addCommonObject} and collects objects
+	 * matched predicate to list.
+	 */
+	function getAllWith(group: string, predicate: TagPredicate): any[];
+	/**
+	 * Fetches objects in group which have all of presented tags.
+	 */
+	function getAllWithTags(group: string, tags: string[]): any[];
+	/**
+	 * Fetches objects in group which has presented tag.
+	 */
+	function getAllWithTag(group: string, tag: string): any[];
 }
 declare namespace SyncedNetworkData {
     /**
@@ -9482,9 +9949,27 @@ declare class ShaderUniformSet {
 }
 /**
  * Module used to save data between world sessions,
- * different worlds has their own saves.
+ * different worlds have their own saves.
  */
 declare namespace Saver {
+    /**
+     * Function that loads data from saves scope.
+     */
+    interface ScopeLoadFunction {
+        /**
+         * @param scope object data from saves
+         */
+        (scope: object): void
+    }
+    /**
+     * Function used to save data.
+     */
+    interface ScopeSaveFunction {
+        /**
+         * @returns Object data to be serialized in saves scope.
+         */
+        (): Nullable<object>
+    }
     /**
      * Creates saves scope, a universal data storage container. This storage
      * container should be used whenever you need to save some data between
@@ -9509,12 +9994,81 @@ declare namespace Saver {
      */
     function addSavesScope(name: string, load: ScopeLoadFunction, save: ScopeSaveFunction): void;
     /**
+     * Function that returns default data to be passed
+     * to {@link ScopeLoadFunction} if there is no previous data.
+     * @since 2.3.1b116-3
+     */
+    interface DefaultSavesFunction {
+        (): Nullable<object>
+    }
+    /**
+     * Interface that should be implemented to pass object as
+     * {@link Saver.registerScopeSaver} parameter.
+     */
+    interface IScopeSaver {
+        /**
+         * Function that loads data from saves scope.
+         */
+        read: ScopeLoadFunction,
+        /**
+         * Function used to save data.
+         */
+        save: ScopeSaveFunction,
+        /**
+         * Function that returns default data to be passed
+         * to {@link read} if there is no previous data.
+         * @since 2.3.1b116-3
+         */
+        getDefaultSaves?: DefaultSavesFunction
+    }
+    /**
      * Registers object as scope saver.
      * @param name saves scope name
      * @param saver object that implements {@link Saver.IScopeSaver}
      * interface and can be loaded and saved via it's functions calls
      */
     function registerScopeSaver(name: string, saver: IScopeSaver): void;
+    interface IHashSaver {
+        getId(): number;
+        setId(id: number): void;
+    }
+    type SaveableObjectType = object | org.json.JSONObject | IHashSaver;
+    /**
+     * Function that converts serialized data
+     * from saves scope to your object instance.
+     */
+    interface ObjectLoadFunction {
+        /**
+         * @param obj object data from saves
+         * @returns Instance of newly instantiated object.
+         */
+        (obj: object): SaveableObjectType
+    }
+    /**
+     * Function used to save serialized data of your object instance.
+     */
+    interface ObjectSaveFunction {
+        /**
+         * @param instance instance of your object to be saved
+         * @returns Object data to be serialized in saves scope.
+         */
+        (instance: SaveableObjectType): object
+    }
+    /**
+     * Interface that should be implemented to pass object as
+     * {@link Saver.registerObjectSaver} parameter.
+     */
+    interface IObjectSaver {
+        /**
+         * Function that converts serialized data
+         * from saves scope to your object instance.
+         */
+        read: ObjectLoadFunction,
+        /**
+         * Function used to save serialized data of your object instance.
+         */
+        save: ObjectSaveFunction
+    }
     /**
      * Registers object as object instance saver.
      * @param name saves scope name
@@ -9545,14 +10099,14 @@ declare namespace Saver {
      * @param obj target object instance
      * @param saverId to be used on saving
      */
-    function registerObject(obj: any, saverId: number): void;
+    function registerObject(obj: SaveableObjectType, saverId: number): void;
     /**
      * Changes registered via {@link Saver.registerObject} instance
      * behavior to object be skippable or not.
      * @param obj target object instance
      * @param ignore should be skipped on saving
      */
-    function setObjectIgnored(obj: any, ignore: boolean): void;
+    function setObjectIgnored(obj: object, ignore: boolean): void;
     /**
      * Converts present object hieracly via registered
      * {@link Saver.registerScopeSaver} and {@link Saver.registerObjectSaver}
@@ -9580,88 +10134,6 @@ declare namespace Saver {
      * @returns Deserialized object instance hieracly.
      */
     function deserialize(obj: object): any;
-    /**
-     * Function that loads data from saves scope.
-     */
-    interface ScopeLoadFunction {
-        /**
-         * @param scope object data from saves
-         */
-        (scope: object): void
-    }
-    /**
-     * Function used to save data.
-     */
-    interface ScopeSaveFunction {
-        /**
-         * @returns Object data to be serialized in saves scope.
-         */
-        (): Nullable<object>
-    }
-    /**
-     * Function that returns default data to be passed
-     * to {@link ScopeLoadFunction} if there is no previous data.
-     * @since 2.3.1b116-3
-     */
-    interface DefaultSavesFunction {
-        (): Nullable<object>
-    }
-    /**
-     * Interface that should be implemented to pass object as
-     * {@link Saver.registerScopeSaver} parameter.
-     */
-    interface IScopeSaver {
-        /**
-         * Function that loads data from saves scope.
-         */
-        read: ScopeLoadFunction,
-        /**
-         * Function used to save data.
-         */
-        save: ScopeSaveFunction,
-        /**
-         * Function that returns default data to be passed
-         * to {@link read} if there is no previous data.
-         * @since 2.3.1b116-3
-         */
-        getDefaultSaves?: DefaultSavesFunction
-    }
-    /**
-     * Function that converts serialized data
-     * from saves scope to your object instance.
-     */
-    interface ObjectLoadFunction {
-        /**
-         * @param obj object data from saves
-         * @returns Instance of newly instantiated object.
-         */
-        (obj: object): any
-    }
-    /**
-     * Function used to save serialized data of your object instance.
-     */
-    interface ObjectSaveFunction {
-        /**
-         * @param instance instance of your object to be saved
-         * @returns Object data to be serialized in saves scope.
-         */
-        (instance: any): object
-    }
-    /**
-     * Interface that should be implemented to pass object as
-     * {@link Saver.registerObjectSaver} parameter.
-     */
-    interface IObjectSaver {
-        /**
-         * Function that converts serialized data
-         * from saves scope to your object instance.
-         */
-        read: ObjectLoadFunction,
-        /**
-         * Function used to save serialized data of your object instance.
-         */
-        save: ObjectSaveFunction
-    }
 }
 /**
  * @remarks
@@ -9987,6 +10459,20 @@ declare namespace Recipes {
      */
     function addShaped(result: ItemInstance, mask: string[], data: (string | number)[], func?: CraftingFunction, prefix?: string): WorkbenchShapedRecipe;
     /**
+     * @see {@link Recipes.addShaped} for details.
+     * @param vanilla should be recipe considered as vanilla,
+     * custom logic callback will be ignored in that case
+     * @since 2.2.1b110
+     */
+    function addShapedGeneric(result: ItemInstance, mask: string[], data: (string | number)[], func?: CraftingFunction, prefix?: string, vanilla?: boolean): WorkbenchShapedRecipe;
+    /**
+     * Recipes considered as vanilla completely ignores
+     * custom logic callbacks.
+     * @see {@link Recipes.addShaped} for details.
+     * @since 2.2.1b108
+     */
+    function addShapedVanilla(result: ItemInstance, mask: string[], data: (string | number)[], func?: CraftingFunction, prefix?: string): WorkbenchShapedRecipe;
+    /**
      * Same as {@link Recipes.addShaped}, but you can specify result as three
      * separate values corresponding to ID, count and data.
      */
@@ -10009,6 +10495,20 @@ declare namespace Recipes {
      * ```
      */
     function addShapeless(result: ItemInstance, data: { id: number, data: number }[], func?: CraftingFunction, prefix?: string): WorkbenchShapelessRecipe;
+    /**
+     * @see {@link Recipes.addShapeless} for details.
+     * @param vanilla should be recipe considered as vanilla,
+     * custom logic callback will be ignored in that case
+     * @since 2.2.1b110
+     */
+    function addShapelessGeneric(result: ItemInstance, data: { id: number, data: number }[], func?: CraftingFunction, prefix?: string, vanilla?: boolean): WorkbenchShapelessRecipe;
+    /**
+     * Recipes considered as vanilla completely ignores
+     * custom logic callbacks.
+     * @see {@link Recipes.addShapeless} for details.
+     * @since 2.2.1b108
+     */
+    function addShapelessVanilla(result: ItemInstance, data: { id: number, data: number }[], func?: CraftingFunction, prefix?: string): WorkbenchShapelessRecipe;
     /**
      * Deletes recipe by it's result.
      * @param result recipe result
@@ -10107,10 +10607,12 @@ declare namespace Recipes {
     function getFurnaceRecipesByResult(resultId: number, resultData: number, prefix: string): java.util.Collection<FurnaceRecipe>;
     /**
      * @returns Collection object with all registered workbench recipes.
+     * @since 2.2.1b96
      */
     function getAllWorkbenchRecipes(): java.util.Collection<WorkbenchRecipe>;
     /**
      * @returns Collection object with all registered furnace recipes.
+     * @since 2.2.1b96
      */
     function getAllFurnaceRecipes(): java.util.Collection<FurnaceRecipe>;
     /**
@@ -10308,11 +10810,19 @@ declare namespace Recipes {
          * @param slot slot index
          * @returns Workbench slot instance by slot index.
          */
-        getFieldSlot(slot: number): com.zhekasmirnov.innercore.api.mod.ui.container.Slot,
+        getFieldSlot(slot: number): com.zhekasmirnov.innercore.api.mod.ui.container.AbstractSlot;
+        /**
+         * @since 2.2.1b108
+         */
+        getFieldSlot(x: number, y: number): com.zhekasmirnov.innercore.api.mod.ui.container.AbstractSlot;
         /**
          * @returns JS array of all slots.
          */
-        asScriptableField(): com.zhekasmirnov.innercore.api.mod.ui.container.Slot[]
+        asScriptableField(): com.zhekasmirnov.innercore.api.mod.ui.container.Slot[];
+        /**
+         * @since 2.2.1b106
+         */
+        getWorkbenchFieldSize(): number;
     }
     /**
      * Object used to work with workbench field in the craft function.
@@ -10336,6 +10846,10 @@ declare namespace Recipes {
          * @returns `true`, if crafting event was prevented, `false` otherwise.
          */
         isPrevented(): boolean;
+        /**
+         * @since 2.2.1b106
+         */
+        getFieldSize(): number;
     }
     /**
      * Crafting recipe entry.
@@ -10346,6 +10860,12 @@ declare namespace Recipes {
          * @returns `true` if recipe entry matches the slot.
          */
         isMatching(slot: com.zhekasmirnov.innercore.api.mod.ui.container.Slot): boolean;
+        /**
+         * @param slot slot to compare with
+         * @returns `true` if recipe entry matches the slot.
+         * @since 2.2.1b108
+         */
+        isMatching(slot: Nullable<com.zhekasmirnov.innercore.api.mod.ui.container.Slot>): boolean;
         /**
          * @param entry entry to compare with
          * @returns `true` if recipe entry matches another entry.
@@ -10403,7 +10923,12 @@ declare class PlayerActor {
      */
     spawnExpOrbs(x: number, y: number, z: number, value: number): void;
     /**
+     * @since 2.2.1b102
+     */
+    getPointer(): number;
+    /**
      * @returns Whether the player is a valid entity.
+     * @since 2.2.0b75 (not working before)
      */
     isValid(): boolean;
     /**
@@ -10467,15 +10992,15 @@ declare class PlayerActor {
      */
     setScore(value: number): void;
     /**
-     * @since 2.2.1b100
+     * @since 2.2.1b101 (TODO: fix in changelog)
      */
     getItemUseDuration(): number;
     /**
-     * @since 2.2.1b100
+     * @since 2.2.1b101 (TODO: fix in changelog)
      */
     getItemUseIntervalProgress(): number;
     /**
-     * @since 2.2.1b100
+     * @since 2.2.1b101 (TODO: fix in changelog)
      */
     getItemUseStartupProgress(): number;
     /**
@@ -10558,37 +11083,55 @@ declare class PlayerActor {
     setFlying(enabled: boolean): void;
 }
 /**
- * Module used to manipulate player. Player is also an entity in Minecraft, so
+ * Module used to manipulate local player. Player is also an entity in Minecraft, so
  * you can use all the functions from {@link Entity} module as well. To get player's
- * entity ID, call {@link Player.get} function.
+ * entity uid, call {@link Player.getLocal} or {@link Player.getServer} depends on usage.
+ * Most of the methods are client-side, use {@link PlayerActor} instead.
  */
 declare namespace Player {
     /**
-     * @returns Player's entity ID that can be used with most of {@link Entity}
-     * function.
+     * Gets server player uid or local one if client connected to
+     * remote server and client uid is available.
+     * @returns `-1` if there is no player, for example, on dedicated servers
      */
     function get(): number;
     /**
-     * @deprecated Use attributes and {@link Entity.getNameTag} instead.
+     * Gets local player entity uid, which can be used in various
+     * client operations with player, like {@link Player.getPointed}.
+     * @returns `-1` if there is no player, for example, on dedicated servers
+     * @since 2.3.1b115
      */
-    function getNameForEnt(entityUid: number): string;
+    function getLocal(): number;
     /**
-     * @deprecated Use attributes and {@link Entity.getNameTag} instead.
+     * Gets player entity uid, which can be used in various
+     * server operations with player, like {@link Player.addItemToInventory}.
+     * @returns `-1` if there is no player, for example, on dedicated servers
+     * @since 2.3.1b115
      */
-    function getName(): void;
+    function getServer(): number;
+    // TODO: Unimplemented methods, at least for b121.
+    // /**
+    //  * Returns name for specified entity, which is also known as name tag.
+    //  */
+    // function getNameForEnt(entityUid: number): string;
+    // /**
+    //  * Returns name for local player, which is also known as name tag.
+    //  */
+    // function getName(): void;
     /**
-     * @returns Current dimension numeric ID, one of the {@link EDimension}
+     * @returns Current dimension numeric uid, one of the {@link EDimension}
      * values or custom dimension ID.
      */
     function getDimension(): number;
     /**
      * @returns `true` if specified entity is of player type, `false` otherwise.
+     * @deprecated Works only with local player, use {@link Entity.getType} instead.
      */
     function isPlayer(entityUid: number): boolean;
     /**
-     * Fetches information about the objects player is currently pointing.
+     * Entity pointed data, which is used in {@link Player.getPointed}.
      */
-    function getPointed(): {
+    interface PointedData {
         /**
          * Pointed block position.
          */
@@ -10603,10 +11146,14 @@ declare namespace Player {
          */
         block: Tile,
         /**
-         * Pointed entity, if no entity's pointed, returns -1.
+         * Pointed entity, if no entity's pointed, returns `-1`.
          */
         entity: number
-    };
+    }
+    /**
+     * Fetches information about the objects player is currently pointing.
+     */
+    function getPointed(): PointedData;
     /**
      * Simulates local player rotation by specified delta.
      * @param deltaX horizontal radians offset
@@ -10626,6 +11173,7 @@ declare namespace Player {
      * @param extra item extra
      * @param preventDrop if set to false, function drops items that could not be
      * added to player's inventory, destroys them otherwise
+     * @deprecated Client-side only, use {@link PlayerActor.addItemToInventory} instead.
      */
     function addItemToInventory(id: number, count: number, data: number, extra?: ItemExtraData, preventDrop?: boolean): void;
     /**
@@ -10638,6 +11186,8 @@ declare namespace Player {
      * @param count item count
      * @param data item data
      * @param extra item extra
+     * @deprecated Client-side only, use {@link PlayerActor.setInventorySlot}
+     * or {@link Entity.setCarriedItem} instead.
      */
     function setCarriedItem(id: number, count: number, data: number, extra?: ItemExtraData): void;
     /**
@@ -10650,12 +11200,15 @@ declare namespace Player {
      * @param count item count
      * @param data item data
      * @param extra item extra
+     * @deprecated Client-side only, use {@link Entity.setOffhandItem} instead.
      */
     function setOffhandItem(id: number, count: number, data: number, extra?: ItemExtraData): void;
     /**
      * Decreases carried item count by specified number.
-     * @param count amount of items to decrease carried item by, default value
-     * is 1
+     * @param count amount of items to decrease carried item by,
+     * default value is `1`
+     * @deprecated Client-side only, use {@link PlayerActor.setInventorySlot}
+     * or {@link Entity.setCarriedItem} instead.
      */
     function decreaseCarriedItem(count?: number): void;
     /**
@@ -10670,6 +11223,7 @@ declare namespace Player {
      * @param count item count
      * @param data item data
      * @param extra item extra
+     * @deprecated Client-side only, use {@link PlayerActor.setInventorySlot} instead.
      */
     function setInventorySlot(slot: number, id: number, count: number, data: number, extra?: ItemExtraData): void;
     /**
@@ -10686,6 +11240,7 @@ declare namespace Player {
      * @param count item count
      * @param data item data
      * @param extra item extra
+     * @deprecated Client-side only, use {@link PlayerActor.setArmor} instead.
      */
     function setArmorSlot(slot: number, id: number, count: number, data: number, extra?: ItemExtraData): void;
     /**
@@ -10698,216 +11253,39 @@ declare namespace Player {
      */
     function setSelectedSlotId(slot: number): void;
     /**
-     * Sets specified coordinates as player's position.
-     */
-    function setPosition(x: number, y: number, z: number): void;
-    /**
      * @returns Current player's position.
      */
     function getPosition(): Vector;
     /**
+     * Sets specified coordinates as player's position.
+     * @deprecated Client-side only, use {@link Entity.setPosition} instead.
+     */
+    function setPosition(x: number, y: number, z: number): void;
+    /**
      * Changes current player position by specified vector.
+     * @deprecated Client-side only, use {@link Entity.addPosition} instead.
      */
     function addPosition(x: number, y: number, z: number): void;
-    /**
-     * Set player's velocity using velocity vector.
-     * @param x velocity
-     * @param y velocity
-     * @param z velocity
-     */
-    function setVelocity(x: number, y: number, z: number): void;
     /**
      * Get player's velocity.
      * @returns Currently {@link Vector} containing player's velocity.
      */
     function getVelocity(): Vector;
     /**
+     * Set player's velocity using velocity vector.
+     * @param x velocity
+     * @param y velocity
+     * @param z velocity
+     * @deprecated Client-side only, use {@link Entity.setVelocity} instead.
+     */
+    function setVelocity(x: number, y: number, z: number): void;
+    /**
      * Updates current entity's velocity by specified values.
+     * @deprecated Client-side only, use {@link Entity.addVelocity} instead.
      */
     function addVelocity(x: number, y: number, z: number): void;
     /**
-     * @returns An object that allows to manipulate player experience.
-     * @deprecated Consider using {@link Player.getExperience},
-     * {@link Player.setExperience}, {@link Player.addExperience}.
-     */
-    function experience(): PlayerExperience;
-    /**
-     * @returns Player's current experience.
-     */
-    function getExperience(): number;
-    /**
-     * Sets player's experience.
-     * @param exp experience value to be set
-     */
-    function setExperience(exp: number): void;
-    /**
-     * Adds specified amount of experience to the current value.
-     * @param exp amount to be added
-     */
-    function addExperience(exp: number): void;
-    /**
-     * @returns An object that allows to manipulate player level.
-     * @deprecated Consider using {@link Player.getLevel},
-     * {@link Player.setLevel}, {@link Player.addLevel}.
-     */
-    function level(): PlayerLevel;
-    /**
-     * @returns Player's current level.
-     */
-    function getLevel(): number;
-    /**
-     * Sets player's level.
-     * @param level level value to be set
-     */
-    function setLevel(level: number): void;
-    /**
-     * Adds specified amount of level to the current value.
-     * @param level amount to be added
-     */
-    function addLevel(level: number): void;
-    /**
-     * @returns An object that allows to manipulate player flying ability and
-     * state.
-     * @deprecated Consider using {@link Player.getFlyingEnabled},
-     * {@link Player.setFlyingEnabled}, {@link Player.getFlying}, {@link Player.setFlying}.
-     */
-    function flying(): PlayerFlying;
-    /**
-     * @returns `true` if player is allowed to fly, `false` otherwise.
-     */
-    function getFlyingEnabled(): boolean;
-    /**
-     * Enables or disables player's ability to fly.
-     * @param enabled whether the player can fly or not
-     */
-    function setFlyingEnabled(enabled: boolean): void;
-    /**
-     * @returns `true` if player is flying, `false` otherwise.
-     */
-    function getFlying(): boolean;
-    /**
-     * Changes player's current flying state, call {@link Player.setFlyingEnabled}
-     * to be able to set this property to `true`.
-     * @param enabled whether the player should fly or not
-     */
-    function setFlying(enabled: boolean): void;
-    /**
-     * @returns An object that allows to manipulate player's exhaustion.
-     * @deprecated Consider using {@link Player.getExhaustion} and
-     * {@link Player.setExhaustion}.
-     */
-    function exhaustion(): PlayerExhaustion;
-    /**
-     * @returns Player's current exhaustion.
-     */
-    function getExhaustion(): number;
-    /**
-     * Sets player's exhaustion.
-     * @param value exhaustion value to be set
-     */
-    function setExhaustion(value: number): void;
-    /**
-     * @returns An object that allows to manipulate player's exhaustion.
-     * @deprecated Consider using {@link Player.getHunger} and
-     * {@link Player.setHunger}.
-     */
-    function hunger(): PlayerHunger;
-    /**
-     * @returns Player's current hunger.
-     */
-    function getHunger(): number;
-    /**
-     * Sets player's hunger.
-     * @param value hunger value to be set
-     */
-    function setHunger(value: number): void;
-    /**
-     * @returns An object that allows to manipulate player's saturation.
-     * @deprecated Consider using {@link Player.getSaturation} and
-     * {@link Player.setSaturation}.
-     */
-    function saturation(): PlayerSaturation;
-    /**
-     * @returns Player's current saturation.
-     */
-    function getSaturation(): number;
-    /**
-     * Sets player's saturation.
-     * @param value saturation value to be set
-     */
-    function setSaturation(value: number): void;
-    /**
-     * @returns An object that allows to manipulate player's health.
-     * @deprecated Consider using {@link Player.getHealth} and
-     * {@link Player.setHealth}.
-     */
-    function health(): PlayerHealth;
-    /**
-     * @returns Player's current health.
-     */
-    function getHealth(): number;
-    /**
-     * Sets player's health.
-     * @param value Health value to be set.
-     */
-    function setHealth(value: number): void;
-    /**
-     * @returns An object that allows to manipulate player's score.
-     * @deprecated Consider using {@link Player.getScore}.
-     */
-    function score(): PlayerScore;
-    /**
-     * @returns Player's current score.
-     */
-    function getScore(): number;
-    /**
-     * Sets view zoom, to reset value call {@link Player.resetFov}.
-     * @param fov view zoom, default zoom is about 70
-     */
-    function setFov(fov: number): void;
-    /**
-     * Resets view zoom to the default value.
-     */
-    function resetFov(): void;
-    /**
-     * Sets player's camera to the specified entity.
-     * @param entityUid entity ID
-     */
-    function setCameraEntity(entityUid: number): void;
-    /**
-     * Resets player's camera if it was previously set to another entity.
-     */
-    function resetCameraEntity(): void;
-    /**
-     * Sets some of the player's abilities. If the argument is of type
-     * boolean, sets the ability as the boolean one, otherwise as numeric one.
-     * @param ability ability name constant, should be
-     * one of the {@link EPlayerAbility} constants
-     * @param value the value to be set for the ability; can be either boolean
-     * or number, depending on the ability
-     * @since 2.0.3b33
-     */
-    function setAbility(ability: string, value: boolean | number): void;
-    /**
-     * Gets one of the player's abilities in a form
-     * of floating-point number.
-     * @param ability ability name constant, should be
-     * one of the {@link EPlayerAbility} constants
-     * @returns Current value of the ability in a form
-     * of floating-point number.
-     * @since 2.0.3b33
-     */
-    function getFloatAbility(ability: string): number;
-    /**
-     * Gets one of the player's abilities in a boolean form.
-     * @param ability ability name constant, should be
-     * one of the {@link EPlayerAbility} constants
-     * @returns Current value of the ability in a boolean form.
-     * @since 2.0.3b33
-     */
-    function getBooleanAbility(ability: string): number;
-    /**
-     * Class used to manipulate player's experience.
+     * Interface used to manipulate player's experience.
      * @deprecated Consider using {@link Player.getExperience},
      * {@link Player.setExperience}, {@link Player.addExperience}.
      */
@@ -10928,127 +11306,323 @@ declare namespace Player {
         public add(exp: number): void;
     }
     /**
-     * Class used to manipulate player's level.
+     * @returns An object that allows to manipulate player experience.
+     * @deprecated Consider using {@link Player.getExperience},
+     * {@link Player.setExperience}, {@link Player.addExperience}.
+     */
+    function experience(): PlayerExperience;
+    /**
+     * @returns Player's current experience.
+     */
+    function getExperience(): number;
+    /**
+     * Sets player's experience.
+     * @param exp experience value to be set
+     * @deprecated Client-side only, use {@link PlayerActor.setExperience} instead.
+     */
+    function setExperience(exp: number): void;
+    /**
+     * Adds specified amount of experience to the current value.
+     * @param exp amount to be added
+     * @deprecated Client-side only, use {@link PlayerActor.addExperience} instead.
+     */
+    function addExperience(exp: number): void;
+    /**
+     * Interface used to manipulate player's level.
      * @deprecated Consider using {@link Player.getLevel},
      * {@link Player.setLevel}, {@link Player.addLevel}.
      */
-    class PlayerLevel {
+    interface PlayerLevel {
         /**
          * @returns Player's current level.
          */
-        public get(): number;
+        get(): number;
         /**
          * Sets player's level.
          * @param level level value to be set
          */
-        public set(level: number): void;
+        set(level: number): void;
         /**
          * Adds specified amount of level to the current value.
          * @param level amount to be added
          */
-        public add(level: number): void;
+        add(level: number): void;
     }
     /**
-     * Class used to manipulate player's flying ability and state.
+     * @returns An object that allows to manipulate player level.
+     * @deprecated Consider using {@link Player.getLevel},
+     * {@link Player.setLevel}, {@link Player.addLevel}.
+     */
+    function level(): PlayerLevel;
+    /**
+     * @returns Player's current level.
+     */
+    function getLevel(): number;
+    /**
+     * Sets player's level.
+     * @param level level value to be set
+     * @deprecated Client-side only, use {@link PlayerActor.setLevel} instead.
+     */
+    function setLevel(level: number): void;
+    /**
+     * Adds specified amount of level to the current value.
+     * @param level amount to be added
+     * @deprecated Client-side only, use {@link PlayerActor.setLevel} instead.
+     */
+    function addLevel(level: number): void;
+    /**
+     * Interface used to manipulate player's flying ability and state.
      * @deprecated Consider using {@link Player.getFlyingEnabled},
      * {@link Player.setFlyingEnabled}, {@link Player.getFlying}
      * and {@link Player.setFlying}.
      */
-    class PlayerFlying {
+    interface PlayerFlying {
         /**
          * @returns `true` if player is flying, `false` otherwise.
          */
-        public get(): boolean;
+        get(): boolean;
         /**
          * Changes player's current flying state, call {@link Player.PlayerFlying.setEnabled}
          * to be able to set this property to `true`.
          * @param enabled whether the player should fly or not
          */
-        public set(enabled: boolean): void;
+        set(enabled: boolean): void;
         /**
          * @returns `true` if player is allowed to fly, `false` otherwise.
          */
-        public getEnabled(): boolean;
+        getEnabled(): boolean;
         /**
          * Enables or disables player's ability to fly.
          * @param enabled whether the player can fly or not
          */
-        public setEnabled(enabled: boolean): void;
+        setEnabled(enabled: boolean): void;
     }
     /**
-     * Class used to manipulate player's exhaustion.
+     * @returns An object that allows to manipulate player flying ability and
+     * state.
+     * @deprecated Consider using {@link Player.getFlyingEnabled},
+     * {@link Player.setFlyingEnabled}, {@link Player.getFlying}, {@link Player.setFlying}.
+     */
+    function flying(): PlayerFlying;
+    /**
+     * @returns `true` if player is allowed to fly, `false` otherwise.
+     */
+    function getFlyingEnabled(): boolean;
+    /**
+     * Enables or disables player's ability to fly.
+     * @param enabled whether the player can fly or not
+     * @deprecated Client-side only, use {@link PlayerActor.setCanFly} instead.
+     */
+    function setFlyingEnabled(enabled: boolean): void;
+    /**
+     * @returns `true` if player is flying, `false` otherwise.
+     */
+    function getFlying(): boolean;
+    /**
+     * Changes player's current flying state, call {@link Player.setFlyingEnabled}
+     * to be able to set this property to `true`.
+     * @param enabled whether the player should fly or not
+     */
+    function setFlying(enabled: boolean): void;
+    /**
+     * Interface used to manipulate player's exhaustion.
      * @deprecated Consider using {@link Player.getExhaustion} and
      * {@link Player.setExhaustion}.
      */
-    class PlayerExhaustion {
+    interface PlayerExhaustion {
         /**
          * @returns Player's current exhaustion.
          */
-        public get(): number;
+        get(): number;
         /**
          * Sets player's exhaustion.
          * @param value exhaustion value to be set
          */
-        public set(value: number): void;
+        set(value: number): void;
     }
     /**
-     * Class used to manipulate player's hunger.
+     * @returns An object that allows to manipulate player's exhaustion.
+     * @deprecated Consider using {@link Player.getExhaustion} and
+     * {@link Player.setExhaustion}.
+     */
+    function exhaustion(): PlayerExhaustion;
+    /**
+     * @returns Player's current exhaustion.
+     */
+    function getExhaustion(): number;
+    /**
+     * Sets player's exhaustion.
+     * @param value exhaustion value to be set
+     * @since 2.0.1b17 (not worked before)
+     * @deprecated Client-side only, use {@link PlayerActor.setExhaustion} instead.
+     */
+    function setExhaustion(value: number): void;
+    /**
+     * Interface used to manipulate player's hunger.
      * @deprecated Consider using {@link Player.getHunger} and
      * {@link Player.setHunger}.
      */
-    class PlayerHunger {
+    interface PlayerHunger {
         /**
          * @returns Player's current hunger.
          */
-        public get(): number;
+        get(): number;
         /**
          * Sets player's hunger.
          * @param value hunger value to be set
          */
-        public set(value: number): void;
+        set(value: number): void;
     }
     /**
-     * Class used to manipulate player's saturation.
+     * @returns An object that allows to manipulate player's exhaustion.
+     * @deprecated Consider using {@link Player.getHunger} and
+     * {@link Player.setHunger}.
+     */
+    function hunger(): PlayerHunger;
+    /**
+     * @returns Player's current hunger.
+     */
+    function getHunger(): number;
+    /**
+     * Sets player's hunger.
+     * @param value hunger value to be set
+     * @since 2.0.1b17 (not worked before)
+     * @deprecated Client-side only, use {@link PlayerActor.setHunger} instead.
+     */
+    function setHunger(value: number): void;
+    /**
+     * Interface used to manipulate player's saturation.
      * @deprecated Consider using {@link Player.getSaturation} and
      * {@link Player.setSaturation}.
      */
-    class PlayerSaturation {
+    interface PlayerSaturation {
         /**
          * @returns Player's current saturation.
          */
-        public get(): number;
+        get(): number;
         /**
          * Sets player's saturation.
          * @param value saturation value to be set
          */
-        public set(value: number): void;
+        set(value: number): void;
     }
     /**
-     * Class used to manipulate player's health.
+     * @returns An object that allows to manipulate player's saturation.
+     * @deprecated Consider using {@link Player.getSaturation} and
+     * {@link Player.setSaturation}.
+     */
+    function saturation(): PlayerSaturation;
+    /**
+     * @returns Player's current saturation.
+     */
+    function getSaturation(): number;
+    /**
+     * Sets player's saturation.
+     * @param value saturation value to be set
+     * @since 2.0.1b17 (not worked before)
+     * @deprecated Client-side only, use {@link PlayerActor.setSaturation} instead.
+     */
+    function setSaturation(value: number): void;
+    /**
+     * Interface used to manipulate player's health.
      * @deprecated Consider using {@link Player.getHealth} and
      * {@link Player.setHealth}.
      */
-    class PlayerHealth {
+    interface PlayerHealth {
         /**
          * @returns Player's current health.
          */
-        public get(): number;
+        get(): number;
         /**
          * Sets player's health.
          * @param value health value to be set
          */
-        public set(value: number): void;
+        set(value: number): void;
     }
     /**
-     * Class used to manipulate player's score.
+     * @returns An object that allows to manipulate player's health.
+     * @deprecated Consider using {@link Player.getHealth} and
+     * {@link Player.setHealth}.
+     */
+    function health(): PlayerHealth;
+    /**
+     * @returns Player's current health.
+     */
+    function getHealth(): number;
+    /**
+     * Sets player's health.
+     * @param value Health value to be set.
+     * @deprecated Client-side only, use {@link Entity.healEntity}
+     * and {@link Entity.damageEntity} instead.
+     */
+    function setHealth(value: number): void;
+    /**
+     * Interface used to manipulate player's score.
      * @deprecated Consider using {@link Player.getScore}.
      */
-    class PlayerScore {
+    interface PlayerScore {
         /**
          * @returns Player's current score.
          */
-        public get(): number;
+        get(): number;
     }
+    /**
+     * @returns An object that allows to manipulate player's score.
+     * @deprecated Consider using {@link Player.getScore}.
+     */
+    function score(): PlayerScore;
+    /**
+     * @returns Player's current score.
+     */
+    function getScore(): number;
+    /**
+     * Sets view zoom, to reset value call {@link Player.resetFov}.
+     * @param fov view zoom, default zoom is about 70
+     */
+    function setFov(fov: number): void;
+    /**
+     * Resets view zoom to the default value.
+     */
+    function resetFov(): void;
+    /**
+     * Sets player's camera to the specified entity.
+     * @param entityUid entity uid
+     */
+    function setCameraEntity(entityUid: number): void;
+    /**
+     * Resets player's camera if it was previously set to another entity.
+     */
+    function resetCameraEntity(): void;
+    /**
+     * Sets some of the player's abilities. If the argument is of type
+     * boolean, sets the ability as the boolean one, otherwise as numeric one.
+     * @param ability ability name constant, should be
+     * one of the {@link EPlayerAbility} constants
+     * @param value the value to be set for the ability; can be either boolean
+     * or number, depending on the ability
+     * @since 2.0.3b33
+     * @deprecated Client-side only, use {@link PlayerActor.setPlayerBooleanAbility}
+     * and {@link PlayerActor.setPlayerFloatAbility} instead.
+     */
+    function setAbility(ability: string, value: boolean | number): void;
+    /**
+     * Gets one of the player's abilities in a form
+     * of floating-point number.
+     * @param ability ability name constant, should be
+     * one of the {@link EPlayerAbility} constants
+     * @returns Current value of the ability in a form
+     * of floating-point number.
+     * @since 2.0.3b33
+     */
+    function getFloatAbility(ability: string): number;
+    /**
+     * Gets one of the player's abilities in a boolean form.
+     * @param ability ability name constant, should be
+     * one of the {@link EPlayerAbility} constants
+     * @returns Current value of the ability in a boolean form.
+     * @since 2.0.3b33
+     */
+    function getBooleanAbility(ability: string): number;
 }
 /**
  * Module to work with vanilla and custom particles.
@@ -12321,9 +12895,9 @@ declare namespace NBT {
             Max: number;
             Min: number;
             /**
-             * One of {@link Entity.Attributes} or your custom one.
+             * One of {@link Entity.Attribute} or your custom one.
              */
-            Name: Entity.Attributes | string;
+            Name: Entity.Attribute | string;
         }
         interface IBlockEntity extends Scriptable {
             /**
@@ -13205,8 +13779,9 @@ declare interface NativeTileEntity {
 }
 /**
  * Module containing enums that can make user code more readable.
- * @deprecated Consider specified sub-enum to determine which
- * rellocation must be used.
+ * @remarks
+ * Consider specified sub-enum to determine which version
+ * specific rellocation must be used.
  */
 declare namespace Native {
     /**
@@ -13214,301 +13789,387 @@ declare namespace Native {
      * @deprecated Use {@link EArmorType} instead.
      */
     enum ArmorType {
-        boots = 3,
-        chestplate = 1,
         helmet = 0,
-        leggings = 2
+        chestplate = 1,
+        leggings = 2,
+        boots = 3
     }
     /**
      * Defines item category in creative inventory.
      * @deprecated Use {@link EItemCategory} instead.
      */
     enum ItemCategory {
+        /**
+         * @since 2.3.0b112
+         */
+        CONSTRUCTION = 1,
+        /**
+         * @since 2.3.0b112
+         */
+        NATURE = 2,
         DECORATION = 2,
+        /**
+         * @since 2.3.0b112
+         */
+        EQUIPMENT = 3,
+        TOOL = 3,
+        MATERIAL = 4,
+        /**
+         * @since 2.3.0b112
+         */
+        ITEMS = 4,
         FOOD = 4,
-        INTERNAL = 0,
-        MATERIAL = 1,
-        TOOL = 3
+        INTERNAL = 5,
+        /**
+         * @since 2.3.0b112
+         */
+        COMMAND_ONLY = 5
     }
     /**
      * Defines all existing vanilla particles.
      * @deprecated Use {@link EParticleType} instead.
      */
     enum ParticleType {
-        angryVillager = 32,
         bubble = 1,
-        cloud = 4,
-        crit = 2,
-        dripLava = 24,
-        dripWater = 23,
-        enchantmenttable = 32,
-        fallingDust = 26,
-        flame = 7,
-        happyVillager = 33,
-        heart = 17,
-        hugeexplosion = 14,
-        hugeexplosionSeed = 15,
-        ink = 25,
-        itemBreak = 12,
-        largeexplode = 5,
-        lava = 8,
-        mobFlame = 16,
-        note = 36,
-        portal = 20,
-        rainSplash = 21,
-        redstone = 10,
-        slime = 30,
-        smoke = 4,
-        smoke2 = 9,
-        snowballpoof = 13,
-        spell = 29,
-        spell2 = 28,
-        spell3 = 27,
-        splash = 22,
-        suspendedTown = 19,
-        terrain = 16,
-        waterWake = 31
+        cloud = 5,
+        smoke = 6,
+        flame = 8,
+        lava = 9,
+        smoke2 = 10,
+        redstone = 11,
+        snowballpoof = 14,
+        hugeexplosion = 15,
+        hugeexplosionSeed = 16,
+        mobFlame = 17,
+        heart = 18,
+        terrain = 19,
+        suspendedTown = 20,
+        portal = 21,
+        rainSplash = 23,
+        dripWater = 24,
+        splash = 25,
+        dripLava = 27,
+        ink = 28,
+        fallingDust = 29,
+        spell3 = 30,
+        spell2 = 31,
+        spell = 32,
+        slime = 34,
+        waterWake = 35,
+        angryVillager = 36,
+        happyVillager = 37,
+        enchantmenttable = 38,
+        note = 40,
+        crit = 41,
+        itemBreak = 42,
+        largeexplode = 61
     }
     /**
      * Defines text colors and font styles for chat and tip messages.
-     * @deprecated Use {@link EColor} instead.
      */
     enum Color {
-        AQUA = "§b",
         BEGIN = "§",
         BLACK = "§0",
-        BLUE = "§9",
-        BOLD = "§l",
-        DARK_AQUA = "§3",
         DARK_BLUE = "§1",
-        DARK_GRAY = "§8",
         DARK_GREEN = "§2",
-        DARK_PURPLE = "§5",
+        DARK_AQUA = "§3",
         DARK_RED = "§4",
+        DARK_PURPLE = "§5",
         GOLD = "§6",
         GRAY = "§7",
+        DARK_GRAY = "§8",
+        BLUE = "§9",
         GREEN = "§a",
-        ITALIC = "§o",
-        LIGHT_PURPLE = "§d",
-        OBFUSCATED = "§k",
+        AQUA = "§b",
         RED = "§c",
-        RESET = "§r",
+        LIGHT_PURPLE = "§d",
+        YELLOW = "§e",
+        WHITE = "§f",
+        OBFUSCATED = "§k",
+        BOLD = "§l",
         STRIKETHROUGH = "§m",
         UNDERLINE = "§n",
-        WHITE = "§f",
-        YELLOW = "§e"
+        ITALIC = "§o",
+        RESET = "§r"
     }
     /**
      * Defines all vanilla entity type IDs.
      * @deprecated Use {@link EEntityType} instead.
      */
     enum EntityType {
-        AREA_EFFECT_CLOUD = 95,
-        ARMOR_STAND = 61,
-        ARROW = 80,
-        BAT = 19,
-        BLAZE = 43,
-        BOAT = 90,
-        CAT = 75,
-        CAVE_SPIDER = 40,
-        CHEST_MINECART = 98,
         CHICKEN = 10,
-        COD = 112,
-        COMMAND_BLOCK_MINECART = 100,
         COW = 11,
-        CREEPER = 33,
-        DOLPHIN = 31,
+        PIG = 12,
+        SHEEP = 13,
+        WOLF = 14,
+        VILLAGER = 15,
+        MUSHROOM_COW = 16,
+        SQUID = 17,
+        RABBIT = 18,
+        BAT = 19,
+        IRON_GOLEM = 20,
+        SNOW_GOLEM = 21,
+        OCELOT = 22,
+        HORSE = 23,
         DONKEY = 24,
-        DRAGON_FIREBOLL = 79,
-        DROWNED = 110,
-        EGG = 82,
+        MULE = 25,
+        SKELETON_HORSE = 26,
+        ZOMBIE_HORSE = 27,
+        POLAR_BEAR = 28,
+        LLAMA = 29,
+        PARROT = 30,
+        DOLPHIN = 31,
+        ZOMBIE = 32,
+        CREEPER = 33,
+        SKELETON = 34,
+        SPIDER = 35,
+        PIG_ZOMBIE = 36,
+        SLIME = 37,
         ENDERMAN = 38,
-        ENDERMITE = 55,
-        ENDER_CRYSTAL = 71,
-        ENDER_DRAGON = 53,
+        SILVERFISH = 39,
+        CAVE_SPIDER = 40,
+        GHAST = 41,
+        LAVA_SLIME = 42,
+        BLAZE = 43,
+        ZOMBIE_VILLAGER = 44,
+        /**
+         * @since 2.3.0b112
+         */
+        WITCH = 45,
+        /**
+         * @deprecated Mistypo.
+         */
+        WHITCH = 45,
+        STRAY = 46,
+        HUSK = 47,
+        /**
+         * @since 2.3.0b112
+         */
+        WITHER_SKELETON = 48,
+        /**
+         * @deprecated Mistypo.
+         */
+        WHITHER_SKELETON = 48,
+        GUARDIAN = 49,
+        /**
+         * @since 2.3.0b112
+         */
+        ELDER_GUARDIAN = 50,
+        /**
+         * @deprecated Mistypo.
+         */
         ENDER_GUARDIAN = 50,
-        ENDER_GUARDIAN_GHOST = 120,
+        /**
+         * @since 2.3.0b112
+         */
+        WITHER = 52,
+        /**
+         * @deprecated Mistypo.
+         */
+        WHITHER = 52,
+        ENDER_DRAGON = 53,
+        SHULKER = 54,
+        ENDERMITE = 55,
+        VINDICATOR = 57,
+        PHANTOM = 58,
+        RAVAGER = 59,
+        ARMOR_STAND = 61,
+        PLAYER = 63,
+        ITEM = 64,
+        PRIMED_TNT = 65,
+        FALLING_BLOCK = 66,
+        MOVING_BLOCK = 67,
+        EXPERIENCE_POTION = 68,
+        EXPERIENCE_ORB = 69,
+        EYE_OF_ENDER_SIGNAL = 70,
+        ENDER_CRYSTAL = 71,
+        FIREWORKS_ROCKET = 72,
+        THROWN_TRIDENT = 73,
+        TURTLE = 74,
+        CAT = 75,
+        SHULKER_BULLET = 76,
+        FISHING_HOOK = 77,
+        /**
+         * @since 2.3.0b112
+         */
+        DRAGON_FIREBALL = 79,
+        /**
+         * @deprecated Mistypo.
+         */
+        DRAGON_FIREBOLL = 79,
+        ARROW = 80,
+        SNOWBALL = 81,
+        EGG = 82,
+        PAINTING = 83,
+        MINECART = 84,
+        FIREBALL = 85,
+        THROWN_POTION = 86,
         ENDER_PEARL = 87,
+        LEASH_KNOT = 88,
+        /**
+         * @since 2.3.0b112
+         */
+        WITHER_SKULL = 89,
+        /**
+         * @deprecated Mistypo.
+         */
+        WHITHER_SKULL = 89,
+        BOAT = 90,
+        /**
+         * @since 2.3.0b112
+         */
+        WITHER_SKULL_DANGEROUS = 91,
+        /**
+         * @deprecated Mistypo.
+         */
+        WHITHER_SKULL_DANGEROUS = 91,
+        LIGHTNING_BOLT = 93,
+        SMALL_FIREBALL = 94,
+        AREA_EFFECT_CLOUD = 95,
+        HOPPER_MINECART = 96,
+        TNT_COMMAND = 97,
+        CHEST_MINECART = 98,
+        COMMAND_BLOCK_MINECART = 100,
+        LINGERING_POTION = 101,
+        LLAMA_SPLIT = 102,
         EVOCATION_FANG = 103,
         EVOCATION_ILLAGER = 104,
-        EXPERIENCE_ORB = 69,
-        EXPERIENCE_POTION = 68,
-        EYE_OF_ENDER_SIGNAL = 70,
-        FALLING_BLOCK = 66,
-        FIREBALL = 85,
-        FIREWORKS_ROCKET = 72,
-        FISHING_HOOK = 77,
-        GHAST = 41,
-        GUARDIAN = 49,
-        HOPPER_MINECART = 96,
-        HORSE = 23,
-        HUSK = 47,
-        IRON_GOLEM = 20,
-        ITEM = 64,
-        LAVA_SLIME = 42,
-        LEASH_KNOT = 88,
-        LIGHTNING_BOLT = 93,
-        LINGERING_POTION = 101,
-        LLAMA = 29,
-        LLAMA_SPLIT = 102,
-        MINECART = 84,
-        MOVING_BLOCK = 67,
-        MULE = 25,
-        MUSHROOM_COW = 16,
-        OCELOT = 22,
-        PAINTING = 83,
-        PANDA = 113,
-        PARROT = 30,
-        PHANTOM = 58,
-        PIG = 12,
-        PIG_ZOMBIE = 36,
-        PILLAGER = 114,
-        PLAYER = 1,
-        POLAR_BEAR = 28,
-        PRIMED_TNT = 65,
-        PUFFERFISH = 108,
-        RABBIT = 18,
-        RAVAGER = 59,
-        SALMON = 109,
-        SHEEP = 13,
-        SHIELD = 117,
-        SHULKER = 54,
-        SHULKER_BULLET = 76,
-        SILVERFISH = 39,
-        SKELETON = 34,
-        SKELETON_HORSE = 26,
-        SLIME = 37,
-        SMALL_FIREBALL = 94,
-        SNOWBALL = 81,
-        SNOW_GOLEM = 21,
-        SPIDER = 35,
-        SQUID = 17,
-        STRAY = 46,
-        THROWN_POTION = 86,
-        THROWN_TRIDENT = 73,
-        TNT_COMMAND = 97,
-        TROPICALFISH = 111,
-        TURTLE = 74,
         VEX = 105,
-        VILLAGER = 15,
+        PUFFERFISH = 108,
+        SALMON = 109,
+        DROWNED = 110,
+        TROPICALFISH = 111,
+        COD = 112,
+        PANDA = 113,
+        PILLAGER = 114,
         VILLAGER_V2 = 115,
-        VINDICATOR = 57,
+        /**
+         * @since 2.3.0b112
+         */
+        ZOMBIE_VILLAGER_V2 = 116,
+        /**
+         * @deprecated Mistypo.
+         */
+        ZOMBIE_VILLAGE_V2 = 116,
+        SHIELD = 117,
         WANDERING_TRADER = 118,
-        WHITCH = 45,
-        WHITHER = 52,
-        WHITHER_SKELETON = 48,
-        WHITHER_SKULL = 89,
-        WHITHER_SKULL_DANGEROUS = 91,
-        WOLF = 14,
-        ZOMBIE = 32,
-        ZOMBIE_HORSE = 27,
-        ZOMBIE_VILLAGER = 44,
-        ZOMBIE_VILLAGE_V2 = 116
+        /**
+         * @since 2.3.0b112
+         */
+        ELDER_GUARDIAN_GHOST = 120,
+        /**
+         * @deprecated Mistypo.
+         */
+        ENDER_GUARDIAN_GHOST = 120
     }
     /**
      * Defines vanilla mob render types.
      * @deprecated Use {@link EMobRenderType} instead.
      */
     enum MobRenderType {
-        arrow = 25,
-        bat = 10,
-        blaze = 18,
-        boat = 35,
-        camera = 48,
+        tnt = 2,
+        human = 3,
+        item = 4,
         chicken = 5,
         cow = 6,
-        creeper = 22,
-        egg = 28,
-        enderman = 24,
-        expPotion = 45,
-        experienceOrb = 40,
-        fallingTile = 33,
-        fireball = 37,
-        fishHook = 26,
-        ghast = 17,
-        human = 3,
-        ironGolem = 42,
-        item = 4,
-        lavaSlime = 16,
-        lightningBolt = 41,
-        map = 50,
-        minecart = 34,
         mushroomCow = 7,
-        ocelot = 43,
-        painting = 32,
         pig = 8,
-        player = 27,
-        rabbit = 46,
         sheep = 9,
-        silverfish = 21,
-        skeleton = 19,
-        slime = 23,
-        smallFireball = 38,
-        snowGolem = 44,
-        snowball = 29,
-        spider = 20,
-        squid = 36,
-        thrownPotion = 31,
-        tnt = 2,
-        unknownItem = 30,
-        villager = 12,
-        villagerZombie = 39,
-        witch = 47,
+        bat = 10,
         wolf = 11,
+        villager = 12,
         zombie = 14,
-        zombiePigman = 15
+        zombiePigman = 15,
+        lavaSlime = 16,
+        ghast = 17,
+        blaze = 18,
+        skeleton = 19,
+        spider = 20,
+        silverfish = 21,
+        creeper = 22,
+        slime = 23,
+        enderman = 24,
+        arrow = 25,
+        fishHook = 26,
+        player = 27,
+        egg = 28,
+        snowball = 29,
+        unknownItem = 30,
+        thrownPotion = 31,
+        painting = 32,
+        fallingTile = 33,
+        minecart = 34,
+        boat = 35,
+        squid = 36,
+        fireball = 37,
+        smallFireball = 38,
+        villagerZombie = 39,
+        experienceOrb = 40,
+        lightningBolt = 41,
+        ironGolem = 42,
+        ocelot = 43,
+        snowGolem = 44,
+        expPotion = 45,
+        rabbit = 46,
+        witch = 47,
+        camera = 48,
+        map = 50
     }
     /**
      * Defines vanilla potion effects.
      * @deprecated Use {@link EPotionEffect} instead.
      */
     enum PotionEffect {
-        absorption = 22,
-        bad_omen = 28,
-        blindness = 15,
-        conduit_power = 26,
-        confusion = 9,
-        damageBoost = 5,
-        damageResistance = 11,
-        digSlowdown = 4,
-        digSpeed = 3,
-        fatal_poison = 25,
-        fireResistance = 12,
-        harm = 7,
-        heal = 6,
-        healthBoost = 21,
-        hunger = 17,
-        invisibility = 14,
-        jump = 8,
-        levitation = 24,
-        movementSlowdown = 2,
         movementSpeed = 1,
-        nightVision = 16,
-        poison = 19,
+        movementSlowdown = 2,
+        digSpeed = 3,
+        digSlowdown = 4,
+        damageBoost = 5,
+        heal = 6,
+        harm = 7,
+        jump = 8,
+        confusion = 9,
         regeneration = 10,
-        saturation = 23,
-        slow_falling = 27,
-        village_hero = 29,
+        damageResistance = 11,
+        fireResistance = 12,
         waterBreathing = 13,
+        invisibility = 14,
+        blindness = 15,
+        nightVision = 16,
+        hunger = 17,
         weakness = 18,
-        wither = 20
+        poison = 19,
+        wither = 20,
+        healthBoost = 21,
+        absorption = 22,
+        saturation = 23,
+        levitation = 24,
+        fatal_poison = 25,
+        conduit_power = 26,
+        slow_falling = 27,
+        bad_omen = 28,
+        village_hero = 29
     }
     /**
      * Defines the three dimensions currently available for player.
      * @deprecated Use {@link EDimension} instead.
      */
     enum Dimension {
-        END = 2,
+        NORMAL = 0,
+        /**
+         * @since 2.3.0b112
+         */
+        OVERWORLD = 0,
         NETHER = 1,
-        NORMAL = 0
+        END = 2
     }
     /**
      * Defines item animation types.
      * @deprecated Use {@link EItemAnimation} instead.
      */
     enum ItemAnimation {
-        bow = 4,
-        normal = 0
+        normal = 0,
+        bow = 4
     }
     /**
      * Defines numeric representation for each block side.
@@ -13516,50 +14177,50 @@ declare namespace Native {
      */
     enum BlockSide {
         DOWN = 0,
-        EAST = 5,
+        UP = 1,
         NORTH = 2,
         SOUTH = 3,
-        UP = 1,
-        WEST = 4
+        WEST = 4,
+        EAST = 5
     }
     /**
      * Defines numeric IDs of all vanilla enchantments.
      * @deprecated Use {@link EEnchantment} instead.
      */
     enum Enchantment {
-        AQUA_AFFINITY = 7,
-        BANE_OF_ARTHROPODS = 11,
-        BINDING_CURSE = 27,
-        BLAST_PROTECTION = 3,
-        CHANNELING = 32,
-        DEPTH_STRIDER = 8,
-        EFFICIENCY = 15,
-        FEATHER_FALLING = 2,
-        FIRE_ASPECT = 13,
+        PROTECTION = 0,
         FIRE_PROTECTION = 1,
-        FLAME = 21,
-        FORTUNE = 18,
-        FROST_WALKER = 25,
-        IMPALING = 29,
-        INFINITY = 22,
+        FEATHER_FALLING = 2,
+        BLAST_PROTECTION = 3,
+        PROJECTILE_PROTECTION = 4,
+        THORNS = 5,
+        RESPIRATION = 6,
+        AQUA_AFFINITY = 7,
+        DEPTH_STRIDER = 8,
+        SHARPNESS = 9,
+        SMITE = 10,
+        BANE_OF_ARTHROPODS = 11,
         KNOCKBACK = 12,
+        FIRE_ASPECT = 13,
         LOOTING = 14,
-        LOYALTY = 31,
+        EFFICIENCY = 15,
+        SILK_TOUCH = 16,
+        UNBREAKING = 17,
+        FORTUNE = 18,
+        POWER = 19,
+        PUNCH = 20,
+        FLAME = 21,
+        INFINITY = 22,
         LUCK_OF_THE_SEA = 23,
         LURE = 24,
+        FROST_WALKER = 25,
         MENDING = 26,
-        POWER = 19,
-        PROJECTILE_PROTECTION = 4,
-        PROTECTION = 0,
-        PUNCH = 20,
-        RESPIRATION = 6,
+        BINDING_CURSE = 27,
+        VANISHING_CURSE = 28,
+        IMPALING = 29,
         RIPTIDE = 30,
-        SHARPNESS = 9,
-        SILK_TOUCH = 16,
-        SMITE = 10,
-        THORNS = 5,
-        UNBREAKING = 17,
-        VANISHING_CURSE = 28
+        LOYALTY = 31,
+        CHANNELING = 32
     }
     /**
      * Defines what enchantments can or cannot be applied to every
@@ -13567,38 +14228,38 @@ declare namespace Native {
      * @deprecated Use {@link EEnchantType} instead.
      */
     enum EnchantType {
-        all = 16383,
-        axe = 512,
-        book = 16383,
-        boots = 4,
-        bow = 32,
-        chestplate = 8,
-        fishingRod = 4096,
-        flintAndSteel = 256,
         helmet = 1,
-        hoe = 64,
         leggings = 2,
-        pickaxe = 1024,
+        boots = 4,
+        chestplate = 8,
+        weapon = 16,
+        bow = 32,
+        hoe = 64,
         shears = 128,
+        flintAndSteel = 256,
+        axe = 512,
+        pickaxe = 1024,
         shovel = 2048,
-        weapon = 16
+        fishingRod = 4096,
+        all = 16383,
+        book = 16383
     }
     /**
      * Defines possible render layers (display methods) for blocks.
      * @deprecated Use {@link EBlockRenderLayer} instead.
      */
     enum BlockRenderLayer {
-        alpha = 4099,
-        alpha_seasons = 5,
-        alpha_single_side = 4,
-        blend = 6,
-        doubleside = 2,
-        far = 9,
-        opaque = 0,
-        opaque_seasons = 1,
-        seasons_far = 10,
-        seasons_far_alpha = 11,
-        water = 7
+        doubleside = 0,
+        water = 1,
+        blend = 2,
+        opaque = 3,
+        far = opaque,
+        alpha = 4,
+        opaque_seasons = 6,
+        seasons_far = opaque_seasons,
+        alpha_seasons = 7,
+        seasons_far_alpha = alpha_seasons,
+        alpha_single_side = 8
     }
     /**
      * Defines possible game difficulty.
@@ -13625,37 +14286,37 @@ declare namespace Native {
      * @deprecated Use {@link EPlayerAbility} instead.
      */
     enum PlayerAbility {
-        INVULNERABLE = "invulnerable",
-        FLYING = "flying",
-        INSTABUILD = "instabuild",
-        LIGHTNING = "lightning",
-        FLYSPEED = "flySpeed",
-        WALKSPEED = "walkSpeed",
-        NOCLIP = "noclip",
-        MAYFLY = "mayfly",
-        WORLDBUILDER = "worldbuilder",
-        MUTED = "mute",
-        BUILD = "build",
-        MINE = "mine",
-        DOORS_AND_SWITCHES = "doorsandswitches",
-        OPEN_CONTAINERS = "opencontainers",
-        ATTACK_PLAYERS = "attackplayers",
         ATTACK_MOBS = "attackmobs",
+        ATTACK_PLAYERS = "attackplayers",
+        BUILD = "build",
+        DOORS_AND_SWITCHES = "doorsandswitches",
+        FLYING = "flying",
+        FLYSPEED = "flySpeed",
+        INSTABUILD = "instabuild",
+        INVULNERABLE = "invulnerable",
+        LIGHTNING = "lightning",
+        MAYFLY = "mayfly",
+        MINE = "mine",
+        MUTED = "mute",
+        NOCLIP = "noclip",
         OPERATOR_COMMANDS = "op",
-        TELEPORT = "teleport"
+        OPEN_CONTAINERS = "opencontainers",
+        TELEPORT = "teleport",
+        WALKSPEED = "walkSpeed",
+        WORLDBUILDER = "worldbuilder"
     }
     /**
      * @deprecated Use {@link ETileEntityType} instead.
      */
     enum TileEntityType {
         NONE = -1,
-        BEACON = 21,
-        BREWING_STAND = 8,
-        CAULDRON = 16,
         CHEST = 0,
-        DISPENSER = 13,
         FURNACE = 1,
         HOPPER = 2,
+        BREWING_STAND = 8,
+        DISPENSER = 13,
+        CAULDRON = 16,
+        BEACON = 21,
         JUKEBOX = 33,
         LECTERN = 37
     }
@@ -13963,10 +14624,6 @@ declare namespace Mod {
         RunMod(additionalScope: any): void;
         configureMultiplayer(name: string, version: string, isClientOnly: boolean): void;
         runCustomSource(name: string, additionalScope: any): void;
-        /**
-         * Other methods and properties.
-         */
-        [key: string]: any
     }
 }
 /**
@@ -13974,36 +14631,58 @@ declare namespace Mod {
  */
 declare namespace ModAPI {
     /**
+     * Collects registered APIs objects, use {@link ModAPI.requireAPI}
+     * to directly access required instance.
+     * @internal
+     */
+    const modAPIs: {
+        [name: string]: { api: string, descr: ModDocumentation }
+    };
+    /**
      * Registers new API for the mod and invokes mod API callback.
      * @param name API name used to import it in the other mods
-     * @param api object that is shared with the other mods. May contain other
-     * objects, methods, variables, etc. Sometimes it is useful to provide the
+     * @param api object that is shared with the other mods; may contain other
+     * objects, methods, variables, etc.
+     * @param descr simple documentation for the mod API
+     *
+     * @remarks
+     * Sometimes it is useful to provide the
      * ability to run third party code in your own mod, you can create a method
      * that provides such possibility:
-     * ```ts
-     * requireGlobal: function(command){
-     *     return eval(command);
+     * ```js
+     * requireGlobal(command) {
+     *  return eval(command);
      * }
      * ```
-     * @param descr simple documentation for the mod API
-     * @param descr.name full name of the API, if not specified, name parameter
-     * value is used
-     * @param descr.props object containing descriptions of methods and
-     * properties of the API, where keys are methods and properties names and
-     * values are their descriptions
      */
-    function registerAPI(name: string, api: object, descr?: { name?: string, props?: object }): void;
+    function registerAPI(name: string, api: object, descr?: {
+        /**
+         * Full name of the API, if not specified, name parameter
+         * value is used.
+         */
+        name?: string,
+        /**
+         * Object containing descriptions of methods and
+         * properties of the API, where keys are methods and properties names and
+         * values are their descriptions.
+         * @deprecated Writing documentation that way is not recommended.
+         */
+        props?: object
+    }): void;
     /**
      * Gets API by it's name. The best approach is to call this method in the
      * function passed as the second parameter of {@link ModAPI.addAPICallback}.
-     * @param name API name
+     * @param name API name from {@link ModAPI.registerAPI} call
      * @returns API object if an API with specified was previously registered,
      * `null` otherwise.
+     *
      * @example
      * Importing API registered by IndustrialCraft PE:
-     * ```ts
+     * ```js
      * let ICore = null;
-     * ModAPI.addAPICallback("ICore", api => (ICore = api));
+     * ModAPI.addAPICallback("ICore", function(api) {
+     *  ICore = api;
+     * });
      * ```
      * When using ICore variable from the example, be sure to check it for `null`
      * because Industrial Craft PE may not be installed on the user's phone.
@@ -14017,89 +14696,7 @@ declare namespace ModAPI {
      */
     function requireGlobal(name: string): any;
     /**
-     * @param name API name
-     * @returns Documentation for the specified mod API.
-     * @deprecated Writing documentation that way is not better.
-     */
-    function requireAPIdoc(name: string): ModDocumentation;
-    /**
-     * Fetches information about the method or property of mod API.
-     * @param name API name
-     * @param prop property or method name
-     * @returns String description of the method or null if no description was
-     * provided by API vendor.
-     * @deprecated Writing documentation that way is not better.
-     */
-    function requireAPIPropertyDoc(name: string, prop: string): Nullable<string>;
-    /**
-     * @deprecated No longer supported.
-     */
-    function getModByName(modName: string): void;
-    /**
-     * @deprecated No longer supported.
-     */
-    function isModLoaded(modName: string): void;
-    /**
-     * Adds callback for the specified mod API.
-     * @param apiName API name
-     * @param func callback that is called when API is loaded
-     */
-    function addAPICallback(apiName: string, func: (
-        /**
-         * @param api shared mod API
-         */
-        api: object
-    ) => void): void;
-    /**
-     * @deprecated No longer supported.
-     */
-    function addModCallback(modName: string, func: any): void;
-    /**
-     * @deprecated No longer supported.
-     */
-    function getModList(): void;
-    /**
-     * @deprecated No longer supported.
-     */
-    function getModPEList(): void;
-    /**
-     * @deprecated No longer supported.
-     */
-    function addTexturePack(path: any): void;
-    /**
-     * Recursively copies (duplicates) the value to the new one.
-     * @param api an object to be copied
-     * @param deep if `true`, copies the object recursively
-     * @returns A copy of the object.
-     */
-    function cloneAPI<T>(api: T, deep?: boolean): T;
-    /**
-     * Ensures target object has all the properties the source object has, if
-     * not, copies them from source to target object.
-     * @param source object to copy missing values from
-     * @param target object to copy missing values to
-     */
-    function inheritPrototypes<K extends object, T extends object>
-        (source: K, target: T): K & T;
-    /**
-     * Recursively clones object to the new one counting call depth and
-     * interrupting copying after 7th recursion call.
-     * @param source an object to be cloned
-     * @param deep if `true`, copies the object recursively
-     * @param rec current recursion state, if > 6, recursion stops; default
-     * value is 0
-     * @returns Cloned object, all the properties that are less then then 8 in
-     * depth, get copied.
-     */
-    function cloneObject<T extends object>(source: T, deep?: boolean, rec?: number): T;
-    /**
-     * Same as {@link ModAPI.cloneObject}, but if call depth is more then
-     * 6, inserts `"stackoverflow"` string value otherwise.
-     */
-    function debugCloneObject<T>(source: T, deep?: boolean, rec?: number): T | string;
-    /**
      * Objects used to represent mod API documentation.
-     * @deprecated Writing documentation that way is not better.
      */
     interface ModDocumentation {
         /**
@@ -14113,11 +14710,223 @@ declare namespace ModAPI {
         props: object
     }
     /**
-     * Collects registered APIs objects, use {@link ModAPI.requireAPI}
-     * to directly access required instance.
-     * @internal
+     * @param name API name from {@link ModAPI.registerAPI} call
+     * @returns Documentation for the specified mod API.
+     * @deprecated Writing documentation that way is not recommended.
      */
-    let modAPIs: { [name: string]: { api: string, descr: { name: object, props: object } } }
+    function requireAPIdoc(name: string): Nullable<ModDocumentation>;
+    /**
+     * Fetches information about the method or property of mod API.
+     * @param name API name from {@link ModAPI.registerAPI} call
+     * @param prop property or method name
+     * @returns String description of the method or null if no description was
+     * provided by API vendor.
+     * @deprecated Writing documentation that way is not recommended.
+     */
+    function requireAPIPropertyDoc(name: string, prop: string): Nullable<string>;
+    /**
+     * Adds callback for the specified mod API.
+     * @param apiName API name from {@link ModAPI.registerAPI} call
+     * @param func callback that is called when API is loaded
+     */
+    function addAPICallback(apiName: string, func:
+        /**
+         * @param api shared mod API
+         */
+        (api: object) => void
+    ): void;
+    /**
+     * Recursively copies (duplicates) the value to the new one.
+     * @param api an object to be copied
+     * @param recursive if `true`, copies the object recursively
+     * @returns A copy of the object.
+     */
+    function cloneAPI<T>(api: T, recursive?: boolean): T;
+    /**
+     * Ensures target object has all the properties the source object has, if
+     * not, copies them from source to target object.
+     * @param source object to copy missing values from
+     * @param target object to copy missing values to
+     */
+    function inheritPrototypes<K extends object, T extends object>
+        (source: K, target: T): K & T;
+    /**
+     * Recursively clones object to the new one counting call depth and
+     * interrupting copying after 7th recursion call.
+     * @param source an object to be cloned
+     * @param recursive if `true`, copies the object recursively
+     * @param depth current recursion state, if > 6, recursion stops; default
+     * value is 0
+     * @returns Cloned object, all the properties that are less then 8 in
+     * depth, get copied.
+     */
+    function cloneObject<T extends object>(source: T, recursive?: boolean, depth?: number): T;
+    /**
+     * Same as {@link ModAPI.cloneObject}, but if call depth is more then
+     * 6, inserts `"stackoverflow"` string value otherwise.
+     */
+    function debugCloneObject<T>(source: T, recursive?: boolean, depth?: number): T | string;
+    /**
+     * @deprecated No longer supported.
+     */
+    function getModByName(modName: string): void;
+    /**
+     * @deprecated No longer supported.
+     */
+    function isModLoaded(modName: string): void;
+    /**
+     * @deprecated No longer supported.
+     */
+    function addModCallback(modName: string, func: any): void;
+    /**
+     * @deprecated No longer supported.
+     */
+    function getModList(): string[];
+    /**
+     * @deprecated No longer supported.
+     */
+    function getModPEList(): string[];
+    /**
+     * @deprecated No longer supported.
+     */
+    function addTexturePack(path: any): void;
+}
+/**
+ * Specific methods, for the most part, are designed to work
+ * with Inner Core internals and debug various data.
+ * @since 2.2.1b110
+ */
+declare namespace LowLevelUtils {
+	/**
+	 * Same as {@link Network} namespace.
+	 */
+	function getNetwork(): typeof Network;
+	/**
+	 * Same as {@link Game.simulateBackPressed}.
+	 */
+	function simulateBackPressed(): void;
+	/**
+	 * Same as {@link UI.getContext}.
+	 */
+	function getContext(): android.app.Activity;
+	/**
+	 * Calls an action in the Android interface thread.
+	 * Any unexpected errors here will lead to the closure
+	 * of the game, please add `try-catch` blocks to prevent this.
+	 */
+	function runAsUi(func: () => void): void;
+	/**
+	 * Displays dialog with given message and without title.
+	 */
+	function debugStr(message: string): void;
+	/**
+	 * Displays dialog with given bitmap image and title
+	 * " bitmap \<width\>x\<height\>".
+	 */
+	function debugBmp(bitmap: android.graphics.Bitmap): void;
+	/**
+	 * Same as {@link Game.getMinecraftVersion}.
+	 */
+	function getMinecraftVersion(): string;
+	/**
+	 * @returns `"2.0.0.0"`
+	 */
+	function getInnerCoreVersion(): string;
+	/**
+	 * @throws Java {@link java.lang.RuntimeException} with specified message.
+	 */
+	function throwException(message: string): void;
+	/**
+	 * Dumps AdaptedScript API hieracly to log with debug priority.
+	 */
+	function debugAPILookUp(): void;
+	/**
+	 * Same as {@link runOnMainThread}.
+	 */
+	function runOnMainThread(func: () => void): void;
+	/**
+	 * Same as {@link runOnClientThread}.
+	 */
+	function runOnClientThread(func: () => void): void;
+	/**
+	 * Changes bottom label on mod loading screen, it is recommended to use
+	 * it for debugging or visualization of long work during startup.
+	 */
+	function setLoadingTip(tip: string): void;
+	/**
+	 * @deprecated
+	 */
+	function setNativeThreadPriority(priority: number): void;
+	/**
+	 * Causes a native error, which immediately leads
+	 * to the forced closure of the game.
+	 */
+	function forceNativeCrash(): void;
+	/**
+	 * Same as {@link Game.isActionPrevented}.
+	 */
+	function isDefaultPrevented(): boolean;
+	/**
+	 * Gets status of server tick, e.g. is tick disabled due to error.
+	 * After restarting the world/server, this state is reset.
+	 */
+	function isMainThreadStopped(): boolean;
+	/**
+	 * Executes any code in the script body of a given object,
+	 * the object itself becomes a local list of variables for code execution.
+	 * @param code text to evaluate in given scope
+	 * @param scope object in which context code is executed
+	 * @param name script name for errors, debugging, etc.
+	 * @since 2.2.0b76
+	 */
+	function evalInScope(code: string, scope: object, name: string): object;
+	/**
+	 * Creates an empty resource or behavior pack with a manifest
+	 * to add content during mod loading. Please use names without
+	 * special characters and only with ASCII characters.
+	 * @param name pack title to be used for folder and displayed in
+	 * pack list; folder will receive "runtime_\<name\>" name and title
+	 * in interface will be "runtime pack: \<name\>"
+	 */
+	function addRuntimePack(type: "resource" | "behavior" | "behaviour", name: string): string;
+	interface ICustomErrorCallback {
+		/**
+		 * @param message html-formatted message of error, what was happened
+		 * @param error throwable, that was catched by logger
+		 * @param log html-formatted log of error
+		 * @param stacktrace html-formatted stacktrace of error
+		 * @remarks
+		 * At the moment, log is persistent and it generation takes some time.
+		 */
+		(message: string, error: Nullable<java.lang.Throwable>, log: string, stacktrace: Nullable<string>): boolean;
+	}
+	/**
+	 * Instead of displaying fatal error type in dialog with a log,
+	 * the specified function will be called to change this behavior.
+	 */
+	function setCustomFatalErrorCallback(callback: ICustomErrorCallback): void;
+	/**
+	 * Instead of displaying non-fatal error type in dialog with a log,
+	 * the specified function will be called to change this behavior.
+	 */
+	function setCustomNonFatalErrorCallback(callback: ICustomErrorCallback): void;
+	/**
+	 * Instead of displaying startup error type in dialog with a log,
+	 * the specified function will be called to change this behavior.
+	 * For startup errors, only message and recent log are available,
+	 * all other data will be passed as `null`.
+	 */
+	function setCustomStartupErrorCallback(callback: ICustomErrorCallback): void;
+	/**
+	 * Marking for current thread, unknown thread are used by default
+	 * if this thread is not indented to be server or client-side.
+	 */
+	type ThreadTypeMarker = "CLIENT" | "SERVER" | "UNKNOWN";
+	/**
+	 * It can be used to make sure that an action is performed in
+	 * intended thread, e.g. sending packet to clients on server.
+	 */
+	function getCurrentThreadType(): ThreadTypeMarker;
 }
 /**
  * Module used to log messages to Inner Core and internal log.
@@ -14168,21 +14977,48 @@ declare namespace Logger {
     function Flush(): void;
 }
 declare namespace LiquidRegistry {
-    function registerLiquid(key: string, name: string, uiTextures: string[], modelTextures?: string[]): void;
-    function getLiquidData(key: string): any;
+    /**
+     * @internal
+     */
+    const liquids: { [key: string]: LiquidData };
+    function registerLiquid(key: string, name?: string, uiTextures?: string[], modelTextures?: string[]): void;
+    function getLiquidData(key: string): LiquidData;
     function isExists(key: string): boolean;
     function getLiquidName(key: string): string;
     function getLiquidUITexture(key: string, width: number, height: number): string;
     function getLiquidUIBitmap(key: string, width: number, height: number): android.graphics.Bitmap;
+    /**
+     * @since 2.2.1b102
+     */
     function registerBlock(liquid: string, blockId: number, isDynamic: boolean): void;
     function registerItem(liquid: string, empty: { id: number, data: number }, full: { id: number, data: number }): void;
     function getEmptyItem(id: number, data: number): { id: number, data: number, liquid: string };
     function getItemLiquid(id: number, data: number): string;
     function getFullItem(id: number, data: number, liquid: string): { id: number, data: number };
+    interface LiquidData {
+        key: string,
+        name: string,
+        uiTextures: string[],
+        addUITexture(name: string): void,
+        modelTextures: string[],
+        addModelTexture(name: string): void,
+        blockId: number,
+        /**
+         * @since 2.2.1b103
+         */
+        staticBlockId: number,
+        uiCache: object
+    }
     class Storage {
-        liquidAmounts: { [key: string]: number };
-        liquidLimits: { [key: string]: number };
-        tileEntity: TileEntity;
+        /**
+         * @internal
+         */
+        readonly liquidAmounts: { [key: string]: number };
+        /**
+         * @internal
+         */
+        readonly liquidLimits: { [key: string]: number };
+        readonly tileEntity: TileEntity;
         constructor(tileEntity: TileEntity);
         setParent(tileEntity: TileEntity): void;
         getParent(): TileEntity;
@@ -14204,18 +15040,32 @@ declare namespace LiquidRegistry {
         getLiquid(liquid: string, amount: number, onlyFullAmount?: boolean): number;
     }
     /**
+     * @since 2.2.1b102
+     * @internal
+     */
+    const LiquidByBlock: { [blockId: number]: string };
+    /**
      * @returns String ID of a liquid for given block,
      * or `null`, if a block with given ID is not a liquid.
+     * @since 2.2.1b102
      */
     function getLiquidByBlock(id: number): Nullable<string>;
+    /**
+     * @returns Numeric ID of the liquid block by given {@link LiquidRegistry} string ID.
+     * @remarks
+     * This function will return `0` if no liquid with given string ID exists.
+     * @since 2.2.1b102
+     */
+    function getBlockByLiquid(liquidId: string): number;
     /**
      * @param isStatic static liquid block ID will be returned, otherwise
      * the dynamic block ID will be returned
      * @returns Numeric ID of the liquid block by given {@link LiquidRegistry} string ID.
      * @remarks
      * This function will return `0` if no liquid with given string ID exists.
+     * @since 2.2.1b103
      */
-    function getBlockByLiquid(liquidId: string, isStatic?: boolean): number;
+    function getBlockByLiquid(liquidId: string, isStatic: boolean): number;
 }
 /**
  * Namespace used to change item models in player's hand and/or inventory.
@@ -14327,7 +15177,19 @@ declare interface ItemModel {
      */
     overridesUi(): boolean;
     getShaderUniforms(): ShaderUniformSet;
+    /**
+     * Determines whether an item should be displayed as a sprite within
+     * inventory, or if a model should be used instead, which can be
+     * particularly relevant for items such as blocks.
+     */
     setSpriteUiRender(isSprite: boolean): ItemModel;
+    /**
+     * Determines whether an item being held in the hand should be displayed
+     * as a sprite, or if a model should be used instead, which can be
+     * particularly relevant for items such as blocks.
+	 * @since 2.3.1b115
+     */
+    setSpriteHandRender(isSprite: boolean): ItemModel;
     /**
      * Sets item's model to display both in the inventory and in hand.
      * @param model {@link RenderMesh}, {@link ICRender.Model} or {@link BlockRenderer.Model} to be used as item model
@@ -14520,8 +15382,8 @@ declare namespace Item {
      */
     function createFoodItem(nameID: string, name: string, texture: TextureData, params?: FoodParams): NativeItem;
     /**
-     * @deprecated Use {@link Item.createItem} and {@link Recipes.addFurnaceFuel}
-     * instead.
+     * @deprecated Use {@link Item.createItem} and
+     * {@link Recipes.addFurnaceFuel} instead.
      * @throws Unsupported usage.
      */
     function createFuelItem(nameID: string, name: string, texture: TextureData, params?: ItemParams): void;
@@ -14596,8 +15458,15 @@ declare namespace Item {
     /**
      * @param id numeric item ID
      * @returns Maximum stack size for the specified item.
+     * @deprecated Use same function with data parameter.
      */
     function getMaxStack(id: number): number;
+    /**
+     * @param id numeric item ID
+     * @returns Maximum stack size for the specified item.
+     * @since 2.2.0b1 pre-alpha
+     */
+    function getMaxStack(id: number, data: number): number;
     /**
      * @param id numeric item ID
      * @param data item data
@@ -14622,6 +15491,7 @@ declare namespace Item {
     /**
      * @param id numeric item ID
      * @returns `true`, if an item with such ID exists, `false` otherwise.
+     * @since 2.2.1b94 (not worked before)
      */
     function isValid(id: number): boolean;
     /**
@@ -14817,11 +15687,6 @@ declare namespace Item {
      */
     function registerDispenseFunction(nameID: string | number, func: Callback.ItemDispensedFunction): void;
     /**
-     * @deprecated Should not be used in new mods, consider using {@link Item}
-     * properties setters instead.
-     */
-    function setPrototype(nameID: any, prototype: any): void;
-    /**
      * Invoke click on the block in world.
      * @param coords coords of click on the block
      * @param item item which used on the block
@@ -14885,12 +15750,56 @@ declare namespace Item {
      * All items name override functions object.
      * @internal
      */
-    var nameOverrideFunctions: { [key: number]: Callback.ItemNameOverrideFunction };
+    const nameOverrideFunctions: {
+        [key: number]: Callback.ItemNameOverrideFunction
+    };
     /**
      * All items icon override functions object.
      * @internal
      */
-    var iconOverrideFunctions: { [key: number]: Callback.ItemIconOverrideFunction };
+    const iconOverrideFunctions: {
+        [key: number]: Callback.ItemIconOverrideFunction
+    };
+	/**
+	 * Once upon a time, a new way of registering items, however,
+	 * in current state, either does not work or is undesirable to use.
+     * @deprecated
+	 */
+	interface ItemLegacyPrototype {
+        type: "createItem" | "createFoodItem" | "createArmorItem" | "createThrowableItem",
+		init?: () => void,
+		getName: (item: null) => Nullable<string>,
+		getTexture: (item: null) => Nullable<TextureData>,
+		getDefineParams?: (item: null) => Nullable<Item.ItemParams | Item.ArmorParams | Item.FoodParams>,
+		getMaxDamage?: (item: null) => Nullable<number>,
+		getCategory?: (item: null) => Nullable<number>,
+		getEnchant?: (item: null) => Nullable<number>,
+		getUseAnimation?: (item: null) => Nullable<EItemAnimation | number>,
+		getMaxUseDuration?: (item: null) => Nullable<number>,
+        /**
+         * Cannot be used, because of properties should be passed as string,
+         * but properties here internally depends on object.
+         */
+		getProperties?: (item: null) => Nullable<object>,
+		isToolRender?: (item: null) => Nullable<boolean>,
+		isStackedByData?: (item: null) => Nullable<boolean>,
+		isEnchanted?: (item: null) => Nullable<boolean>,
+		getToolMaterial?: (item: null) => Nullable<string | ToolAPI.ToolMaterial>,
+		getToolTarget?: (item: null) => Nullable<string[]>,
+		getToolPrototype?: (item: null) => Nullable<ToolAPI.ToolParams>,
+		getArmorFuncs?: (item: null) => Nullable<Armor.IArmorJSCallback>,
+		onUsed?: (coords: Vector, item: ItemInstance, block: Tile) => void,
+        /**
+         * Unused at all.
+         */
+		onTick?: (item: null) => void,
+		onThrowableImpact?: (projectile: number, item: ItemInstance, target: Callback.ProjectileHitTarget) => void
+	}
+    /**
+     * @deprecated Should not be used in new mods, consider using {@link Item}
+     * properties setters instead.
+     */
+    function setPrototype(nameID: any, prototype: ItemLegacyPrototype): void;
 }
 /**
  * Module used to manage item and block IDs. Items and blocks have the same
@@ -14928,10 +15837,30 @@ declare namespace IDRegistry {
      */
     function genItemID(name: string): number;
     /**
-     * Gets item or block string ID by it's numeric ID.
+     * Gets known modded item or block string ID by it's numeric ID.
      * @param id numeric item or block ID
      */
     function getNameByID(id: number): string;
+    /**
+     * Gets unique identifier of item or block string ID by it's numeric ID.
+     * IDs represented in format `type:identifier#extra`, e.g.
+     * `item:ruby_shovel` or `block:ancient_debris#negative`,
+     * @param id numeric item or block ID
+     * @since 2.2.1b94
+     */
+    function getStringIdAndTypeForItemId(id: number): Nullable<string>;
+    /**
+     * Gets ID type by specific numeric ID.
+     * @param id numeric item or block ID
+     * @since 2.2.1b94
+     */
+    function getTypeForItemId(id: number): Nullable<"block" | "item">;
+    /**
+     * Gets item or block string ID by it's numeric ID.
+     * @param id numeric item or block ID
+     * @since 2.2.1b94
+     */
+    function getStringIdForItemId(id: number): Nullable<string>;
     /**
      * Ensures given ID is a tile ID, not a block ID. It is generally recommended
      * to use {@link Block.convertItemToBlockId} since it performs less calculations.
@@ -14949,6 +15878,7 @@ declare namespace IDRegistry {
     /**
      * @param id numeric item or block ID
      * @returns `true` if item is vanilla Minecraft item, `false` otherwise.
+     * @since 2.2.1b102
      */
     function isVanilla(id: number): boolean;
     /**
@@ -14956,6 +15886,7 @@ declare namespace IDRegistry {
      * @param id numeric item or block ID
      * @returns String in format `"type:string_id"` or
      * `"type:string_id#extra_information"`.
+     * @deprecated Use {@link IDRegistry.getStringIdAndTypeForItemId} instead.
      */
     function getIdInfo(id: number): string;
     /**
@@ -15023,10 +15954,11 @@ declare namespace ICRender {
 	}
 	class Model {
 		/**
-		 * Constructs a base model that will be displayed.
+		 * Constructs a base model that will be displayed in world.
 		 * @param model optional model to be added without additional conditions
 		 */
 		constructor(model?: BlockRenderer.Model);
+		getPtr(): number;
 		/**
 		 * Adds block model as an entry to the {@link ICRender}. You can then call
 		 * {@link ICRender.RenderEntry.asCondition RenderEntry.asCondition} to specify when to display the entry.
@@ -15039,6 +15971,10 @@ declare namespace ICRender {
 		 * @returns Created {@link ICRender.RenderEntry} object.
 		 */
 		addEntry(mesh?: RenderMesh): RenderEntry;
+		/**
+		 * @since 2.2.1b96
+		 */
+		clear(): void;
 	}
 	/**
 	 * Object representing render entry with it's displaying condition.
@@ -15092,10 +16028,19 @@ declare namespace ICRender {
 	 */
 	class CollisionShape {
 		/**
+		 * Constructs a base model that will be raycasted in world.
+		 */
+		constructor();
+		getPtr(): number;
+		/**
 		 * Adds new entry to the collision shape. You can then call
 		 * {@link ICRender.CollisionEntry.setCondition CollisionEntry.setCondition} to specify when to display the entry.
 		 */
 		addEntry(): CollisionEntry;
+		/**
+		 * @since 2.2.1b96
+		 */
+		clear(): void;
 	}
 	/**
 	 * Object representing collision shape entry with it's displaying condition.
@@ -15303,11 +16248,10 @@ declare function getMCPEVersion(): {
 	main: number
 };
 /**
- * Displays android.widget.Toast with specified message. If this function is called
- * more then once, messages are stacked and displayed together.
- * @param arg
+ * Displays {@link android.widget.Toast} with specified message. If this function
+ * is called more then once, messages are stacked and displayed together.
  */
-declare function alert(arg: any): any;
+declare function alert(message: any): void;
 /**
  * Library declaration, specifies all the information about library it is called from.
  * Cannot be called from user code.
@@ -15418,39 +16362,46 @@ declare namespace GenerationUtils {
      * Generates random coordinates inside specified chunk.
      * @param cx chunk x coordinate
      * @param cz chunk z coordinate
-     * @param lowest lowest possible y coordinate. Default is 0
-     * @param highest highest possible y coordinate. Default is 128
+     * @param lowest lowest possible y coordinate; default is `0`
+     * @param highest highest possible y coordinate; default is `128`
      */
     function randomCoords(cx: number, cz: number, lowest?: number, highest?: number): Vector;
     /**
-     * Finds nearest to the specified y coordinate empty space on the specified
+     * Finds limited to the specified y coordinate empty space on the specified
      * x and z coordinates.
      */
     function findSurface(x: number, y: number, z: number): Vector;
     /**
-     * Finds nearest to y=128 coordinate empty space on the specified x and z
+     * Finds limited to `y=128` coordinate empty space on the specified x and z
      * coordinates.
      */
     function findHighSurface(x: number, z: number): Vector;
     /**
-     * Finds nearest to y=64 coordinate empty space on the specified x and z
+     * Finds limited to `y=64` coordinate empty space on the specified x and z
      * coordinates.
      */
     function findLowSurface(x: number, z: number): Vector;
-    function lockInBlock(id: number, data: number, checkerTile: any, checkerMode: any): void;
-    function setLockedBlock(x: number, y: number, z: number): void;
-    /**
-     * Generates ore vein on the specified coordinates using specified params.
-     * @param params generation params
-     * @deprecated Consider using {@link GenerationUtils.generateOre} instead.
-     */
-    function genMinable(x: number, y: number, z: number, params: {
+    // /**
+    //  * Locked via {@link GenerationUtils.lockInBlock} block, air by default.
+    //  */
+    // const __lockedReal: Tile;
+    // /**
+    //  * Changes block to be locked when generating new chunk, unused
+    //  * since upgrading to new Inner Core generation.
+    //  */
+    // function lockInBlock(id: number, data: number, checkerBlock?: number, inverse?: boolean): void;
+    // /**
+    //  * Locks block at specified location, which are changed via
+    //  * {@link GenerationUtils.lockInBlock} call.
+    //  */
+    // function setLockedBlock(x: number, y: number, z: number): void;
+    interface IMinableParams {
         /**
-         * Ore tile ID.
+         * Ore block numeric identifier.
          */
         id: number,
         /**
-         * Ore data.
+         * Ore block data.
          */
         data: number,
         /**
@@ -15458,45 +16409,65 @@ declare namespace GenerationUtils {
          * generated in the air. Use this to debug ore generation in
          * the superflat worlds.
          */
-        noStoneCheck?: number,
+        noStoneCheck?: number
+    }
+    interface MinableAmountParams extends IMinableParams {
         /**
-         * Amount of the ore to be generated.
+         * Amount of the ore to be generated, minimum allowed value is `1`.
+         * Use at least `6` to be able to find generated ore vein.
+         * Note that amount doesn't mean blocks count, it is just an
+         * input value for generation algorithm.
          */
-        amount?: number,
+        amount: number
+    }
+    interface MinableSizeParams extends IMinableParams {
         /**
-         * If amount is not specified, used to calculate amount.
+         * Amount ratio of ore vein per generation chunk.
+         * @default 1
          */
         ratio?: number,
         /**
-         * If amount is not specified, used to calculate amount,
-         * using simple formula `size * ratio * 3`.
+         * Used to calculate amount, using simple formula `size * ratio * 3`.
+         * Minimum allowed value of amount is `1`.
          */
-        size?: number
-    }): void;
+        size: number
+    }
+    type MinableParams = MinableAmountParams | MinableSizeParams;
+    /**
+     * Generates ore vein on the specified coordinates using specified params.
+     * @param params vein generation params
+     */
+    function genMinable(x: number, y: number, z: number, params: MinableParams): void;
     /**
      * Generates ore vein on the specified coordinates.
-     * @param id ore tile ID
-     * @param data ore data
-     * @param amount ore amount, use number at least 6 to be able to find
-     * generated ore; note that amount doesn't mean blocks count, it is just an
+     * @param id ore block ID
+     * @param data ore block data
+     * @param amount ore amount, use at least `6` to be able to find generated
+     * ore vein; note that amount doesn't mean blocks count, it is just an
      * input value for generation algorithm
      * @param noStoneCheck if `true`, no check for stone is performed so the ore
-     * may be generated in the air. Use this to debug ore generation in the
+     * may be generated in the air; use this to debug ore generation in the
      * superflat worlds
-     * @param seed random generation seed
      */
-    function generateOre(x: number, y: number, z: number, id: number, data: number, amount: number, noStoneCheck: boolean, seed?: number): void;
+    function generateOre(x: number, y: number, z: number, id: number, data: number, amount: number, noStoneCheck: boolean): void;
     /**
-     * Generates ore with custom whitelist/blacklist.
-     * @param mode if true, specified block IDs are used as whitelist for generation
-     * (only the IDs from the list can be replaced with ores), if false - specified
+     * Generates ore vein on the specified coordinates with custom whitelist/blacklist.
+     * @param id ore block ID
+     * @param data ore block data
+     * @param amount ore amount, use at least `6` to be able to find generated
+     * ore vein; note that amount doesn't mean blocks count, it is just an
+     * input value for generation algorithm
+     * @param noStoneCheck if `true`, no check for stone is performed so the ore
+     * may be generated in the air; use this to debug ore generation in the
+     * superflat worlds
+     * @param whitelist if `true`, specified block IDs are used as whitelist for generation
+     * (only the IDs from the list can be replaced with ores); if `false`, specified
      * block IDs are used as a blacklist (only the IDs from the list canNOT be
      * replaced with ores)
      * @param listOfIds array of block IDs to be used as whitelist or blacklist
-     * See {@link GenerationUtils.generateOre} for details.
      * @since 2.0.1b17
      */
-    function generateOreCustom(x: number, y: number, z: number, id: number, data: number, amount: number, mode: boolean, listOfIds: number[], seed?: number): void;
+    function generateOreCustom(x: number, y: number, z: number, id: number, data: number, amount: number, whitelist: boolean, listOfIds: number[]): void;
     /**
      * Retrieves perlin noise value at the specified coordinates.
      * @param seed integer random generator seed. If not specified or set to 0, the default
@@ -15508,6 +16479,18 @@ declare namespace GenerationUtils {
      * @since 2.0.1b11
      */
     function getPerlinNoise(x: number, y: number, z: number, seed?: number, scale?: number, numOctaves?: number): number;
+}
+interface GameObjectPrototype extends Updatable {
+    /**
+     * Function that is called when a new instance of {@link GameObject} is created,
+     * the engine passes all the arguments of {@link GameObject.deploy} function to
+     * this function.
+     */
+    init?: (...args: any) => void,
+    /**
+     * Function that is called when a {@link GameObject} is loaded.
+     */
+    loaded?: () => void
 }
 /**
  * Class used to create and manipulate game objects. Game objects are {@link Updatable Updatables}
@@ -15522,21 +16505,43 @@ declare class GameObject<T extends GameObjectPrototype> {
      */
     constructor(type: string, prototype: T);
     /**
-     * Original value passed to {@link GameObject.constructor}.
+     * Original value passed to {@link GameObject.constructor} as type.
      */
     readonly originalName: string;
+    /**
+     * Same as {@link GameObject.originalName}, but with suffix
+     * which are used for object saving to be unique.
+     */
     readonly gameobjectName: string;
+    /**
+     * Used when {@link Saver.registerObject} calling inside.
+     * @internal
+     */
+    readonly saverId: number;
+    /**
+     * `true` if current object is instance, prototype otherwise.
+     */
     readonly isInstance: boolean;
     /**
-     * `true` if current GameObject was deployed, `false` otherwise.
+     * `true` if current object was deployed or added directly.
      */
     readonly isDeployed: boolean;
+    /**
+     * Prototype from which instantiated objects are created.
+     * @internal
+     */
     readonly Prototype: T;
     /**
-     * Creates a new game object with specified params and registers it for saving
-     * and as an {@link Updatable}.
-     * @param args any arguments that are passed to {@link GameObjectPrototype.init}
-     * function
+     * Creates a new game object without deploying it; you are shouldn't
+     * do it normally, it was called by {@link GameObject.deploy}.
+     * @returns Instantiated game object.
+     * @internal
+     */
+    instantiate(): GameObject<T>;
+    /**
+     * Creates a new game object with specified params and registers
+     * it for saving and as an {@link Updatable}.
+     * @param args any arguments that are passed to {@link GameObjectPrototype.init} function
      * @returns Instantiated game object.
      */
     deploy(...args: any): GameObject<T>;
@@ -15545,45 +16550,77 @@ declare class GameObject<T extends GameObjectPrototype> {
      */
     destroy(): void;
 }
-interface GameObjectPrototype extends Updatable {
-    /**
-     * Function that is called when a new instance of {@link GameObject} is created,
-     * the engine passes all the arguments of {@link GameObject.deploy} function to
-     * this function.
-     */
-    init?: (...args: any) => void,
-    /**
-     * Function that is called when a {@link GameObject} is loaded.
-     */
-    loaded?: () => void,
-    /**
-     * Any other user-defined methods and properties.
-     */
-    [key: string]: any
-}
 declare namespace GameObjectRegistry {
     /**
-     * Gets an array of {@link GameObject GameObjects} of specified type.
+     * Game objects which are registered via {@link GameObject.constructor}
+     * or internally via {@link GameObjectRegistry.registerClass}.
+     * @internal
+     */
+    const gameObjectTypes: {
+        [gameobjectName: string]: GameObject<any>
+    };
+    /**
+     * Game objects which are deployed via {@link GameObject.deploy}
+     * or internally via {@link GameObjectRegistry.deployGameObject}
+     * and {@link GameObjectRegistry.addGameObject}.
+     * @internal
+     */
+    const activeGameObjects: {
+        [type: string]: GameObject<any>
+    };
+    /**
+     * Suffixes game object type if it already registered.
+     * @internal
+     */
+    function genUniqueName(name: string): string;
+    /**
+     * Registers game object to be saveable, called from {@link GameObject.constructor}.
+     * @internal
+     */
+    function registerClass(gameObject: GameObject<any>): void;
+    /**
+     * Puts game object to an updatable queue, calling {@link GameObjectPrototype.loaded}.
+     * Should be called by {@link GameObject.deploy}.
+     * @internal
+     */
+    function deployGameObject(gameObject: GameObject<any>): void;
+    /**
+     * Puts game object as active, but without adding as updatable, which
+     * has been achieved by calling {@link GameObject.deploy}.
+     * @internal
+     */
+    function addGameObject(gameObject: GameObject<any>): void;
+    /**
+     * Destroys game object, but without removing updatable as
+     * it is done via {@link GameObject.destroy}.
+     * @internal
+     */
+    function removeGameObject(gameObject: GameObject<any>): void;
+    /**
+     * Clears active game object list, maintaining updatable states.
+     * @internal
+     */
+    function resetEngine(): void;
+    /**
+     * Gets an array of deployed {@link GameObject game objects} of specified type.
      * @param type unique {@link GameObject} type to get all the instances of
-     * @param clone if true, a new array is created to ensure the original
-     * engine's data safety.
+     * @param clone if `true`, a new array is created to be changeable,
+     * recommended by default
      */
     function getAllByType<T extends GameObjectPrototype>(type: string, clone: boolean): GameObject<T>[];
     /**
-     * Calls function of the {@link GameObject} of specified type with specified
-     * parameters.
+     * Calls function of the {@link GameObject} of specified type
+     * with specified parameters.
      * @param type unique {@link GameObject} type to get all the instances of
-     * @param func function name as defined in {@link GameObjectPrototype} passed to
-     * {@link GameObject.constructor}
+     * @param what function name as defined in {@link GameObjectPrototype}
+     * passed to {@link GameObject.constructor}
      * @param params parameters to be passed to the function
      */
-    function callForType(type: string, func: string, ...params: any): any;
+    function callForType(type: string, what: string, ...params: any): any;
     /**
-     * Same as {@link GameObjectRegistry.callForType}, though a new array is created
-     * before calling functions on the game objects to ensure the original engine's
-     * data safety.
+     * Same as {@link GameObjectRegistry.callForType} but for async operations.
      */
-    function callForTypeSafe(type: string, func: string, ...params: any): any;
+    function callForTypeSafe(type: string, what: string, ...params: any): any;
 }
 /**
  * Methods for manipulating player with world,
@@ -15642,6 +16679,16 @@ declare namespace GameController {
  */
 declare namespace Game {
     /**
+     * `true` if developer mode was enabled in Inner Core config.
+     * @internal
+     */
+    let isDeveloperMode: boolean;
+    /**
+     * `true` if Inner Core config allows spending items in creative.
+     * @internal
+     */
+    let spendItemsInCreative: boolean;
+    /**
      * Allows you to determine whether current instance of game has
      * a client or not (clientless game requires a server core, e.g.
      * [Zote Core (GitHub)](https://github.com/reider745/zotecoreloader)).
@@ -15664,13 +16711,13 @@ declare namespace Game {
      * Message can be formatted using {@link EColor} values.
      * @param message message to be displayed
      */
-    function message(message: string): void;
+    function message(message: any): void;
     /**
      * Writes message above the hot bar.
      * Message can be formatted using {@link EColor} values.
      * @param message message to be displayed
      */
-    function tipMessage(message: string): void;
+    function tipMessage(message: any): void;
     /**
      * Displays {@link android.app.AlertDialog} with given message and dialog title.
      * Message can be mixed with {@link android.text.Html.fromHtml HTML-like} formatting,
@@ -15678,7 +16725,7 @@ declare namespace Game {
      * @param message message to be displayed
      * @param title title before message
      */
-    function dialogMessage(message: string, title: string): void;
+    function dialogMessage(message: any, title: any): void;
     /**
      * Sets game difficulty, one of {@link EGameDifficulty} values.
      * @param difficulty game difficulty to be set
@@ -15699,28 +16746,22 @@ declare namespace Game {
      */
     function getGameMode(): number;
     /**
-     * @returns String containing current Minecraft version.
+     * String containing current Minecraft version.
+	 * @returns `"1.16.201"` or `"1.11.4"`
      */
     function getMinecraftVersion(): string;
     /**
-     * @returns String containing current Core Engine version (2.1).
+     * String containing current Core Engine version.
+     * @returns `"2.1"`
      */
     function getEngineVersion(): string;
     /**
-     * `true` if developer mode was enabled in Inner Core config.
-     * @internal
-     */
-    let isDeveloperMode: boolean;
-    /**
-     * `true` if Inner Core config allows spending items in creative.
-     * @internal
-     */
-    let spendItemsInCreative: boolean;
-    /**
-     * @returns `true` if item spending allowed (player must be in creative).
+     * @returns `true` if item spending allowed or player in creative.
      */
     function isItemSpendingAllowed(playerUid?: number): boolean;
     /**
+	 * Emulates native pressing of the back button inside
+	 * the game, for example, necessary to close current window.
      * @since 2.0.4b35
      */
     function simulateBackPressed(): void;
@@ -15797,7 +16838,7 @@ declare namespace FileTools {
      * @param name asset name
      * @returns Asset contents or `null` if asset doesn't exist.
      */
-    function ReadTextAsset(name: string): string;
+    function ReadTextAsset(name: string): Nullable<string>;
     /**
      * Reads high-resolution (as-is) bitmap from asset by it's full name.
      * @param name asset name
@@ -15810,7 +16851,7 @@ declare namespace FileTools {
      * @param name asset name
      * @returns JArray of bytes read from assets or null if asset doesn't exist.
      */
-    function ReadBytesAsset(name: string): native.Array<jbyte>;
+    function ReadBytesAsset(name: string): Nullable<native.Array<jbyte>>;
     /**
      * Lists children directories for the specified path.
      * @param path home-relative or absolute path to the file
@@ -15845,18 +16886,18 @@ declare namespace FileTools {
      * @param dir home-relative or absolute path to the file
      * @returns Object represents JSON value read from JSON file.
      */
-    function ReadJSON(dir: string): any;
+    function ReadJSON(dir: string): object;
     /**
      * Writes object to file as JSON.
      * @param dir home-relative or absolute path to the file
      * @param obj object to be written to the file as JSON
-     * @param beautify if true, output JSON is beautified with tabs
+     * @param beautify if `true`, output JSON is beautified with tabs
      */
-    function WriteJSON(dir: string, obj: any, beautify: boolean): void;
+    function WriteJSON(dir: string, obj: object, beautify?: boolean): void;
 }
 /**
  * Defines armor type and armor slot index in player's inventory.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EArmorType {
     HELMET = 0,
@@ -15866,24 +16907,27 @@ declare enum EArmorType {
 }
 /**
  * Defines possible render layers (display methods) for blocks.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EBlockRenderLayer {
     DOUBLE_SIDE = 0,
-    RAY_TRACED_WATER = 1,
-    BLEND = 2,
-    OPAQUE = 3,
-    ALPHA = 4,
-    OPAQUE_SEASONS = 6,
-    ALPHA_SEASONS = 7,
-    ALPHA_SINGLE_SIDE = 8,
-    END_PORTAL = 9,
-    BARRIER = 10,
-    STRUCTURE_VOID = 11
+    BLEND = 1,
+    OPAQUE = 2,
+    ALPHA = 3,
+    /**
+     * @since 2.3.0b112
+     */
+    ALPHA_TEST = 4,
+    OPAQUE_SEASONS = 5,
+    ALPHA_SEASONS = 6,
+    ALPHA_SINGLE_SIDE = 7,
+    END_PORTAL = 8,
+    BARRIER = 9,
+    STRUCTURE_VOID = 10
 }
 /**
  * Defines numeric representation for each block side.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EBlockSide {
     DOWN = 0,
@@ -15930,8 +16974,8 @@ declare enum EBlockStates {
     BUTTON_PRESSED_BIT = 29,
     CONDITIONAL_BIT = 30,
     DAMAGE = 31,
-    DOOR_HINGE_HIT = 32,
-    UPPER_BLOCK_HIT = 33,
+    DOOR_HINGE_BIT = 32,
+    UPPER_BLOCK_BIT = 33,
     END_PORTAL_EYE_BIT = 34,
     EXPLODE_BIT = 35,
     FILL_LEVEL = 36,
@@ -16015,48 +17059,53 @@ declare enum EBlockStates {
 }
 /**
  * Defines text colors and font styles for chat and tip messages.
- * @since 2.2.1b89
+ * @since 2.2.0b75
+ * @deprecated Use {@link Native.Color}, because enum is mistyped.
  */
 declare enum EColor {
-    AQUA = "§b",
-    BEGIN = "§",
-    BLACK = "§0",
-    BLUE = "§9",
-    BOLD = "§l",
-    DARK_AQUA = "§3",
-    DARK_BLUE = "§1",
-    DARK_GRAY = "§8",
-    DARK_GREEN = "§2",
-    DARK_PURPLE = "§5",
-    DARK_RED = "§4",
-    GOLD = "§6",
-    GRAY = "§7",
-    GREEN = "§a",
-    ITALIC = "§o",
-    LIGHT_PURPLE = "§d",
-    OBFUSCATED = "§k",
-    RED = "§c",
-    RESET = "§r",
-    STRIKETHROUGH = "§m",
-    UNDERLINE = "§n",
-    WHITE = "§f",
-    YELLOW = "§e",
+    BEGIN = "в§",
+    BLACK = "в§0",
+    DARK_BLUE = "в§1",
+    DARK_GREEN = "в§2",
+    DARK_AQUA = "в§3",
+    DARK_RED = "в§4",
+    DARK_PURPLE = "в§5",
+    GOLD = "в§6",
+    GRAY = "в§7",
+    DARK_GRAY = "в§8",
+    BLUE = "в§9",
+    GREEN = "в§a",
+    AQUA = "в§b",
+    RED = "в§c",
+    LIGHT_PURPLE = "в§d",
+    YELLOW = "в§e",
+    WHITE = "в§f",
+    OBFUSCATED = "в§k",
+    BOLD = "в§l",
+    STRIKETHROUGH = "в§m",
+    UNDERLINE = "в§n",
+    ITALIC = "в§o",
+    RESET = "в§r"
 }
 /**
  * Defines numeric representation for three vanilla dimensions.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EDimension {
     NORMAL = 0,
+    /**
+     * @since 2.3.0b112
+     */
+    OVERWORLD = 0,
     NETHER = 1,
     END = 2
 }
 /**
  * Defines what enchantments can or cannot be applied to every instrument type.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EEnchantType {
-    HELMET = 0,
+    HELMET = 1,
     LEGGINGS = 2,
     BOOTS = 4,
     CHESTPLATE = 8,
@@ -16074,7 +17123,7 @@ declare enum EEnchantType {
 }
 /**
  * Defines numeric IDs of all vanilla enchantments.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EEnchantment {
     PROTECTION = 0,
@@ -16113,10 +17162,9 @@ declare enum EEnchantment {
 }
 /**
  * Defines all vanilla entity type numeric IDs.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EEntityType {
-    PLAYER = 63,
     CHICKEN = 10,
     COW = 11,
     PIG = 12,
@@ -16152,12 +17200,40 @@ declare enum EEntityType {
     LAVA_SLIME = 42,
     BLAZE = 43,
     ZOMBIE_VILLAGER = 44,
+    /**
+     * @since 2.3.0b112
+     */
+    WITCH = 45,
+    /**
+     * @deprecated Mistypo.
+     */
     WHITCH = 45,
     STRAY = 46,
     HUSK = 47,
+    /**
+     * @since 2.3.0b112
+     */
+    WITHER_SKELETON = 48,
+    /**
+     * @deprecated Mistypo.
+     */
     WHITHER_SKELETON = 48,
     GUARDIAN = 49,
+    /**
+     * @since 2.3.0b112
+     */
+    ELDER_GUARDIAN = 50,
+    /**
+     * @deprecated Mistypo.
+     */
     ENDER_GUARDIAN = 50,
+    /**
+     * @since 2.3.0b112
+     */
+    WITHER = 52,
+    /**
+     * @deprecated Mistypo.
+     */
     WHITHER = 52,
     ENDER_DRAGON = 53,
     SHULKER = 54,
@@ -16166,11 +17242,12 @@ declare enum EEntityType {
     PHANTOM = 58,
     RAVAGER = 59,
     ARMOR_STAND = 61,
+    PLAYER = 63,
     ITEM = 64,
     PRIMED_TNT = 65,
     FALLING_BLOCK = 66,
     MOVING_BLOCK = 67,
-    EXPERIENCE_BOTTLE = 68,
+    EXPERIENCE_POTION = 68,
     EXPERIENCE_ORB = 69,
     EYE_OF_ENDER_SIGNAL = 70,
     ENDER_CRYSTAL = 71,
@@ -16180,6 +17257,13 @@ declare enum EEntityType {
     CAT = 75,
     SHULKER_BULLET = 76,
     FISHING_HOOK = 77,
+    /**
+     * @since 2.3.0b112
+     */
+    DRAGON_FIREBALL = 79,
+    /**
+     * @deprecated Mistypo.
+     */
     DRAGON_FIREBOLL = 79,
     ARROW = 80,
     SNOWBALL = 81,
@@ -16190,8 +17274,22 @@ declare enum EEntityType {
     THROWN_POTION = 86,
     ENDER_PEARL = 87,
     LEASH_KNOT = 88,
+    /**
+     * @since 2.3.0b112
+     */
+    WITHER_SKULL = 89,
+    /**
+     * @deprecated Mistypo.
+     */
     WHITHER_SKULL = 89,
     BOAT = 90,
+    /**
+     * @since 2.3.0b112
+     */
+    WITHER_SKULL_DANGEROUS = 91,
+    /**
+     * @deprecated Mistypo.
+     */
     WHITHER_SKULL_DANGEROUS = 91,
     LIGHTNING_BOLT = 93,
     SMALL_FIREBALL = 94,
@@ -16213,14 +17311,28 @@ declare enum EEntityType {
     PANDA = 113,
     PILLAGER = 114,
     VILLAGER_V2 = 115,
+    /**
+     * @since 2.3.0b112
+     */
+    ZOMBIE_VILLAGER_V2 = 116,
+    /**
+     * @deprecated Mistypo.
+     */
     ZOMBIE_VILLAGE_V2 = 116,
     SHIELD = 117,
     WANDERING_TRADER = 118,
+    /**
+     * @since 2.3.0b112
+     */
+    ELDER_GUARDIAN_GHOST = 120,
+    /**
+     * @deprecated Mistypo.
+     */
     ENDER_GUARDIAN_GHOST = 120
 }
 /**
  * Defines possible game difficulties.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EGameDifficulty {
     PEACEFUL = 0,
@@ -16230,7 +17342,7 @@ declare enum EGameDifficulty {
 }
 /**
  * Defines possible game modes.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EGameMode {
     SURVIVAL = 0,
@@ -16240,26 +17352,74 @@ declare enum EGameMode {
 }
 /**
  * Defines item animation types.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EItemAnimation {
     NORMAL = 0,
-    BOW = 4
+    /**
+     * @since 2.3.1b115
+     */
+    NONE = 0,
+    /**
+     * @since 2.3.1b115
+     */
+    EAT = 1,
+    /**
+     * @since 2.3.1b115
+     */
+    DRINK = 2,
+    /**
+     * @since 2.3.1b115
+     */
+    BLOCK = 3,
+    BOW = 4,
+    /**
+     * @since 2.3.1b115
+     */
+    CAMERA = 5,
+    /**
+     * @since 2.3.1b115
+     */
+    SPEAR = 6,
+    /**
+     * @since 2.3.1b115
+     */
+    CROSSBOW = 9
 }
 /**
  * Defines vanilla item categories in creative inventory.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EItemCategory {
-    INTERNAL = 0,
-    MATERIAL = 1,
-    DECORATION = 2,
-    TOOL = 3,
-    FOOD = 4
+    /**
+     * @since 2.3.0b112
+     */
+    CONSTRUCTION = 1,
+    /**
+     * @since 2.3.0b112
+     */
+    NATURE = 2,
+	DECORATION = 2,
+    /**
+     * @since 2.3.0b112
+     */
+	EQUIPMENT = 3,
+	TOOL = 3,
+	MATERIAL = 4,
+    /**
+     * @since 2.3.0b112
+     */
+	ITEMS = 4,
+	FOOD = 4,
+	INTERNAL = 5,
+    /**
+     * @since 2.3.0b112
+     */
+	COMMAND_ONLY = 5
 }
 /**
  * Defines vanilla mob render types.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EMobRenderType {
     TNT = 2,
@@ -16312,7 +17472,7 @@ declare enum EMobRenderType {
 }
 /**
  * Defines numeric representation for each NBT data type.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum ENbtDataType {
     TYPE_END_TAG = 0,
@@ -16330,46 +17490,50 @@ declare enum ENbtDataType {
 }
 /**
  * Defines all existing vanilla particles.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EParticleType {
     BUBBLE = 1,
-    CRIT = 2,
-    CLOUD = 4,
-    SMOKE = 4,
-    LARGEEXPLODE = 5,
-    FLAME = 7,
-    LAVA = 8,
-    SMOKE2 = 9,
-    REDSTONE = 10,
-    ITEM_BREAK = 11,
-    SNOWBALLPOOF = 12,
-    HUGEEXPLOSION = 13,
-    HUGEEXPLOSION_SEED = 14,
-    MOB_FLAME = 15,
-    TERRAIN = 16,
-    HEART = 17,
-    SUSPENDED_TOWN = 18,
-    PORTAL = 20,
-    RAIN_SPLASH = 21,
-    SPLASH = 22,
-    DRIP_WATER = 23,
-    DRIP_LAVA = 24,
-    INK = 25,
-    FALLING_DUST = 26,
-    SPELL3 = 27,
-    SPELL2 = 28,
-    SPELL = 29,
-    SLIME = 30,
-    WATER_WAKE = 31,
-    ANGRY_VILLAGER = 32,
-    HAPPY_VILLAGER = 33,
-    ENCHANTMENTTABLE = 34,
-    NOTE = 36
+    CLOUD = 5,
+    SMOKE = 6,
+    FLAME = 8,
+    LAVA = 9,
+    SMOKE2 = 10,
+    REDSTONE = 11,
+    SNOWBALLPOOF = 14,
+    HUGEEXPLOSION = 15,
+    HUGEEXPLOSION_SEED = 16,
+    MOB_FLAME = 17,
+    HEART = 18,
+    TERRAIN = 19,
+    SUSPENDED_TOWN = 20,
+    PORTAL = 21,
+    RAIN_SPLASH = 23,
+    DRIP_WATER = 24,
+    SPLASH = 25,
+    DRIP_LAVA = 27,
+    INK = 28,
+    FALLING_DUST = 29,
+    SPELL3 = 30,
+    SPELL2 = 31,
+    SPELL = 32,
+    SLIME = 34,
+    WATER_WAKE = 35,
+    ANGRY_VILLAGER = 36,
+    HAPPY_VILLAGER = 37,
+    ENCHANTMENTTABLE = 38,
+    NOTE = 40,
+    CRIT = 41,
+    ITEM_BREAK = 42,
+    /**
+     * @since 2.3.0b112
+     */
+    SOUL_FLAME = 53,
+    LARGEEXPLODE = 61
 }
 /**
  * Defines player's abilities.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EPlayerAbility {
     ATTACK_MOBS = "attackmobs",
@@ -16393,7 +17557,7 @@ declare enum EPlayerAbility {
 }
 /**
  * Defines vanilla potion effects.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum EPotionEffect {
     MOVEMENT_SPEED = 1,
@@ -16429,19 +17593,135 @@ declare enum EPotionEffect {
 /**
  * Defines numeric representation for vanilla TileEntity types.
  * Use {@link NativeTileEntity} class to work with them.
- * @since 2.2.1b89
+ * @since 2.2.0b75
  */
 declare enum ETileEntityType {
     NONE = -1,
     CHEST = 0,
     FURNACE = 1,
     HOPPER = 2,
+    /**
+     * @since 2.3.1b115
+     */
+    NETHER_REACTOR = 3,
+    /**
+     * @since 2.3.1b115
+     */
+    SIGN = 4,
+    /**
+     * @since 2.3.1b115
+     */
+    MOB_SPAWNER = 5,
+    /**
+     * @since 2.3.1b115
+     */
+    SKULL = 6,
+    /**
+     * @since 2.3.1b115
+     */
+    FLOWER_POT = 7,
     BREWING_STAND = 8,
+    /**
+     * @since 2.3.1b115
+     */
+    ENCHANTING_TABLE = 9,
+    /**
+     * @since 2.3.1b115
+     */
+    DAYLIGHT_DETECTOR = 10,
+    /**
+     * @since 2.3.1b115
+     */
+    MUSIC_BLOCK = 11,
+    /**
+     * @since 2.3.1b115
+     */
+    COMPARATOR = 12,
     DISPENSER = 13,
+    /**
+     * @since 2.3.1b115
+     */
+    DROPPER = 14,
+    /**
+     * @since 2.3.1b115
+     */
+    HOPPER2 = 15,
     CAULDRON = 16,
+    /**
+     * @since 2.3.1b115
+     */
+    ITEM_FRAME = 17,
+    /**
+     * @since 2.3.1b115
+     */
+    PISTON = 18,
+    /**
+     * @since 2.3.1b115
+     */
+    CHALKBOARD = 20,
     BEACON = 21,
+    /**
+     * @since 2.3.1b115
+     */
+    END_PORTAL = 22,
+    /**
+     * @since 2.3.1b115
+     */
+    END_GATEWAY = 24,
+    /**
+     * @since 2.3.1b115
+     */
+    COMMAND_BLOCK = 26,
+    /**
+     * @since 2.3.1b115
+     */
+    BED = 27,
+    /**
+     * @since 2.3.1b115
+     */
+    STRUCTURE_BLOCK = 32,
     JUKEBOX = 33,
-    LECTERN = 37
+    /**
+     * @since 2.3.1b115
+     */
+    CHEMISTRY_TABLE = 34,
+    /**
+     * @since 2.3.1b115
+     */
+    CONDUIT_BLOCK = 35,
+    /**
+     * @since 2.3.1b115
+     */
+    JIGSAW = 36,
+    LECTERN = 37,
+    /**
+     * @since 2.3.1b115
+     */
+    BLAST_FURNACE = 38,
+    /**
+     * @since 2.3.1b115
+     */
+    SMOKER = 39,
+    /**
+     * @since 2.3.1b115
+     */
+    BELL = 40,
+    /**
+     * @since 2.3.1b115
+     */
+    CAMPFIRE = 41,
+    /**
+     * @since 2.3.1b115
+     */
+    BARREL = 42,
+    /**
+     * @since 2.3.1b115
+     */
+    BEEHIVE = 43,
+    /**
+     * @since 2.3.1b115
+     */
+    LODESTONE = 44
 }
 /**
  * Class used to create new entity AI types.
@@ -16883,111 +18163,54 @@ declare namespace Entity {
      * Clears all effects of the mob.
      */
     function clearEffects(entityUid: number): void;
-    enum DamageSources {
-        /**
-         * `"death.attack.generic"`
-         * @remarks
-         * Default damage source if anything else not found.
-         */
-        GENERIC = 0,
-        /**
-         * `"death.attack.cactus"` (only when standing on cactus)
-         */
-        CACTUS = 1,
-        /**
-         * `"death.attack.mob"`
-         */
-        MOB = 2,
-        IMPACT = 3,
-        /**
-         * `"death.attack.inWall"`
-         */
-        IN_WALL = 4,
-        /**
-         * `"death.attack.fall"` and `"death.fell.accident.generic"`
-         */
-        FALL = 5,
-        /**
-         * `"death.attack.inFire"`
-         */
-        IN_FIRE = 6,
-        /**
-         * `"death.attack.onFire"`
-         */
-        ON_FIRE = 7,
-        /**
-         * `"death.attack.lava"`
-         */
-        LAVA = 8,
-        /**
-         * `"death.attack.drown"`
-         */
-        DROWN = 9,
-        /**
-         * `"death.attack.explosion"`
-         */
-        EXPLOSION = 10,
-        /**
-         * `"death.attack.explosion"`
-         */
-        EXPLOSION_PLAYER = 11,
-        /**
-         * `"death.attack.outOfWorld"`
-         */
-        OUT_OF_WORLD = 12,
-        COMMAND = 13,
-        /**
-         * `"death.attack.magic"`
-         */
-        MAGIC = 14,
-        /**
-         * `"death.attack.wither"`
-         */
-        WITHER = 15,
-        /**
-         * `"death.attack.starve"`
-         */
-        STARVE = 16,
-        /**
-         * `"death.attack.anvil"`
-         */
-        ANVIL = 17,
-        /**
-         * `"death.attack.thorns"`
-         */
-        THORNS = 18,
-        PROJECTILE = 19,
-        /**
-         * `"death.attack.fallingBlock"`
-         */
-        FALLING_BLOCK = 20,
-        /**
-         * `"death.attack.flyIntoWall"`
-         */
-        FLY_INTO_WALL = 21,
-        /**
-         * `"death.attack.magma"`
-         */
-        MAGMA = 22,
-        /**
-         * `"death.attack.fireworks"`
-         */
-        FIREWORKS = 23,
-        /**
-         * `"death.attack.lightningBolt"`
-         */
-        LIGHTNING_BOLT = 24,
-        OVER_TIME = 4294967295
-    }
+    /**
+     * Damage sources, which are used to determine entity damage type:
+     *
+     * Type | Name | Message | Translation
+     * ---|---|---|---
+     * 0 | Generic | "death.attack.generic" (fallback damage source) | * died
+     * 1 | Cactus | "death.attack.cactus" (only when standing on cactus) | * was pricked to death
+     * 2 | Mob | "death.attack.mob" | * was slain by *
+     * 3 | Impact | n/a
+     * 4 | In Wall | "death.attack.inWall" | * suffocated in a wall
+     * 5 | Fall | "death.attack.fall" OR "death.fell.accident.generic" | * hit the ground too hard OR * fell from a high place
+     * 6 | In Fire | "death.attack.inFire" | * went up in flames
+     * 7 | On Fire | "death.attack.onFire" | * burned to death
+     * 8 | Lava | "death.attack.lava" | * tried to swim in lava
+     * 9 | Drown | "death.attack.drown" | * drowned
+     * 10 | Explosion | "death.attack.explosion" | * blew up
+     * 11 | Explosion (Player) | "death.attack.explosion" | * was blown up by *
+     * 12 | Out Of World | "death.attack.outOfWorld" | * fell out of the world
+     * 13 | Command | n/a
+     * 14 | Magic | "death.attack.magic" | * was killed by magic
+     * 15 | Wither | "death.attack.wither" | * withered away
+     * 16 | Starve | "death.attack.starve" | * starved to death
+     * 17 | Anvil | "death.attack.anvil" | * was squashed by a falling anvil
+     * 18 | Thorns | "death.attack.thorns" | * was killed trying to hurt *
+     * 19 | Projectile | n/a
+     * 20 | Falling Block | "death.attack.fallingBlock" | * was squashed by a falling block
+     * 21 | Fly Into Wall | "death.attack.flyIntoWall" | * experienced kinetic energy
+     * 22 | Magma | "death.attack.magma" | * discovered floor was lava
+     * 23 | Fireworks | "death.attack.fireworks" | * went off with a bang
+     * 24 | Lightning Bolt | "death.attack.lightningBolt" | * was struck by lightning
+     */
+    type DamageSource = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
     /**
      * Damages entity.
      * @param damage damage value in half-hearts
-     * @param cause existing damage source or any inclusive value between 25 and 32
+     * @param cause existing {@link DamageSource} or any inclusive value between 25 and 32
      * @param properties additional damage source properties
-     * @param properties.attacker entity that caused damage, determines actor of damage source
-     * @param properties.bool1 if `true`, damage can be reduced by armor
      */
-    function damageEntity(entityUid: number, damage: number, cause?: DamageSources | number, properties?: { attacker?: number, bool1?: boolean }): void;
+    function damageEntity(entityUid: number, damage: number, cause?: DamageSource | number, properties?: {
+        /**
+         * Entity that caused damage, determines actor of damage source.
+         */
+        attacker?: number,
+        /**
+         * If `true`, damage can be reduced by armor.
+         */
+        bool1?: boolean
+    }): void;
     /**
      * Adds specified health amount to the entity.
      * @param heal health to be added to entity, in half-hearts
@@ -17048,15 +18271,13 @@ declare namespace Entity {
      * @param skin skin to set for the entity. Leave empty or null to use
      * default skin of the mob
      * @returns Numeric ID of spawn entity or -1 if entity was not created.
-     * @remarks
-     * Local method, use {@link BlockSource.spawnEntity} instead.
+     * @deprecated Client-side method, use {@link BlockSource.spawnEntity} instead.
      */
     function spawn(x: number, y: number, z: number, type: number, skin?: Nullable<string>): number;
     /**
      * Same as {@link Entity.spawn}, but uses {@link Vector} object to represent
      * coordinates.
-     * @remarks
-     * Local method, use {@link BlockSource.spawnEntity} instead.
+     * @deprecated Client-side method, use {@link BlockSource.spawnEntity} instead.
      */
     function spawnAtCoords(coords: Vector, type: number, skin?: string): void;
     /**
@@ -17064,30 +18285,28 @@ declare namespace Entity {
      * to controllers via extra param.
      * @param name custom entity string ID
      * @param extra object that contains some data for the controllers
-     * @deprecated You've should implement addon entity and spawn it with
+     * @deprecated You are should implement addon entity and spawn it with
      * {@link BlockSource.spawnEntity} instead.
      */
     function spawnCustom(name: string, x: number, y: number, z: number, extra?: object): CustomEntity;
     /**
      * Same as {@link Entity.spawnCustom}, but uses {@link Vector} object to represent
      * coordinates.
-     * @deprecated You've should implement addon entity and spawn it with
+     * @deprecated You are should implement addon entity and spawn it with
      * {@link BlockSource.spawnEntity} instead.
      */
     function spawnCustomAtCoords(name: string, coords: Vector, extra?: any): CustomEntity;
     /**
      * Spawns custom entity defined in behavior packs or game itself.
      * @returns Instance to performing commands on entity.
-     * @remarks
-     * Local method, use {@link BlockSource.spawnEntity} instead.
+     * @deprecated Client-side method, use {@link BlockSource.spawnEntity} instead.
      */
     function spawnAddon(x: number, y: number, z: number, name: string): AddonEntityRegistry.AddonEntity;
     /**
      * Same as {@link Entity.spawnAddon}, but uses {@link Vector} object to represent
      * coordinates.
      * @returns Instance to performing commands on entity.
-     * @remarks
-     * Local method, use {@link BlockSource.spawnEntity} instead.
+     * @deprecated Client-side method, use {@link BlockSource.spawnEntity} instead.
      */
     function spawnAddonAtCoords(coords: Vector, name: string): AddonEntityRegistry.AddonEntity;
     /**
@@ -17132,12 +18351,14 @@ declare namespace Entity {
     /**
      * @returns Entity render type, should be one of the
      * {@link EMobRenderType} values.
+     * @deprecated Use resource packs instead.
      */
     function getRender(entityUid: number): number;
     /**
      * Sets entity render type.
      * @param render entity render type, should be one of the
      * {@link EMobRenderType} values
+     * @deprecated Use resource packs instead.
      */
     function setRender(entityUid: number, render: number): void;
     /**
@@ -17148,6 +18369,7 @@ declare namespace Entity {
     function rideAnimal(entityUid: number, riderUid: number): void;
     /**
      * @returns Entity name tag or player name.
+     * @since 2.2.1b97 (not working before)
      */
     function getNameTag(entityUid: number): string;
     /**
@@ -17466,6 +18688,7 @@ declare namespace Entity {
      * @param count item count
      * @param data item data
      * @param extra item extra
+     * @since 2.2.1b93 (not working before)
      */
     function setOffhandItem(entityUid: number, id: number, count: number, data: number, extra?: ItemExtraData): void;
     /**
@@ -17485,28 +18708,18 @@ declare namespace Entity {
      * @deprecated Use callbacks and {@link Entity.getAll} instead.
      */
     function getProjectileItem(projectile: number): ItemInstance;
-    enum Attributes {
-        FOLLOW_RANGE = "minecraft:follow_range",
-        LUCK = "minecraft:luck",
-        LAVA_MOVEMENT = "minecraft:lava_movement",
-        UNDERWATER_MOVEMENT = "minecraft:underwater_movement",
-        MOVEMENT = "minecraft:movement",
-        KNOCKBACK_RESISTANCE = "minecraft:knockback_resistance",
-        ABSORPTION = "minecraft:absorption",
-        HEALTH = "minecraft:health",
-        ATTACK_DAMAGE = "minecraft:attack_damage",
-        JUMP_STRENGTH = "minecraft:jump_strength"
-    }
+    type Attribute = "minecraft:follow_range" | "minecraft:luck" | "minecraft:lava_movement" | "minecraft:underwater_movement" | "minecraft:movement" | "minecraft:knockback_resistance" | "minecraft:absorption" | "minecraft:health" | "minecraft:attack_damage" | "minecraft:jump_strength";
     /**
      * Creates an object used to change entity's attributes.
      * @param entity entity uid
-     * @param attribute one of {@link Attributes} or your custom one
+     * @param attribute one of {@link Attribute} or your custom one
      * @returns Object used to manipulate entity's attributes.
      * @since 2.0.3b33
      */
-    function getAttribute(entityUid: number, attribute: Attributes | string): AttributeInstance;
+    function getAttribute(entityUid: number, attribute: Attribute | string): AttributeInstance;
     /**
      * Interface used to modify attribute values.
+     * @since 2.0.3b33
      */
     interface AttributeInstance {
         /**
@@ -17579,9 +18792,9 @@ declare namespace Entity {
         /**
          * Sets entity's door passing ability.
          */
-        setCanPassDoors(value: boolean): PathNavigation;
+        setCanPassDoors(can: boolean): PathNavigation;
         isRiverFollowing(): boolean;
-        setIsRiverFollowing(value: boolean): PathNavigation;
+        setIsRiverFollowing(follow: boolean): PathNavigation;
         /**
          * @returns Whether the entity can open doors.
          */
@@ -17589,11 +18802,15 @@ declare namespace Entity {
         /**
          * Sets entity's door opening ability.
          */
-        setCanOpenDoors(value: boolean): PathNavigation;
+        setCanOpenDoors(can: boolean): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getAvoidSun(): boolean;
         /**
          * Sets entity's sun avoiding.
          */
-        setAvoidSun(value: boolean): PathNavigation;
+        setAvoidSun(avoid: boolean): PathNavigation;
         /**
          * @returns Whether the entity avoids water.
          */
@@ -17601,20 +18818,20 @@ declare namespace Entity {
         /**
          * Sets entity's water avoiding.
          */
-        setAvoidWater(value: boolean): PathNavigation;
-        setEndPathRadius(value: boolean): PathNavigation;
+        setAvoidWater(avoid: boolean): PathNavigation;
+        setEndPathRadius(radius: number): PathNavigation;
         getCanSink(): boolean;
-        setCanSink(value: boolean): PathNavigation;
+        setCanSink(can: boolean): PathNavigation;
         getAvoidDamageBlocks(): boolean;
-        setAvoidDamageBlocks(value: boolean): PathNavigation;
+        setAvoidDamageBlocks(avoid: boolean): PathNavigation;
         getCanFloat(): boolean;
-        setCanFloat(value: boolean): PathNavigation;
+        setCanFloat(can: boolean): PathNavigation;
         isAmphibious(): boolean;
-        setIsAmphibious(value: boolean): PathNavigation;
+        setIsAmphibious(amphibious: boolean): PathNavigation;
         getAvoidPortals(): boolean;
-        setAvoidPortals(value: boolean): PathNavigation;
+        setAvoidPortals(avoid: boolean): PathNavigation;
         getCanBreach(): boolean;
-        setCanBreach(value: boolean): PathNavigation;
+        setCanBreach(can: boolean): PathNavigation;
         /**
          * @returns Whether entity can jump.
          */
@@ -17622,7 +18839,7 @@ declare namespace Entity {
         /**
          * Enables or disables entity's jumping ability.
          */
-        setCanJump(value: boolean): PathNavigation;
+        setCanJump(can: boolean): PathNavigation;
         /**
          * @returns Entity's speed value.
          */
@@ -17630,22 +18847,81 @@ declare namespace Entity {
         /**
          * Sets entity's speed value.
          */
-        setSpeed(value: number): PathNavigation;
+        setSpeed(speed: number): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getCanPathOverLava(): boolean;
+        /**
+         * @since 2.2.1b93
+         */
+        setCanPathOverLava(can: boolean): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getCanWalkInLava(): boolean;
+        /**
+         * @since 2.2.1b93
+         */
+        setCanWalkInLava(can: boolean): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getCanOpenIronDoors(): boolean;
+        /**
+         * @since 2.2.1b93
+         */
+        setCanOpenIronDoors(can: boolean): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getHasEndPathRadius(): boolean;
+        /**
+         * @since 2.2.1b93
+         */
+        setHasEndPathRadius(has: boolean): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getTerminationThreshold(): number;
+        /**
+         * @since 2.2.1b93
+         */
+        getTerminationThreshold(threshold: number): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        getTickTimeout(): number;
+        /**
+         * @since 2.2.1b93
+         */
+        setTickTimeout(ticks: number): PathNavigation;
+        /**
+         * @since 2.2.1b93
+         */
+        isStuck(ticks: number): boolean;
     }
+    /**
+     * Path navigation result, which is used in result callback:
+     *
+     * Result code | Meaning
+     * ---|---
+     * 0 | Path successfully completed
+     * 1 | Cannot reach target, no available path
+     * 2 | Cannot reach target, out of range
+     * 3 | Entity has been unloaded or removed
+     * 4 | Cancelled by `stop()` or similar method
+     * 5 | Player left level or server closed
+     * 6 | Result function will be replaced
+     */
+    type PathNavigationResultCode = 0 | 1 | 2 | 3 | 4 | 5 | 6;
     /**
      * Occurs when path navigation is finished or aborted.
      * @param navigation {@link Entity.PathNavigation} that the handler is attached to
-     * @param result result code, one of the following:
-     *
-     * 0 - success; you can call {@link Entity.PathNavigation.moveToCoords},
-     * {@link Entity.PathNavigation.moveToEntity} methods to resume path
-     *
-     * 2 - entity was removed from the world
-     *
-     * 4 - player left the world
+     * @param result result code, see {@link PathNavigationResultCode} for details
      */
     interface PathNavigationResultFunction {
-        (navigation: PathNavigation, result: number): void
+        (navigation: PathNavigation, result: PathNavigationResultCode): void
     }
     /**
      * Returns array of all entities numeric IDs in given range in blocks.
@@ -17659,6 +18935,183 @@ declare namespace Entity {
      */
     function getAllInsideBox(coords1: Vector, coords2: Vector, type?: number, flag?: boolean): number[];
 }
+/**
+ * @since 2.3.1b115
+ */
+declare namespace ECS {
+	function getEntityManager(): EcsEntityManager;
+	function getTypeName(id: number): string;
+	function getTypeId(name: string): number;
+	/**
+	 * Same as {@link ECS_INVALID_ENTITY}.
+	 */
+	function getInvalidEntity(): number;
+	/**
+	 * Same as {@link ECS_TAG_OBJECT}.
+	 */
+	function getTagComponentObject(): any;
+	interface LocalTicking {
+		tick(queue: EcsActionQueue): void;
+	}
+	interface ServerTicking {
+		tick(queue: EcsActionQueue): void;
+	}
+	interface VariadicQueryConsumer {
+		(entity: number, components: any[]): void;
+	}
+	interface FixedQueryConsumer0 {
+		(entity: number): void;
+	}
+	interface FixedQueryConsumer1<T1> {
+		(entity: number, query1: T1): void;
+	}
+	interface FixedQueryConsumer2<T1, T2> {
+		(entity: number, query1: T1, query2: T2): void;
+	}
+	interface FixedQueryConsumer3<T1, T2, T3> {
+		(entity: number, query1: T1, query2: T2, query3: T3): void;
+	}
+	interface FixedQueryConsumer4<T1, T2, T3, T4> {
+		(entity: number, query1: T1, query2: T2, query3: T3, query4: T4): void;
+	}
+	interface FixedQueryConsumer5<T1, T2, T3, T4, T5> {
+		(entity: number, query1: T1, query2: T2, query3: T3, query4: T4, query5: T5): void;
+	}
+	interface FixedQueryConsumer6<T1, T2, T3, T4, T5, T6> {
+		(entity: number, query1: T1, query2: T2, query3: T3, query4: T4, query5: T5, query6: T6): void;
+	}
+}
+/**
+ * @since 2.3.1b115
+ */
+declare interface EcsEntityManager {
+	/* static */ INVALID_ENTITY: number;
+	/* static */ TAG: java.lang.Object;
+	createEntity(): number;
+	removeEntity(entity: number): void;
+	detachEntity(entity: number): EcsAddComponents;
+	extend(entity: number, components: EcsAddComponents): void;
+	shrink(entity: number, components: EcsRemoveComponents): void;
+	removeAllEntitiesWithComponents(query: EcsQuery): void;
+	performVariadicQuery(query: EcsQuery, consumer: ECS.VariadicQueryConsumer): void;
+	performQuery(query: EcsQuery, consumer: ECS.FixedQueryConsumer0): void;
+	performQuery<T1>(query: EcsQuery, consumer: ECS.FixedQueryConsumer1<T1>): void;
+	performQuery<T1, T2>(query: EcsQuery, consumer: ECS.FixedQueryConsumer2<T1, T2>): void;
+	performQuery<T1, T2, T3>(query: EcsQuery, consumer: ECS.FixedQueryConsumer3<T1, T2, T3>): void;
+	performQuery<T1, T2, T3, T4>(query: EcsQuery, consumer: ECS.FixedQueryConsumer4<T1, T2, T3, T4>): void;
+	performQuery<T1, T2, T3, T4, T5>(query: EcsQuery, consumer: ECS.FixedQueryConsumer5<T1, T2, T3, T4, T5>): void;
+	performQuery<T1, T2, T3, T4, T5, T6>(query: EcsQuery, consumer: ECS.FixedQueryConsumer6<T1, T2, T3, T4, T5, T6>): void;
+	getComponents(entity: number, query: EcsQuery): any[];
+	getComponent(entity: number, index: number): any;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare class IntFlatMap {
+	constructor();
+	constructor(emptyKey: number);
+	get(key: number, defaultValue: number): number;
+	put(key: number, value: number): boolean;
+	remove(key: number): boolean;
+	clearNoDealloc(): void;
+	clear(): void;
+	reserve(newCount: number): void;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare class EcsQuery {
+	constructor(...queries: object[]);
+}
+/**
+ * @since 2.3.1b115
+ */
+declare class EcsAddComponents {
+	constructor();
+	addComponent(type: number | string, value: any): EcsAddComponents;
+	addComponent<T>(type: java.lang.Class<T>, value: T): EcsAddComponents;
+	setTypes(...types: number[] | string[]): EcsAddComponents;
+	setTypes(...types: java.lang.Class<any>[]): EcsAddComponents;
+	setValues(...values: object[]): EcsAddComponents;
+	empty(): boolean;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare class EcsRemoveComponents {
+	constructor();
+	addComponent(type: number | string): EcsRemoveComponents;
+	addComponent(type: java.lang.Class<any>): EcsRemoveComponents;
+	setTypes(...types: number[] | string[]): EcsRemoveComponents;
+	setTypes(...types: java.lang.Class<any>[]): EcsRemoveComponents;
+	empty(): boolean;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare class EcsActionQueue {
+	constructor();
+	createEntity(): number;
+	getEntityCount(): number;
+	removeEntity(entity: number): EcsActionQueue;
+	addComponent(entity: number, type: number | string, value: any): EcsActionQueue;
+	addComponent(entity: number, type: java.lang.Class<any>, value: any): EcsActionQueue;
+	extend(entity: number, components: EcsAddComponents): EcsActionQueue;
+	extend(entity: number, types: number[], values: any[], count: number): EcsActionQueue;
+	removeComponent(entity: number, type: number | string): EcsActionQueue;
+	removeComponent(entity: number, type: java.lang.Class<any>): EcsActionQueue;
+	shrink(entity: number, components: EcsRemoveComponents): EcsActionQueue;
+	shrink(entity: number, types: number[], count: number): EcsActionQueue;
+	flush(): void;
+	clear(): void;
+	/**
+	 * Does {@link flush}() and {@link clear}() at same time.
+	 */
+	flushNoClear(): void;
+	reserve(entityCount: number): void;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare interface EcsComponent {
+	/* static */ COMPONENT_ID: number
+}
+/**
+ * @since 2.3.1b115
+ */
+declare interface EcsBlockComponent extends EcsComponent {
+	id: number;
+	nameId: string;
+	name: string;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare interface EcsItemComponent extends EcsComponent {
+	id: number;
+	nameId: string;
+	name: string;
+}
+/**
+ * @since 2.3.1b115
+ */
+declare interface EcsArmorItemComponent extends EcsComponent, Armor.IArmorInfo {
+	slot: number;
+	protection: number;
+	kbResist: number; // knockback
+}
+/**
+ * @since 2.3.1b115
+ */
+declare const EntityManager: EcsEntityManager;
+/**
+ * @since 2.3.1b115
+ */
+declare const ECS_INVALID_ENTITY: object;
+/**
+ * @since 2.3.1b115
+ */
+declare const ECS_TAG_OBJECT: object;
 /**
  * Namespace used to create and manipulate custom dimensions.
  */
@@ -17810,6 +19263,15 @@ declare namespace Dimensions {
          * @returns Reference to itself to be used in sequential calls.
          */
         setGenerateModStructures(value: boolean): CustomGenerator;
+        /**
+         * Determines whether the generator should generate underground
+         * and/or underwater caves as part of its result.
+         * Wworks only with the "overworld"1" and "flat" base types.
+         * @param caves generate caves
+         * @param underwaterCaves generate large caves and canyons
+	     * @since 2.3.1b115
+         */
+        setGenerateCaves(caves: boolean, underwaterCaves?: boolean): CustomDimension;
         /**
          * Sets terrain generator object used for the landscape generation.
          * @param generator terrain generator to be used with current landscape
@@ -18104,17 +19566,17 @@ declare namespace Debug {
      * Writes general debug message (in green) to local player in chat.
      * @param message message to be displayed
      */
-    function message(message: string): void;
+    function message(message: any): void;
     /**
      * Writes warning debug message (in gold) to local player in chat.
      * @param message message to be displayed
      */
-    function warning(message: string): void;
+    function warning(message: any): void;
     /**
      * Writes error debug message (in red) to local player in chat.
      * @param message message to be displayed
      */
-    function error(message: string): void;
+    function error(message: any): void;
     /**
      * Writes several comma-separated values to local player in chat as
      * a general debug message, serializing javascript objects if possible.
@@ -18128,7 +19590,7 @@ declare namespace Debug {
      * displayed
      * @param title title of the AlertDialog
      */
-    function bitmap(bitmap: android.graphics.Bitmap, title: string): void;
+    function bitmap(bitmap: android.graphics.Bitmap, title?: any): void;
     /**
      * Writes several values in JSON format to the selectable
      * alert window text view, serializing javascript objects if possible.
@@ -18145,10 +19607,10 @@ declare namespace MobRegistry {
     function registerUpdatableAsEntity(updatable: any): void;
     function spawnEntityAsPrototype(typeName: any, coords: any, extraData: any): CustomEntity;
     function getEntityUpdatable(entity: number): CustomEntity;
-    /**
-     * @deprecated Not implemented yet.
-     */
-    function registerNativeEntity(entity: number): undefined;
+    // /**
+    //  * @deprecated Not implemented yet.
+    //  */
+    // function registerNativeEntity(entity: number): undefined;
     function registerEntityRemove(entity: number): void;
     function resetEngine(): void;
 }
@@ -18159,7 +19621,10 @@ declare namespace MobRegistry {
 declare namespace MobSpawnRegistry {
     function registerSpawn(entityType: number, rarity: number, condition?: () => boolean, denyNaturalDespawn?: boolean): void;
     interface SpawnInterface {
-        type: number, rarity: number, condition: Nullable<() => boolean>, denyNaturalDespawn: boolean;
+        type: number,
+        rarity: number,
+        condition: () => boolean,
+        denyNaturalDespawn?: boolean;
     }
     function getRandomSpawn(rarityMultiplier: number): any;
     function getRandPosition(): { x: number, z: number };
@@ -18300,13 +19765,13 @@ declare namespace CustomEnchant {
          * Defines the function that will be called, when item with following enchantment is used for attack.
          * The function must return bonus damage dealt to the victim.
          * @returns Reference to itself to be used in sequential calls.
-         * @beta This method is highly experimental right now.
+	     * @since 2.3.1b115 (implemented in 2.2.1b105)
          */
         setAttackDamageBonusProvider(func: AttackDamageBonusProvider): EnchantSetupInterface;
         /**
          * Defines the function that will be called after the item with following enchantment is used for attack.
          * @returns Reference to itself to be used in sequential calls.
-         * @beta This method is highly experimental right now.
+	     * @since 2.3.1b115 (implemented in 2.2.1b105)
          */
         setPostAttackCallback(func: DamageCallback): EnchantSetupInterface;
         /**
@@ -18314,14 +19779,14 @@ declare namespace CustomEnchant {
          * with following enchantment, is hit.
          * The function must return bonus protection value.
          * @returns Reference to itself to be used in sequential calls.
-         * @beta This method is highly experimental right now.
+	     * @since 2.3.1b115 (implemented in 2.2.1b105)
          */
         setProtectionBonusProvider(func: ProtectionBonusProvider): EnchantSetupInterface;
         /**
          * Defines the function that will be called, when the entity wearing item
          * with following enchantment, is hit.
          * @returns Reference to itself to be used in sequential calls.
-         * @beta This method is highly experimental right now.
+	     * @since 2.3.1b115 (implemented in 2.2.1b105)
          */
         setPostHurtCallback(func: DamageCallback): EnchantSetupInterface;
     }
@@ -18336,22 +19801,22 @@ declare namespace CustomEnchant {
     function newEnchant(nameID: string, displayedName: string): EnchantSetupInterface;
     /**
      * Function interface used in
-     * {@link CustomEnchant.EnchantSetupInterface.setAttackDamageBonusProvider EnchantSetupInterface.setAttackDamageBonusProvider} method.
+     * {@link EnchantSetupInterface.setAttackDamageBonusProvider EnchantSetupInterface.setAttackDamageBonusProvider} method.
      */
     interface AttackDamageBonusProvider {
         (damage: number, entity: number): number;
     }
     /**
      * Function interface used in
-     * {@link CustomEnchant.EnchantSetupInterface.setPostAttackCallback EnchantSetupInterface.setPostAttackCallback} and
-     * {@link CustomEnchant.EnchantSetupInterface.setPostHurtCallback EnchantSetupInterface.setPostHurtCallback} methods.
+     * {@link EnchantSetupInterface.setPostAttackCallback EnchantSetupInterface.setPostAttackCallback} and
+     * {@link EnchantSetupInterface.setPostHurtCallback EnchantSetupInterface.setPostHurtCallback} methods.
      */
     interface DamageCallback {
         (item: ItemInstance, damage: number, entity1: number, entity2: number): void;
     }
     /**
      * Function interface used in
-     * {@link CustomEnchant.EnchantSetupInterface.setProtectionBonusProvider EnchantSetupInterface.setProtectionBonusProvider} method.
+     * {@link EnchantSetupInterface.setProtectionBonusProvider EnchantSetupInterface.setProtectionBonusProvider} method.
      */
     interface ProtectionBonusProvider {
         (damage: number, damageType: number, entity: number): number;
@@ -18366,8 +19831,21 @@ declare class CustomBiome {
     /**
      * @returns Object instance, with all custom
      * biomes registered by every mod.
+     * @since 2.2.1b93
      */
     static getAllCustomBiomes(): java.util.Map<String, CustomBiome>;
+    /**
+     * Called when server detection packet received.
+     * @internal
+     * @since 2.3.1b116
+     */
+    static updateNativeId(json: org.json.JSONObject): void;
+    /**
+     * Called when server stopped to cleanup biome synced IDs.
+     * @internal
+     * @since 2.3.1b116
+     */
+    static reset(): void;
     /**
      * @returns Whether biome is invalid.
      */
@@ -18487,6 +19965,7 @@ declare class CustomBiome {
      * @param id block's tile ID
      * @param data block data
      * @returns Reference to itself to be used in sequential calls.
+     * @since 2.2.0b1 pre-alpha
      */
     setSeaFloorBlock(id: number, data: number): CustomBiome;
     /**
@@ -18503,20 +19982,23 @@ declare class CustomBiome {
      * Sets the average depth of the sea floor in this biome.
      * @param depth depth of the see floor by Y-axis.
      * @returns Reference to itself to be used in sequential calls.
+     * @since 2.2.0b1 pre-alpha
      */
     setSeaFloorDepth(depth: number): CustomBiome;
     /**
      * Sets the average depth of the something in this biome.
-     * @param param some integer parameter.
+     * @param depth surface depth parameter.
      * @returns Reference to itself to be used in sequential calls.
      * @default 7
      * @deprecated Use {@link CustomBiome.setSeaFloorDepth} instead.
+     * @since 2.2.0b1 pre-alpha
      */
-    setSurfaceParam(param: number): CustomBiome;
+    setSurfaceParam(depth: number): CustomBiome;
     /**
      * Defines the server-side biome params from given JSON string.
      * @returns Reference to itself to be used in sequential calls.
-     * @throws {@link java.lang.IllegalArgumentException} if the string cannot be parsed.
+     * @throws Java {@link java.lang.IllegalArgumentException} if the string cannot be parsed.
+     *
      * @example
      * Many thanks to DansZbar2 for the example!
      * ```js
@@ -18556,12 +20038,14 @@ declare class CustomBiome {
      *     }
      * }));
      * ```
+     * @since 2.2.0b1 pre-alpha
      */
     setServerJson(json: string): CustomBiome;
     /**
      * Defines the client-side biome params from given JSON string.
      * @returns Reference to itself to be used in sequential calls.
-     * @throws {@link java.lang.IllegalArgumentException} if the string cannot be parsed.
+     * @throws Java {@link java.lang.IllegalArgumentException} if the string cannot be parsed.
+     *
      * @example
      * Many thanks to DansZbar2 for the example!
      * ```js
@@ -18575,6 +20059,7 @@ declare class CustomBiome {
      *     "fog_identifier": "environmental:environmental_cherry"
      * }));
      * ```
+     * @since 2.2.0b1 pre-alpha
      */
     setClientJson(json: string): CustomBiome;
 }
@@ -18688,19 +20173,19 @@ declare namespace Callback {
     function addCallback(name: "ItemDispensed", func: ItemDispensedFunction, priority?: number): void;
     function addCallback(name: "NativeGuiChanged", func: NativeGuiChangedFunction, priority?: number): void;
     /**
-     * @since 2.2.1b105
+     * @since 2.3.1b115 (implemented in 2.2.1b105)
      */
     function addCallback(name: "EnchantPostAttack", func: CustomEnchant.DamageCallback, priority?: number): void;
     /**
-     * @since 2.2.1b105
+     * @since 2.3.1b115 (implemented in 2.2.1b105)
      */
     function addCallback(name: "EnchantGetProtectionBonus", func: CustomEnchant.ProtectionBonusProvider, priority?: number): void;
     /**
-     * @since 2.2.1b105
+     * @since 2.3.1b115 (implemented in 2.2.1b105)
      */
     function addCallback(name: "EnchantGetDamageBonus", func: CustomEnchant.AttackDamageBonusProvider, priority?: number): void;
     /**
-     * @since 2.2.1b105
+     * @since 2.3.1b115 (implemented in 2.2.1b105)
      */
     function addCallback(name: "EnchantPostHurt", func: CustomEnchant.DamageCallback, priority?: number): void;
     function addCallback(name: "GenerateChunk", func: GenerateChunkFunction, priority?: number): void;
@@ -18726,6 +20211,9 @@ declare namespace Callback {
     function addCallback(name: "ReadSaves", func: SavesFunction, priority?: number): void;
     function addCallback(name: "WriteSaves", func: SavesFunction, priority?: number): void;
     function addCallback(name: "CustomBlockTessellation", func: CustomBlockTessellationFunction, priority?: number): void;
+    /**
+     * @since 2.2.1b106
+     */
     function addCallback(name: "LocalPlayerTick", func: PlayerTickFunction, priority?: number): void;
     function addCallback(name: "ServerPlayerTick", func: PlayerTickFunction, priority?: number): void;
     function addCallback(name: "CustomDimensionTransfer", func: CustomDimensionTransferFunction, priority?: number): void;
@@ -18769,13 +20257,28 @@ declare namespace Callback {
     function addCallback(name: "tick", func: { (): void }, priority?: number): void;
     function addCallback(name: "LocalTick", func: { (): void }, priority?: number): void;
     function addCallback(name: "AppSuspended", func: { (): void }, priority?: number): void;
+    /**
+     * @since 2.2.1b88
+     */
     function addCallback(name: "EntityPickUpDrop", func: EntityPickUpDropFunction, priority?: number): void;
+    /**
+     * @since 2.2.1b106
+     */
     function addCallback(name: "LocalPlayerLoaded", func: PlayerFunction, priority?: number): void;
     function addCallback(name: "ServerPlayerLoaded", func: PlayerFunction, priority?: number): void;
     function addCallback(name: "ServerPlayerLeft", func: PlayerFunction, priority?: number): void;
+    /**
+     * @since 2.2.1b106
+     */
     function addCallback(name: "LocalPlayerChangedDimension", func: PlayerChangedDimensionFunction, priority?: number): void;
     function addCallback(name: "PlayerChangedDimension", func: PlayerChangedDimensionFunction, priority?: number): void;
+    /**
+     * @since 2.2.1b106
+     */
     function addCallback(name: "LocalPlayerEat", func: PlayerEatFunction, priority?: number): void;
+    /**
+     * @since 2.2.1b106
+     */
     function addCallback(name: "ServerPlayerEat", func: PlayerEatFunction, priority?: number): void;
     function addCallback(name: "GenerateCustomDimensionChunk", func: GenerateCustomDimensionChunkFunction, priority?: number): void;
     function addCallback(name: "TileEntityAdded", func: TileEntityAddedFunction, priority?: number): void;
@@ -19071,20 +20574,20 @@ declare namespace Callback {
     /**
      * Function used in "EntityDeath" callback.
      * @param attacker entity that caused damage, determines actor of damage source, `-1` otherwise
-     * @param damageType existing damage source or any inclusive value between 25 and 32
+     * @param damageType existing {@link Entity.DamageSource} or any inclusive value between 25 and 32
      */
     interface EntityDeathFunction {
-        (entity: number, attacker: number, damageType: Entity.DamageSources | number): void
+        (entity: number, attacker: number, damageType: Entity.DamageSource | number): void
     }
     /**
      * Function used in "EntityHurt" callback.
      * @param attacker entity that caused damage, determines actor of damage source, `-1` otherwise
      * @param damageValue produced damage value in half-hearts
-     * @param damageType existing damage source or any inclusive value between 25 and 32
+     * @param damageType existing {@link Entity.DamageSource}  or any inclusive value between 25 and 32
      * @param armorReducesDamage if `true`, damage can be reduced by armor
      */
     interface EntityHurtFunction {
-        (attacker: number, entity: number, damageValue: number, damageType: Entity.DamageSources | number, armorReducesDamage: boolean): void
+        (attacker: number, entity: number, damageValue: number, damageType: Entity.DamageSource | number, armorReducesDamage: boolean): void
     }
     /**
      * Function used in "EntityInteract" callback.
@@ -19104,17 +20607,28 @@ declare namespace Callback {
     interface ProjectileHitFunction {
         (projectile: number, item: ItemInstance, target: ProjectileHitTarget): void
     }
+    interface RedstoneSignalParams {
+        /**
+         * Redstone signal power.
+         */
+        power: number,
+        /**
+         * Same as {@link RedstoneSignalParams.power}.
+         */
+        signal: number,
+        /**
+         * `true` if it is loading change.
+         */
+        onLoad: boolean
+    }
     /**
      * Function used in "RedstoneSignal" callback.
      * @param coords coordinates where redstone signal changed
      * @param params information about redstone signal
-     * @param params.power redstone signal power
-     * @param params.signal same as params.power
-     * @param params.onLoad always true
      * @param block information about the block on the specified coordinates
      */
     interface RedstoneSignalFunction {
-        (coords: Vector, params: { power: number, signal: number, onLoad: boolean }, block: Tile, world?: BlockSource): void
+        (coords: Vector, params: RedstoneSignalParams, block: Tile, region?: BlockSource): void
     }
     /**
      * Function used in "PopBlockResources" callback.
@@ -19275,6 +20789,7 @@ declare namespace Callback {
      * @param dropEntity dropped item's entity
      * @param dropStack ItemInstance of the drop entity
      * @param count what count?
+     * @since 2.2.1b88
      */
     interface EntityPickUpDropFunction {
         (entity: number, dropEntity: number, dropStack: ItemInstance, count: number)
@@ -19336,6 +20851,7 @@ declare namespace Callback {
 }
 /**
  * Class to work with vanilla blocks parameters.
+ * @since 2.2.1b89
  */
 declare class BlockState implements Tile {
     /**
@@ -19391,8 +20907,9 @@ declare class BlockState implements Tile {
      * Adds states to the following object
      * from given map instance.
      * @returns BlockState object itself.
+     * @since 2.2.1b102
      */
-    addStates(states: java.util.Map<unknown, number>): BlockState;
+    addStatesMap(states: java.util.Map<unknown, number>): BlockState;
     /**
      * Adds states to the following object
      * from given JS object instance.
@@ -19406,7 +20923,7 @@ declare class BlockState implements Tile {
      */
     getStates(): java.util.Map<number, number>;
     /**
-     * @returns All NAMED states from following object
+     * @returns All named states from following object
      * in {@link java.util.Map} instance.
      */
     getNamedStates(): java.util.Map<string, number>;
@@ -19416,10 +20933,10 @@ declare class BlockState implements Tile {
      */
     getStatesScriptable(): { [key: string]: number };
     /**
-     * @returns All NAMED states from following object
+     * @returns All named states from following object
      * in JS object instance.
      */
-    getNamedStatesScriptable(): {[key: string]: number};
+    getNamedStatesScriptable(): { [key: string]: number };
     /**
      * @returns String representation of the following object.
      */
@@ -19458,7 +20975,7 @@ declare class BlockSource {
 	static getCurrentWorldGenRegion(): Nullable<BlockSource>;
 	/**
 	 * @returns BlockSource for the current client.
-	 * @since 2.1.0b57
+	 * @since 2.1.0b57 (caching since 2.3.1b115)
 	 */
 	static getCurrentClientRegion(): Nullable<BlockSource>;
 	/**
@@ -19469,6 +20986,7 @@ declare class BlockSource {
 	/**
 	 *
 	 * @param pointer
+	 * @since 2.3.1b115
 	 */
 	static getFromServerCallbackPointer(pointer: number): Nullable<BlockSource>;
 	/**
@@ -19505,7 +21023,7 @@ declare class BlockSource {
 	 */
 	setDestroyParticlesEnabled(enabled: boolean): void;
 	/**
-	 *
+	 * @since 2.2.1b102
 	 */
 	getDestroyParticlesEnabled(): boolean;
 	/**
@@ -19520,6 +21038,7 @@ declare class BlockSource {
 	 * @param x X coord of the block
 	 * @param y Y coord of the block
 	 * @param z Z coord of the block
+	 * @since 2.2.1b96
 	 */
 	getBlockID(x: number, y: number, z: number): number;
 	/**
@@ -19548,7 +21067,14 @@ declare class BlockSource {
 	 * @param id ID of the block to set
 	 * @param data data of the block to set
 	 */
-	setBlock(x: number, y: number, z: number, id: number, data?: number): void;
+	setBlock(x: number, y: number, z: number, id: number, data: number): void;
+	/**
+	 * Sets block on coords.
+	 * @param id ID of the block to set
+	 * @param data data of the block to set
+	 * @since 2.2.1b95
+	 */
+	setBlock(x: number, y: number, z: number, id: number): void;
 	/**
 	 * Sets block by given {@link BlockState} on coords.
 	 */
@@ -19566,41 +21092,13 @@ declare class BlockSource {
 	 */
 	setExtraBlock(x: number, y: number, z: number, state: BlockState): void;
 	/**
-	 *
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @param state
-	 * @param delay
-	 * @param todo
+	 * @since 2.2.1b102
 	 */
-	addToTickingQueue(x: number, y: number, z: number, state: BlockState, delay: number, todo: number): void;
+	addToTickingQueue(x: number, y: number, z: number, state: BlockState, delay: number, todo?: number): void;
 	/**
-	 *
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @param delay
-	 * @param todo
+	 * @since 2.2.1b102
 	 */
-	addToTickingQueue(x: number, y: number, z: number, delay: number, todo: number): void;
-	/**
-	 *
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @param state
-	 * @param delay
-	 */
-	addToTickingQueue(x: number, y: number, z: number, state: BlockState, delay: number): void;
-	/**
-	 *
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @param delay
-	 */
-	addToTickingQueue(x: number, y: number, z: number, delay: number): void;
+	addToTickingQueue(x: number, y: number, z: number, delay: number, todo?: number): void;
 	/**
 	 *
      * @since 2.4.0b119
@@ -19745,6 +21243,8 @@ declare class BlockSource {
 	 */
 	canSeeSky(x: number, y: number, z: number): boolean;
 	/**
+	 * @param type entity type, since 2.3.1b115 could be used
+	 * to fetch all entities via `0` or `256`
 	 * @returns Iterator of entity IDs in given box,
 	 * that are equal to the given type, if blacklist value is `false`,
 	 * and all except the entities of the given type, if blacklist value is `true`.
@@ -19754,31 +21254,36 @@ declare class BlockSource {
 	 * @param namespace entity namespace, e.g. "minecraft"
 	 * @param type entity type, e.g. "chicken"
 	 * @returns Iterator of entity IDs in given box, that are equal to the given type.
+	 * @since 2.3.1b115
 	 */
-	fetchEntitiesOfTypeInAABBfetchEntitiesInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, namespace: string, type: string): number[];
+	fetchEntitiesOfTypeInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, namespace: string, type: string): number[];
 	/**
 	 * @param type namespaced entity type, e.g. "minecraft:chicken"; if there is
 	 * no namespace, default "minecraft" will be used instead, e.g. "chicken"
 	 * @returns Iterator of entity IDs in given box, that are equal to the given type.
+	 * @since 2.3.1b115
 	 */
-	fetchEntitiesOfTypeInAABBfetchEntitiesInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, type: string): number[];
+	fetchEntitiesOfTypeInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, type: string): number[];
 	/**
+	 * @param type entity type, since 2.3.1b115 could be used
+	 * to fetch all entities via `0` or `256`
 	 * @returns List of entity IDs in given box,
 	 * that are equal to the given type, if blacklist value is `false`,
 	 * and all except the entities of the given type, if blacklist value is `true`.
-	 * @since 2.2.1b100
 	 */
 	listEntitiesInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, type?: number, blacklist?: boolean): number[];
 	/**
 	 * @param namespace entity namespace, e.g. "minecraft"
 	 * @param type entity type, e.g. "chicken"
 	 * @returns List of entity IDs in given box, that are equal to the given type.
+	 * @since 2.3.1b115
 	 */
 	listEntitiesOfTypeInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, namespace: string, type: string): number[];
 	/**
 	 * @param type namespaced entity type, e.g. "minecraft:chicken"; if there is
 	 * no namespace, default "minecraft" will be used instead, e.g. "chicken"
 	 * @returns List of entity IDs in given box, that are equal to the given type.
+	 * @since 2.3.1b115
 	 */
 	listEntitiesOfTypeInAABB(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, type: string): number[];
 	/**
@@ -20171,6 +21676,7 @@ declare namespace Block {
 	function createLiquidBlock(nameID: string, defineData: LiquidDescriptor, blockType?: SpecialType | string): void;
 	/**
 	 * Object to specify needed params for custom liquid block.
+	 * @since 2.2.1b102
 	 */
 	interface LiquidDescriptor {
 		/**
@@ -20232,6 +21738,10 @@ declare namespace Block {
 			 * @default "nameId_bucket"
 			 */
 			id?: string,
+			/**
+			 * Name of the filled with liquid bucket to be displayed.
+			 */
+			name?: string,
 			texture: { name: string, meta?: number },
 			/**
 			 * An item that can capture liquid (including when using
@@ -20239,7 +21749,19 @@ declare namespace Block {
 			 * @default 325
 			 * @since 2.3.1b116
 			 */
-			emptyId?: number
+			emptyId?: number,
+			/**
+			 * @default "bucket.fill_water"
+			 */
+			fillSound?: string,
+			/**
+			 * @default "bucket.empty_water"
+			 */
+			emptySound?: string,
+			/**
+			 * If `true`, bucket cannot be obtained from creative inventory.
+			 */
+			isTech?: boolean
 		},
 		/**
 		 * Whether to add liquid block to creative inventory.
@@ -20270,14 +21792,14 @@ declare namespace Block {
 	 * Defines custom behavior when the player clicks on the block with definite ID.
 	 * @param numericId block's numeric ID
 	 * @param func function that will be called when the player clicks the block with given ID
-	 * @since 2.2.1b104
+	 * @since 2.2.1b103 (TODO: changelog says it 104)
 	 */
 	function registerClickFunctionForID(numericId: number, func: ClickFunction): void;
 	/**
 	 * Defines custom behavior when the player clicks on the block with definite ID.
 	 * @param id block's numeric or string ID
 	 * @param func function that will be called when the player clicks the block with given ID
-	 * @since 2.2.1b104
+	 * @since 2.2.1b103 (TODO: changelog says it 104)
 	 */
 	function registerClickFunction(id: string | number, func: ClickFunction): void;
 	/**
@@ -20455,7 +21977,7 @@ declare namespace Block {
 	function setDestroyTime(nameID: string | number, time: number): void;
 	/**
 	 * @returns Given block's material numeric ID.
-	 * @since 2.2.1b100
+	 * @since 2.2.1b101 (TODO: fix in changelog)
 	 */
 	function getMaterial(id: number): number;
 	/**
@@ -20465,11 +21987,13 @@ declare namespace Block {
 	function isSolid(numericId: number): boolean;
 	/**
 	 * @returns Whether the block of given ID can contain liquid inside.
+	 * @since 2.2.1b95
 	 */
 	function canContainLiquid(id: number): boolean;
 	/**
 	 * @returns Whether the block of given ID can be an extra block
 	 * (it's the block that can be set inside of another blocks, for ex. water and other liquids).
+	 * @since 2.2.1b95
 	 */
 	function canBeExtraBlock(id: number): boolean;
 	/**
@@ -20627,10 +22151,10 @@ declare namespace Block {
 	 * Creates a new special type using specified params
 	 * and optionally registers it by name.
 	 * @param description special type properties
-	 * @param nameKey string name to register the special type
+	 * @param name string name to register the special type
 	 * @returns Special type name.
 	 */
-	function createSpecialType(description: SpecialType, nameKey?: string): string;
+	function createSpecialType(description: SpecialType, name?: string): string;
 	type ColorSource = "grass" | "leaves" | "water";
 	type Sound = "normal"
 		| "gravel"
@@ -20767,15 +22291,14 @@ declare namespace Block {
 	function setRandomTickCallback(id: number, callback: RandomTickFunction): void;
 	/**
 	 * Function used to track random block ticks.
-	 * @param x x coordinate of the block that ticked
-	 * @param y y coordinate of the block that ticked
-	 * @param z z coordinate of the block that ticked
-	 * @param id block ID
-	 * @param data block data
-	 * @param region BlockSource object
 	 */
 	interface RandomTickFunction {
-		(x: number, y: number, z: number, id: number, data: number, region: BlockSource): void
+		/**
+		 * @param id block numeric identifier
+		 * @param data block data
+		 * @param region block source instance
+		 */
+		(x: number, y: number, z: number, id: number, data: number, region: BlockSource): void;
 	}
 	/**
 	 * Makes block invoke callback randomly depending on game speed. Occurs more
@@ -20787,20 +22310,61 @@ declare namespace Block {
 	function setAnimateTickCallback(id: number, callback: AnimateTickFunction): void;
 	/**
 	 * Function used to track random block animation ticks.
-	 * @param x x coordinate of the block that should be updated
-	 * @param y y coordinate of the block that should be updated
-	 * @param z z coordinate of the block that should be updated
-	 * @param id block ID
-	 * @param data block data
 	 */
 	interface AnimateTickFunction {
-		(x: number, y: number, z: number, id: number, data: number): void
+		/**
+		 * @param id block numeric identifier
+		 * @param data block data
+		 */
+		(x: number, y: number, z: number, id: number, data: number): void;
+	}
+	/**
+	 * Once upon a time, a new way of registering blocks, however,
+	 * in current state, either does not work or is undesirable to use.
+	 */
+	interface BlockLegacyPrototype extends Scriptable {
+		type: "createBlock" | "createBlockWithRotation",
+		init?: () => void,
+		getVariations: (item: null) => BlockVariation[],
+		getSpecialType?: (item: null) => Nullable<SpecialType>,
+        /**
+         * Unused at all.
+         */
+		getCategory?: (item: null) => Nullable<number>,
+        /**
+         * Unused at all.
+         */
+		getEnchant?: (item: null) => Nullable<number>,
+        /**
+         * Unused at all.
+         */
+		getProperties?: (item: null) => Nullable<object>,
+        /**
+         * Unused at all.
+         */
+		isStackedByData?: (item: null) => Nullable<boolean>,
+        /**
+         * Unused at all.
+         */
+		isEnchanted?: (item: null) => Nullable<boolean>,
+		getMaterial?: (item: null) => Nullable<number>,
+		getDestroyLevel?: (item: null) => Nullable<number>,
+		getShape?: (item: null) => Nullable<number[]>,
+		getDrop?: (coords: Vector, id: number, data: number, diggingLevel: number, enchant: any) => ItemInstanceArray[],
+        /**
+         * Incorrect function, it will considered as {@link BlockLegacyPrototype.getDrop}
+         */
+		onPlaced?: (coords: Vector, item: ItemInstance, block: Tile) => void,
+        /**
+         * Unused at all.
+         */
+		onItemUsed?: (coords: Vector, item: ItemInstance, block: Tile) => void
 	}
 	/**
 	 * @deprecated Better performance should be inherited by manually
-	 * manipulation with properties and {@link Block.SpecialType SpecialType}.
+	 * manipulation with properties and {@link Block.SpecialType special type}.
 	 */
-	function setPrototype(nameID: string | number, Prototype: any): number;
+	function setPrototype(nameID: string, Prototype: BlockLegacyPrototype): void;
 }
 /**
  * Class used to attach attachables to entities.
@@ -20829,6 +22393,50 @@ declare class AttachableRender {
  * Module used to manage armor's behavior.
  */
 declare namespace Armor {
+    interface IArmorHurtParams {
+        /**
+         * Attacker entity or -1 if the damage was not
+         * caused by an entity.
+         */
+        attacker: number;
+        /**
+         * Damage amount that was applied to the player.
+         */
+        damage: number;
+        /**
+         * Damage type.
+         */
+        type: number;
+        /**
+         * TODO: Unknown param!
+         */
+        bool1: boolean;
+        /**
+         * TODO: Unknown param!
+         */
+        bool2: boolean;
+    }
+    interface IArmorJSCallback {
+        /**
+         * Called every tick if player wears the armor.
+         * @param item current armor item instance
+         * @param index armor slot, one of the {@link EArmorType} values
+         * @param durability maximum damage the armor
+         * @returns `true`, if changes to the item parameter should be applied,
+         * `false` otherwise.
+         */
+        tick(slot: ItemInstance, index: number, durability: number): boolean;
+        /**
+         * Called when player deals damage if player wears the armor.
+         * @param params additional data about damage
+         * @param item current armor item instance
+         * @param index armor slot, one of the {@link EArmorType} values
+         * @param durability maximum damage the armor
+         * @returns `true`, if changes to the item parameter should be applied,
+         * `false` otherwise.
+         */
+        hurt(params: IArmorHurtParams, slot: ItemInstance, index: number, durability: number): boolean;
+    }
     /**
      * Registers armor's hurt and tick functions.
      * @param id armor item string or numeric ID
@@ -20836,49 +22444,7 @@ declare namespace Armor {
      * @deprecated Use multiplayer {@link Armor.registerOnHurtListener} and
      * anothers or callbacks.
      */
-    function registerFuncs(id: number | string, funcs: {
-        /**
-         * Called every tick if player wears the armor.
-         * @param item current armor item instance
-         * @param index armor slot, one of the {@link EArmorType} values
-         * @param maxDamage maximum damage the armor
-         * @returns `true`, if changes to the item parameter should be applied,
-         * `false` otherwise.
-         */
-        tick: (item: ItemInstance, index: number, maxDamage: number) => boolean,
-        /**
-         * Called when player deals damage if player wears the armor.
-         * @param params additional data about damage
-         * @param item current armor item instance
-         * @param index armor slot, one of the {@link EArmorType} values
-         * @param maxDamage maximum damage the armor
-         * @returns `true`, if changes to the item parameter should be applied,
-         * `false` otherwise.
-         */
-        hurt: (params: {
-            /**
-             * Attacker entity or -1 if the damage was not
-             * caused by an entity.
-             */
-            attacker: number,
-            /**
-             * Damage amount that was applied to the player.
-             */
-            damage: number,
-            /**
-             * Damage type.
-             */
-            type: number,
-            /**
-             * TODO: Unknown param!
-             */
-            b1: boolean,
-            /**
-             * TODO: Unknown param!
-             */
-            b2: boolean
-        }, item: ItemInstance, index: number, maxDamage: number) => boolean
-    }): void;
+    function registerFuncs(id: number | string, funcs: Armor.IArmorJSCallback): void;
     /**
      * Prevents armor from being damaged.
      * @param id armor item string or numeric ID
@@ -20887,29 +22453,54 @@ declare namespace Armor {
     interface ArmorGeneralFunction {
         (item: ItemInstance, slot: number, player: number): void
     }
-    interface ArmorHurtFunction {
-        (item: ItemInstance, slot: number, player: number, value: number, type: number, attacker: number, bool1: boolean, bool2: boolean): void
-    }
 	/**
      * This event is called every tick for every player that has this armor put on.
      * @returns Item object to change armor item, if nothing is returned,
      * armor will not be changed.
      */
-    function registerOnTickListener(id: number, func: ArmorGeneralFunction): ItemInstance | void;
+    function registerOnTickListener(id: number, func: ArmorGeneralFunction): void;
+	/**
+     * This event is called every tick for local player that has this armor put on.
+     * @returns Item object to change armor item, if nothing is returned,
+     * armor will not be changed.
+     * @since 2.2.1b106
+     */
+    function registerOnLocalTickListener(id: number, func: ArmorGeneralFunction): void;
+    interface ArmorHurtFunction {
+        (item: ItemInstance, slot: number, player: number, value: number, type: number, attacker: number, bool1: boolean, bool2: boolean): void
+    }
     /**
      * This event is called when the damage is dealt to the player that has this armor put on.
      * @returns Item object to change armor item, if nothing is returned,
      * armor will not be changed.
      */
-    function registerOnHurtListener(id: number, func: ArmorHurtFunction): ItemInstance | void;
+    function registerOnHurtListener(id: number, func: ArmorHurtFunction): void;
     /**
      * This event is called when player takes on this armor, or spawns with it.
      */
     function registerOnTakeOnListener(id: number, func: ArmorGeneralFunction): void;
     /**
+     * This event is called when local player takes on this armor, or spawns with it.
+     * @since 2.2.1b106
+     */
+    function registerLocalOnTakeOnListener(id: number, func: ArmorGeneralFunction): void;
+    /**
      * This event is called when player takes off or changes this armor item.
      */
     function registerOnTakeOffListener(id: number, func: ArmorGeneralFunction): void;
+    /**
+     * This event is called when local player takes off or changes this armor item.
+     * @since 2.2.1b106
+     */
+    function registerLocalOnTakeOffListener(id: number, func: ArmorGeneralFunction): void;
+    interface IArmorCallback {
+        tick(slot: ItemInstance, index: number, armorInfo: Armor.IArmorInfo): boolean;
+        hurt(params: IArmorHurtParams, slot: ItemInstance, index: number, armorInfo: Armor.IArmorInfo): boolean;
+    }
+    interface IArmorInfo {
+        callback: IArmorCallback;
+        durability: number;
+    }
 }
 /**
  * Animations are used to display some 3d models in the world without use of
@@ -21146,13 +22737,14 @@ declare namespace Animation {
  * Module used to manage custom entities added via add-ons.
  * @since 2.0.1b18
  * @remarks
- * Depends on local player dimension, highly recommended replace it
+ * Depends on local player dimension, highly recommended to replace it
  * with {@link BlockSource.spawnEntity} and {@link Entity.getTypeName}.
  */
 declare namespace AddonEntityRegistry {
     /**
      * Spawns an entity defined via add-on on the specified coordinates.
      * @param nameID entity name ID, as defined from add-on
+     * @deprecated Client-side method, use {@link BlockSource.spawnEntity} instead.
      */
     function spawn(x: number, y: number, z: number, nameID: string): number;
     /**
@@ -21189,6 +22781,7 @@ declare namespace AddonEntityRegistry {
  * It is a model that consists of parts, same as in {@link Render},
  * but more abstract, allows creating root parts instead of
  * inheritance from old humanoid model.
+ * @since 2.2.0b75
  */
 declare class ActorRenderer {
     /**
