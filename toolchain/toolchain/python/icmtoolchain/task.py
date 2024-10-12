@@ -611,10 +611,10 @@ def task_component_integrity(startup: bool = False) -> int:
 def task_cleanup() -> int:
 	from .package import cleanup_relative_directory
 	if isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig):
-		if not confirm("Do you want to clear selected project cache?", True):
-			return 0
-		cleanup_relative_directory("toolchain/build/" + GLOBALS.MAKE_CONFIG.project_unique_name)
-		cleanup_relative_directory(GLOBALS.MOD_STRUCTURE.directory, True)
+		if confirm("Do you want to clear selected project cache?", True):
+			cleanup_relative_directory("toolchain/build/" + GLOBALS.MAKE_CONFIG.project_unique_name)
+			cleanup_relative_directory(GLOBALS.MOD_STRUCTURE.directory, True)
+		return 0
 	if not confirm("Do you want to clear all projects cache?", True):
 		return 0
 	cleanup_relative_directory("toolchain/build")

@@ -57,7 +57,7 @@ def add_fake_so(gcc: str, abi: str, name: str) -> None:
 		else:
 			warn(f"Stubbing fake so failed with result {result}!")
 
-def build_native_directory(directory: str, output_directory: str, target_directory: str, abis: Collection[str], std_includes_path: str, rules: BaseConfig) -> int:
+def build_native_directory(directory: str, output_directory: str, target_directory: str, abis: Collection[str], std_includes: Collection[str], rules: BaseConfig) -> int:
 	executables = dict()
 	for abi in abis:
 		executable = prepare_compiler_executable(abi)
@@ -128,13 +128,6 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 	for abi in abis:
 		targets[abi] = abspath(join(output_directory, soname)) if len(abis) == 1 \
 			else abspath(join(output_directory, "so", abi, soname))
-
-	std_includes = list()
-	if exists(std_includes_path):
-		for std_includes_dir in os.listdir(std_includes_path):
-			std_includes_dirpath = join(std_includes_path, std_includes_dir)
-			if isdir(std_includes_dirpath):
-				std_includes.append(abspath(std_includes_dirpath))
 
 	overall_result = CODE_OK
 	for abi in abis:
@@ -251,9 +244,21 @@ def compile_native(abis: Collection[str]) -> int:
 		GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
 		return overall_result
 
-	std_includes = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
-	if not exists(std_includes):
+	std_includes_toolchain = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
+	std_includes_custom = GLOBALS.MAKE_CONFIG.get_path("stdincludes")
+	if not exists(std_includes_toolchain):
 		warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
+	std_includes = list()
+	if exists(std_includes_toolchain):
+		for std_includes_dir in os.listdir(std_includes_toolchain):
+			std_includes_dirpath = join(std_includes_toolchain, std_includes_dir)
+			if isdir(std_includes_dirpath):
+				std_includes.append(abspath(std_includes_dirpath))
+	if exists(std_includes_custom):
+		for std_includes_dir in os.listdir(std_includes_custom):
+			std_includes_dirpath = join(std_includes_custom, std_includes_dir)
+			if isdir(std_includes_dirpath):
+				std_includes.append(abspath(std_includes_dirpath))
 	target_directory = GLOBALS.MAKE_CONFIG.get_build_path("gcc")
 	ensure_directory(target_directory)
 
