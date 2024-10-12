@@ -113,7 +113,8 @@ class ProjectManager:
 				GLOBALS.CODE_SETTINGS.save()
 
 		remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(folder))
-		del self.projects[index]
+		if index != -1:
+			del self.projects[index]
 
 	def append_workspace_folder(self, folder: str, name: Optional[object] = "Mod") -> None:
 		if GLOBALS.CODE_WORKSPACE.available():
@@ -190,15 +191,17 @@ class ProjectManager:
 		return self.resolve_mod_name(path, make_obj) + " (" + path + ")"
 
 	def get_folder(self, index: Optional[int] = None, folder: Optional[str] = None) -> Tuple[int, str]:
-		if index == None:
-			if folder == None:
+		if index is None:
+			if folder is None:
 				raise ValueError("Folder index must be specified!")
 			else:
 				index = next((i for i, x in enumerate(self.projects)
 					if x.lower() == folder.lower()
 				), -1)
-
-		folder = self.projects[index]
+		if index != -1:
+			folder = self.projects[index]
+		if folder is None:
+			raise ValueError("Existing folder or indexable project should be passed to selector!")
 		return index, folder
 
 	def how_much(self) -> int:
