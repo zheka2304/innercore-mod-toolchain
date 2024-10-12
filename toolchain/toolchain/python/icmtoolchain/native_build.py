@@ -65,9 +65,9 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			abort(f"Failed to acquire GCC executable from NDK for ABI {abi!r}!", code=CODE_FAILED_NO_GCC)
 		executables[abi] = executable
 
-	# if exists(join(directory, ".precompiled")):
-		# info(f"* Library directory {directory} skipped, because precompiled flag is set.")
-		# return CODE_OK
+	if exists(join(directory, ".precompiled")):
+		info(f"* Library directory {directory} skipped, because precompiled flag is set.")
+		return CODE_OK
 
 	try:
 		manifest = get_manifest(directory)
