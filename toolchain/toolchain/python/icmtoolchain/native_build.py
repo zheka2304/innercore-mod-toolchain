@@ -65,10 +65,6 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			abort(f"Failed to acquire GCC executable from NDK for ABI {abi!r}!", code=CODE_FAILED_NO_GCC)
 		executables[abi] = executable
 
-	if exists(join(directory, ".precompiled")):
-		info(f"* Library directory {directory} skipped, because precompiled flag is set.")
-		return CODE_OK
-
 	try:
 		manifest = get_manifest(directory)
 	except Exception as err:
@@ -80,12 +76,6 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 	soname = "lib" + library_name + ".so"
 	if manifest.get_value("library.version", -1) < 0 and manifest.get_value("library"):
 		abort(f"Library directory {directory} shares library with illegal version!", code=CODE_FAILED_INVALID_MANIFEST)
-	if len(abis) == 1:
-		for abi in abis:
-			targets[abi] = abspath(join(output_directory, soname))
-	else:
-		for abi in abis:
-			targets[abi] = abspath(join(output_directory, "so", abi, soname))
 	make_path = join(directory, "make.txt")
 	if exists(make_path):
 		with open(make_path, encoding="utf-8") as file:
@@ -111,6 +101,33 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 				copy_directory(src_include_path, output_include_path, clear_destination=True)
 			else:
 				remove_tree(output_include_path)
+
+	if exists(join(directory, ".precompiled")):
+		info(f"* Library directory {directory} skipped, because precompiled flag is set.")
+
+		libraries_count = 0
+		for abi in abis:
+			source_library = abspath(join(directory, "so", abi, soname))
+			if isfile(source_library):
+				target_library = abspath(join(output_directory, "so", abi, soname))
+				copy_file(source_library, target_library)
+				libraries_count += 1
+
+		if libraries_count == 0:
+			source_library = abspath(join(directory, soname))
+			if isfile(source_library):
+				target_library = abspath(join(output_directory, soname))
+				copy_file(source_library, target_library)
+				libraries_count += 1
+
+		if libraries_count == 0:
+			warn(f"* Library directory {directory} should be precompiled, but there is no shared libraries.")
+			return CODE_FAILED_INVALID_MANIFEST
+		return CODE_OK
+
+	for abi in abis:
+		targets[abi] = abspath(join(output_directory, soname)) if len(abis) == 1 \
+			else abspath(join(output_directory, "so", abi, soname))
 
 	std_includes = list()
 	if exists(std_includes_path):
