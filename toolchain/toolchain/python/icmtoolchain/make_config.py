@@ -21,8 +21,7 @@ class ToolchainConfig(BaseConfig):
 	def __init__(self, path: str, prototype: Optional[BaseConfig] = None) -> None:
 		self.path = path
 		self.directory = abspath(join(self.path, ".."))
-		with open(path, encoding="utf-8") as file:
-			self.json = json.load(file)
+		self.read()
 		BaseConfig.__init__(self, self.json, prototype)
 		if not prototype and basename(path) in ("make.json", "toolchain.json"):
 			self.upgrade()
@@ -52,6 +51,16 @@ class ToolchainConfig(BaseConfig):
 			self.remove_value("gradle")
 			self.save(); changes |= True
 		return changes
+
+	def read(self) -> None:
+		self.json = dict()
+		if isfile(self.path):
+			with open(self.path, encoding="utf-8") as file:
+				try:
+					self.json = json.load(file)
+				except json.JSONDecodeError as exc:
+					from .shell import abort
+					abort(f"* Malformed {basename(self.path)!r}, you should fix it: {exc.msg}.")
 
 	def save(self) -> None:
 		ensure_file_directory(self.path)

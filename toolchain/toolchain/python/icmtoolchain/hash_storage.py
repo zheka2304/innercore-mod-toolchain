@@ -1,7 +1,8 @@
 import json
 import os
 from errno import ENOENT
-from os.path import dirname, getmtime, getsize, isdir, isfile, islink, join
+from os.path import (basename, dirname, getmtime, getsize, isdir, isfile,
+                     islink, join)
 from typing import Collection, Dict, Final, List
 
 from .utils import get_all_files
@@ -18,16 +19,21 @@ class HashStorage:
 
 	def __init__(self, path: str, comparing_mode: str = "content") -> None:
 		self.path = path
-		self.last_hashes = dict()
 		self.hashes = dict()
 		self.comparing_mode = comparing_mode
-		if isfile(path) or islink(path):
-			self.read()
+		self.read()
 
 	def read(self) -> None:
-		with open(self.path, "r") as file:
-			self.last_hashes = json.load(file)
+		self.last_hashes = dict()
 		self.hashes = dict()
+
+		if isfile(self.path):
+			with open(self.path, "r") as file:
+				try:
+					self.last_hashes = json.load(file)
+				except json.JSONDecodeError:
+					from .shell import warn
+					warn(f"* Malformed {basename(self.path)!r}, prebuilt caches will be ignored...")
 
 	def get_path_hash(self, path: str, force: bool = False) -> str:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
