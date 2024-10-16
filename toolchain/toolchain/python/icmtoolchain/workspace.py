@@ -167,10 +167,17 @@ class CodeWorkspace(BaseConfig):
 	def __init__(self, path: str) -> None:
 		if not isfile(path):
 			return BaseConfig.__init__(self, dict())
+		self.json = None
+		with open(path, encoding="utf-8") as file:
+			try:
+				self.json = json.load(file)
+			except json.JSONDecodeError as exc:
+				from .shell import warn
+				warn(f"* Malformed {basename(path)!r}, ignoring it: {exc.msg}.")
+		if self.json is None:
+			return BaseConfig.__init__(self, dict())
 		self.path = path
 		self.directory = abspath(join(self.path, ".."))
-		with open(path, encoding="utf-8") as file:
-			self.json = json.load(file)
 		BaseConfig.__init__(self, self.json)
 
 	def available(self) -> bool:
