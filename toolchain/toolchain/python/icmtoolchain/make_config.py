@@ -34,7 +34,7 @@ class ToolchainConfig(BaseConfig):
 			for entry in global_config:
 				self.set_value(entry, global_config[entry])
 			self.remove_value("global")
-			self.save(); changes |= True
+			changes |= True
 		if "make" in self.json:
 			make_config = self.get_value("make", dict())
 			if "linkNative" in make_config:
@@ -42,7 +42,7 @@ class ToolchainConfig(BaseConfig):
 			if "excludeFromRelease" in make_config:
 				self.set_value("excludeFromRelease", make_config["excludeFromRelease"])
 			self.remove_value("make")
-			self.save(); changes |= True
+			changes |= True
 		if "gradle" in self.json:
 			gradle_config = self.get_value("gradle", dict())
 			java_config = self.get_value("java", dict())
@@ -50,7 +50,9 @@ class ToolchainConfig(BaseConfig):
 				java_config.set_value(entry, gradle_config[entry])
 			self.set_value("java", java_config)
 			self.remove_value("gradle")
-			self.save(); changes |= True
+			changes |= True
+		if changes:
+			self.save()
 		return changes
 
 	def save(self) -> None:
