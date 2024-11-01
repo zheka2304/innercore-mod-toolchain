@@ -7,9 +7,9 @@ from urllib import request
 from urllib.error import URLError
 
 from . import GLOBALS, colorama
-from .shell import (Input, InteractiveShell, Interrupt, Notice, Progress,
-                    SelectiveShell, Separator, Shell, Switch, abort, stringify,
-                    warn)
+from .shell import (PLATFORM_STYLE_DIM, Input, InteractiveShell, Interrupt,
+                    Notice, Progress, SelectiveShell, Separator, Shell, Switch,
+                    abort, stringify, warn)
 from .utils import (AttributeZipFile, ensure_file_directory,
                     ensure_not_whitespace)
 
@@ -214,17 +214,17 @@ def startup() -> None:
 	shell = SelectiveShell()
 	shell.interactables += [
 		Separator(),
-		Notice("Today we've complete your distribution installation."),
-		Notice("Just let realize some things before downloading, and"),
-		Notice("modding will be started in a few moments."),
+		Notice("Today, we will complete setup of your own modding"),
+		Notice("environment; use enter and arrow keys on computer"),
+		Notice("keyboard to interact with console interface."),
 		Separator(),
 		Progress(progress=0.2, text=" " + "Howdy!".center(45) + ">")
 	]
 	shell.interactables += [
 		Separator(),
-		Input("user", "I'll will be ", template=get_username()),
-		Notice("Author name identifies you, it will be used as default"),
-		Notice("`author` property when you've starting new project."),
+		Input("user", "I will be ", template=get_username()),
+		Notice("Username is used as primary `author` attribute when"),
+		Notice("creating a project, it identifies you in mod browser."),
 		Separator(),
 		Progress(progress=0.4, text="<" + "Who are you?".center(45) + ">")
 	]
@@ -232,20 +232,18 @@ def startup() -> None:
 	preffered = which_installed()
 	if not "declarations" in preffered:
 		preffered.append("declarations")
-	if not "java" in preffered:
-		preffered.append("java")
-
 	try:
 		import shutil
-		if shutil.which("adb") and not "adb" in preffered:
+		if shutil.which("adb") is None and not "adb" in preffered:
 			preffered.append("adb")
 	except BaseException:
 		pass
+
 	components = [
 		Switch("component:" + key, COMPONENTS[key].name, True if key in preffered else False) for key in COMPONENTS
 	]
 	interactables: List[Shell.Interactable] = [
-		Notice("Which components will be installed?")
+		Notice("Which components need to be installed?")
 	]
 	component = 0
 	index = len(interactables)
@@ -261,9 +259,9 @@ def startup() -> None:
 			elif component == len(components):
 				interactables.append(Separator())
 			elif component == len(components) + 1:
-				interactables.append(Notice("Any of components above may be installed when it might"))
+				interactables.append(Notice("Any component can be installed or updated later, and it is"))
 			elif component == len(components) + 2:
-				interactables.append(Notice("be required. Selected will be availabled right now."))
+				interactables.append(Notice("not necessary to install what you do not currently need."))
 			component += 1
 		else:
 			required_lines = shell.lines_per_page - ((index + 1) % shell.lines_per_page)
@@ -279,9 +277,9 @@ def startup() -> None:
 
 	shell.interactables += [
 		Separator(),
-		Switch("typescript", "I'll want to build everything with TypeScript", tsc),
-		Switch("composite", "I've allow building separate files with each other", tsc),
-		Switch("references", "I'm preffer using few script directories in project", False),
+		Switch("typescript", "Do you want to use Node.js for script compilation?", tsc),
+		Notice("This will allow you to use TypeScript and modern ESNext"),
+		Notice("features, but it may slow down build speed."),
 		Separator(),
 		Progress(progress=0.8, text="<" + "Composite performance".center(45) + "+")
 	]
@@ -290,38 +288,32 @@ def startup() -> None:
 		shell.loop()
 	except KeyboardInterrupt:
 		shell.leave()
-		print(); return
+		print()
+		print("* You have exited installation process, settings will not be saved. Environment is available in folder specified in console.")
+		return
 	print()
 
 	username = ensure_not_whitespace(shell.get_interactable("user", Input).read())
 	if username:
-		print("Who are you?", stringify(username, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+		print("What name will be used for publishing mods?", stringify(username, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("template.author", username)
 
 	typescript = shell.get_interactable("typescript", Switch).checked
-	if typescript:
-		print("You will want to build everything with TypeScript")
+	print("Will all scripts be compiled using Node.js?", stringify("yes" if typescript else "no", color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
+	if typescript or GLOBALS.TOOLCHAIN_CONFIG.get_value("denyJavaScript") is not None:
 		GLOBALS.TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
-
-	composite = shell.get_interactable("composite", Switch).checked
-	if not composite:
-		print("You were denied building separate files with each other")
-		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.composite", composite)
-
-	references = shell.get_interactable("references", Switch).checked
-	if references:
-		print("You are preffer using few script directories in project")
-		GLOBALS.TOOLCHAIN_CONFIG.set_value("project.useReferences", references)
 
 	GLOBALS.TOOLCHAIN_CONFIG.save()
 
 	pending = resolve_selected_components(shell.interactables)
 	if len(pending) > 0:
-		print("Which components will be installed?", stringify(", ".join(pending), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+		print("Which components need to be installed?", stringify(", ".join(pending), color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
 		install_components(*pending)
 
+	print("* Installation process is completed! You can now use environment as usual; simply open `toolchain.code-workspace` file or toolchain folder through your favorite IDE.")
+
 def upgrade() -> int:
-	print("Which components will be upgraded?", end="")
+	print("Which components need to be updated?", end="")
 	shell = SelectiveShell(lines_per_page=min(len(COMPONENTS), 9))
 	shell.interactables += [
 		Switch("component:" + key, COMPONENTS[key].name, True if key in which_installed() else False) for key in COMPONENTS
@@ -333,7 +325,7 @@ def upgrade() -> int:
 		print(); return 1
 	installed = resolve_selected_components(shell.interactables)
 	if len(installed) > 0:
-		print("Which components will be upgraded?", stringify(", ".join(installed), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+		print("Which components need to be updated?", stringify(", ".join(installed), color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
 		install_components(*installed)
 	else:
 		print()
@@ -344,7 +336,7 @@ def upgrade() -> int:
 if __name__ == "__main__":
 	if "--help" in sys.argv:
 		print("Usage: python component.py [options] <components>")
-		print(" " * 2 + "--startup: Startup configuration instead of component installation.")
+		print(" " * 2 + "--startup: Initial settings instead of a component updates.")
 		exit(0)
 	if "--startup" in sys.argv or "-s" in sys.argv:
 		startup()

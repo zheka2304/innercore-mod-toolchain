@@ -1,4 +1,3 @@
-import os
 import platform
 import sys
 from typing import (IO, Any, Dict, List, Literal, NoReturn, Optional, Tuple,
@@ -12,8 +11,11 @@ except ImportError:
 
 from . import colorama
 
+PLATFORM_STYLE_DIM = colorama.Style.DIM
+
 if platform.system() == "Windows":
 	colorama.just_fix_windows_console()
+	PLATFORM_STYLE_DIM = colorama.Fore.LIGHTBLACK_EX
 
 
 class Shell():
@@ -616,13 +618,15 @@ class Input(Entry):
 
 	def __init__(self, key: Optional[str], hint: Optional[str] = None, text: Optional[str] = "", arrow: Optional[str] = "> ", template: Optional[str] = None, maximum_length: int = 40) -> None:
 		Entry.__init__(self, key, text, arrow)
+		from .utils import ensure_not_whitespace
+		self.text = ensure_not_whitespace(text, "")
 		self.hint = hint
 		self.template = template
 		self.maximum_length = maximum_length
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
 		text = str(self.text) if len(str(self.text)) > 0 or self.hovered else "..." if not self.template else self.template
-		shell.write(self.get_arrow(at_cursor) + (self.hint or "") + (text if self.hovered else stringify(text, color=colorama.Style.DIM, reset=colorama.Style.NORMAL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
+		shell.write(self.get_arrow(at_cursor) + (self.hint or "") + (text if self.hovered else stringify(text, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
 
 	def read(self) -> Optional[str]:
 		return self.template if not self.hovered and len(str(self.text)) == 0 and self.template else self.text
@@ -658,7 +662,7 @@ class Progress(Shell.Interactable):
 	def render(self, shell: Shell, offset: int, line: int) -> None:
 		text = (str(self.text) if self.text else str(int(self.progress * 100)) + "%").center(self.weight)
 		size = int(self.weight * self.progress)
-		shell.write(stringify(text[:size], color=7, reset=colorama.Style.RESET_ALL) + stringify(text[size:self.weight], color=colorama.Style.DIM, reset=colorama.Style.NORMAL) + "\n")
+		shell.write(stringify(text[:size], color=7, reset=colorama.Style.RESET_ALL) + stringify(text[size:self.weight], color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL) + "\n")
 
 	def seek(self, progress: float, text: Optional[str] = None) -> None:
 		self.progress = progress
@@ -716,7 +720,7 @@ def select_prompt_internal(prompt: Optional[str] = None, *variants: Optional[str
 		return None, None
 	try:
 		if isinstance(interactable, SelectiveShell.Selectable):
-			printc((prompt + " " if prompt else "") + stringify(interactable.placeholder(), color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+			printc((prompt + " " if prompt else "") + stringify(interactable.placeholder(), color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
 	except ValueError:
 		pass
 	return result, interactable
@@ -770,7 +774,7 @@ def printc(*values: object, color: Optional[Union[int, str]] = None, reset: Opti
 		print(reset, end=end, file=file, flush=flush)
 
 def debug(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
-	printc(*values, color=colorama.Style.DIM, reset=colorama.Style.NORMAL, sep=sep, end=end, file=file, flush=flush)
+	printc(*values, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL, sep=sep, end=end, file=file, flush=flush)
 
 def info(*values: object, sep: Optional[str] = " ", end: Optional[str] = "\n", file: Optional[Any] = None, flush: bool = False) -> None:
 	printc(*values, color=colorama.Fore.LIGHTGREEN_EX, reset=colorama.Fore.RESET, sep=sep, end=end, file=file, flush=flush)

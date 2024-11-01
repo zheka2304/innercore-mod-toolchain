@@ -6,9 +6,9 @@ from typing import Any, Dict, List, Optional
 
 from . import GLOBALS, colorama
 from .base_config import BaseConfig
-from .shell import (Entry, Input, Interrupt, Notice, Progress, SelectiveShell,
-                    Separator, Shell, Switch, abort, error, select_prompt,
-                    stringify, warn)
+from .shell import (PLATFORM_STYLE_DIM, Entry, Input, Interrupt, Notice,
+                    Progress, SelectiveShell, Separator, Shell, Switch, abort,
+                    error, select_prompt, stringify, warn)
 from .utils import (copy_file, ensure_not_whitespace, get_all_files,
                     get_project_folder_by_name, name_to_identifier,
                     remove_tree)
@@ -214,7 +214,7 @@ def select_project(variants: List[str], prompt: Optional[str] = "Which project d
 		what = shell.what()
 		if not what or what in additionals:
 			print(); print("Abort."); return
-		print((prompt + " " if prompt else "") + stringify(what, color=colorama.Style.DIM, reset=colorama.Style.NORMAL))
+		print((prompt + " " if prompt else "") + stringify(what, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
 		return what
 	except ValueError:
 		return None
