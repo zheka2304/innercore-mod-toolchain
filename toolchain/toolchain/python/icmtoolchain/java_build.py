@@ -65,7 +65,10 @@ def update_modified_targets(targets: Collection[BuildTarget], target_directory: 
 		libraries = list()
 		for library_path in target.manifest.get_value("library-dirs", list()):
 			library_directory = join(target.directory, library_path)
-			libraries.extend(GLOBALS.BUILD_STORAGE.get_modified_files(library_directory, (".jar")))
+			if exists(library_directory) and isdir(library_directory):
+				libraries.extend(GLOBALS.BUILD_STORAGE.get_modified_files(library_directory, (".jar")))
+			else:
+				warn(f"* Directory {library_path!r} could not be found, please check your 'manifest' file!")
 		if len(libraries) > 0:
 			libraries = rebuild_library_cache(target.relative_directory, libraries, target_directory)
 		if len(classes) > 0 or len(libraries) > 0:
