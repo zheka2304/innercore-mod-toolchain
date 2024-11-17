@@ -14,6 +14,13 @@ from .shell import confirm, info
 DEVNULL = open(os.devnull, "w")
 
 
+class RuntimeCodeError(RuntimeError):
+	code: int
+
+	def __init__(self, code: int, *args: object):
+		self.code = code
+		RuntimeError.__init__(self, *args)
+
 def ensure_directory(directory: str) -> None:
 	"""
 	Ensures that specified path is directory,
