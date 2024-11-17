@@ -5,16 +5,17 @@ import re
 import subprocess
 from collections import namedtuple
 from os.path import basename, exists, isdir, isfile, join, relpath, splitext
-from typing import Collection, Dict, List
+from typing import Any, Collection, Dict, List, Optional
 from zipfile import ZipFile
 
 from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
 from .component import install_components
 from .shell import abort, debug, error, info, warn
-from .utils import (copy_directory, copy_file, ensure_directory, get_all_files,
-                    get_next_filename, remove_tree, request_executable_version,
-                    request_tool, walk_all_files)
+from .utils import (RuntimeCodeError, copy_directory, copy_file,
+                    ensure_directory, get_all_files, get_next_filename,
+                    remove_tree, request_executable_version, request_tool,
+                    walk_all_files)
 
 BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest")
 
@@ -366,7 +367,7 @@ def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: s
 			options += ["--console", "verbose"]
 			break
 
-	result = subprocess.call([
+	result = subprocess.run([
 		gradle_executable,
 		"-p", target_directory, "shadowJar"
 	] + options)
@@ -380,9 +381,8 @@ def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: s
 			# error(result.stderr.strip())
 		# return result.returncode
 
-	# print(result.stdout.strip())
-	print() # TODO: Reimplement to support async logging.
-	return result
+	print()
+	return result.returncode
 
 def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> None:
 	with open(join(target_directory, "settings.gradle"), "w", encoding="utf-8") as settings_gradle:
@@ -494,6 +494,51 @@ def build_java_with(tool: str, directories: Collection[str], target_directory: s
 	GLOBALS.BUILD_STORAGE.save()
 	return result
 
+def merge_java_directory_properties(config: Optional[BaseConfig], java_config: BaseConfig) -> BaseConfig:
+	java_config.remove_value("directories")
+	if not config:
+		return java_config
+
+	if config.has_value("classpath") and java_config.has_value("classpath"):
+		classpath = config.get_value("classpath")
+		prototype_classpath = java_config.get_value("classpath")
+		config.set_value("classpath", set(prototype_classpath).union(classpath))
+
+	return config
+
+def get_java_directories(make_config: BaseConfig) -> Dict[str, BaseConfig]:
+	java_config = make_config.get_config("java")
+	if not java_config:
+		# Obtain properties from deprecated `gradle` config.
+		java_config = make_config.get_or_create_config("gradle")
+
+	directories = java_config.get_list("directories", config=True)
+	if len(directories) == 0:
+		# Obtain directories from deprecated `compile` property.
+		directories = make_config.get_filtered_list("compile", "type", ("java"))
+	configurables = dict()
+	if len(directories) == 0:
+		return configurables
+
+	for directory in directories:
+		config = None
+
+		if isinstance(directory, BaseConfig) and directory.has_value("path"):
+			directory.prototype = config
+			config = directory
+			directory = directory.get_value("path")
+		if not isinstance(directory, str):
+			raise RuntimeCodeError(1, f"Java directory {directory!r} declared wrong, it should be path string or object with `path` property!")
+
+		if directory in configurables:
+			warn(f"* Java directory {directory!r} duplicated in config, overriding existing properties...")
+		if not isdir(directory):
+			warn(f"* Skipped non-existing java directory {directory!r}!")
+
+		configurables[directory] = merge_java_directory_properties(config, java_config)
+
+	return configurables
+
 def compile_java(tool: str = "gradle") -> int:
 	if tool not in ("gradle", "javac", "ecj"):
 		error(f"Java compilation will be cancelled, because tool {tool!r} is not availabled.")
@@ -506,24 +551,14 @@ def compile_java(tool: str = "gradle") -> int:
 	ensure_directory(target_directory)
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("java")
 
-	directories = list()
-	for directory in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("java")):
-		if "source" not in directory:
-			warn(f"* Skipped invalid java directory {directory!r} json!")
-			overall_result += 1
-			continue
-		for path in GLOBALS.MAKE_CONFIG.get_paths(directory["source"]):
-			if not isdir(path):
-				warn(f"* Skipped non-existing java directory {directory!r}!")
-				overall_result += 1
-				continue
-			directories.append(path)
-	if overall_result != 0 or len(directories) == 0:
-		if len(directories) > 0:
-			error("Java compilation will be cancelled, because some directories skipped.")
-		else:
-			GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
-		return overall_result
+	try:
+		directories = get_java_directories(GLOBALS.MAKE_CONFIG)
+	except RuntimeCodeError as exc:
+		error(exc)
+		return exc.code
+	if len(directories) == 0:
+		GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
+		return 0
 
 	if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
 		install_components("java")
@@ -535,7 +570,7 @@ def compile_java(tool: str = "gradle") -> int:
 		classpath_directory = None
 
 	classpath_directories = GLOBALS.MAKE_CONFIG.get_value("java.classpath")
-	# Just in case if someone meaning to use outdated property.
+	# Just in case if someone wants to use outdated property.
 	if not classpath_directories:
 		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", ["classpath"])
 	classpath_directories = [
@@ -544,7 +579,7 @@ def compile_java(tool: str = "gradle") -> int:
 	if classpath_directory:
 		classpath_directories.insert(0, classpath_directory)
 
-	overall_result = build_java_with(tool, directories, target_directory, classpath_directories)
+	overall_result = build_java_with(tool, list(dict.keys(directories)), target_directory, classpath_directories)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 	startup_millis = time() - startup_millis
