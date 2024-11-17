@@ -1,5 +1,5 @@
 {
-	"$schema": "../toolchain/schemas/make.schema.json",
+	"$schema": "../schemas/make.schema.json",
 	"info": {
 		"name": "Sample Mod",
 		"description": "This is sample description",
