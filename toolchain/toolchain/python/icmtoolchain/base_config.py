@@ -3,11 +3,25 @@ from typing import Any, Dict, List, Optional
 
 
 class BaseConfig:
-	json: Dict[Any, Any]; prototype: Optional['BaseConfig']
+	json: Dict[Any, Any]
+	prototype: Optional['BaseConfig']
 
 	def __init__(self, json: Dict[Any, Any], base: Optional['BaseConfig'] = None) -> None:
 		self.json = json
 		self.prototype = base
+
+	def has_value(self, name: str, accept_prototype: bool = False) -> bool:
+		rawname = name.split(".")
+		value = self.json
+		while len(rawname) > 0 and len(rawname[0]) > 0:
+			key = rawname.pop(0)
+			if key in value:
+				value = value[key]
+				continue
+			elif accept_prototype and self.prototype:
+				return self.prototype.has_value(name)
+			return False
+		return value is not None
 
 	def get_value(self, name: str, fallback: Any = None, accept_prototype: bool = True) -> Any:
 		rawname = name.split(".")
@@ -16,10 +30,10 @@ class BaseConfig:
 			key = rawname.pop(0)
 			if key in value:
 				value = value[key]
+				continue
 			elif accept_prototype and self.prototype:
 				return self.prototype.get_value(name, fallback)
-			else:
-				return fallback
+			return fallback
 		return value
 
 	def set_value(self, name: str, what: Any) -> None:
@@ -52,15 +66,6 @@ class BaseConfig:
 				removed |= self.remove_value(name.rsplit(".", 1)[0])
 		return removed
 
-	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
-		value = self.get_value(name)
-		filtered = list()
-		if isinstance(value, list):
-			for obj in value:
-				if isinstance(obj, dict) and property in obj and obj[property] in values:
-					filtered.append(obj)
-		return filtered
-
 	def iterate_entries(self, filter: Optional[str | re.Pattern[str]] = None, recursive: bool = False, *, json: Optional[Dict[Any, Any]] = None, relative_key: Optional[str] = None):
 		if not json:
 			json = self.json
@@ -78,6 +83,25 @@ class BaseConfig:
 		value = self.get_value(name)
 		if isinstance(value, dict):
 			return BaseConfig(value)
+
+	def get_list(self, name: str, config: bool = False) -> List[Any]:
+		value = self.get_value(name)
+		result = list()
+		if isinstance(value, list) or isinstance(value, set):
+			for children in value:
+				result.append(
+					BaseConfig(children) if config and isinstance(children, dict) else children
+				)
+		return result
+
+	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
+		value = self.get_value(name)
+		filtered = list()
+		if isinstance(value, list) or isinstance(value, set):
+			for children in value:
+				if isinstance(children, dict) and property in children and children[property] in values:
+					filtered.append(children)
+		return filtered
 
 	def get_or_create_config(self, name: str) -> 'BaseConfig':
 		config = self.get_config(name)
