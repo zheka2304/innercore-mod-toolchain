@@ -6,8 +6,13 @@ class BaseConfig:
 	json: Dict[Any, Any]
 	prototype: Optional['BaseConfig']
 
-	def __init__(self, json: Dict[Any, Any], base: Optional['BaseConfig'] = None) -> None:
-		self.json = json
+	def __init__(self, obj: Optional[Dict[Any, Any]] = None, base: Optional['BaseConfig'] = None) -> None:
+		if not isinstance(obj, dict):
+			if obj is not None:
+				from json import JSONDecodeError
+				raise JSONDecodeError("Malformed config, it does not contain any data.", str(obj), 0)
+			obj = dict()
+		self.json = obj
 		self.prototype = base
 
 	def has_value(self, name: str, accept_prototype: bool = False) -> bool:
@@ -94,13 +99,15 @@ class BaseConfig:
 				)
 		return result
 
-	def get_filtered_list(self, name: str, property: str, *values: Any) -> List[Any]:
+	def get_filtered_list(self, name: str, property: str, *values: Any, config: bool = False) -> List[Any]:
 		value = self.get_value(name)
 		filtered = list()
 		if isinstance(value, list) or isinstance(value, set):
 			for children in value:
 				if isinstance(children, dict) and property in children and children[property] in values:
-					filtered.append(children)
+					filtered.append(
+						BaseConfig(children) if config and isinstance(children, dict) else children
+					)
 		return filtered
 
 	def get_or_create_config(self, name: str) -> 'BaseConfig':
