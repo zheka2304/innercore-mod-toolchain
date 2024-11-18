@@ -193,4 +193,4 @@ PARAMETERS = {
 	"release": bool
 }
 
-PROPERTIES = BaseConfig(dict())
+PROPERTIES = BaseConfig()
