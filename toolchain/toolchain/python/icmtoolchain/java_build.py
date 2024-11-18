@@ -473,8 +473,7 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed java directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
-		build_target_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
-		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", build_target_directory)
+		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", relative_directory)
 		ensure_directory(output_directory)
 		classpath = collect_classpath_files(config.get_value("classpath"))
 		target = BuildTarget(directory, relative_directory, output_directory, config, classpath)
@@ -556,11 +555,12 @@ def compile_java(tool: str = "gradle") -> int:
 	ensure_directory(target_directory)
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("java")
 
-	classpath_directories = list()
 	if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
 		install_components("java")
 		if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
 			abort("Component 'java' is required for compilation, nothing to do.")
+
+	classpath_directories = list()
 	classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 	if not isdir(classpath_directory):
 		warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")

@@ -5,11 +5,13 @@ from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Any, Collection, Optional
 
 from . import GLOBALS
+from .language import get_language_directories
 from .make_config import BaseConfig, ToolchainConfig
 from .native_setup import abi_to_arch, require_compiler_executable
 from .shell import abort, debug, error, info, warn
-from .utils import (copy_directory, copy_file, ensure_directory,
-                    ensure_file_directory, get_all_files, remove_tree)
+from .utils import (RuntimeCodeError, copy_directory, copy_file,
+                    ensure_directory, ensure_file_directory, get_all_files,
+                    remove_tree)
 
 CODE_OK = 0
 CODE_FAILED_NO_GCC = 1001
@@ -231,64 +233,84 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 
 	return overall_result
 
+def merge_native_directory_properties(config: Optional[BaseConfig], native_config: BaseConfig) -> BaseConfig:
+	if not config:
+		return native_config
+
+	if native_config.has_value("stdincludes"):
+		prototype_stdincludes = native_config.get_value("stdincludes")
+		if config.has_value("stdincludes") and native_config.has_value("stdincludes"):
+			stdincludes = config.get_value("stdincludes")
+			config.set_value("stdincludes", set(prototype_stdincludes).union(stdincludes))
+		else:
+			config.set_value("stdincludes", prototype_stdincludes)
+
+	return config
+
 def compile_native(abis: Collection[str]) -> int:
 	from time import time
 	startup_millis = time()
-	directories = list()
 	overall_result = CODE_OK
-	GLOBALS.MOD_STRUCTURE.cleanup_build_target("native")
-
-	for native_directory in GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("native")):
-		directories.append(native_directory)
-	if overall_result != CODE_OK or len(directories) == 0:
-		GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
-		return overall_result
-
-	std_includes_toolchain = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
-	std_includes_custom = GLOBALS.MAKE_CONFIG.get_path("stdincludes")
-	if not exists(std_includes_toolchain):
-		warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
-	std_includes = list()
-	if exists(std_includes_toolchain):
-		for std_includes_dir in os.listdir(std_includes_toolchain):
-			std_includes_dirpath = join(std_includes_toolchain, std_includes_dir)
-			if isdir(std_includes_dirpath):
-				std_includes.append(abspath(std_includes_dirpath))
-	if exists(std_includes_custom):
-		for std_includes_dir in os.listdir(std_includes_custom):
-			std_includes_dirpath = join(std_includes_custom, std_includes_dir)
-			if isdir(std_includes_dirpath):
-				std_includes.append(abspath(std_includes_dirpath))
 	target_directory = GLOBALS.MAKE_CONFIG.get_build_path("gcc")
 	ensure_directory(target_directory)
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("native")
 
-	for native_directory in directories:
-		if "source" not in native_directory:
-			warn(f"* Skipped invalid native directory {native_directory!r} json!")
-			overall_result = CODE_INVALID_JSON
-			continue
+	stdincludes_directories = list()
+	stdincludes_toolchain = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
+	if not exists(stdincludes_toolchain):
+		warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
+	else:
+		for directory in os.listdir(stdincludes_toolchain):
+			std_includes_dirpath = join(stdincludes_toolchain, directory)
+			if isdir(std_includes_dirpath):
+				stdincludes_directories.append(abspath(std_includes_dirpath))
+	stdincludes_custom = GLOBALS.MAKE_CONFIG.get_path("stdincludes")
+	if exists(stdincludes_custom):
+		for directory in os.listdir(stdincludes_custom):
+			std_includes_dirpath = join(stdincludes_custom, directory)
+			if isdir(std_includes_dirpath):
+				stdincludes_directories.append(abspath(std_includes_dirpath))
 
-		for relative_directory in GLOBALS.MAKE_CONFIG.get_paths(native_directory["source"]):
-			if isdir(relative_directory):
-				directory_name = basename(relative_directory)
-				overall_result = build_native_directory(
-					relative_directory,
-					GLOBALS.MOD_STRUCTURE.new_build_target("native", directory_name + "{}"),
-					join(target_directory, directory_name),
-					abis,
-					std_includes,
-					BaseConfig(native_directory["rules"] if "rules" in native_directory else dict())
-				)
-				if overall_result != CODE_OK:
-					return overall_result
-			else:
-				warn(f"* Skipped non-existing native directory {native_directory['source']!r}!")
-				overall_result = CODE_INVALID_PATH
+	try:
+		native_config = GLOBALS.MAKE_CONFIG.get_config("native")
+		if not native_config:
+			# Obtain deprecated config `linkNative` property.
+			native_config = BaseConfig()
+			if GLOBALS.MAKE_CONFIG.has_value("linkNative"):
+				native_config.set_value("link", GLOBALS.MAKE_CONFIG.get_value("linkNative"))
+		if len(stdincludes_directories) > 0:
+			additional_config = BaseConfig()
+			additional_config.set_value("stdincludes", stdincludes_directories)
+			native_config = merge_native_directory_properties(native_config, additional_config)
+		directories = get_language_directories("native", merge_native_directory_properties, native_config)
+	except RuntimeCodeError as exc:
+		error(exc)
+		return exc.code
+	if len(directories) == 0:
+		GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
+		return 0
+
+	for directory, config in directories.items():
+		# TODO: Maybe move logic to relative directory instead of hashed one.
+		# relative_directory = config.get_value("directory")
+		# assert relative_directory, "Internal error, relative directory cannot be empty."
+		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+		overall_result = build_native_directory(
+			directory,
+			GLOBALS.MOD_STRUCTURE.new_build_target("native", relative_directory),
+			join(target_directory, relative_directory),
+			abis,
+			stdincludes_directories,
+			config.get_or_create_config("rules")
+		)
+		if overall_result != CODE_OK:
+			break
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
 	startup_millis = time() - startup_millis
-	if len(directories) > 0 and overall_result == CODE_OK:
+	if overall_result == CODE_OK:
 		print(f"Completed native build in {startup_millis:.2f}s!")
-	if overall_result != CODE_OK:
+	else:
 		error(f"Failed native build in {startup_millis:.2f}s with result {overall_result}.")
+
 	return overall_result
