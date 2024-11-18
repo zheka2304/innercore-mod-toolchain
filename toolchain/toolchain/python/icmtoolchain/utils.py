@@ -147,7 +147,7 @@ def walk_all_files(directories: Union[Iterable[str], str], then: Callable[[str],
 
 	if isinstance(directories, str):
 		walk_files(directories)
-	else:
+	elif isinstance(directories, list) or isinstance(directories, set):
 		for directory in directories:
 			walk_files(directory)
 
