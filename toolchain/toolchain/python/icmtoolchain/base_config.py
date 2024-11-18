@@ -37,7 +37,7 @@ class BaseConfig:
 				value = value[key]
 				continue
 			elif accept_prototype and self.prototype:
-				return self.prototype.get_value(name, fallback)
+				return self.prototype.get_value(name, fallback, accept_prototype)
 			return fallback
 		return value
 

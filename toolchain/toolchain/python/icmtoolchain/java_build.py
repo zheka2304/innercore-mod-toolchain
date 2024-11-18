@@ -17,7 +17,7 @@ from .utils import (RuntimeCodeError, copy_directory, copy_file,
                     remove_tree, request_executable_version, request_tool,
                     walk_all_files)
 
-BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest")
+BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest classpath")
 
 def prepare_directory_order(directory: str) -> List[str]:
 	directories = os.listdir(directory)
@@ -28,29 +28,37 @@ def prepare_directory_order(directory: str) -> List[str]:
 		directories = list(filter(lambda name: isdir(join(directory, name)), directories))
 	return directories
 
-def prepare_build_targets(directories: Collection[str]) -> List[BuildTarget]:
-	targets = list()
+def collect_classpath_files(directories: Optional[Collection[str]]) -> List[str]:
+	classpath = list()
+	if not directories:
+		return classpath
 	for directory in directories:
-		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
-			manifest = json.load(manifest)
-		# TODO: relative_directory = GLOBALS.MAKE_CONFIG.get_relative_path(directory)
-		relative_directory = basename(directory)
-		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", relative_directory)
-		ensure_directory(output_directory)
-		targets.append(BuildTarget(directory, relative_directory, output_directory, BaseConfig(manifest)))
-	return targets
+		classpath_directory = GLOBALS.MAKE_CONFIG.get_absolute_path(directory)
+		if not isdir(classpath_directory):
+			classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(directory)
+		if not isdir(classpath_directory):
+			warn(f"* Skipped non-existing classpath directory {directory!r}, please make sure that them exist!")
+			continue
+		libraries = get_all_files(classpath_directory, (".jar"))
+		classpath.extend(libraries)
+	return classpath
+
+def flatten_classpath_files(targets: Collection[BuildTarget]) -> List[str]:
+	return [
+		library for target in targets for library in target.classpath
+	]
 
 def rebuild_library_cache(relative_directory: str, libraries: Collection[str], target_directory: str) -> List[str]:
 	target_classes_directory = join(target_directory, "libraries", "classes", relative_directory)
 	compressed_libraries = join(target_directory, "libraries", relative_directory + ".zip")
 
-	debug("Rebuilding library cache:", relative_directory)
+	debug(f"Rebuilding library cache: {relative_directory}")
 	remove_tree(target_classes_directory)
 	ensure_directory(target_classes_directory)
 
 	import shutil
 	for filename in libraries:
-		debug("Extracting library classes:", basename(filename))
+		debug(f"Extracting library classes: {basename(filename)}")
 		shutil.unpack_archive(filename, target_classes_directory, "zip")
 
 	debug("Zipping extracted cache")
@@ -60,16 +68,19 @@ def rebuild_library_cache(relative_directory: str, libraries: Collection[str], t
 
 def update_modified_targets(targets: Collection[BuildTarget], target_directory: str) -> Dict[str, Dict[str, List[str]]]:
 	modified_files = dict()
+
 	for target in targets:
 		classes_directory = join(target_directory, "classes", target.relative_directory, "classes")
 		classes = GLOBALS.BUILD_STORAGE.get_modified_files(classes_directory, (".class")) if isdir(classes_directory) else []
 		libraries = list()
+
 		for library_path in target.manifest.get_value("library-dirs", list()):
 			library_directory = join(target.directory, library_path)
 			if exists(library_directory) and isdir(library_directory):
 				libraries.extend(GLOBALS.BUILD_STORAGE.get_modified_files(library_directory, (".jar")))
 			else:
 				warn(f"* Directory {library_path!r} could not be found, please check your 'manifest' file!")
+
 		if len(libraries) > 0:
 			libraries = rebuild_library_cache(target.relative_directory, libraries, target_directory)
 		if len(classes) > 0 or len(libraries) > 0:
@@ -77,6 +88,7 @@ def update_modified_targets(targets: Collection[BuildTarget], target_directory: 
 				"classes": classes,
 				"libraries": libraries
 			}
+
 	return modified_files
 
 def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
@@ -198,7 +210,7 @@ def merge_compressed_dexes(target: BuildTarget, target_directory: str) -> int:
 
 ### JAVAC
 
-def build_java_with_javac(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
+def build_java_with_javac(targets: Collection[BuildTarget], target_directory: str) -> int:
 	javac_executable = None
 	supports_modules = False
 
@@ -244,10 +256,10 @@ def build_java_with_javac(targets: Collection[BuildTarget], target_directory: st
 			options += ["-sourcepath", os.pathsep.join(join(target.directory, source) for source in source_directories)]
 		precompiled = list()
 		if supports_modules:
-			precompiled += classpath
+			precompiled += target.classpath
 		else:
 			# Might be unstable with lambdas, desugaring requires JDK >= 9.
-			options += ["-bootclasspath", os.pathsep.join(classpath)]
+			options += ["-bootclasspath", os.pathsep.join(target.classpath)]
 		if len(library_directories) > 0:
 			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
 		options += ["-classpath", os.pathsep.join(precompiled)]
@@ -286,7 +298,7 @@ def write_changed_source_files(target: BuildTarget, directories: Collection[str]
 
 ### ECJ
 
-def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
+def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str) -> int:
 	ecj_executable = None
 
 	for target in targets:
@@ -328,7 +340,7 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 			options.append("-verbose")
 		if len(source_directories) > 0:
 			options += ["-sourcepath", ":".join(join(target.directory, source) for source in source_directories)]
-		precompiled = list(classpath)
+		precompiled = target.classpath
 		if len(library_directories) > 0:
 			precompiled += get_all_files((join(target.directory, library) for library in library_directories), (".jar"))
 		options += ["-classpath", ":".join(precompiled)]
@@ -355,8 +367,8 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str,
 
 ### GRADLE
 
-def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> int:
-	setup_gradle_project(targets, target_directory, classpath)
+def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: str) -> int:
+	setup_gradle_project(targets, target_directory, flatten_classpath_files(targets))
 	gradle_executable = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
 	if platform.system() == "Windows":
 		gradle_executable += ".bat"
@@ -443,16 +455,41 @@ def cleanup_gradle_scripts(targets: Collection[BuildTarget]) -> None:
 
 ### TASKS
 
-def build_java_with(tool: str, directories: Collection[str], target_directory: str, classpath_directories: Collection[str]) -> int:
-	classpath = get_all_files(classpath_directories, (".jar"))
-	targets = prepare_build_targets(directories)
+def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarget]:
+	targets = list()
+
+	for directory, config in directories.items():
+		# TODO: Maybe move logic to relative directory instead of hashed one.
+		# relative_directory = config.get_value("directory")
+		# assert relative_directory, "Internal error, relative directory cannot be empty."
+		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+
+		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
+			try:
+				manifest = BaseConfig(json.load(manifest))
+				manifest.remove_value("directory")
+				config = merge_java_directory_properties(manifest, config)
+			except json.JSONDecodeError as exc:
+				raise RuntimeCodeError(2, f"* Malformed java directory {directory!r} manifest, you should fix it: {exc.msg}.")
+
+		build_target_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", build_target_directory)
+		ensure_directory(output_directory)
+		classpath = collect_classpath_files(config.get_value("classpath"))
+		target = BuildTarget(directory, relative_directory, output_directory, config, classpath)
+		targets.append(target)
+
+	return targets
+
+def build_java_with(tool: str, directories: Dict[str, BaseConfig], target_directory: str) -> int:
+	targets = get_java_build_targets(directories)
 
 	if tool == "gradle":
-		result = build_java_with_gradle(targets, target_directory, classpath)
+		result = build_java_with_gradle(targets, target_directory)
 	elif tool == "ecj":
-		result = build_java_with_ecj(targets, target_directory, classpath)
+		result = build_java_with_ecj(targets, target_directory)
 	else: # javac
-		result = build_java_with_javac(targets, target_directory, classpath)
+		result = build_java_with_javac(targets, target_directory)
 	if result != 0:
 		return result
 
@@ -464,7 +501,7 @@ def build_java_with(tool: str, directories: Collection[str], target_directory: s
 				info(f"* Directory {target.relative_directory!r} is not changed.")
 		else:
 			debug(f"* Running d8 with {target.relative_directory!r}")
-			result = run_d8(target, modified_targets[target.relative_directory], classpath, target_directory)
+			result = run_d8(target, modified_targets[target.relative_directory], target.classpath, target_directory)
 			if result != 0:
 				error(f"Failed to dex {target.relative_directory!r} with result {result}.")
 				return result
@@ -495,53 +532,66 @@ def build_java_with(tool: str, directories: Collection[str], target_directory: s
 	return result
 
 def merge_java_directory_properties(config: Optional[BaseConfig], java_config: BaseConfig) -> BaseConfig:
-	java_config.remove_value("directories")
 	if not config:
 		return java_config
 
-	if config.has_value("classpath") and java_config.has_value("classpath"):
-		classpath = config.get_value("classpath")
+	if java_config.has_value("classpath"):
 		prototype_classpath = java_config.get_value("classpath")
-		config.set_value("classpath", set(prototype_classpath).union(classpath))
+		if config.has_value("classpath") and java_config.has_value("classpath"):
+			classpath = config.get_value("classpath")
+			config.set_value("classpath", set(prototype_classpath).union(classpath))
+		else:
+			config.set_value("classpath", prototype_classpath)
 
 	return config
 
-def get_java_directories(make_config: BaseConfig) -> Dict[str, BaseConfig]:
-	java_config = make_config.get_config("java")
+def get_java_directories(additional_config: Optional[BaseConfig]) -> Dict[str, BaseConfig]:
+	java_config = GLOBALS.MAKE_CONFIG.get_config("java")
 	if not java_config:
 		# Obtain properties from deprecated `gradle` config.
-		java_config = make_config.get_or_create_config("gradle")
+		java_config = GLOBALS.MAKE_CONFIG.get_or_create_config("gradle")
+	if isinstance(additional_config, BaseConfig):
+		java_config = merge_java_directory_properties(java_config, additional_config)
 
 	directories = java_config.get_list("directories", config=True)
 	if len(directories) == 0:
 		# Obtain directories from deprecated `compile` property.
-		directories = make_config.get_filtered_list("compile", "type", ("java"))
+		directories = GLOBALS.MAKE_CONFIG.get_filtered_list("compile", "type", ("java"), config=True)
 	configurables = dict()
 	if len(directories) == 0:
 		return configurables
+	java_config.remove_value("directories")
 
 	for directory in directories:
 		config = None
 
-		if isinstance(directory, BaseConfig) and directory.has_value("path"):
+		if isinstance(directory, BaseConfig):
 			directory.prototype = config
 			config = directory
-			directory = directory.get_value("path")
+			if directory.has_value("path"):
+				directory = directory.get_value("path")
+			elif directory.has_value("source"):
+				directory = directory.get_value("source")
 		if not isinstance(directory, str):
 			raise RuntimeCodeError(1, f"Java directory {directory!r} declared wrong, it should be path string or object with `path` property!")
 
-		if directory in configurables:
-			warn(f"* Java directory {directory!r} duplicated in config, overriding existing properties...")
-		if not isdir(directory):
-			warn(f"* Skipped non-existing java directory {directory!r}!")
+		for flattened_directory in GLOBALS.MAKE_CONFIG.get_paths(directory):
+			absolute_directory = GLOBALS.MAKE_CONFIG.get_absolute_path(flattened_directory)
+			if not isdir(absolute_directory):
+				warn(f"* Skipped non-existing java directory {directory!r}!")
+				continue
+			if absolute_directory in configurables:
+				warn(f"* Java directory {directory!r} duplicated in config, overriding existing properties...")
 
-		configurables[directory] = merge_java_directory_properties(config, java_config)
+			config = merge_java_directory_properties(config, java_config)
+			config.set_value("directory", GLOBALS.MAKE_CONFIG.get_relative_path(flattened_directory))
+			configurables[absolute_directory] = config
 
 	return configurables
 
 def compile_java(tool: str = "gradle") -> int:
 	if tool not in ("gradle", "javac", "ecj"):
-		error(f"Java compilation will be cancelled, because tool {tool!r} is not availabled.")
+		error(f"Java compilation will be cancelled, because tool {tool!r} is not available.")
 		return 255
 	from time import time
 	startup_millis = time()
@@ -551,8 +601,27 @@ def compile_java(tool: str = "gradle") -> int:
 	ensure_directory(target_directory)
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("java")
 
+	classpath_directories = list()
+	if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
+		install_components("java")
+		if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
+			abort("Component 'java' is required for compilation, nothing to do.")
+	classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
+	if not isdir(classpath_directory):
+		warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
+	else:
+		classpath_directories.append(classpath_directory)
+	project_classpath_directory = GLOBALS.MAKE_CONFIG.get_path("classpath")
+	if exists(project_classpath_directory):
+		classpath_directories.append(project_classpath_directory)
+
+	additional_config = None
+	if len(classpath_directories) > 0:
+		additional_config = BaseConfig(dict())
+		additional_config.set_value("classpath", classpath_directories)
+
 	try:
-		directories = get_java_directories(GLOBALS.MAKE_CONFIG)
+		directories = get_java_directories(additional_config)
 	except RuntimeCodeError as exc:
 		error(exc)
 		return exc.code
@@ -560,26 +629,7 @@ def compile_java(tool: str = "gradle") -> int:
 		GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 		return 0
 
-	if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
-		install_components("java")
-		if not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/r8")):
-			abort("Component 'java' is required for compilation, nothing to do.")
-	classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
-	if not exists(classpath_directory):
-		warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
-		classpath_directory = None
-
-	classpath_directories = GLOBALS.MAKE_CONFIG.get_value("java.classpath")
-	# Just in case if someone wants to use outdated property.
-	if not classpath_directories:
-		classpath_directories = GLOBALS.MAKE_CONFIG.get_value("gradle.classpath", ["classpath"])
-	classpath_directories = [
-		GLOBALS.MAKE_CONFIG.get_absolute_path(filename) for filename in classpath_directories
-	]
-	if classpath_directory:
-		classpath_directories.insert(0, classpath_directory)
-
-	overall_result = build_java_with(tool, list(dict.keys(directories)), target_directory, classpath_directories)
+	overall_result = build_java_with(tool, directories, target_directory)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 	startup_millis = time() - startup_millis
