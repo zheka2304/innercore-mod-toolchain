@@ -1,13 +1,14 @@
 import json
 import os
 import subprocess
+from collections import namedtuple
 from os.path import abspath, basename, exists, isdir, isfile, join, relpath
-from typing import Any, Collection, Optional
+from typing import Collection, Dict, List, Optional
 
 from . import GLOBALS
 from .language import get_language_directories
 from .make_config import BaseConfig, ToolchainConfig
-from .native_setup import abi_to_arch, require_compiler_executable
+from .native_setup import prepare_compiler_executable
 from .shell import abort, debug, error, info, warn
 from .utils import (RuntimeCodeError, copy_directory, copy_file,
                     ensure_directory, ensure_file_directory, get_all_files,
@@ -21,9 +22,28 @@ CODE_INVALID_JSON = 1004
 CODE_INVALID_PATH = 1005
 
 
-def prepare_compiler_executable(abi: str) -> Optional[str]:
-	arch = abi_to_arch(abi)
-	return require_compiler_executable(arch=abi if not arch else arch, install_if_required=True)
+BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest stdincludes")
+
+def collect_stdincludes_directories(directories: Optional[Collection[str]]) -> List[str]:
+	stdincludes = list()
+	if not directories:
+		return stdincludes
+	for directory in directories:
+		stdincludes_directory = GLOBALS.MAKE_CONFIG.get_absolute_path(directory)
+		if not isdir(stdincludes_directory):
+			stdincludes_directory = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(directory)
+		if not isdir(stdincludes_directory):
+			warn(f"* Skipped non-existing stdincludes directory {directory!r}, please make sure that them exist!")
+			continue
+		has_directories = False
+		for filename in os.listdir(stdincludes_directory):
+			stdincludes_headers = join(stdincludes_directory, filename)
+			if isdir(stdincludes_headers):
+				stdincludes.append(stdincludes_headers)
+				has_directories = True
+			elif not has_directories and filename.endswith((".h", ".hpp")):
+				warn(f"* Header {filename} should be inside any of stdincludes directory, otherwise it will be ignored.")
+	return stdincludes
 
 def get_manifest(directory: str) -> ToolchainConfig:
 	return ToolchainConfig(join(directory, "manifest"))
@@ -46,11 +66,11 @@ def get_fake_so_directory(abi: str) -> str:
 	ensure_directory(fake_so_dir)
 	return fake_so_dir
 
-def add_fake_so(gcc: str, abi: str, name: str) -> None:
+def add_fake_so(executable: str, abi: str, name: str) -> None:
 	file = join(get_fake_so_directory(abi), "lib" + name + ".so")
 	if not isfile(file):
 		result = subprocess.call([
-			gcc, "-std=c++11",
+			executable, "-std=c++11",
 			GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/fakeso.cpp"),
 			"-shared", "-o", file
 		])
@@ -59,19 +79,35 @@ def add_fake_so(gcc: str, abi: str, name: str) -> None:
 		else:
 			warn(f"Stubbing fake so failed with result {result}!")
 
-def build_native_directory(directory: str, output_directory: str, target_directory: str, abis: Collection[str], std_includes: Collection[str], rules: BaseConfig) -> int:
-	executables = dict()
-	for abi in abis:
-		executable = prepare_compiler_executable(abi)
-		if not executable:
-			abort(f"Failed to acquire GCC executable from NDK for ABI {abi!r}!", code=CODE_FAILED_NO_GCC)
-		executables[abi] = executable
+def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarget]:
+	targets = list()
 
-	try:
-		manifest = get_manifest(directory)
-	except Exception as err:
-		abort(f"Failed to read manifest for directory {directory} with unexpected error!", code=CODE_FAILED_INVALID_MANIFEST, cause=err)
-	targets = dict()
+	for directory, config in directories.items():
+		# TODO: Maybe move logic to relative directory instead of hashed one.
+		# relative_directory = config.get_value("directory")
+		# assert relative_directory, "Internal error, relative directory cannot be empty."
+		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+
+		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
+			try:
+				manifest = BaseConfig(json.load(manifest))
+				manifest.remove_value("directory")
+				# Obtain deprecated `rules` property to being merged.
+				if manifest.has_value("rules"):
+					config = merge_native_directory_properties(manifest.get_config("rules"), config)
+				config = merge_native_directory_properties(manifest, config)
+			except json.JSONDecodeError as exc:
+				raise RuntimeCodeError(2, f"* Malformed native directory {directory!r} manifest, you should fix it: {exc.msg}.")
+
+		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("native", relative_directory)
+		ensure_directory(output_directory)
+		stdincludes = collect_stdincludes_directories(config.get_value("stdincludes"))
+		target = BuildTarget(directory, relative_directory, output_directory, config, stdincludes)
+		targets.append(target)
+
+	return targets
+
+def build_native_with_ndk(directory: str, output_directory: str, target_directory: str, abis: Collection[str], stdincludes: Collection[str], manifest: BaseConfig) -> int:
 	library_name = manifest.get_value("shared.name", basename(directory))
 	if len(library_name) == 0 or library_name.isspace() or (manifest.get_value("shared") and library_name == "unnamed"):
 		abort(f"Library directory {directory} uses illegal name {library_name!r}!", code=CODE_FAILED_INVALID_MANIFEST)
@@ -85,7 +121,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 	else:
 		make = None
 
-	keep_sources = rules.get_value("keepSources", fallback=False)
+	keep_sources = manifest.get_value("keepSources", fallback=False)
 	if keep_sources:
 		# Copy everything without built directories.
 		copy_directory(directory, output_directory, clear_destination=True)
@@ -93,9 +129,9 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 		os.remove(join(output_directory, soname))
 	else:
 		remove_tree(output_directory)
-		copy_file(manifest.path, join(output_directory, "manifest"))
+		copy_file(join(directory, "manifest"), join(output_directory, "manifest"))
 
-		keep_includes = rules.get_value("keepIncludes", fallback=False)
+		keep_includes = manifest.get_value("keepIncludes", fallback=False)
 		for include_path in manifest.get_value("shared.include", fallback=list()):
 			src_include_path = join(directory, include_path)
 			output_include_path = join(output_directory, include_path)
@@ -127,6 +163,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			return CODE_FAILED_INVALID_MANIFEST
 		return CODE_OK
 
+	targets = dict()
 	for abi in abis:
 		targets[abi] = abspath(join(output_directory, soname)) if len(abis) == 1 \
 			else abspath(join(output_directory, "so", abi, soname))
@@ -135,13 +172,13 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 	for abi in abis:
 		info(f"* Compiling {library_name!r} for {abi}")
 
-		executable = executables[abi]
-		gcc = [executable, "-std=c++11"]
+		executable = prepare_compiler_executable(abi)
+		compiler_command = [executable, "-std=c++11"]
 		includes = list()
-		for std_includes_dir in std_includes:
-			includes.append(f"-I{std_includes_dir}")
+		for stdincludes_directory in stdincludes:
+			includes.append(f"-I{stdincludes_directory}")
 		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog"]
-		for link in rules.get_value("link", fallback=list()) + GLOBALS.MAKE_CONFIG.get_value("linkNative", fallback=list()) + ["horizon"]:
+		for link in manifest.get_value("link", fallback=list()) + ["horizon"]:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 
@@ -154,8 +191,8 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 				dependency_directory = search_in_directory(search_directory, dependency)
 				if dependency_directory:
 					try:
-						for include_dir in get_manifest(dependency_directory).get_value("shared.include", fallback=list()):
-							includes.append("-I" + join(dependency_directory, include_dir))
+						for include_directory in get_manifest(dependency_directory).get_value("shared.include", fallback=list()):
+							includes.append("-I" + join(dependency_directory, include_directory))
 					except KeyError:
 						pass
 			else:
@@ -181,7 +218,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			ensure_file_directory(object_file)
 			object_files.append(object_file)
 
-			result = subprocess.call(gcc + [
+			result = subprocess.call(compiler_command + [
 				"-E", file, "-o", tmp_preprocessed_file
 			] + includes)
 			if result == CODE_OK:
@@ -194,7 +231,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 						os.remove(object_file)
 
 					debug(f"Compiling {relative_file}{' ' * 48}", end="\r")
-					result = max(result, subprocess.call(gcc + [
+					result = max(result, subprocess.call(compiler_command + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
 					]))
 					if result != CODE_OK:
@@ -217,7 +254,7 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 
 		debug("Linking object files")
 		linking_command = list()
-		linking_command += gcc
+		linking_command += compiler_command
 		linking_command += object_files
 		if make and len(make) != 0 and not make.isspace():
 			linking_command.append(make)
@@ -232,6 +269,17 @@ def build_native_directory(directory: str, output_directory: str, target_directo
 			break
 
 	return overall_result
+
+def build_native_directories(abis: Collection[str], directories: Dict[str, BaseConfig], target_directory: str) -> int:
+	targets = get_native_build_targets(directories)
+
+	for target in targets:
+		target_library_directory = join(target_directory, target.relative_directory)
+		result = build_native_with_ndk(target.directory, target.output_directory, target_library_directory, abis, target.stdincludes, target.manifest)
+		if result != 0:
+			return result
+
+	return 0
 
 def merge_native_directory_properties(config: Optional[BaseConfig], native_config: BaseConfig) -> BaseConfig:
 	if not config:
@@ -290,21 +338,7 @@ def compile_native(abis: Collection[str]) -> int:
 		GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
 		return 0
 
-	for directory, config in directories.items():
-		# TODO: Maybe move logic to relative directory instead of hashed one.
-		# relative_directory = config.get_value("directory")
-		# assert relative_directory, "Internal error, relative directory cannot be empty."
-		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
-		overall_result = build_native_directory(
-			directory,
-			GLOBALS.MOD_STRUCTURE.new_build_target("native", relative_directory),
-			join(target_directory, relative_directory),
-			abis,
-			stdincludes_directories,
-			config.get_or_create_config("rules")
-		)
-		if overall_result != CODE_OK:
-			break
+	overall_result = build_native_directories(abis, directories, target_directory)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("nativeDirs")
 	startup_millis = time() - startup_millis

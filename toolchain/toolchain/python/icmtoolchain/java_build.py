@@ -481,7 +481,7 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 
 	return targets
 
-def build_java_with(tool: str, directories: Dict[str, BaseConfig], target_directory: str) -> int:
+def build_java_directories(tool: str, directories: Dict[str, BaseConfig], target_directory: str) -> int:
 	targets = get_java_build_targets(directories)
 
 	if tool == "gradle":
@@ -587,7 +587,7 @@ def compile_java(tool: str = "gradle") -> int:
 		GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 		return 0
 
-	overall_result = build_java_with(tool, directories, target_directory)
+	overall_result = build_java_directories(tool, directories, target_directory)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
 	startup_millis = time() - startup_millis

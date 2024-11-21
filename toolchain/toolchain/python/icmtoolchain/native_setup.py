@@ -10,7 +10,8 @@ from urllib.error import URLError
 
 from . import GLOBALS
 from .shell import Progress, Shell, abort, confirm, error, warn
-from .utils import AttributeZipFile, list_subdirectories, remove_tree
+from .utils import (AttributeZipFile, RuntimeCodeError, list_subdirectories,
+                    remove_tree)
 
 ABIS = {
 	"armeabi-v7a": "arm",
@@ -18,6 +19,8 @@ ABIS = {
 	"x86": "x86",
 	"x86_64": "x86_64"
 }
+
+GCC_EXECUTABLES = dict()
 
 
 def abi_to_arch(abi: str) -> str:
@@ -73,10 +76,11 @@ def search_for_gcc_executable(ndk_directory: str) -> Optional[str]:
 	search_directory = join(realpath(ndk_directory), "bin")
 	if isdir(search_directory):
 		pattern = re.compile(r"[0-9_A-Za-z]*-linux-android(eabi)*-g\+\+.*")
-		for filename in listdir(search_directory):
+		files = listdir(search_directory)
+		for filename in files:
 			if re.match(pattern, filename):
 				return abspath(join(search_directory, filename))
-		print(f"Searching GCC in {search_directory} with {len(listdir(search_directory))} files...")
+		print(f"Searching GCC in {search_directory} with {len(files)} files...")
 
 def require_compiler_executable(arch: str, install_if_required: bool = False) -> Optional[str]:
 	ndk_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch))
@@ -93,6 +97,17 @@ def require_compiler_executable(arch: str, install_if_required: bool = False) ->
 				error("Critical exception occured, installation is not supported anymore!")
 				return None
 	return file
+
+def prepare_compiler_executable(abi: str) -> str:
+	arch = abi_to_arch(abi)
+	if arch in GCC_EXECUTABLES:
+		return GCC_EXECUTABLES[arch]
+	executable = require_compiler_executable(arch, install_if_required=True)
+	if not executable:
+		from .native_build import CODE_FAILED_NO_GCC
+		raise RuntimeCodeError(CODE_FAILED_NO_GCC, f"Failed to acquire compiler executable from NDK for ABI {abi!r}!")
+	GCC_EXECUTABLES[arch] = executable
+	return executable
 
 def check_installation(arches: Union[str, List[str]]) -> bool:
 	if not isinstance(arches, list):
