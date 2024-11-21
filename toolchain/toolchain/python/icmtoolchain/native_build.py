@@ -326,19 +326,13 @@ def compile_native(abis: Collection[str]) -> int:
 
 	stdincludes_directories = list()
 	stdincludes_toolchain = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/stdincludes")
-	if not exists(stdincludes_toolchain):
+	if not isdir(stdincludes_toolchain):
 		warn("Not found 'toolchain/stdincludes', in most cases build will be failed, please install it via tasks.")
 	else:
-		for directory in os.listdir(stdincludes_toolchain):
-			std_includes_dirpath = join(stdincludes_toolchain, directory)
-			if isdir(std_includes_dirpath):
-				stdincludes_directories.append(abspath(std_includes_dirpath))
+		stdincludes_directories.append(stdincludes_toolchain)
 	stdincludes_custom = GLOBALS.MAKE_CONFIG.get_path("stdincludes")
 	if exists(stdincludes_custom):
-		for directory in os.listdir(stdincludes_custom):
-			std_includes_dirpath = join(stdincludes_custom, directory)
-			if isdir(std_includes_dirpath):
-				stdincludes_directories.append(abspath(std_includes_dirpath))
+		stdincludes_directories.append(stdincludes_custom)
 
 	try:
 		native_config = GLOBALS.MAKE_CONFIG.get_config("native")
