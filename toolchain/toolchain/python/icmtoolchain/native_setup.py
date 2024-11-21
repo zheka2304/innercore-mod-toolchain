@@ -1,5 +1,6 @@
 import platform
 import re
+import struct
 import subprocess
 import zipfile
 from os import environ, getenv, listdir, makedirs
@@ -30,9 +31,9 @@ def abi_to_arch(abi: str) -> str:
 
 def search_ndk_subdirectories(dir: str) -> Optional[str]:
 	preferred_ndk_versions = [
-		"android-ndk-r16b",
-		"android-ndk-.*",
-		"16(\\.[0-9]*)+",
+		r"android-ndk-r\d+\b",
+		r"android-ndk-.*",
+		r"\d+(\\.\d+)+",
 		"ndk-bundle"
 	]
 	possible_ndk_dirs = list_subdirectories(dir)
@@ -117,6 +118,29 @@ def check_installation(arches: Union[str, List[str]]) -> bool:
 		arches
 	))) == 0
 
+def get_download_ndk_url(revision: str) -> str:
+	overriden_url = GLOBALS.TOOLCHAIN_CONFIG.get_value("native.ndkUrl", GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkUrl"))
+	if overriden_url and isinstance(overriden_url, str):
+		return overriden_url
+	pattern_version = re.search(r"\d+", revision)
+	requires_architecture = pattern_version and int(pattern_version.string) <= 22
+	is_32bit = struct.calcsize("P") == 4
+	if is_32bit and (not pattern_version or int(pattern_version.string) >= 21 or int(pattern_version.string) <= 10):
+		raise RuntimeCodeError(255, "Your platform is not supported anymore, you should upgrade to 64 bit for using Android NDK r21e and newer.")
+	package_suffix = platform.system()
+	if package_suffix == "Windows":
+		package_suffix = "windows-x86_64" if requires_architecture else "windows"
+	# TODO: Maybe also extract dmg archives from MacOS?
+	elif package_suffix == "Darwin":
+		package_suffix = "darwin-x86_64" if requires_architecture else "darwin"
+	else:
+		if is_32bit:
+			raise RuntimeCodeError(255, f"Your platform {package_suffix} should be upgraded to 64 bit, otherwise Android NDK cannot be installed.")
+		if package_suffix != "Linux":
+			warn(f"* Expected platform Windows, MacOS or Linux. Got: {package_suffix}, falling back to Linux.")
+		package_suffix = "linux-x86_64" if requires_architecture else "linux"
+	return f"https://dl.google.com/android/repository/android-ndk-{revision}-{package_suffix}.zip"
+
 def download_gcc(shell: Optional[Shell] = None) -> Optional[str]:
 	from urllib import request
 	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
@@ -128,7 +152,7 @@ def download_gcc(shell: Optional[Shell] = None) -> Optional[str]:
 			progress = Progress(text="C++ GCC Compiler (NDK)")
 			shell.interactables.append(progress)
 			shell.render()
-		url = "https://dl.google.com/android/repository/android-ndk-r16b-" + ("windows" if platform.system() == "Windows" else "linux") + "-x86_64.zip"
+		url = get_download_ndk_url("r16b")
 		try:
 			with request.urlopen(url) as response:
 				with open(archive_path, "wb") as f:
