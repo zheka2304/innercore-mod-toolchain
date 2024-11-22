@@ -121,6 +121,11 @@ def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTa
 		# assert relative_directory, "Internal error, relative directory cannot be empty."
 		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
 
+		# Apply global configurations to preserve keepIncludes, etc. in builds.
+		configurations = config.get_config("configurations")
+		if configurations:
+			config.merge_config(merge_relevant_configurations(configurations))
+
 		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
 			try:
 				manifest = BaseConfig(json.load(manifest))
@@ -148,11 +153,8 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 	if len(library_name) == 0 or library_name.isspace() or (manifest.get_value("shared") and library_name == "unnamed"):
 		abort(f"Library directory {directory} uses illegal name {library_name!r}!", code=CODE_FAILED_INVALID_MANIFEST)
 	soname = "lib" + library_name + ".so"
-	soversion = manifest.get_value("library.version", -1)
-	if soversion < 0 and manifest.get_value("library"):
+	if manifest.get_value("library.version", -1) < 0 and manifest.get_value("library"):
 		abort(f"Library directory {directory} shares library with illegal version!", code=CODE_FAILED_INVALID_MANIFEST)
-	if configurations:
-		manifest.merge_config(merge_relevant_configurations(configurations, str(soversion)))
 	make_path = join(directory, "make.txt")
 	if exists(make_path):
 		with open(make_path, encoding="utf-8") as file:
@@ -215,7 +217,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		info(f"* Compiling {library_name!r} for {abi}")
 		manifest_abi = manifest
 		if configurations:
-			configuration = merge_relevant_configurations(configurations, abi, str(soversion))
+			configuration = merge_relevant_configurations(configurations, abi)
 			manifest_abi = BaseConfig()
 			manifest_abi.merge_config(manifest)
 			manifest_abi.merge_config(configuration)
