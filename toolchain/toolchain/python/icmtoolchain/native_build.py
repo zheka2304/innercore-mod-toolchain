@@ -250,6 +250,16 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			return overall_result
 		info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
 
+		for link in manifest.get_list("linkStatic"):
+			link_path = GLOBALS.MAKE_CONFIG.get_path(join("static_libs", abi, link))
+			if isdir(link_path):
+				for object_file in get_all_files(link_path):
+					object_files.append(object_file)
+			elif exists(link_path):
+				object_files.append(object_file)
+			else:
+				warn(f"* Skipped static library {link}, because it was not exist.")
+
 		ensure_file_directory(targets[abi])
 
 		debug("Linking object files")
@@ -299,6 +309,13 @@ def merge_native_directory_properties(config: Optional[BaseConfig], native_confi
 			config.set_value("link", set(prototype_link).union(link))
 		else:
 			config.set_value("link", prototype_link)
+	if native_config.has_value("linkStatic"):
+		prototype_link_static = native_config.get_value("linkStatic")
+		if config.has_value("linkStatic") and native_config.has_value("linkStatic"):
+			link_static = config.get_value("linkStatic")
+			config.set_value("linkStatic", set(prototype_link_static).union(link_static))
+		else:
+			config.set_value("linkStatic", prototype_link_static)
 	if native_config.has_value("depends"):
 		prototype_depends = native_config.get_value("depends")
 		if config.has_value("depends") and native_config.has_value("depends"):
