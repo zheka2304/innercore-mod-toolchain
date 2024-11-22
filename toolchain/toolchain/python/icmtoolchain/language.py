@@ -1,12 +1,12 @@
 from os.path import isdir
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from .base_config import BaseConfig
 from .shell import warn
 from .utils import RuntimeCodeError
 
 
-def get_language_directories(compile_type: str, properties_merger: Callable, language_config: BaseConfig) -> Dict[str, BaseConfig]:
+def get_language_directories(compile_type: str, language_config: BaseConfig, properties_merger: Optional[Callable] = None) -> Dict[str, BaseConfig]:
 	from . import GLOBALS
 
 	directories = language_config.get_list("directories", config=True)
@@ -39,7 +39,12 @@ def get_language_directories(compile_type: str, properties_merger: Callable, lan
 			if absolute_directory in configurables:
 				warn(f"* Duplicated {compile_type} directory {directory!r}, overriding existing properties...")
 
-			config = properties_merger(config, language_config)
+			if properties_merger:
+				config = properties_merger(config, language_config)
+			else:
+				if config:
+					language_config.merge_config(config, exclusive_lists=True)
+				config = language_config
 			config.set_value("directory", GLOBALS.MAKE_CONFIG.get_relative_path(flattened_directory))
 			configurables[absolute_directory] = config
 

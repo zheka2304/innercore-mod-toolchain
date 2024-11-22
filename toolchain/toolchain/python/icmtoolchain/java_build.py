@@ -469,7 +469,7 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 			try:
 				manifest = BaseConfig(json.load(manifest))
 				manifest.remove_value("directory")
-				config = merge_java_directory_properties(manifest, config)
+				config.merge_config(manifest, exclusive_lists=True)
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed java directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
@@ -531,20 +531,6 @@ def build_java_directories(tool: str, directories: Dict[str, BaseConfig], target
 	GLOBALS.BUILD_STORAGE.save()
 	return result
 
-def merge_java_directory_properties(config: Optional[BaseConfig], java_config: BaseConfig) -> BaseConfig:
-	if not config:
-		return java_config
-
-	if java_config.has_value("classpath"):
-		prototype_classpath = java_config.get_value("classpath")
-		if config.has_value("classpath") and java_config.has_value("classpath"):
-			classpath = config.get_value("classpath")
-			config.set_value("classpath", set(prototype_classpath).union(classpath))
-		else:
-			config.set_value("classpath", prototype_classpath)
-
-	return config
-
 def compile_java(tool: str = "gradle") -> int:
 	if tool not in ("gradle", "javac", "ecj"):
 		error(f"Java compilation will be cancelled, because tool {tool!r} is not available.")
@@ -578,8 +564,8 @@ def compile_java(tool: str = "gradle") -> int:
 		if len(classpath_directories) > 0:
 			additional_config = BaseConfig()
 			additional_config.set_value("classpath", classpath_directories)
-			java_config = merge_java_directory_properties(java_config, additional_config)
-		directories = get_language_directories("java", merge_java_directory_properties, java_config)
+			java_config.merge_config(additional_config, exclusive_lists=True)
+		directories = get_language_directories("java", java_config)
 	except RuntimeCodeError as exc:
 		error(exc)
 		return exc.code

@@ -94,8 +94,10 @@ def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTa
 				manifest.remove_value("directory")
 				# Obtain deprecated `rules` property to being merged.
 				if manifest.has_value("rules"):
-					config = merge_native_directory_properties(manifest.get_config("rules"), config)
-				config = merge_native_directory_properties(manifest, config)
+					rules_config = manifest.get_config("rules")
+					if rules_config:
+						config.merge_config(rules_config)
+				config.merge_config(manifest)
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed native directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
@@ -299,48 +301,6 @@ def build_native_directories(abis: Collection[str], directories: Dict[str, BaseC
 
 	return 0
 
-def merge_native_directory_properties(config: Optional[BaseConfig], native_config: BaseConfig) -> BaseConfig:
-	if not config:
-		return native_config
-
-	if native_config.has_value("stdincludes"):
-		prototype_stdincludes = native_config.get_value("stdincludes")
-		if config.has_value("stdincludes") and native_config.has_value("stdincludes"):
-			stdincludes = config.get_value("stdincludes")
-			config.set_value("stdincludes", set(prototype_stdincludes).union(stdincludes))
-		else:
-			config.set_value("stdincludes", prototype_stdincludes)
-	if native_config.has_value("link"):
-		prototype_link = native_config.get_value("link")
-		if config.has_value("link") and native_config.has_value("link"):
-			link = config.get_value("link")
-			config.set_value("link", set(prototype_link).union(link))
-		else:
-			config.set_value("link", prototype_link)
-	if native_config.has_value("linkStatic"):
-		prototype_link_static = native_config.get_value("linkStatic")
-		if config.has_value("linkStatic") and native_config.has_value("linkStatic"):
-			link_static = config.get_value("linkStatic")
-			config.set_value("linkStatic", set(prototype_link_static).union(link_static))
-		else:
-			config.set_value("linkStatic", prototype_link_static)
-	if native_config.has_value("depends"):
-		prototype_depends = native_config.get_value("depends")
-		if config.has_value("depends") and native_config.has_value("depends"):
-			depends = config.get_value("depends")
-			config.set_value("depends", set(prototype_depends).union(depends))
-		else:
-			config.set_value("depends", prototype_depends)
-	if native_config.has_value("shared.include"):
-		prototype_shared_include = native_config.get_value("shared.include")
-		if config.has_value("shared.include") and native_config.has_value("shared.include"):
-			shared_include = config.get_value("shared.include")
-			config.set_value("shared.include", set(prototype_shared_include).union(shared_include))
-		else:
-			config.set_value("shared.include", prototype_shared_include)
-
-	return config
-
 def compile_native(abis: Collection[str]) -> int:
 	from time import time
 	startup_millis = time()
@@ -369,8 +329,8 @@ def compile_native(abis: Collection[str]) -> int:
 		if len(stdincludes_directories) > 0:
 			additional_config = BaseConfig()
 			additional_config.set_value("stdincludes", stdincludes_directories)
-			native_config = merge_native_directory_properties(native_config, additional_config)
-		directories = get_language_directories("native", merge_native_directory_properties, native_config)
+			native_config.merge_config(additional_config, exclusive_lists=True)
+		directories = get_language_directories("native", native_config)
 	except RuntimeCodeError as exc:
 		error(exc)
 		return exc.code
