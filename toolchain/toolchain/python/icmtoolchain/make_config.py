@@ -16,7 +16,8 @@ except ImportError:
 
 
 class ToolchainConfig(BaseConfig):
-	path: Final[str]; directory: Final[str]
+	path: Final[str]
+	directory: Final[str]
 
 	def __init__(self, path: str, prototype: Optional[BaseConfig] = None) -> None:
 		self.path = path

@@ -7,7 +7,8 @@ from os.path import basename, dirname, exists, isdir, isfile, join, relpath
 from typing import Any, Callable, Dict, Final, List, Optional
 
 from . import GLOBALS, PROPERTIES, colorama
-from .make_config import MakeConfig
+from .base_config import BaseConfig
+from .make_config import MakeConfig, ToolchainConfig
 from .shell import abort, confirm, error, info, printc, stringify, warn
 from .utils import (DEVNULL, copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, remove_tree)
@@ -237,27 +238,45 @@ def task_resources() -> int:
 	description="Writes the description file 'mod.info' to output folder for display in mod browser."
 )
 def task_build_info() -> int:
+	requires_manifest = GLOBALS.MAKE_CONFIG.has_value("manifest")
+	if requires_manifest and GLOBALS.MAKE_CONFIG.has_value("info"):
+		error("Properties `info` and `manifest` cannot exist in your 'make.json' at same time!")
+		return 1
 	from .utils import shortcodes
-	with open(GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")), "w", encoding="utf-8") as info_file:
-		info = dict(GLOBALS.MAKE_CONFIG.get_value("info", fallback=dict()))
+	if requires_manifest:
+		manifest_relative_path = GLOBALS.MAKE_CONFIG.get_value("manifest")
+		manifest_file = GLOBALS.MAKE_CONFIG.get_path(manifest_relative_path)
+		if not isfile(manifest_file):
+			error(f"Manifest file {manifest_relative_path} is not exist, aborting assembling!")
+			return 1
+		manifest = ToolchainConfig(manifest_file)
+		if manifest.has_value("pack"):
+			manifest.set_value("pack", shortcodes(manifest.get_value("pack")))
+		if manifest.has_value("packVersion"):
+			manifest.set_value("packVersion", shortcodes(manifest.get_value("packVersion")))
+		if manifest.has_value("description"):
+			manifest.set_value("description", shortcodes(manifest.get_value("description")))
+		output_manifest_path = join(GLOBALS.MOD_STRUCTURE.directory, "manifest.json")
+		copy_file(manifest_file, output_manifest_path)
+	else:
+		info_file = join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")
+		with open(GLOBALS.MAKE_CONFIG.get_path(info_file), "w", encoding="utf-8") as info_file:
+			info = GLOBALS.MAKE_CONFIG.get_config("info") or BaseConfig()
+			if info.has_value("name"):
+				info.set_value("name", shortcodes(info.get_value("name")))
+			if info.has_value("version"):
+				info.set_value("version", shortcodes(info.get_value("version")))
+			if info.has_value("description"):
+				info.set_value("description", shortcodes(info.get_value("description")))
+			info.remove_value("icon")
+			info_file.write(json.dumps(info, indent="\t") + "\n")
 
-		if "name" in info:
-			info["name"] = shortcodes(info["name"])
-		if "version" in info:
-			info["version"] = shortcodes(info["version"])
-		if "description" in info:
-			info["description"] = shortcodes(info["description"])
-		if "icon" in info:
-			del info["icon"]
-		if "instantLaunch" in info:
-			info["instantLaunch"] = info["instantLaunch"]
-
-		info_file.write(json.dumps(info, indent="\t") + "\n")
-	optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
-	icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
-	if isfile(icon_path):
-		copy_file(icon_path, GLOBALS.MAKE_CONFIG.get_path(join(GLOBALS.MOD_STRUCTURE.directory, "mod_icon.png")))
-	elif optional_icon_path:
+		optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
+		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
+		if isfile(icon_path):
+			output_info_path = join(GLOBALS.MOD_STRUCTURE.directory, "mod_icon.png")
+			copy_file(icon_path, output_info_path)
+		elif optional_icon_path:
 			warn(f"* Icon {icon_path!r} described in 'make.json' is not found!")
 	return 0
 
@@ -316,24 +335,24 @@ def task_exclude_directories() -> int:
 	description="Assembles project's output folder into an archive, specifically for publishing in a mod browser."
 )
 def task_build_package() -> int:
-	output_dir = GLOBALS.MOD_STRUCTURE.directory
+	requires_manifest = GLOBALS.MAKE_CONFIG.has_value("manifest")
 	name = basename(GLOBALS.MAKE_CONFIG.current_project) if GLOBALS.MAKE_CONFIG.current_project else "unknown"
-	output_dir_root_tmp = GLOBALS.MAKE_CONFIG.get_build_path("package")
-	output_dir_tmp = join(output_dir_root_tmp, name)
-	ensure_directory(output_dir)
-	if exists(output_dir_tmp):
-		shutil.rmtree(output_dir_tmp)
-	output_file_tmp = join(output_dir_root_tmp, "package.zip")
-	ensure_file_directory(output_file_tmp)
-	output_file = GLOBALS.MAKE_CONFIG.get_path(name + ".icmod")
+	output_directory = GLOBALS.MAKE_CONFIG.get_build_path("package")
+	output_package_directory = join(output_directory, name)
+	ensure_directory(GLOBALS.MOD_STRUCTURE.directory)
+	if exists(output_package_directory):
+		shutil.rmtree(output_package_directory)
+	output_temporary_file = join(output_directory, "package.zip")
+	ensure_file_directory(output_temporary_file)
+	output_file = GLOBALS.MAKE_CONFIG.get_path(name + ".zip" if requires_manifest else name + ".icmod")
 	if isfile(output_file):
 		os.remove(output_file)
-	if isfile(output_file_tmp):
-		os.remove(output_file_tmp)
-	shutil.copytree(output_dir, output_dir_tmp)
-	shutil.make_archive(output_file_tmp[:-4], "zip", output_dir_root_tmp, name)
-	shutil.rmtree(output_dir_tmp)
-	os.rename(output_file_tmp, output_file)
+	if isfile(output_temporary_file):
+		os.remove(output_temporary_file)
+	shutil.copytree(GLOBALS.MOD_STRUCTURE.directory, output_package_directory)
+	shutil.make_archive(output_temporary_file[:-4], "zip", output_directory, name)
+	shutil.rmtree(output_package_directory)
+	os.rename(output_temporary_file, output_file)
 	return 0
 
 ### CONNECTION
