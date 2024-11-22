@@ -128,11 +128,13 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		remove_tree(join(output_directory, "so"))
 		os.remove(join(output_directory, soname))
 	else:
+		# Cleanup built directories and copy manifest.
 		remove_tree(output_directory)
 		copy_file(join(directory, "manifest"), join(output_directory, "manifest"))
 
+		# Also copy includes if necessary.
 		keep_includes = manifest.get_value("keepIncludes", fallback=False)
-		for include_path in manifest.get_value("shared.include", fallback=list()):
+		for include_path in manifest.get_list("shared.include"):
 			src_include_path = join(directory, include_path)
 			output_include_path = join(output_directory, include_path)
 			if keep_includes:
@@ -163,6 +165,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			return CODE_FAILED_INVALID_MANIFEST
 		return CODE_OK
 
+	# Compile library for requested ABIs.
 	targets = dict()
 	for abi in abis:
 		targets[abi] = abspath(join(output_directory, soname)) if len(abis) == 1 \
@@ -178,32 +181,37 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		for stdincludes_directory in stdincludes:
 			includes.append(f"-I{stdincludes_directory}")
 		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog"]
-		for link in manifest.get_value("link", fallback=list()) + ["horizon"]:
+		links = manifest.get_list("link")
+		if not "horizon" in links:
+			links.append("horizon")
+		for link in links:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
 
 		# Always search for dependencies in current directory.
 		search_directory = abspath(join(directory, ".."))
-		for dependency in manifest.get_value("depends", fallback=list()):
+		for dependency in manifest.get_list("depends"):
 			if dependency:
 				add_fake_so(executable, abi, dependency)
 				dependencies.append("-l" + dependency)
 				dependency_directory = search_in_directory(search_directory, dependency)
 				if dependency_directory:
 					try:
-						for include_directory in get_manifest(dependency_directory).get_value("shared.include", fallback=list()):
+						for include_directory in get_manifest(dependency_directory).get_list("shared.include"):
 							includes.append("-I" + join(dependency_directory, include_directory))
 					except KeyError:
 						pass
 			else:
 				warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
 
+		# Collect files and prepare output cache directories.
 		source_files = get_all_files(directory, extensions=(".cpp", ".c"))
 		preprocessed_directory = abspath(join(target_directory, "preprocessed", abi))
 		ensure_directory(preprocessed_directory)
 		object_directory = abspath(join(target_directory, "object", abi))
 		ensure_directory(object_directory)
 
+		# Preprocess to compile changed sources.
 		import filecmp
 		object_files = list()
 		recompiled_count = 0
@@ -256,7 +264,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 				for object_file in get_all_files(link_path):
 					object_files.append(object_file)
 			elif exists(link_path):
-				object_files.append(object_file)
+				object_files.append(link_path)
 			else:
 				warn(f"* Skipped static library {link}, because it was not exist.")
 
