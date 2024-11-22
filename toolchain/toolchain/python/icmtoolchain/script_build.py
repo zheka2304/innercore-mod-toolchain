@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Tuple
 from . import GLOBALS, PROPERTIES
 from .includes import Includes
 from .shell import abort, debug, error, info, warn
-from .utils import (copy_directory, copy_file, remove_tree, request_tool,
-                    request_typescript)
+from .utils import (copy_directory, copy_file, ensure_directory, remove_tree,
+                    request_tool, request_typescript)
 
 VALID_SOURCE_TYPES = ("main", "launcher", "preloader", "instant", "custom", "library")
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
@@ -278,7 +278,7 @@ def watch_composite_project(allowed_languages: List[str] = ["typescript"]) -> in
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("compile")
 	return overall_result
 
-def build_all_resources() -> int:
+def build_resources() -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("resource_directory")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("gui")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("minecraft_resource_pack")
@@ -329,3 +329,30 @@ def build_all_resources() -> int:
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("resources")
 	return overall_result
+
+def build_pack_graphics() -> int:
+	graphics_groups = GLOBALS.MAKE_CONFIG.get_list("graphics.groups")
+	if len(graphics_groups) == 0 or not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		return 0
+	graphics_directory = GLOBALS.MAKE_CONFIG.get_build_path("graphics")
+	remove_tree(graphics_directory)
+	ensure_directory(graphics_directory)
+
+	graphics_archive = join(GLOBALS.MOD_STRUCTURE.directory, "graphics.zip")
+	if exists(graphics_archive):
+		remove_tree(graphics_archive)
+	for name, images in graphics_groups:
+		offset = 1
+		if isinstance(images, str):
+			images = [images]
+		for image_directory in images:
+			for image_path in GLOBALS.MAKE_CONFIG.get_paths(image_directory):
+				if not isfile(image_path):
+					warn(f"* Skipping graphics image file {basename(image_path)}, since it does not exists!")
+					continue
+				copy_file(image_path, join(graphics_directory, f"{name}@{offset}.png"))
+				offset += 1
+
+	from shutil import make_archive
+	make_archive(graphics_archive[:-4], "zip", graphics_directory)
+	return 0

@@ -225,8 +225,11 @@ def task_update_includes() -> int:
 	description="Copies predefined resources consisting of textures, in-game packs, etc."
 )
 def task_resources() -> int:
-	from .script_build import build_all_resources
-	return build_all_resources()
+	from .script_build import build_pack_graphics, build_resources
+	overall_result = build_resources()
+	if overall_result == 0:
+		overall_result = build_pack_graphics()
+	return overall_result
 
 @task(
 	"buildInfo",

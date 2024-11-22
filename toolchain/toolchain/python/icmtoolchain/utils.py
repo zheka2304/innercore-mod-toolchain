@@ -45,7 +45,8 @@ def remove_tree(directory: str) -> None:
 	if not exists(directory):
 		return
 	if isfile(directory) or islink(directory):
-		os.remove(directory); return
+		os.remove(directory)
+		return
 	shutil.rmtree(directory, ignore_errors=True)
 
 def copy_file(source: str, destination: str) -> None:
