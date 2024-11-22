@@ -224,18 +224,18 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			manifest_abi.merge_config(configuration)
 
 		executable = prepare_compiler_executable(abi)
-		compiler_command = [executable, "-std=c++11"]
+		compiler_command = [executable, "-DANDROID_STL=c++_static"]
 		includes = list()
 		for stdincludes_directory in stdincludes:
 			includes.append(f"-I{stdincludes_directory}")
-		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog"]
+		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog", "-ldl", "-lc"]
 		links = manifest_abi.get_list("link")
 		if not "horizon" in links:
 			links.append("horizon")
 		for link in links:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
-		options = manifest_abi.get_list("options")
+		options = manifest_abi.get_value("options", ["-std=c++11"])
 
 		# Always search for dependencies in current directory.
 		search_directory = abspath(join(directory, ".."))
