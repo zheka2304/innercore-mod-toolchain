@@ -183,6 +183,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			else:
 				remove_tree(output_include_path)
 
+	# Copy already prebuilt libraries, output path will be 'libname.so' or 'so/arch/libname.so'.
 	if exists(join(directory, ".precompiled")):
 		info(f"* Library directory {directory} skipped, because precompiled flag is set.")
 

@@ -60,8 +60,8 @@ def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
 		if ndk is not None: return ndk
 
 def get_ndk_path() -> Optional[str]:
-	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath")
-	if path_from_config:
+	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("native.ndkPath", GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath"))
+	if path_from_config and isinstance(path_from_config, str):
 		path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
 		if isdir(path_from_config):
 			return path_from_config
