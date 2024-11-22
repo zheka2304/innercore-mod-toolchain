@@ -89,6 +89,15 @@ class BaseConfig:
 		if isinstance(value, dict):
 			return BaseConfig(value)
 
+	def get_or_create_config(self, name: str) -> 'BaseConfig':
+		config = self.get_config(name)
+		if config is None:
+			self.set_value(name, dict())
+		config = self.get_config(name)
+		if config is None:
+			raise RuntimeError(f"Property {name!r} should be created, but it still does not exists.")
+		return config
+
 	def get_list(self, name: str, config: bool = False) -> List[Any]:
 		value = self.get_value(name)
 		result = list()
@@ -110,11 +119,36 @@ class BaseConfig:
 					)
 		return filtered
 
-	def get_or_create_config(self, name: str) -> 'BaseConfig':
-		config = self.get_config(name)
-		if config is None:
-			self.set_value(name, dict())
-		config = self.get_config(name)
-		if config is None:
-			raise RuntimeError(f"Property {name!r} should be created, but it still does not exists.")
-		return config
+	def merge_config(self, config: 'BaseConfig', filter: Optional[str | re.Pattern[str]] = None, *, exclusive_lists: Optional[bool] = None) -> None:
+		for key, value in config.iterate_entries(filter, recursive=False):
+			# No previous value in config.
+			if not key in self.json:
+				self.json[key] = value
+				continue
+			previous_subconfig = self.get_config(key)
+			subconfig = config.get_config(key)
+
+			# Both values are mergable configs, recursive operation.
+			if previous_subconfig and subconfig:
+				previous_subconfig.merge_config(subconfig, filter)
+				continue
+			previous_value = self.json[key]
+
+			# Should be appended to each other with different actions for optional argument.
+			if (isinstance(previous_value, list) or isinstance(previous_value, set)) and \
+					(isinstance(value, list) or isinstance(value, set)):
+				# Determine previous instance type automatically.
+				if exclusive_lists is None:
+					exclusive_lists = isinstance(previous_value, set)
+				# Merge
+				if exclusive_lists:
+					if not isinstance(previous_value, set):
+						previous_value = set(previous_value)
+					previous_value.update(value)
+				else:
+					if not isinstance(previous_value, list):
+						previous_value = list(previous_value)
+					previous_value.extend(value)
+
+			# Any other case, such as old value is config, new is string.
+			self.json[key] = value
