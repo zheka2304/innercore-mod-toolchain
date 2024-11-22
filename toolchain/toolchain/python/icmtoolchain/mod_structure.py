@@ -36,7 +36,9 @@ class ModStructure:
 			"script_source": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.source", "source"), "compile"),
 			"script_library": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.library", "library"), "compile"),
 			"native": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.native", "native"), "nativeDirs"),
-			"java": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.java", "java"), "javaDirs")
+			"java": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.java", "java"), "javaDirs"),
+
+			"shared_object": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.shared_object", "so"), "sharedObjects"),
 		}
 
 	def cleanup_build_target(self, keyword: str) -> None:

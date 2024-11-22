@@ -164,8 +164,11 @@ def task_compile_native() -> int:
 			abi = "armeabi-v7a"
 			warn(f"* No `debugAbi` value in 'toolchain.json' config, using {abi!r} as default.")
 		abis = [abi]
-	from .native_build import compile_native
-	return compile_native(abis)
+	from .native_build import compile_native, copy_shared_objects
+	result = compile_native(abis)
+	if result == 0:
+		result = copy_shared_objects(abis)
+	return result
 
 @task(
 	"compileJava",

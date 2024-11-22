@@ -394,3 +394,40 @@ def compile_native(abis: Collection[str]) -> int:
 		error(f"Failed native build in {startup_millis:.2f}s with result {overall_result}.")
 
 	return overall_result
+
+def copy_shared_objects(abis: Collection[str]) -> int:
+	shared_objects = GLOBALS.MAKE_CONFIG.get_list("native.sharedObjects")
+	if len(shared_objects) == 0 or not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		return 0
+	GLOBALS.MOD_STRUCTURE.cleanup_build_target("shared_object")
+	order = set()
+
+	overall_result = 0
+	for shared_object in shared_objects:
+		formatted_shared_object = shared_object.format("")
+		if shared_object == formatted_shared_object:
+			if shared_object[-1] == "*":
+				shared_object = shared_object[0:-1] + "/{}/*"
+			else:
+				error(f"* Shared object path {formatted_shared_object} should contain required architecture or ends with asterisk.")
+				overall_result += 1
+				continue
+		for abi in abis:
+			formatted_shared_object = shared_object.format(abi)
+			for shared_object_path in GLOBALS.MAKE_CONFIG.get_paths(formatted_shared_object):
+				shared_object_name = basename(shared_object_path)
+				if shared_object_name in order:
+					warn(f"* Found duplicate shared object {formatted_shared_object}, overriding existing one...")
+				output_file = GLOBALS.MOD_STRUCTURE.new_build_target("shared_object", shared_object_name)
+				copy_file(shared_object_path, output_file)
+				order.add(shared_object_name)
+
+	if len(order) > 0:
+		output_directory = GLOBALS.MOD_STRUCTURE.get_target_directories("shared_object")[0]
+		with open(join(output_directory, "order.txt"), "w", encoding="utf-8") as order_file:
+			order_file.write("\n".join(order) + "\n")
+	if overall_result == 0:
+		print(f"Completed shared objects include!")
+	else:
+		error(f"Failed include shared objects with result {overall_result}.")
+	return overall_result
