@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Tuple
 from . import GLOBALS, PROPERTIES
 from .includes import Includes
 from .shell import abort, debug, error, info, warn
-from .utils import copy_directory, copy_file, remove_tree, request_tool, request_typescript
+from .utils import (copy_directory, copy_file, remove_tree, request_tool,
+                    request_typescript)
 
 VALID_SOURCE_TYPES = ("main", "launcher", "preloader", "instant", "custom", "library")
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
@@ -36,14 +37,12 @@ def build_all_scripts(watch: bool = False) -> int:
 	overall_result = 0
 	for source in GLOBALS.MAKE_CONFIG.get_value("sources", list()):
 		if "source" not in source or "language" not in source or "type" not in source:
-			error("Skipped invalid source json ", source, ", it might contain `source`, `type` and `language` properties!", sep="")
+			error(f"Skipped invalid source json {source!r}, it might contain `source`, `type` and `language` properties!")
 			overall_result = 1
 			continue
-
 		if source["type"] not in VALID_SOURCE_TYPES:
-			error("Invalid script `type` in source: ", source["type"], ", it might be one of ", VALID_SOURCE_TYPES, sep="")
+			error(f"Invalid script `type` in source: {source['type']}, it might be one of {VALID_SOURCE_TYPES}.")
 			overall_result = 1
-
 	if overall_result != 0:
 		return overall_result
 
@@ -294,12 +293,12 @@ def build_all_resources() -> int:
 
 		for source_path in GLOBALS.MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
-				warn("* Skipped non-existing resource ", resource["path"], "!", sep="")
+				warn(f"* Skipped non-existing resource {resource['path']}!", sep="")
 				continue
 
 			resource_type = resource["type"]
 			if resource_type not in VALID_RESOURCE_TYPES:
-				error("Invalid resource `type` in source: ", resource_type, ", it might be one of ", VALID_RESOURCE_TYPES, sep="")
+				error(f"Invalid resource `type` in source: {resource_type}, it might be one of {VALID_RESOURCE_TYPES}.", sep="")
 				overall_result = 1
 				continue
 
