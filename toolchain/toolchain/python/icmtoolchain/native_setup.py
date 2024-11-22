@@ -123,13 +123,15 @@ def get_download_ndk_url(revision: str) -> str:
 	if overriden_url and isinstance(overriden_url, str):
 		return overriden_url
 	pattern_version = re.search(r"\d+", revision)
-	requires_architecture = pattern_version and int(pattern_version[0]) <= 22
+	requires_architecture = pattern_version and int(pattern_version[0]) >= 11 and int(pattern_version[0]) <= 22
 	is_32bit = struct.calcsize("P") == 4
-	if is_32bit and (not pattern_version or int(pattern_version[0]) >= 21 or int(pattern_version[0]) <= 10):
+	if is_32bit and (not pattern_version or requires_architecture or int(pattern_version[0]) >= 21):
 		raise RuntimeCodeError(255, "Your platform is not supported anymore, you should upgrade to 64 bit for using Android NDK r21e and newer.")
 	package_suffix = platform.system()
 	if package_suffix == "Windows":
-		package_suffix = "windows-x86_64" if requires_architecture else "windows"
+		if is_32bit or requires_architecture:
+			package_suffix = "windows-x86" if is_32bit else "windows-x86_64"
+		package_suffix = package_suffix or "windows"
 	# TODO: Maybe also extract dmg archives from MacOS?
 	elif package_suffix == "Darwin":
 		package_suffix = "darwin-x86_64" if requires_architecture else "darwin"
