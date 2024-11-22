@@ -5,10 +5,10 @@ from collections import namedtuple
 from os.path import abspath, basename, exists, isdir, isfile, join, relpath
 from typing import Collection, Dict, List, Optional
 
-from . import GLOBALS
+from . import GLOBALS, PROPERTIES
 from .language import get_language_directories
 from .make_config import BaseConfig, ToolchainConfig
-from .native_setup import prepare_compiler_executable
+from .native_setup import abi_to_arch, prepare_compiler_executable
 from .shell import abort, debug, error, info, warn
 from .utils import (RuntimeCodeError, copy_directory, copy_file,
                     ensure_directory, ensure_file_directory, get_all_files,
@@ -56,15 +56,15 @@ def get_name_from_manifest(directory: str) -> Optional[str]:
 
 def search_in_directory(parent: str, name: str) -> Optional[str]:
 	for dirpath, dirnames, filenames in os.walk(parent):
-		for dir in dirnames:
-			path = join(dirpath, dir)
+		for relative_directory in dirnames:
+			path = join(dirpath, relative_directory)
 			if get_name_from_manifest(path) == name:
 				return path
 
 def get_fake_so_directory(abi: str) -> str:
-	fake_so_dir = GLOBALS.TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
-	ensure_directory(fake_so_dir)
-	return fake_so_dir
+	fake_so_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path(join("toolchain", "ndk", "fakeso", abi))
+	ensure_directory(fake_so_directory)
+	return fake_so_directory
 
 def add_fake_so(executable: str, abi: str, name: str) -> None:
 	file = join(get_fake_so_directory(abi), "lib" + name + ".so")
@@ -78,6 +78,39 @@ def add_fake_so(executable: str, abi: str, name: str) -> None:
 			debug(f"Created linking fake so {name!r} successfully")
 		else:
 			warn(f"Stubbing fake so failed with result {result}!")
+
+def is_relevant_configuration(configuration: str, *properties: str) -> bool:
+	if len(configuration) == 0 or configuration == "*":
+		return True
+	rules = configuration.split("-")
+	rule_match_abi = None
+	for rule in rules:
+		try:
+			arch = abi_to_arch(rule)
+			if arch in properties:
+				rule_match_abi = True
+			elif rule_match_abi is None:
+				rule_match_abi = False
+		except ValueError:
+			pass
+		if rule == "debug" or rule == "release":
+			is_release = PROPERTIES.get_value("release")
+			if (is_release and rule == "debug") or (not is_release and rule == "release"):
+				return False
+			continue
+		if rule in properties:
+			continue
+		# debug(f"* Mismatched rule {rule} in configuration {configuration!r}, ignoring it...")
+		return False
+	return rule_match_abi != False
+
+def merge_relevant_configurations(configurations: BaseConfig, *properties: str) -> BaseConfig:
+	relevant = BaseConfig()
+	for key, _ in configurations.iterate_entries(recursive=False):
+		config = configurations.get_config(key)
+		if config and is_relevant_configuration(key, *properties):
+			relevant.merge_config(config)
+	return relevant
 
 def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarget]:
 	targets = list()
@@ -110,12 +143,16 @@ def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTa
 	return targets
 
 def build_native_with_ndk(directory: str, output_directory: str, target_directory: str, abis: Collection[str], stdincludes: Collection[str], manifest: BaseConfig) -> int:
+	configurations = manifest.get_config("configurations")
 	library_name = manifest.get_value("shared.name", basename(directory))
 	if len(library_name) == 0 or library_name.isspace() or (manifest.get_value("shared") and library_name == "unnamed"):
 		abort(f"Library directory {directory} uses illegal name {library_name!r}!", code=CODE_FAILED_INVALID_MANIFEST)
 	soname = "lib" + library_name + ".so"
-	if manifest.get_value("library.version", -1) < 0 and manifest.get_value("library"):
+	soversion = manifest.get_value("library.version", -1)
+	if soversion < 0 and manifest.get_value("library"):
 		abort(f"Library directory {directory} shares library with illegal version!", code=CODE_FAILED_INVALID_MANIFEST)
+	if configurations:
+		manifest.merge_config(merge_relevant_configurations(configurations, str(soversion)))
 	make_path = join(directory, "make.txt")
 	if exists(make_path):
 		with open(make_path, encoding="utf-8") as file:
@@ -176,6 +213,12 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 	overall_result = CODE_OK
 	for abi in abis:
 		info(f"* Compiling {library_name!r} for {abi}")
+		manifest_abi = manifest
+		if configurations:
+			configuration = merge_relevant_configurations(configurations, abi, str(soversion))
+			manifest_abi = BaseConfig()
+			manifest_abi.merge_config(manifest)
+			manifest_abi.merge_config(configuration)
 
 		executable = prepare_compiler_executable(abi)
 		compiler_command = [executable, "-std=c++11"]
@@ -183,7 +226,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		for stdincludes_directory in stdincludes:
 			includes.append(f"-I{stdincludes_directory}")
 		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog"]
-		links = manifest.get_list("link")
+		links = manifest_abi.get_list("link")
 		if not "horizon" in links:
 			links.append("horizon")
 		for link in links:
@@ -192,7 +235,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 
 		# Always search for dependencies in current directory.
 		search_directory = abspath(join(directory, ".."))
-		for dependency in manifest.get_list("depends"):
+		for dependency in manifest_abi.get_list("depends"):
 			if dependency:
 				add_fake_so(executable, abi, dependency)
 				dependencies.append("-l" + dependency)
@@ -260,7 +303,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			return overall_result
 		info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
 
-		for link in manifest.get_list("linkStatic"):
+		for link in manifest_abi.get_list("linkStatic"):
 			link_path = GLOBALS.MAKE_CONFIG.get_path(join("static_libs", abi, link))
 			if isdir(link_path):
 				for object_file in get_all_files(link_path):
