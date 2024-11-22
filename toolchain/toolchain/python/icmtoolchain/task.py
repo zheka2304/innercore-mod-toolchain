@@ -155,11 +155,13 @@ def task(name: str, description: Optional[str] = None, locks: Optional[List[str]
 )
 def task_compile_native() -> int:
 	if PROPERTIES.get_value("release"):
-		abis = GLOBALS.MAKE_CONFIG.get_value("abis", list())
-		if not abis or not isinstance(abis, list) or len(abis) == 0:
+		abis = GLOBALS.MAKE_CONFIG.get_list("native.abis")
+		if len(abis) == 0:
+			abis = GLOBALS.MAKE_CONFIG.get_list("abis")
+		if not abis or len(abis) == 0:
 			abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
 	else:
-		abi = GLOBALS.MAKE_CONFIG.get_value("debugAbi", None)
+		abi = GLOBALS.MAKE_CONFIG.get_value("native.debugAbi", GLOBALS.MAKE_CONFIG.get_value("debugAbi", None))
 		if not abi:
 			abi = "armeabi-v7a"
 			warn(f"* No `debugAbi` value in 'toolchain.json' config, using {abi!r} as default.")

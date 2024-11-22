@@ -235,6 +235,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		for link in links:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
+		options = manifest_abi.get_list("options")
 
 		# Always search for dependencies in current directory.
 		search_directory = abspath(join(directory, ".."))
@@ -276,7 +277,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 
 			result = subprocess.call(compiler_command + [
 				"-E", file, "-o", tmp_preprocessed_file
-			] + includes)
+			] + includes + options)
 			if result == CODE_OK:
 				if not isfile(preprocessed_file) or not isfile(object_file) \
 						or not filecmp.cmp(preprocessed_file, tmp_preprocessed_file):
@@ -289,7 +290,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 					debug(f"Compiling {relative_file}{' ' * 48}", end="\r")
 					result = max(result, subprocess.call(compiler_command + [
 						"-c", preprocessed_file, "-shared", "-o", object_file
-					]))
+					] + options))
 					if result != CODE_OK:
 						if isfile(object_file):
 							os.remove(object_file)
@@ -326,6 +327,9 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			linking_command.append(make)
 		linking_command.append("-shared")
 		linking_command.append("-Wl,-soname=" + soname)
+		if "-flto" in options:
+			debug("Linker time optimization is enabled")
+			linking_command += options
 		linking_command.append("-o")
 		linking_command.append(targets[abi])
 		linking_command += includes
