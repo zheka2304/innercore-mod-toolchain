@@ -123,9 +123,9 @@ def get_download_ndk_url(revision: str) -> str:
 	if overriden_url and isinstance(overriden_url, str):
 		return overriden_url
 	pattern_version = re.search(r"\d+", revision)
-	requires_architecture = pattern_version and int(pattern_version.string) <= 22
+	requires_architecture = pattern_version and int(pattern_version[0]) <= 22
 	is_32bit = struct.calcsize("P") == 4
-	if is_32bit and (not pattern_version or int(pattern_version.string) >= 21 or int(pattern_version.string) <= 10):
+	if is_32bit and (not pattern_version or int(pattern_version[0]) >= 21 or int(pattern_version[0]) <= 10):
 		raise RuntimeCodeError(255, "Your platform is not supported anymore, you should upgrade to 64 bit for using Android NDK r21e and newer.")
 	package_suffix = platform.system()
 	if package_suffix == "Windows":
@@ -141,7 +141,7 @@ def get_download_ndk_url(revision: str) -> str:
 		package_suffix = "linux-x86_64" if requires_architecture else "linux"
 	return f"https://dl.google.com/android/repository/android-ndk-{revision}-{package_suffix}.zip"
 
-def download_gcc(shell: Optional[Shell] = None) -> Optional[str]:
+def download_gcc(shell: Optional[Shell] = None, revision: Optional[str] = None) -> Optional[str]:
 	from urllib import request
 	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
 	makedirs(dirname(archive_path), exist_ok=True)
@@ -152,7 +152,7 @@ def download_gcc(shell: Optional[Shell] = None) -> Optional[str]:
 			progress = Progress(text="C++ GCC Compiler (NDK)")
 			shell.interactables.append(progress)
 			shell.render()
-		url = get_download_ndk_url("r16b")
+		url = get_download_ndk_url(revision or "r16b")
 		try:
 			with request.urlopen(url) as response:
 				with open(archive_path, "wb") as f:
@@ -193,7 +193,7 @@ def download_gcc(shell: Optional[Shell] = None) -> Optional[str]:
 	except zipfile.BadZipFile as exc:
 		try:
 			remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-			return download_gcc(shell)
+			return download_gcc(shell, revision)
 		except OSError as exc:
 			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 
@@ -209,7 +209,7 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		if not ndk_path:
 			if not reinstall:
 				print(f"Not found valid NDK installation for {arches if isinstance(arches, str) else ', '.join(arches)}.", sep="")
-			if reinstall or confirm("Download android-ndk-r16b-x86_64?", True):
+			if reinstall or confirm("Download android-ndk-r16b from Android Repository?", True):
 				if shell:
 					shell.enter()
 				ndk_path = download_gcc(shell)
