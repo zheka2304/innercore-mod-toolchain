@@ -143,7 +143,7 @@ def get_download_ndk_url(revision: str) -> str:
 
 def download_gcc(shell: Optional[Shell] = None, revision: Optional[str] = None) -> Optional[str]:
 	from urllib import request
-	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp/ndk.zip")
+	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/ndk-{revision}.zip")
 	makedirs(dirname(archive_path), exist_ok=True)
 
 	if not isfile(archive_path):
@@ -221,7 +221,7 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		if not ndk_path:
 			if shell:
 				shell.leave()
-			error("Installation interrupted by raised cause above, you are must extract 'toolchain/temp/ndk.zip' manually into toolchain/temp and retry task.")
+			error("Installation interrupted by raised cause above, you are must extract 'toolchain/temp/ndk-r**.zip' manually into toolchain/temp and retry task.")
 			return 1
 		result = 0
 
