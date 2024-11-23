@@ -1,8 +1,6 @@
 {
 	"$schema": "schemas/toolchain.schema.json",
-	"debugAbi": "armeabi-v7a",
 	"abis": [
-		"arm64-v8a",
 		"armeabi-v7a"
 	],
 	"linkNative": [
