@@ -11,7 +11,7 @@ from urllib.error import URLError
 
 from . import GLOBALS
 from .shell import Progress, Shell, abort, confirm, error, warn
-from .utils import (AttributeZipFile, RuntimeCodeError, list_subdirectories,
+from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories,
                     remove_tree)
 
 ABIS = {
@@ -29,35 +29,34 @@ def abi_to_arch(abi: str) -> str:
 		return ABIS[abi]
 	raise ValueError(f"Unsupported ABI {abi!r}!")
 
-def search_ndk_subdirectories(dir: str) -> Optional[str]:
-	preferred_ndk_versions = [
+def search_ndk_subdirectories(directory: str) -> Optional[str]:
+	preferred_directory_regexes = [
 		r"android-ndk-r\d+\b",
 		r"android-ndk-.*",
-		r"\d+(\\.\d+)+",
+		r"ndk[/\\]+\d+(\.\d+)+",
 		"ndk-bundle"
 	]
-	possible_ndk_dirs = list_subdirectories(dir)
-	for ndk_dir_regex in preferred_ndk_versions:
-		compiled_pattern = re.compile(ndk_dir_regex)
-		for possible_ndk_dir in possible_ndk_dirs:
-			if re.findall(compiled_pattern, possible_ndk_dir):
-				return possible_ndk_dir
+	for directory_regex in preferred_directory_regexes:
+		compiled_pattern = re.compile(directory_regex + "$")
+		for subdirectory in iterate_subdirectories(directory):
+			if re.search(compiled_pattern, subdirectory):
+				return subdirectory
 
-def search_ndk_path(home_dir: str, contains_ndk: bool = False) -> Optional[str]:
+def search_ndk_path(home_directory: str, contains_ndk: bool = False) -> Optional[str]:
 	if contains_ndk:
-		ndk = search_ndk_subdirectories(home_dir)
-		if ndk is not None: return ndk
+		ndk = search_ndk_subdirectories(home_directory)
+		if ndk: return ndk
 	try:
 		android_tools = environ["ANDROID_SDK_ROOT"]
 	except KeyError:
-		android_tools = join(home_dir, "Android")
+		android_tools = join(home_directory, "Android")
 	if exists(android_tools):
 		ndk = search_ndk_subdirectories(android_tools)
-		if ndk is not None: return ndk
+		if ndk: return ndk
 	android_tools = join(android_tools, "ndk")
 	if exists(android_tools):
 		ndk = search_ndk_subdirectories(android_tools)
-		if ndk is not None: return ndk
+		if ndk: return ndk
 
 def get_ndk_path() -> Optional[str]:
 	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("native.ndkPath", GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath"))
