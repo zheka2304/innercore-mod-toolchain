@@ -257,7 +257,8 @@ def task_build_info() -> int:
 		if manifest.has_value("description"):
 			manifest.set_value("description", shortcodes(manifest.get_value("description")))
 		output_manifest_path = join(GLOBALS.MOD_STRUCTURE.directory, "manifest.json")
-		copy_file(manifest_file, output_manifest_path)
+		with open(output_manifest_path, "w", encoding="utf-8") as manifest_file:
+			manifest_file.write(json.dumps(manifest.json, indent="\t") + "\n")
 	else:
 		info_file = join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")
 		with open(GLOBALS.MAKE_CONFIG.get_path(info_file), "w", encoding="utf-8") as info_file:
@@ -269,7 +270,7 @@ def task_build_info() -> int:
 			if info.has_value("description"):
 				info.set_value("description", shortcodes(info.get_value("description")))
 			info.remove_value("icon")
-			info_file.write(json.dumps(info, indent="\t") + "\n")
+			info_file.write(json.dumps(info.json, indent="\t") + "\n")
 
 		optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
 		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
