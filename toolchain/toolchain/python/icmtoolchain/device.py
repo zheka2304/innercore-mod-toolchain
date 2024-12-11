@@ -401,7 +401,7 @@ def setup_device_connection() -> Optional[List[str]]:
 def setup_via_usb() -> Optional[List[str]]:
 	try:
 		print("Listening device via cable...")
-		print(f"* Press Ctrl+{'Z' if platform.system() == 'Windows' else 'C'} to leave")
+		print(f"* Press Ctrl+{'C' if platform.system() == 'Windows' else 'Z'} to leave")
 		subprocess.run([
 			GLOBALS.TOOLCHAIN_CONFIG.get_adb(),
 			"wait-for-usb-device"
