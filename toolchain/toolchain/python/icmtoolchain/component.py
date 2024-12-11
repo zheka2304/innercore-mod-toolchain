@@ -145,10 +145,12 @@ def install_components(*keywords: str) -> None:
 				progress.seek(0, f"{component.keyword}: {err}")
 			shell.render()
 		if "cpp" in keywords:
-			abis = GLOBALS.TOOLCHAIN_CONFIG.get_value("abis", list())
-			if not isinstance(abis, list):
-				abis = list()
-			abi = GLOBALS.TOOLCHAIN_CONFIG.get_value("debugAbi")
+			abis = GLOBALS.TOOLCHAIN_CONFIG.get_list("native.abis")
+			if len(abis) == 0:
+				abis = GLOBALS.TOOLCHAIN_CONFIG.get_list("abis")
+			abi = GLOBALS.TOOLCHAIN_CONFIG.get_value("native.debugAbi")
+			if not abi:
+				abi = GLOBALS.TOOLCHAIN_CONFIG.get_value("debugAbi")
 			if not abi and len(abis) == 0:
 				abort("Please describe options `abis` or `debugAbi` in your 'toolchain.json' before installing NDK!")
 			if abi and not abi in abis:

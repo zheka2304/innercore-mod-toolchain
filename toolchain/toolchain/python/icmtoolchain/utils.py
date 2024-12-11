@@ -161,24 +161,24 @@ def get_all_files(directories: Union[Iterable[str], str], extensions: Iterable[s
 	walk_all_files(directories, lambda filename: files.append(filename), extensions)
 	return files
 
-def list_subdirectories(path: str, max_depth: int = 5, directories: Optional[List[str]] = None) -> List[str]:
+def iterate_subdirectories(path: str, max_depth: int = 5, /, skip_yielding: bool = False):
 	"""
-	Recursively walks over directories and collects subdirectories
-	into passed or new list until maximum depth exceed.
+	Recursively walks over directories until maximum depth exceed.
 	"""
-	if not directories:
-		directories = list()
 	if not isdir(path):
-		return directories
-	directories.append(path)
-
-	if max_depth == -1 or max_depth > 0:
-		with os.scandir(path) as it:
-			for entry in it:
-				if entry.is_dir():
-					list_subdirectories(entry.path, max_depth - 1, directories)
-
-	return directories
+		return
+	if not skip_yielding:
+		yield path.rstrip("/\\")
+	if max_depth <= 0 and max_depth != -1:
+		return
+	with os.scandir(path) as it:
+		for entry in it:
+			if entry.is_dir():
+				yield entry.path
+	with os.scandir(path) as it:
+		for entry in it:
+			if entry.is_dir():
+				yield from iterate_subdirectories(entry.path, max_depth - 1 if max_depth > 0 else -1, skip_yielding=True)
 
 @overload
 def ensure_not_whitespace(what: Optional[str], fallback: None = None) -> Optional[str]: ...

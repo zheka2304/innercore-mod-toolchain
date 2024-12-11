@@ -155,18 +155,20 @@ def task(name: str, description: Optional[str] = None, locks: Optional[List[str]
 	description="Compiles native folders using NDK and links objects."
 )
 def task_compile_native() -> int:
-	if PROPERTIES.get_value("release"):
+	abis = None
+	if not PROPERTIES.get_value("release"):
+		abi = GLOBALS.MAKE_CONFIG.get_value("native.debugAbi")
+		if not abi:
+			abi = GLOBALS.MAKE_CONFIG.get_value("debugAbi")
+		if abi:
+			# TODO: warn("* Property `debugAbi` has been deprecated in favor of configurations, determine your own ABIs via 'debug' rule.")
+			abis = [abi]
+	if not abis:
 		abis = GLOBALS.MAKE_CONFIG.get_list("native.abis")
 		if len(abis) == 0:
 			abis = GLOBALS.MAKE_CONFIG.get_list("abis")
-		if not abis or len(abis) == 0:
-			abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
-	else:
-		abi = GLOBALS.MAKE_CONFIG.get_value("native.debugAbi", GLOBALS.MAKE_CONFIG.get_value("debugAbi", None))
-		if not abi:
-			abi = "armeabi-v7a"
-			warn(f"* No `debugAbi` value in 'toolchain.json' config, using {abi!r} as default.")
-		abis = [abi]
+	if len(abis) == 0:
+		abort(f"No `abis` value in 'toolchain.json' config, nothing will happened.")
 	from .native_build import compile_native, copy_shared_objects
 	result = compile_native(abis)
 	if result == 0:
@@ -257,7 +259,8 @@ def task_build_info() -> int:
 		if manifest.has_value("description"):
 			manifest.set_value("description", shortcodes(manifest.get_value("description")))
 		output_manifest_path = join(GLOBALS.MOD_STRUCTURE.directory, "manifest.json")
-		copy_file(manifest_file, output_manifest_path)
+		with open(output_manifest_path, "w", encoding="utf-8") as manifest_file:
+			manifest_file.write(json.dumps(manifest.json, indent="\t") + "\n")
 	else:
 		info_file = join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")
 		with open(GLOBALS.MAKE_CONFIG.get_path(info_file), "w", encoding="utf-8") as info_file:
@@ -269,7 +272,7 @@ def task_build_info() -> int:
 			if info.has_value("description"):
 				info.set_value("description", shortcodes(info.get_value("description")))
 			info.remove_value("icon")
-			info_file.write(json.dumps(info, indent="\t") + "\n")
+			info_file.write(json.dumps(info.json, indent="\t") + "\n")
 
 		optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
 		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
