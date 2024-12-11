@@ -593,18 +593,24 @@ class Entry(SelectiveShell.Selectable):
 		return str(self.text).count("\n") + 1
 
 class Switch(Entry):
-	checked_arrow: Optional[str]; hover_arrow: Optional[str]
+	checked_arrow: Optional[str]; hover_checked_arrow: Optional[str]
 	checked: bool
 
-	def __init__(self, key: Optional[str], text: Optional[str] = None, checked: bool = False, arrow: Optional[str] = ">     ", checked_arrow: Optional[str] = "  [x] ", hover_arrow: Optional[str] = "> [x] ") -> None:
+	def __init__(self, key: Optional[str], text: Optional[str] = None, checked: bool = False, arrow: Optional[str] = None, unchecked_arrow: Optional[str] = None, checked_arrow: Optional[str] = "  [x] ", hover_checked_arrow: Optional[str] = "> [x] ") -> None:
+		if not arrow:
+			arrow = "> " + stringify("[ ]", color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL) + " "
 		Entry.__init__(self, key, text, arrow)
-		self.checked_arrow = checked_arrow
 		self.checked = checked
-		self.hover_arrow = hover_arrow
+		if not unchecked_arrow:
+			unchecked_arrow = "  " + stringify("[ ]", color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL) + " "
+		self.unchecked_arrow = unchecked_arrow
+		self.checked_arrow = checked_arrow
+		self.hover_checked_arrow = hover_checked_arrow
 
 	def get_arrow(self, at_cursor: Optional[bool] = None) -> str:
-		return str(self.hover_arrow) if at_cursor and self.checked else \
-			str(self.arrow) if at_cursor else str(self.checked_arrow) if self.checked else " " * len(str(self.arrow))
+		return str(self.hover_checked_arrow) if at_cursor and self.checked else \
+			str(self.arrow) if at_cursor else str(self.checked_arrow) if self.checked else \
+			str(self.unchecked_arrow) if self.unchecked_arrow else " " * len(str(self.arrow))
 
 	def observe_key(self, what: str, at_cursor: Optional[bool] = None) -> bool:
 		if at_cursor and ord(what) in {10, 13}:
