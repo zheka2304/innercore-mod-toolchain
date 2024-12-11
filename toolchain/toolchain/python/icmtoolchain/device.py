@@ -149,17 +149,21 @@ def push(directory : str, push_unchanged: bool = False) -> int:
 				subprocess.call(GLOBALS.ADB_COMMAND + [
 					"shell", "rm", "-r", dst
 				], stderr=DEVNULL, stdout=DEVNULL)
-				result = subprocess.call(GLOBALS.ADB_COMMAND + [
+				result = subprocess.run(GLOBALS.ADB_COMMAND + [
 					"push", src, dst
-				], stderr=DEVNULL, stdout=DEVNULL)
+				], capture_output=True, text=True)
 			except KeyboardInterrupt:
-				Progress.notify(shell, progress, 0.5, "Pushing aborted.")
+				Progress.notify(shell, progress, 1, "Pushing aborted.")
 				return 1
 			percent += 1
 
-			if result != 0:
-				Progress.notify(shell, progress, 0.5, f"Failed {filename} with code {result}")
-				return result
+			if result.returncode != 0:
+				Progress.notify(shell, progress, 1, f"Failed {filename} push")
+				cause = result.stdout.strip().splitlines()[-1]
+				if cause and len(cause) > 0:
+					shell.leave()
+					error(cause)
+				return result.returncode
 
 		if not push_unchanged:
 			GLOBALS.OUTPUT_STORAGE.save()
