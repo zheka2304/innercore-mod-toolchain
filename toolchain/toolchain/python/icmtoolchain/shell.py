@@ -596,7 +596,7 @@ class Switch(Entry):
 	checked_arrow: Optional[str]; hover_arrow: Optional[str]
 	checked: bool
 
-	def __init__(self, key: Optional[str], text: Optional[str] = None, checked: bool = False, arrow: Optional[str] = "> ", checked_arrow: Optional[str] = "* ", hover_arrow: Optional[str] = ">*") -> None:
+	def __init__(self, key: Optional[str], text: Optional[str] = None, checked: bool = False, arrow: Optional[str] = ">     ", checked_arrow: Optional[str] = "  [x] ", hover_arrow: Optional[str] = "> [x] ") -> None:
 		Entry.__init__(self, key, text, arrow)
 		self.checked_arrow = checked_arrow
 		self.checked = checked
@@ -614,7 +614,6 @@ class Switch(Entry):
 
 class Input(Entry):
 	hint: Optional[str]; template: Optional[str]; maximum_length: int
-	hovered: bool = False
 
 	def __init__(self, key: Optional[str], hint: Optional[str] = None, text: Optional[str] = "", arrow: Optional[str] = "> ", template: Optional[str] = None, maximum_length: int = 40) -> None:
 		Entry.__init__(self, key, text, arrow)
@@ -625,28 +624,26 @@ class Input(Entry):
 		self.maximum_length = maximum_length
 
 	def render(self, shell: SelectiveShell, offset: int, line: int, page: int = 0, index: int = -1, lines_before: int = -1, at_cursor: Optional[bool] = None) -> None:
-		text = str(self.text) if len(str(self.text)) > 0 or self.hovered else "..." if not self.template else self.template
-		shell.write(self.get_arrow(at_cursor) + (self.hint or "") + (text if self.hovered else stringify(text, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL)) + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if self.hovered else "") + "\n")
+		stringified_text = str(self.text)
+		text = stringified_text if len(stringified_text) > 0 else "..." if not self.template else self.template
+		shell.write(self.get_arrow(at_cursor) + (self.hint or "") + (text if len(stringified_text) > 0 else stringify(text, color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL)) \
+			  + (stringify(" ", color=7, reset=colorama.Style.RESET_ALL) if at_cursor and len(stringified_text) > 0 else "") + "\n")
 
 	def read(self) -> Optional[str]:
-		return self.template if not self.hovered and len(str(self.text)) == 0 and self.template else self.text
+		return self.template if len(str(self.text)) == 0 and self.template else self.text
 
 	def observe_key(self, what: str, at_cursor: Optional[bool] = None) -> bool:
-		if at_cursor:
+		if at_cursor and not (what == "\x1b" or what == "\xe0" or what == "\x00"):
 			if ord(what) in {10, 13}:
-				self.hovered = not self.hovered
 				return True
-			if self.hovered:
-				if what in ("\x7f", "\x08"): # backspace
-					if self.text and len(self.text) > 0:
-						self.text = self.text[::-1][1:][::-1]
-					else:
-						self.hovered = False
-				elif what.isprintable() and len(str(self.text) + what) <= self.maximum_length:
-					if not self.text:
-						self.text = ""
-					self.text += what
-				return True
+			if what in ("\x7f", "\x08"): # backspace
+				if self.text and len(self.text) > 0:
+					self.text = self.text[::-1][1:][::-1]
+			elif what.isprintable() and len(str(self.text) + what) <= self.maximum_length:
+				if not self.text:
+					self.text = ""
+				self.text += what
+			return True
 		return Entry.observe_key(self, what)
 
 class Progress(Shell.Interactable):
