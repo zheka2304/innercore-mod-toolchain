@@ -11,7 +11,7 @@ from typing import Any, Callable, Collection, Dict, List, Optional
 from . import GLOBALS, PROPERTIES
 from .base_config import BaseConfig
 from .hglob import glob
-from .utils import ensure_directory, ensure_file_directory
+from .utils import ensure_directory, ensure_file_directory, request_typescript
 
 # The TypeScript Compiler - Version 4.8.3
 TSCONFIG: Dict[str, Any] = {
@@ -291,17 +291,23 @@ class WorkspaceComposite:
 			tsconfig.write(json.dumps(template, indent="\t") + "\n")
 
 	def build(self, *args: str) -> int:
+		tsc = request_typescript()
+		if not tsc:
+			raise RuntimeError("A tsc is required to build project, make sure it is present before calling this function.")
 		return subprocess.call([
-			"tsc",
+			tsc,
 			"--build", self.get_tsconfig(),
 			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", list()),
 			*args
 		], shell=platform.system() == "Windows")
 
 	def watch(self, *args: str) -> int:
+		tsc = request_typescript()
+		if not tsc:
+			raise RuntimeError("A tsc is required to watch project, make sure it is present before calling this function.")
 		try:
 			return subprocess.call([
-				"tsc",
+				tsc,
 				"--watch",
 				*GLOBALS.MAKE_CONFIG.get_value("development.watch", list()),
 				*args
