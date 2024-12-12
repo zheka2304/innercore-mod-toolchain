@@ -59,8 +59,11 @@ def get_modpack_push_directory() -> Optional[str]:
 	return directory
 
 def ls_packs_on_remote(path: str) -> List[str]:
-	containment = [path + "/innercore"] if "mods" in ls(path + "/innercore")[0] else list()
-	return containment + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")[0]]
+	directories = []
+	if test_directory_exist(path + "/innercore/mods"):
+		directories.append(path + "/innercore")
+	return directories + [path + "/modpacks/" + directory for directory in ls(path + "/modpacks")[0] \
+		if test_directory_exist(path + "/modpacks/" + directory + "/mods")]
 
 def person_readable_modpack_name(path: str) -> str:
 	what = path.split("/")[::-1]
@@ -77,28 +80,57 @@ def person_readable_modpack_name(path: str) -> str:
 		pass
 	return basename(path)
 
-def setup_modpack_directory(locations: Optional[List[str]] = None) -> Optional[str]:
-	pack_directories = ls("/storage/emulated/0/games/horizon/packs")[0]
-	directories = list()
-	if locations:
-		directories += locations
-	for directory in pack_directories:
-		directories += ls_packs_on_remote("/storage/emulated/0/games/horizon/packs/" + directory)
-	pack_directories = ls("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs")[0]
-	for directory in pack_directories:
-		directories += ls_packs_on_remote("/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/packs/" + directory)
-	if "mods" in ls("/storage/emulated/0/games/com.mojang")[0]:
-		directories.append("/storage/emulated/0/games/com.mojang")
-	if len(directories) == 0:
-		print(
-			"It seems your device doesn't contain any Inner Core pack directory. " +
-			"If not, describe output path manually in 'toolchain.json'."
-		)
+def get_sdcard_directory() -> Optional[str]:
+	locations = GLOBALS.TOOLCHAIN_CONFIG.get_value("storageLocations")
+	if not locations or len(locations) == 0:
+		locations = ["/storage/emulated/0", "/mnt/sdcard", "/sdcard"]
+	for location in locations:
+		if test_directory_exist(location):
+			return location
+	if test_directory_exist("/storage/emulated"):
+		directories = ls("/storage/emulated")[0]
+		for directory in directories:
+			if test_directory_exist("/storage/emulated/" + directory):
+				return "/storage/emulated/" + directory
+	return None
+
+def setup_modpack_directory() -> Optional[str]:
+	locations = GLOBALS.TOOLCHAIN_CONFIG.get_value("modpackLocations")
+	if not locations or len(locations) == 0:
+		locations = ["games/horizon/packs", "Android/data/com.zheka.horizon/files/horizon/packs"]
+	sdcard_directory = get_sdcard_directory()
+	if not sdcard_directory:
+		error("We were unable to find storage folder on your device.")
+		error("Please override `storageLocations` property in your 'toolchain.json' to override path.")
 		return None
-	which = select_prompt("Which modpack will be used?", *[
-		person_readable_modpack_name(directory) for directory in directories
-	])
+	directories = set()
+	for location in locations:
+		modpack_directory = sdcard_directory + "/" + location
+		directories.update(ls_packs_on_remote(modpack_directory))
+		for relative_directory in ls(modpack_directory)[0]:
+			directories.update(ls_packs_on_remote(modpack_directory + "/" + relative_directory))
+	if test_directory_exist(sdcard_directory + "/games/com.mojang/mods"):
+		directories.add(sdcard_directory + "/games/com.mojang")
+	if len(directories) == 0:
+		error("It looks like your device does not contain an Inner Core installation.")
+		error("Please install pack via Horizon or override `modpackLocations` property of your 'toolchain.json'.")
+		return None
+	directories = list(directories)
+	readable_directories = [person_readable_modpack_name(directory) for directory in directories]
+	readable_directories.sort()
+	which = select_prompt("Which modpack will be used?", *readable_directories)
 	return None if which is None else directories[which]
+
+def test_directory_exist(path: str, *args: str) -> bool:
+	try:
+		subprocess.run(GLOBALS.ADB_COMMAND + [
+			"shell", "test", "-d", path
+		] + list(args), check=True)
+	except subprocess.CalledProcessError as err:
+		if err.returncode != 1:
+			error("adb shell test -d failed with code", err.returncode)
+		return False
+	return True
 
 def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 	try:
