@@ -85,10 +85,10 @@
 	"definitions": {
 		"sharedDefinition": {
 			"properties": {
-				"denyJavaScript": {
+				"denyTypeScript": {
 					"type": "boolean",
-					"default": true,
-					"description": "Forces TypeScript compiler even if the project contains exclusively JavaScript files."
+					"default": false,
+					"description": "Determines whether Node.js can be used to build project. If not, toolchain will attempt to build file manually."
 				},
 				"debugIncludesExclude": {
 					"type": "array",

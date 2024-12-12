@@ -9,7 +9,6 @@ from typing import (Any, Callable, Iterable, List, Literal, Optional, Union,
 from zipfile import ZipFile, ZipInfo
 
 from . import GLOBALS
-from .shell import confirm, info
 
 DEVNULL = open(os.devnull, "w")
 
@@ -241,18 +240,6 @@ def shortcodes(source: str) -> str:
 	source = source.replace("{timestamp}", date.strftime("%H%M"))
 	return source
 
-def request_typescript() -> Literal["javascript", "typescript"]:
-	"""
-	Utility to check and install tsc with npm.
-	"""
-	if shutil.which("tsc"):
-		return "typescript"
-	if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)?", True):
-		return "javascript"
-	info("Updating TypeScript globally via npm...")
-	os.system("npm install -g typescript")
-	return request_typescript()
-
 def request_tool(name: str) -> Optional[str]:
 	path = GLOBALS.TOOLCHAIN_CONFIG.get_value(f"tools.{name}")
 	if path:
@@ -263,6 +250,26 @@ def request_tool(name: str) -> Optional[str]:
 	if not path:
 		return None
 	return abspath(path)
+
+def request_typescript(only_check: bool = False) -> Optional[str]:
+	"""
+	Utility to check and install tsc with npm.
+	"""
+	if GLOBALS.TOOLCHAIN_CONFIG.get_value("denyTypeScript"):
+		return None
+	from .shell import confirm, error, info
+	tsc = shutil.which("tsc") or request_tool("tsc")
+	if tsc or only_check:
+		return tsc
+	if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project) [Y/n]?", True):
+		return None
+	info("Updating TypeScript globally via npm...")
+	subprocess.run("npm install -g typescript")
+	tsc = shutil.which("tsc") or request_tool("tsc")
+	if tsc:
+		return tsc
+	error("Something went wrong when trying to install TypeScript Compiler, please check your Node.js and npm installation and try again.")
+	return None
 
 def request_executable_version(executable: Union[str, List[str]]) -> float:
 	pattern_version = re.compile(r"\d+\.\d+")
