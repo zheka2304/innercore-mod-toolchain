@@ -214,9 +214,8 @@ def task_watch_scripts() -> int:
 	description="Overrides the contents of 'tsconfig.json' based on script files."
 )
 def task_update_includes() -> int:
-	from .script_build import (compute_and_capture_changed_scripts,
-	                           get_allowed_languages)
-	compute_and_capture_changed_scripts(get_allowed_languages())
+	from .script_build import compute_and_capture_changed_scripts
+	compute_and_capture_changed_scripts()
 	GLOBALS.WORKSPACE_COMPOSITE.flush()
 	return 0
 

@@ -4,54 +4,39 @@ from typing import Any, Dict, List, Tuple
 
 from . import GLOBALS, PROPERTIES
 from .includes import Includes
-from .shell import abort, debug, error, info, warn
-from .utils import (copy_directory, copy_file, ensure_directory, remove_tree,
-                    request_tool, request_typescript)
+from .shell import debug, error, info, warn
+from .utils import (RuntimeCodeError, copy_directory, copy_file,
+                    ensure_directory, remove_tree, request_typescript,
+                    walk_all_files)
 
 VALID_SOURCE_TYPES = ("main", "launcher", "preloader", "instant", "custom", "library")
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
 
 
-def get_allowed_languages() -> List[str]:
-	allowed_languages = list()
-
-	if len(GLOBALS.MAKE_CONFIG.get_filtered_list("sources", "language", ("typescript"))) > 0 or GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
-		if request_typescript() == "typescript":
-			allowed_languages.append("typescript")
-	# Otherwise check tsc directly, allowing dynamically rebuilding references
-	elif request_tool("tsc"):
-		allowed_languages.append("typescript")
-
-	if not GLOBALS.PREFERRED_CONFIG.get_value("denyJavaScript", False):
-		allowed_languages.append("javascript")
-
-	if len(allowed_languages) == 0:
-		abort("TypeScript is required, if you want to build legacy JavaScript, change `denyJavaScript` property in your 'make.json' or 'toolchain.json' config.")
-
-	return allowed_languages
-
 def build_all_scripts(watch: bool = False) -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 
+	if request_typescript(only_check=True) and not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
+		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
+
 	overall_result = 0
 	for source in GLOBALS.MAKE_CONFIG.get_value("sources", list()):
-		if "source" not in source or "language" not in source or "type" not in source:
-			error(f"Skipped invalid source json {source!r}, it might contain `source`, `type` and `language` properties!")
+		if "source" not in source or "type" not in source:
+			error(f"Invalid source json {source!r}, it might contain `source` and `type` properties!")
 			overall_result = 1
 			continue
 		if source["type"] not in VALID_SOURCE_TYPES:
 			error(f"Invalid script `type` in source: {source['type']}, it might be one of {VALID_SOURCE_TYPES}.")
 			overall_result = 1
+		if "language" in source:
+			if not source["language"] in ("javascript", "typescript"):
+				error(f"Invalid source `language` property: {source['language']}, it should be 'javascript' or 'typescript'!")
+				overall_result = 1
 	if overall_result != 0:
 		return overall_result
 
-	allowed_languages = get_allowed_languages()
-	if "typescript" in allowed_languages and not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
-
-	overall_result += build_composite_project(allowed_languages) \
-		if not watch else watch_composite_project(allowed_languages)
+	overall_result += build_composite_project() if not watch else watch_composite_project()
 	return overall_result
 
 def rebuild_build_target(source, target_path: str) -> str:
@@ -80,7 +65,7 @@ def do_sorting(a: Dict[Any, Any], b: Dict[Any, Any]) -> int:
 	lb = b["type"] == "library"
 	return 0 if la == lb else -1 if la else 1
 
-def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescript"]) -> Tuple[List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[Includes, str, str]], List[Tuple[str, str]]]:
+def compute_and_capture_changed_scripts() -> Tuple[List[Tuple[str, str, str]], List[Tuple[str, str, str]], List[Tuple[Includes, str, str]], List[Tuple[str, str]]]:
 	composite = list()
 	computed_composite = list()
 	includes = list()
@@ -89,17 +74,33 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 	for source in sorted(GLOBALS.MAKE_CONFIG.get_value("sources", list()), key=cmp_to_key(do_sorting)):
 		make = source["includes"] if "includes" in source else ".includes"
 		preffered_language = source["language"] if "language" in source else None
-		language = preffered_language if preffered_language \
-			and source["language"] in allowed_languages else allowed_languages[0]
 
 		for source_path in GLOBALS.MAKE_CONFIG.get_paths(source["source"]):
 			if not exists(source_path):
-				warn(f"* Skipped non-existing source {source['source']!r}!", sep="")
+				warn(f"* Skipped non-existing source {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r}!")
 				continue
 
 			# Supports assembling directories, JavaScript and TypeScript
-			if not (isdir(source_path) or source_path.endswith(".js") or source_path.endswith(".ts")):
+			preffered_javascript = source_path.endswith(".js")
+			preffered_typescript = source_path.endswith(".ts")
+			if not (isdir(source_path) or preffered_javascript or preffered_typescript):
+				warn(f"Unsupported script {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r}, it should be directory with includes or Java/TypeScript file!")
 				continue
+
+			language = preffered_language or ("javascript" if preffered_javascript else "typescript" if preffered_typescript else None)
+			typescript_directory = False
+			if isdir(source_path):
+				try:
+					def walk(file: str) -> None:
+						if file.endswith(".ts") and not file.endswith(".d.ts"):
+							raise RuntimeError()
+					walk_all_files(source_path, walk)
+				except RuntimeError:
+					typescript_directory = True
+			language = language or ("typescript" if typescript_directory else "javascript")
+
+			if language == "typescript" and (preffered_typescript or typescript_directory) and not request_typescript():
+				raise RuntimeCodeError(255, "It is not possible to compile TypeScript without having TypeScript Compiler, please install Node.js and do installation again.")
 
 			# Using template <sourceName>.<extension> -> <sourceName>, e.g. main.js -> main
 			if "target" not in source:
@@ -124,7 +125,7 @@ def compute_and_capture_changed_scripts(allowed_languages: List[str] = ["typescr
 			if isdir(source_path):
 				include = Includes.invalidate(source_path, make)
 				# Computing in any case, tsconfig normalises environment usage
-				if include.compute(destination_path, "typescript" if "typescript" in allowed_languages and not appending_library else "javascript"):
+				if include.compute(destination_path, "typescript" if not appending_library else "javascript"):
 					includes.append((
 						include,
 						destination_path,
@@ -191,13 +192,12 @@ def copy_build_targets(composite: List[Tuple[str, str, str]], includes: List[Tup
 
 	GLOBALS.BUILD_STORAGE.save()
 
-def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> int:
+def build_composite_project() -> int:
 	overall_result = 0
 
-	composite, computed_composite, includes, computed_includes = \
-		compute_and_capture_changed_scripts(allowed_languages)
+	composite, computed_composite, includes, computed_includes = compute_and_capture_changed_scripts()
 
-	if "typescript" in allowed_languages:
+	if request_typescript(only_check=True):
 		GLOBALS.WORKSPACE_COMPOSITE.flush()
 	for included in includes:
 		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
@@ -205,7 +205,7 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> in
 	if overall_result != 0:
 		return overall_result
 
-	if "typescript" in allowed_languages \
+	if request_typescript(only_check=True) \
 		and (GLOBALS.MAKE_CONFIG.get_value("project.composite", True) \
 			or GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False)):
 
@@ -250,23 +250,22 @@ def build_composite_project(allowed_languages: List[str] = ["typescript"]) -> in
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("compile")
 	return overall_result
 
-def watch_composite_project(allowed_languages: List[str] = ["typescript"]) -> int:
-	if not "typescript" in allowed_languages:
-		error("Watching is not supported for legacy JavaScript!")
+def watch_composite_project() -> int:
+	if not request_typescript():
+		error("* Watching is not supported for legacy JavaScript!")
 		return 1
 	overall_result = 0
 
 	# Recomputing existing changes before watching, changes here doesn't make sence
 	# since it will be recomputed after watching interruption
-	compute_and_capture_changed_scripts(allowed_languages)
+	compute_and_capture_changed_scripts()
 	GLOBALS.WORKSPACE_COMPOSITE.flush()
 	GLOBALS.WORKSPACE_COMPOSITE.watch()
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 	GLOBALS.WORKSPACE_COMPOSITE.reset()
 
-	composite, computed_composite, includes, computed_includes = \
-		compute_and_capture_changed_scripts(allowed_languages)
+	composite, computed_composite, includes, computed_includes = compute_and_capture_changed_scripts()
 
 	for included in includes:
 		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
