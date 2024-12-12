@@ -50,6 +50,9 @@ while True:
 		except BaseException as err:
 			if isinstance(err, SystemExit):
 				raise err
+			from .utils import RuntimeCodeError
+			if isinstance(err, RuntimeCodeError):
+				abort(f"* Task {callable.name} failed with error code #{err.code}: {err}")
 			abort(f"* Task {callable.name} failed with unexpected error!", cause=err)
 		anything_performed = True
 
