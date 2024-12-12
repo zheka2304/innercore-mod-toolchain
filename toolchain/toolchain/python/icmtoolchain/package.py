@@ -68,7 +68,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 
 		def observe_key(self, what: str) -> bool:
 			input = shell.get_interactable("name", Input)
-			self.directory = get_project_folder_by_name(GLOBALS.TOOLCHAIN_CONFIG.directory, input.read() or "")
+			self.directory = get_project_folder_by_name(GLOBALS.TOOLCHAIN_CONFIG.directory, input.text or "")
 			shell.blocked_in_page = not self.directory
 			header = shell.get_interactable("header", Separator)
 			header.size = (1 if shell.blocked_in_page else 0) + (0 if len(GLOBALS.PROJECT_MANAGER.templates) > 1 else 1)
@@ -76,7 +76,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 			location.text = "" if not self.directory else "It will be in " + self.directory + "\n"
 			progress = shell.get_interactable("step", Progress)
 			progress.progress = 0 if shell.blocked_in_page else progress_step
-			progress.text = " " + "Name your creation".center(45) + (" " if shell.blocked_in_page else ">")
+			progress.text = "  " + "Name your creation".center(43) + ("  " if shell.blocked_in_page else "->")
 			return False
 
 	shell = SelectiveShell()
@@ -109,7 +109,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 				"template.clientOnly", template_config.get_value("info.clientOnly", False)
 			)),
 			Separator(),
-			Progress(progress=progress_step * 2, text="<" + "Configure details".center(45) + (">" if not have_template else "+"))
+			Progress(progress=progress_step * 2, text="<-" + "Configure details".center(43) + ("->" if not have_template else "  "))
 		]
 	if not have_template:
 		shell.interactables += [
@@ -118,7 +118,7 @@ def new_project(template: Optional[str] = "../toolchain-mod") -> Optional[int]:
 			Notice("applied when new project is being created."),
 			Notice("Properties are still same 'make.json' property `info`."),
 			Separator(),
-			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<" + "Friendly advice".center(45) + "+")
+			Progress(progress=progress_step * (3 if not always_skip_description else 2), text="<-" + "Friendly advice".center(43) + "  ")
 		]
 
 	shell.interactables.append(Interrupt())

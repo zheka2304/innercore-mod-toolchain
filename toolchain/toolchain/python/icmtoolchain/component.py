@@ -220,7 +220,7 @@ def startup() -> None:
 		Notice("environment; use enter and arrow keys on computer"),
 		Notice("keyboard to interact with console interface."),
 		Separator(),
-		Progress(progress=0.2, text=" " + "Howdy!".center(45) + ">")
+		Progress(progress=0.2, text="  " + "Howdy!".center(43) + "->")
 	]
 	shell.interactables += [
 		Separator(),
@@ -228,7 +228,7 @@ def startup() -> None:
 		Notice("Username is used as primary `author` attribute when"),
 		Notice("creating a project, it identifies you in mod browser."),
 		Separator(),
-		Progress(progress=0.4, text="<" + "Who are you?".center(45) + ">")
+		Progress(progress=0.4, text="<-" + "Who are you?".center(43) + "->")
 	]
 
 	preffered = which_installed()
@@ -252,7 +252,7 @@ def startup() -> None:
 
 	while True:
 		if index % shell.lines_per_page == shell.lines_per_page - 1:
-			interactables.append(Progress(progress=0.6, text="<" + "Configure your toolchain".center(45) + ">"))
+			interactables.append(Progress(progress=0.6, text="<-" + "Configure your toolchain".center(43) + "->"))
 			if component == len(components) + 3:
 				break
 		elif component < len(components) + 3:
@@ -283,7 +283,7 @@ def startup() -> None:
 		Notice("This will allow you to use TypeScript and modern ESNext"),
 		Notice("features, but it may slow down build speed."),
 		Separator(),
-		Progress(progress=0.8, text="<" + "Composite performance".center(45) + "+")
+		Progress(progress=0.8, text="<-" + "Composite performance".center(43) + "  ")
 	]
 	shell.interactables.append(Interrupt())
 	try:

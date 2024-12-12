@@ -641,6 +641,8 @@ class Input(Entry):
 	def observe_key(self, what: str, at_cursor: Optional[bool] = None) -> bool:
 		if at_cursor and not (what == "\x1b" or what == "\xe0" or what == "\x00"):
 			if ord(what) in {10, 13}:
+				if self.template and (not self.text or len(self.text) == 0):
+					self.text = self.template
 				return True
 			if what in ("\x7f", "\x08"): # backspace
 				if self.text and len(self.text) > 0:
