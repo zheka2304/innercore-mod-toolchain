@@ -11,7 +11,7 @@ from .shell import (PLATFORM_STYLE_DIM, Input, InteractiveShell, Interrupt,
                     Notice, Progress, SelectiveShell, Separator, Shell, Switch,
                     abort, stringify, warn)
 from .utils import (AttributeZipFile, ensure_file_directory,
-                    ensure_not_whitespace)
+                    ensure_not_whitespace, request_typescript)
 
 
 class Component():
@@ -271,12 +271,8 @@ def startup() -> None:
 			index += required_lines - 1
 		index += 1
 	shell.interactables.extend(interactables)
-	try:
-		import shutil
-		tsc = shutil.which("tsc") is not None
-	except BaseException:
-		tsc = False
 
+	tsc = request_typescript(only_check=True) is not None
 	shell.interactables += [
 		Separator(),
 		Switch("typescript", "Do you want to use Node.js for script compilation?", tsc),
@@ -302,8 +298,14 @@ def startup() -> None:
 
 	typescript = shell.get_interactable("typescript", Switch).checked
 	print("Will all scripts be compiled using Node.js?", stringify("yes" if typescript else "no", color=PLATFORM_STYLE_DIM, reset=colorama.Style.RESET_ALL))
-	if typescript or GLOBALS.TOOLCHAIN_CONFIG.get_value("denyJavaScript") is not None:
-		GLOBALS.TOOLCHAIN_CONFIG.set_value("denyJavaScript", typescript)
+	if typescript:
+		if GLOBALS.TOOLCHAIN_CONFIG.get_value("denyTypeScript"):
+			GLOBALS.TOOLCHAIN_CONFIG.remove_value("denyTypeScript")
+			GLOBALS.TOOLCHAIN_CONFIG.save()
+		request_typescript()
+	elif tsc:
+		GLOBALS.TOOLCHAIN_CONFIG.set_value("denyTypeScript", True)
+		GLOBALS.TOOLCHAIN_CONFIG.save()
 
 	GLOBALS.TOOLCHAIN_CONFIG.save()
 
