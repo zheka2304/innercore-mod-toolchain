@@ -81,26 +81,27 @@ def compute_and_capture_changed_scripts() -> Tuple[List[Tuple[str, str, str]], L
 				continue
 
 			# Supports assembling directories, JavaScript and TypeScript
-			preffered_javascript = source_path.endswith(".js")
-			preffered_typescript = source_path.endswith(".ts")
-			if not (isdir(source_path) or preffered_javascript or preffered_typescript):
-				warn(f"Unsupported script {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r}, it should be directory with includes or Java/TypeScript file!")
-				continue
-
-			language = preffered_language or ("javascript" if preffered_javascript else "typescript" if preffered_typescript else None)
-			typescript_directory = False
-			if isdir(source_path):
+			preffered_typescript = False
+			if not isdir(source_path):
+				preffered_typescript = source_path.endswith(".ts")
+				if not preffered_typescript and not source_path.endswith(".js"):
+					warn(f"* Unsupported script {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r}, it should be directory with includes or Java/TypeScript file!")
+					continue
+			else:
 				try:
 					def walk(file: str) -> None:
 						if file.endswith(".ts") and not file.endswith(".d.ts"):
 							raise RuntimeError()
 					walk_all_files(source_path, walk)
 				except RuntimeError:
-					typescript_directory = True
-			language = language or ("typescript" if typescript_directory else "javascript")
+					preffered_typescript = True
 
-			if language == "typescript" and (preffered_typescript or typescript_directory) and not request_typescript():
-				raise RuntimeCodeError(255, "It is not possible to compile TypeScript without having TypeScript Compiler, please install Node.js and do installation again.")
+			language = preffered_language or ("typescript" if preffered_typescript else "javascript")
+			if language == "typescript" and not request_typescript():
+				if preffered_typescript:
+					raise RuntimeCodeError(255, f"We cannot compile source {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r} without you having Node.js, despite `denyTypeScript` property of your 'toolchain.json' being active. Please disable it and install Node.js to compile TypeScript sources.")
+				warn(f"* Source {GLOBALS.MAKE_CONFIG.get_relative_path(source_path)!r} specifies target language as TypeScript, so this script probably uses ESNext capabilities. Build as normal JavaScript files, since `denyTypeScript` property of your 'toolchain.json' is active.")
+				language = "javascript"
 
 			# Using template <sourceName>.<extension> -> <sourceName>, e.g. main.js -> main
 			if "target" not in source:

@@ -9,7 +9,7 @@ from typing import Any, Dict, Final, List
 from . import GLOBALS, PROPERTIES
 from .hglob import glob
 from .shell import debug, error, info, warn
-from .utils import ensure_file_directory
+from .utils import ensure_file_directory, request_typescript
 from .workspace import TSCONFIG
 
 # Will be excluded with toolchain overriden options
@@ -214,8 +214,11 @@ class Includes:
 		ensure_file_directory(temporary_path)
 
 		if language.lower() == "typescript":
+			tsc = request_typescript()
+			if not tsc:
+				raise RuntimeError("A tsc is required to build this source, make sure it is present before calling this function.")
 			command = [
-				"tsc",
+				tsc,
 				"--project", self.get_tsconfig(),
 				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", list())
 			]
