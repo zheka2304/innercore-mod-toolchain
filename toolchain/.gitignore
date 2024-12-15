@@ -1,4 +1,12 @@
-toolchain/bin/.gradle
-toolchain/build
-toolchain/temp
-toolchain/ndk
+/toolchain/build
+/toolchain/temp
+/toolchain/ndk
+
+output/
+**/tsconfig.json
+*.cache
+.gradle
+
+*.log
+*.icmod
+.*commit
