@@ -1,7 +1,7 @@
 import os
 import shutil
 import sys
-from os.path import isdir, isfile, join
+from os.path import exists, isdir, isfile, join
 from typing import Final, List, Optional
 from urllib import request
 from urllib.error import URLError
@@ -11,7 +11,7 @@ from .shell import (PLATFORM_STYLE_DIM, Input, InteractiveShell, Interrupt,
                     Notice, Progress, SelectiveShell, Separator, Shell, Switch,
                     abort, stringify, warn)
 from .utils import (AttributeZipFile, ensure_file_directory,
-                    ensure_not_whitespace, request_typescript)
+                    ensure_not_whitespace, move_to_backup, request_typescript)
 
 
 class Component():
@@ -107,8 +107,8 @@ def extract_component(component: Component, shell: Optional[Shell], progress: Op
 	output = GLOBALS.TOOLCHAIN_CONFIG.get_path(component.location)
 	if isdir(output):
 		shutil.rmtree(output, ignore_errors=True)
-	elif isfile(output):
-		shutil.move(output, output + ".bak")
+	elif exists(output):
+		move_to_backup(output)
 	os.makedirs(output, exist_ok=True)
 	shutil.copytree(extract_to, output, dirs_exist_ok=True)
 	Progress.notify(shell, progress, 0.66, "Cleaning up")

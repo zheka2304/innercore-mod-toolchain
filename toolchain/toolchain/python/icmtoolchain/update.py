@@ -6,6 +6,7 @@ from urllib import request
 from urllib.error import URLError
 
 from . import GLOBALS
+from .fetch import create_download_github_repository_request
 from .hglob import glob
 from .shell import abort, error, warn
 from .utils import AttributeZipFile, merge_directory
@@ -14,16 +15,12 @@ from .utils import AttributeZipFile, merge_directory
 def download_toolchain(directory: str) -> None:
 	os.makedirs(directory, exist_ok=True)
 	archive = join(directory, "toolchain.zip")
-
-	if not exists(archive):
-		url = "https://codeload.github.com/zheka2304/innercore-mod-toolchain/zip/deploy"
-		print("Downloading Inner Core Mod Toolchain: " + url)
-		try:
-			request.urlretrieve(url, archive)
-		except URLError:
-			abort("Check your network connection!")
-	else:
-		print("'toolchain.zip' already exists in temporary directory.")
+	try:
+		content_size, fetch = create_download_github_repository_request("zheka2304/innercore-mod-toolchain", "deploy")
+		print(f"Downloading Inner Core Mod Toolchain{f' ({content_size} bytes)' if content_size != -1 else ''}...")
+		fetch(archive)
+	except URLError:
+		abort("Check your network connection!")
 
 def might_be_updated(directory: Optional[str] = None) -> bool:
 	"""

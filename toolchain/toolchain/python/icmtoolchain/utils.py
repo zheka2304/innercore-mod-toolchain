@@ -20,13 +20,21 @@ class RuntimeCodeError(RuntimeError):
 		self.code = code
 		RuntimeError.__init__(self, *args)
 
+def move_to_backup(path: str) -> None:
+	if not isfile(path) and not isdir(path) and not islink(path):
+		return
+	output_path = path + ".bak"
+	if exists(output_path):
+		remove_tree(output_path)
+	os.rename(path, output_path)
+
 def ensure_directory(directory: str) -> None:
 	"""
 	Ensures that specified path is directory,
 	removes existing file if it exists.
 	"""
 	if isfile(directory) or islink(directory):
-		os.remove(directory)
+		move_to_backup(directory)
 	if not exists(directory):
 		os.makedirs(directory, exist_ok=True)
 
@@ -36,6 +44,11 @@ def ensure_file_directory(file: str) -> None:
 	removes existing file if it exists.
 	"""
 	ensure_directory(abspath(join(file, "..")))
+
+def ensure_file(path: str) -> None:
+	ensure_file_directory(path)
+	if isdir(path) or islink(path):
+		move_to_backup(path)
 
 def remove_tree(directory: str) -> None:
 	"""
@@ -71,7 +84,7 @@ def move_tree(source: str, destination: str) -> None:
 	shutil.move(source, destination)
 
 def copy_directory(source: str, destination: str, clear_destination: bool = False, replacement: bool = True, ignore_list: Optional[Iterable[str]] = None, relative_path: Optional[str] = None) -> None:
-	# TODO: Replace with shutil.copytree?
+	# XXX: Replace with shutil.copytree?
 	if clear_destination:
 		remove_tree(destination)
 	ensure_directory(destination)
@@ -104,11 +117,7 @@ def merge_directory(source: str, destination: str, accept_squash: bool = True, i
 	or removes already existing files with same type.
 	"""
 	if ((isdir(source) and isfile(destination)) or (isdir(destination) and isfile(source))) and accept_squash:
-		if isfile(destination + ".bak"):
-			os.remove(destination + ".bak")
-		elif isdir(destination + ".bak"):
-			shutil.rmtree(destination + ".bak")
-		shutil.move(destination, destination + ".bak")
+		move_to_backup(destination)
 	if not isdir(source):
 		if not exists(destination):
 			ensure_file_directory(destination)
