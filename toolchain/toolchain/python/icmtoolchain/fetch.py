@@ -2,12 +2,14 @@ import json
 import os
 import time
 from io import BytesIO
-from os.path import getsize, isfile
+from os.path import getsize, isfile, join
 from typing import IO, Callable, Optional
+from urllib.error import URLError
 from urllib.response import addinfourl
 
-from .shell import warn
-from .utils import ensure_file
+from . import GLOBALS
+from .shell import Notice, Progress, Shell, confirm, warn
+from .utils import ensure_file, name_to_identifier
 
 
 class HttpConnection10:
@@ -37,7 +39,7 @@ class HttpConnection10:
 		except BaseException:
 			pass
 
-def retrieve_stream(input: IO[bytes], output: Optional[IO[bytes]] = None, /, chunk_size: int = 8192, progress_handler: Optional[Callable[[float], None]] = None) -> int:
+def retrieve_stream(input: IO[bytes], output: Optional[IO[bytes]] = None, /, chunk_size: int = 8192, progress_handler: Optional[Callable[[int], None]] = None) -> int:
 	if chunk_size < -1 or chunk_size == 0:
 		raise ValueError(f"chunk_size should be > 0 or == -1, got {chunk_size}!")
 	with input as stream:
@@ -53,7 +55,7 @@ def retrieve_stream(input: IO[bytes], output: Optional[IO[bytes]] = None, /, chu
 				output.write(chunk)
 	return received
 
-def retrieve_fetch_request(url: str, data: Optional[bytes] = None, /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 8) -> tuple[int, addinfourl]:
+def retrieve_fetch_request(url: str, data: Optional[bytes] = None, /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 2) -> tuple[int, addinfourl]:
 	from urllib.request import urlopen
 	with HttpConnection10():
 		responce: addinfourl = urlopen(url, data, timeout)
@@ -65,7 +67,7 @@ def retrieve_fetch_request(url: str, data: Optional[bytes] = None, /, timeout: f
 		return retrieve_fetch_request(url, data, timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts - 1)
 	return content_size, responce
 
-def retrieve_bytes(url: str, data: Optional[bytes] = None, /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 8, progress_handler: Optional[Callable[[float, int], None]] = None) -> bytes:
+def retrieve_bytes(url: str, data: Optional[bytes] = None, /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 2, progress_handler: Optional[Callable[[int, int], None]] = None) -> bytes:
 	content_size, responce = retrieve_fetch_request(url, data, timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts)
 	buffer = BytesIO()
 	retrieve_stream(responce, buffer, progress_handler=lambda progress: progress_handler(progress, content_size) if progress_handler else None)
@@ -93,16 +95,21 @@ def retrieve_github_repository_size(repository: str, branch: str = "master", /, 
 		size += int(blob["size"])
 	return size
 
-def create_download_request(url: str, data: Optional[bytes] = None, /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 8):
+def create_download_request(url: str, data: Optional[bytes] = None, /, placeholder: Optional[str] = None, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 2):
+	if not placeholder:
+		placeholder = url.rsplit("/", 1)[-1]
 	content_size, responce = retrieve_fetch_request(url, data, timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts)
-	def fetch(output_path: str, /, progress_handler: Optional[Callable[[float, int], None]] = None) -> int:
+	def fetch(output_path: Optional[str] = None, /, progress_handler: Optional[Callable[[int, int], None]] = None) -> int:
+		if not output_path:
+			temporary_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp")
+			output_path = join(temporary_directory, name_to_identifier(placeholder, "-"))
 		ensure_file(output_path)
 		if isfile(output_path):
 			file_size = getsize(output_path)
 			if content_size == -1:
-				warn(f"* File {output_path!r} already exists, but since we were unable to determine size of remote file, we will need to download it again.")
+				warn(f"* File {placeholder!r} already exists, but since we were unable to determine size of remote file, we will need to download it again.")
 			elif file_size != content_size:
-				warn(f"* File {output_path!r} already exists, but is not fully downloaded/has changed on remote.")
+				warn(f"* File {placeholder!r} already exists, but is not fully downloaded/has changed on remote.")
 			else:
 				return content_size
 			os.remove(output_path)
@@ -110,5 +117,22 @@ def create_download_request(url: str, data: Optional[bytes] = None, /, timeout: 
 			return retrieve_stream(responce, output, progress_handler=lambda received: progress_handler(received, content_size) if progress_handler else None)
 	return content_size, fetch
 
-def create_download_github_repository_request(repository: str, branch: str = "master", /, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 8):
-	return create_download_request(f"https://codeload.github.com/{repository}/zip/{branch}", timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts)
+def create_download_github_repository_request(repository: str, branch: str = "master", /, placeholder: Optional[str] = None, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 8):
+	if not placeholder:
+		placeholder = f"{repository}#{branch}"
+	return create_download_request(f"https://codeload.github.com/{repository}/zip/{branch}", placeholder=placeholder, timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts)
+
+def queue_download_request(url: str, data: Optional[bytes] = None, output_path: Optional[str] = None, /, shell: Optional[Shell] = None, placeholder: Optional[str] = None, timeout: float = 10, seconds_between_requests: float = 0.5, attempts: int = 2):
+	if not placeholder:
+		placeholder = url.rsplit("/", 1)[-1]
+	if shell:
+		progress = Progress(text=placeholder)
+		shell.interactables.append(progress)
+		shell.render()
+	try:
+		_, fetch = create_download_request(url, data, placeholder=placeholder, timeout=timeout, seconds_between_requests=seconds_between_requests, attempts=attempts)
+		fetch(output_path, lambda received, size: progress.notify(shell, progress, received / size, f"{placeholder} ({received / size / 1048576:.1f}%)") if shell else None)
+		progress.notify(shell, progress, 1, placeholder)
+	except URLError as exc:
+		Shell.notify(shell, f"#{exc.errno}: {exc.strerror}")
+		Progress.notify(shell, progress, 1, "Check your network connection!")

@@ -678,9 +678,11 @@ class Progress(Shell.Interactable):
 		return (str(self.text).count("\n") if self.text else 0) + 1
 
 	@staticmethod
-	def notify(shell: Optional[Shell], progress: Optional['Progress'], percent: float, message: str) -> None:
+	def notify(shell: Optional[Shell], progress: Optional['Progress'], percent: float, message: Optional[str] = None) -> None:
 		if not shell or not progress:
-			Shell.notify(shell, message); return
+			if message:
+				Shell.notify(shell, message)
+			return
 		progress.seek(percent, message)
 		shell.render()
 
