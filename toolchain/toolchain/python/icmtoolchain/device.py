@@ -117,7 +117,6 @@ def setup_modpack_directory() -> Optional[str]:
 		return None
 	directories = list(directories)
 	readable_directories = [person_readable_modpack_name(directory) for directory in directories]
-	readable_directories.sort()
 	which = select_prompt("Which modpack will be used?", *readable_directories)
 	return None if which is None else directories[which]
 
