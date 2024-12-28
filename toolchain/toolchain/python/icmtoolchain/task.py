@@ -197,8 +197,10 @@ def task_compile_java(tool: Optional[str] = None) -> int:
 	description="Recompiles scripts using simple file concatenation or tsc."
 )
 def task_build_scripts() -> int:
-	from .script_build import build_all_scripts
-	return build_all_scripts()
+	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		from .script_build import build_all_scripts
+		return build_all_scripts()
+	return 0
 
 @task(
 	"watchScripts",
@@ -206,17 +208,21 @@ def task_build_scripts() -> int:
 	description="Recompiles changed scripts instantly using tsc, interruption will end watching."
 )
 def task_watch_scripts() -> int:
-	from .script_build import build_all_scripts
-	return build_all_scripts(watch=True)
+	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		from .script_build import build_all_scripts
+		return build_all_scripts(watch=True)
+	error("* You cannot have scripts to watch because pack structure is being used.")
+	return 1
 
 @task(
 	"updateIncludes",
 	description="Overrides the contents of 'tsconfig.json' based on script files."
 )
 def task_update_includes() -> int:
-	from .script_build import compute_and_capture_changed_scripts
-	compute_and_capture_changed_scripts()
-	GLOBALS.WORKSPACE_COMPOSITE.flush()
+	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		from .script_build import compute_and_capture_changed_scripts
+		compute_and_capture_changed_scripts()
+		GLOBALS.WORKSPACE_COMPOSITE.flush()
 	return 0
 
 ### RESOURCES & PACKAGE
@@ -228,8 +234,9 @@ def task_update_includes() -> int:
 )
 def task_resources() -> int:
 	from .script_build import build_pack_graphics, build_resources
-	overall_result = build_resources()
-	if overall_result == 0:
+	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		overall_result = build_resources()
+	else:
 		overall_result = build_pack_graphics()
 	return overall_result
 
@@ -256,10 +263,15 @@ def task_build_info() -> int:
 		if manifest.has_value("packVersion"):
 			manifest.set_value("packVersion", shortcodes(manifest.get_value("packVersion")))
 		if manifest.has_value("description"):
-			manifest.set_value("description", shortcodes(manifest.get_value("description")))
+			description = manifest.get_value("description")
+			if isinstance(description, dict):
+				for key, value in description.items():
+					description[key] = shortcodes(value)
+			else:
+				manifest.set_value("description", shortcodes(description))
 		output_manifest_path = join(GLOBALS.MOD_STRUCTURE.directory, "manifest.json")
 		with open(output_manifest_path, "w", encoding="utf-8") as manifest_file:
-			manifest_file.write(json.dumps(manifest.json, indent="\t") + "\n")
+			manifest_file.write(json.dumps(manifest.json, indent="\t", ensure_ascii=False) + "\n")
 	else:
 		info_file = join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")
 		with open(GLOBALS.MAKE_CONFIG.get_path(info_file), "w", encoding="utf-8") as info_file:
@@ -271,7 +283,7 @@ def task_build_info() -> int:
 			if info.has_value("description"):
 				info.set_value("description", shortcodes(info.get_value("description")))
 			info.remove_value("icon")
-			info_file.write(json.dumps(info.json, indent="\t") + "\n")
+			info_file.write(json.dumps(info.json, indent="\t", ensure_ascii=False) + "\n")
 
 		optional_icon_path = GLOBALS.MAKE_CONFIG.get_value("info.icon")
 		icon_path = GLOBALS.MAKE_CONFIG.get_absolute_path(optional_icon_path or "mod_icon.png")
