@@ -2,8 +2,6 @@
 // Created by zheka on 18/11/10.
 //
 
-// DEPRECATED IN THIS TOOLCHAIN
-
 #ifndef HORIZON_ITEM_H
 #define HORIZON_ITEM_H
 

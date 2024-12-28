@@ -2,7 +2,11 @@
 // Created by zheka on 18/07/19.
 //
 
+#include <cstdint>
+#include <unordered_map>
 #include <functional>
+#include <chrono>
+#include <logger.h>
 
 #ifndef HORIZON_HOOK_H
 #define HORIZON_HOOK_H
@@ -80,35 +84,49 @@ namespace HookManager {
      * will be passed as first parameter, if CONTROLLER flag is given
      */
     struct CallbackController {
-        // returns, if callback was prevented
-        bool isPrevented();
+        void* result = NULL;
+        void* target = NULL;
 
-        // returns, if callback was replaced
-        bool isReplaced();
+        bool _hasResult = false;
+        bool _isReplaced = false;
+        bool _isPrevented = false;
 
-        // returns, if contains result from previous calls
-        bool hasResult();
+        inline bool isPrevented() {
+            return _isPrevented;
+        }
 
-        // returns saved result
-        void* getResult();
+        inline bool isReplaced() {
+            return _isReplaced;
+        }
 
-        // prevents callback, all future calls wont happen, this will force all RETURN callbacks to execute right after
-        void prevent();
+        inline bool hasResult() {
+            return _hasResult;
+        }
 
-        // replaces callback, prevents target and TARGET callbacks from being called, equivalent to REPLACE flag effect
-        void replace();
+        inline void* getResult() {
+            return (void*) result;
+        }
 
-        // returns pointer to target function
-        void* getTarget();
+        inline void prevent() {
+            _isPrevented = true;
+        }
+
+        inline void replace() {
+            _isReplaced = true;
+        }
+
+        inline void* getTarget() {
+            return target;
+        }
 
         // calls target with given params and casts result to R, usage: int result = controller->call<int>(1, "a");
         template<typename R, typename... ARGS>
-        R call (ARGS... args)  {
+        inline R call (ARGS... args)  {
             return ((R(*)(ARGS...)) getTarget())(args ...);
         }
 
         template<typename R, typename... ARGS>
-        R callAndReplace (ARGS... args)  {
+        inline R callAndReplace (ARGS... args)  {
             replace();
             return ((R(*)(ARGS...)) getTarget())(args ...);
         }
@@ -177,13 +195,102 @@ namespace HookManager {
 
 
     // -"- with usage of LAMBDA()
-    CallbackAddStatus* addCallback(void* addr, int64_t lambda, int flags, int priority);
-    CallbackAddStatus* addCallback(void* addr, int64_t lambda, int flags);
-    CallbackAddStatus* addCallback(void* addr, int64_t lambda);
 }
 
-#define LAMBDA(ARGS, CODE, VALUES, ...) ((int64_t) new std::function<void ARGS>([VALUES] ARGS CODE))
 
+// base define for lambda wrap
+#define __LAMBDA(ARGS, CODE, ...) (reinterpret_cast<void*>(+([] ARGS CODE)))
+
+
+// 
+// #define HOOK_STATISTICS
+
+
+// hook statistics 
+#ifdef HOOK_STATISTICS
+
+namespace HookManagerStatistics {
+    inline long long getTimeNanoseconds() {
+        using namespace std::chrono;
+        nanoseconds ms = duration_cast< nanoseconds >(
+            high_resolution_clock::now().time_since_epoch()
+        );
+        return ms.count();
+    };
+
+    struct ThreadLifecycle {
+        struct CallbackStats {
+            int call_count = 0;
+            int log_frame_call_count = 0;
+            long long call_time = 0;
+            long long log_frame_call_time = 0;
+            long long last_log_time = 0;
+            
+            inline void addCallInfo(long long time) {
+                call_time += time;
+                log_frame_call_time += time;
+                call_count++;
+                log_frame_call_count++;
+            }
+
+            inline void logStats(std::string const& name, long long thread_lifetime, long long last_log_frame) {
+                Logger::debug("Hook-Statistics", "callback %s called %i (%i) times, it took %lli (%lli) ms (percent %lf (%lf))", name.data(), call_count, log_frame_call_count, call_time / 1000000, log_frame_call_time / 1000000, 100.0 * call_time / (double) thread_lifetime, 100.0 * log_frame_call_time / (double) last_log_frame);
+                log_frame_call_time = 0;
+                log_frame_call_count = 0;
+            } 
+        };
+
+        std::unordered_map<std::string, CallbackStats> stats;
+        long long time_start, time_end;
+
+        inline ThreadLifecycle() {
+            time_start = getTimeNanoseconds();
+        }
+
+        inline void addCallInfo(std::string const& name, long long time) {
+            CallbackStats& callback_stats = stats[name];
+            callback_stats.addCallInfo(time);
+            long long cur_time = getTimeNanoseconds();
+            if (callback_stats.last_log_time + 2000000000 < cur_time) {
+                long long thread_lifetime = cur_time - time_start;
+                if (callback_stats.last_log_time) {
+                    callback_stats.logStats(name, thread_lifetime, cur_time - callback_stats.last_log_time);
+                }
+                callback_stats.last_log_time = cur_time;
+            }
+        }
+
+        inline ~ThreadLifecycle() {
+            time_end = getTimeNanoseconds();
+        }
+    };
+
+    static thread_local ThreadLifecycle thread_lifecycle;
+
+    struct RegisterCall {
+    public:
+        std::string name;
+        long long time_start, time_end;
+
+        inline RegisterCall(std::string const& n) : name(n) {
+            time_start = getTimeNanoseconds();
+        }
+
+        inline ~RegisterCall() {
+            time_end = getTimeNanoseconds();
+            thread_lifecycle.addCallInfo(name, time_end - time_start);
+        }
+    };
+}; 
+
+#define STAT_REGISTER_HOOK_CALL(NAME_STR) HookManagerStatistics::RegisterCall _reg_call(NAME_STR);
+#define LAMBDA(ARGS, CODE, VALUES, ...) __LAMBDA(ARGS, {HookManagerStatistics::RegisterCall _reg_call(#CODE); CODE}, VALUES, ...)
+
+// no hook statistics
+#else
+#define STAT_REGISTER_HOOK_CALL(NAME_STR)
+#define LAMBDA(ARGS, CODE, VALUES, ...) __LAMBDA(ARGS, CODE, VALUES, ...)
+#endif
 
 
 #endif //HORIZON_HOOK_H
