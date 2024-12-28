@@ -515,6 +515,16 @@ def build_java_directories(tool: str, directories: Dict[str, BaseConfig], target
 		if not built_successfully:
 			warn(f"* Directory {target.relative_directory!r} is empty.")
 
+	if GLOBALS.MAKE_CONFIG.has_value("manifest"):
+		target_output_path = GLOBALS.MOD_STRUCTURE.get_target_output_directory("java")
+		order = [relpath(target.output_directory, target_output_path) for target in targets]
+		order_path = join(target_output_path, "order.txt")
+		ensure_file(order_path)
+
+		with open(order_path, "w", encoding="utf-8") as order_file:
+			order_file.write("\n".join(order))
+			order_file.write("\n")
+
 	copy_additional_sources(targets)
 	GLOBALS.BUILD_STORAGE.save()
 	return result
