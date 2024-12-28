@@ -69,7 +69,7 @@ class ProjectManager:
 
 		make_path = join(location, "make.json")
 		with open(make_path, "w", encoding="utf-8") as make_file:
-			make_file.write(json.dumps(template_obj, indent="\t") + "\n")
+			make_file.write(json.dumps(template_obj, indent="\t", ensure_ascii=False) + "\n")
 
 		if GLOBALS.CODE_WORKSPACE.available():
 			location = GLOBALS.CODE_WORKSPACE.get_toolchain_path(folder).replace("\\", "/")

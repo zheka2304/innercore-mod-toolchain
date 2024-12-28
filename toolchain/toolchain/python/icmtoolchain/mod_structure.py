@@ -124,7 +124,7 @@ class ModStructure:
 		ensure_file_directory(build_config_path)
 		if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
 			with open(build_config_path, "w", encoding="utf-8") as file:
-				file.write(json.dumps(self.build_config, indent=" " * 2))
+				file.write(json.dumps(self.build_config, indent=" " * 2, ensure_ascii=False))
 
 	def setup_default_config(self) -> None:
 		self.read_or_create_build_config()

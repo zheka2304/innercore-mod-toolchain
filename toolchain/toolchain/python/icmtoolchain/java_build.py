@@ -111,7 +111,7 @@ def copy_additional_sources(targets: Collection[BuildTarget]) -> None:
 			target.manifest.remove_value("keepSources")
 
 		with open(join(target.output_directory, "manifest"), "w", encoding="utf-8") as manifest:
-			manifest.write(json.dumps(target.manifest.json))
+			manifest.write(json.dumps(target.manifest.json, ensure_ascii=False))
 
 ### D8/L8/R8
 
@@ -294,7 +294,7 @@ def write_changed_source_files(target: BuildTarget, directories: Collection[str]
 			except StopIteration:
 				continue
 			contains_modifications = True
-			output.writelines(json.dumps(modification) + os.linesep for modification in modifications)
+			output.writelines(json.dumps(modification, ensure_ascii=False) + os.linesep for modification in modifications)
 	return contains_modifications
 
 ### ECJ

@@ -273,7 +273,7 @@ def import_project(path: Optional[str] = None, destination: Optional[str] = None
 	debug("Flushing 'make.json'")
 	ensure_directory(destination)
 	with open(make_project, "w", encoding="utf-8") as make_file:
-		make_file.write(json.dumps(make_obj, indent="\t") + "\n")
+		make_file.write(json.dumps(make_obj, indent="\t", ensure_ascii=False) + "\n")
 
 	if destination == path and not \
 			confirm("Do you want to copy reassigned directories in directory itself?", False, prints_abort=False):

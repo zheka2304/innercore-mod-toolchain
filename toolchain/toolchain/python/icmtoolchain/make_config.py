@@ -68,7 +68,7 @@ class ToolchainConfig(BaseConfig):
 	def save(self) -> None:
 		ensure_file_directory(self.path)
 		with open(self.path, "w", encoding="utf-8") as file:
-			file.write(json.dumps(self.json, indent="\t") + "\n")
+			file.write(json.dumps(self.json, indent="\t", ensure_ascii=False) + "\n")
 
 	def get_path(self, relative_path: str) -> str:
 		return abspath(join(self.directory, normpath(relative_path)))

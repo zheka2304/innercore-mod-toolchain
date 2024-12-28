@@ -174,7 +174,7 @@ class Includes:
 		for key, value in self.params.items():
 			template["compilerOptions"][key] = value
 		with open(self.get_tsconfig(), "w", encoding="utf-8") as tsconfig:
-			tsconfig.write(json.dumps(template, indent="\t") + "\n")
+			tsconfig.write(json.dumps(template, indent="\t", ensure_ascii=False) + "\n")
 
 	def compute(self, target_path: str, language: str = "typescript") -> bool:
 		temp_path = join(GLOBALS.MAKE_CONFIG.get_build_path("sources"), basename(target_path))

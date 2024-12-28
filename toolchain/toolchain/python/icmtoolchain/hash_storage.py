@@ -83,7 +83,7 @@ class HashStorage:
 			file.write(json.dumps({
 				**self.last_hashes,
 				**self.hashes
-			}, indent=None, separators=(",", ":")) + "\n")
+			}, indent=None, separators=(",", ":"), ensure_ascii=False) + "\n")
 
 	def is_path_changed(self, path: str, force: bool = False) -> bool:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()

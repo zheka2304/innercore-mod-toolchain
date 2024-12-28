@@ -198,7 +198,7 @@ class CodeWorkspace(BaseConfig):
 		if not self.available():
 			raise WorkspaceNotAvailable()
 		with open(self.path, "w", encoding="utf-8") as workspace_file:
-			workspace_file.write(json.dumps(self.json, indent="\t") + "\n")
+			workspace_file.write(json.dumps(self.json, indent="\t", ensure_ascii=False) + "\n")
 
 
 class WorkspaceComposite:
@@ -288,7 +288,7 @@ class WorkspaceComposite:
 		if len(self.references) > 0:
 			template["references"] = self.references
 		with open(self.get_tsconfig(), "w", encoding="utf-8") as tsconfig:
-			tsconfig.write(json.dumps(template, indent="\t") + "\n")
+			tsconfig.write(json.dumps(template, indent="\t", ensure_ascii=False) + "\n")
 
 	def build(self, *args: str) -> int:
 		tsc = request_typescript()
@@ -405,7 +405,7 @@ class WorkspaceBuildConfiguration:
 
 		definition["tasks"].append(configuration)
 		with open(tasks_path, "w", encoding="utf-8") as tasks:
-			json.dump(definition, tasks, indent="\t")
+			json.dump(definition, tasks, indent="\t", ensure_ascii=False)
 			tasks.write("\n")
 
 	@staticmethod
