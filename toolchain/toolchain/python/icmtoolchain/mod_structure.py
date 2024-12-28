@@ -54,9 +54,15 @@ class ModStructure:
 			remove_tree(directory)
 		ensure_directory(directory)
 
-	def new_build_target(self, keyword: str, name: str, **properties: Any) -> str:
+	def get_target_output_directory(self, keyword: str) -> str:
 		target_type = self.build_targets[keyword]
+		return join(self.directory, str(target_type.directory))
+
+	def new_build_target(self, keyword: str, name: str, **properties: Any) -> str:
+		if not "{}" in name:
+			name = name + "{}"
 		formatted_name = name.format("")
+
 		if keyword in self.targets:
 			targets_by_name = list(map(lambda x: x["name"], self.targets[keyword]))
 			index = 0
@@ -66,7 +72,8 @@ class ModStructure:
 		else:
 			self.targets[keyword] = list()
 
-		target_path = join(self.directory, str(target_type.directory), formatted_name)
+		output_directory = self.get_target_output_directory(keyword)
+		target_path = join(output_directory, formatted_name)
 		self.targets[keyword].append({
 			"name": formatted_name,
 			"path": target_path,
