@@ -14,20 +14,11 @@ from .component import install_components
 from .language import get_language_directories
 from .shell import abort, debug, error, info, warn
 from .utils import (RuntimeCodeError, copy_directory, copy_file,
-                    ensure_directory, get_all_files, get_next_filename,
-                    remove_tree, request_executable_version, request_tool,
-                    walk_all_files)
+                    ensure_directory, ensure_file, get_all_files,
+                    get_next_filename, remove_tree, request_executable_version,
+                    request_tool, walk_all_files)
 
 BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest classpath")
-
-def prepare_directory_order(directory: str) -> List[str]:
-	directories = os.listdir(directory)
-	if "order.txt" in directories:
-		with open(join(directory, "order.txt"), encoding="utf-8") as order:
-			directories = order.readlines()
-	else:
-		directories = list(filter(lambda name: isdir(join(directory, name)), directories))
-	return directories
 
 def collect_classpath_files(directories: Optional[Collection[str]]) -> List[str]:
 	classpath = list()
@@ -460,10 +451,9 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 	targets = list()
 
 	for directory, config in directories.items():
-		# TODO: Maybe move logic to relative directory instead of hashed one.
-		# relative_directory = config.get_value("directory")
-		# assert relative_directory, "Internal error, relative directory cannot be empty."
-		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+		relative_directory = basename(directory)
+		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", relative_directory)
+		ensure_directory(output_directory)
 
 		with open(join(directory, "manifest"), encoding="utf-8") as manifest:
 			try:
@@ -473,8 +463,6 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed java directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
-		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("java", relative_directory)
-		ensure_directory(output_directory)
 		classpath = collect_classpath_files(config.get_value("classpath"))
 		target = BuildTarget(directory, relative_directory, output_directory, config, classpath)
 		targets.append(target)
@@ -569,16 +557,14 @@ def compile_java(tool: str = "gradle") -> int:
 	except RuntimeCodeError as exc:
 		error(exc)
 		return exc.code
-	if len(directories) == 0:
-		GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
-		return 0
 
 	overall_result = build_java_directories(tool, directories, target_directory)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("javaDirs")
-	startup_millis = time() - startup_millis
-	if overall_result == 0:
-		print(f"Completed java build in {startup_millis:.2f}s!")
-	else:
-		error(f"Failed java build in {startup_millis:.2f}s with result {overall_result}.")
+	if len(directories) != 0:
+		startup_millis = time() - startup_millis
+		if overall_result == 0:
+			print(f"Completed java build in {startup_millis:.2f}s!")
+		else:
+			error(f"Failed java build in {startup_millis:.2f}s with result {overall_result}.")
 	return overall_result

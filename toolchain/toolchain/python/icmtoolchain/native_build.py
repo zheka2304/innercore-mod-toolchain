@@ -116,10 +116,9 @@ def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTa
 	targets = list()
 
 	for directory, config in directories.items():
-		# TODO: Maybe move logic to relative directory instead of hashed one.
-		# relative_directory = config.get_value("directory")
-		# assert relative_directory, "Internal error, relative directory cannot be empty."
-		relative_directory = GLOBALS.MAKE_CONFIG.unique_folder_name(directory)
+		relative_directory = basename(directory)
+		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("native", relative_directory)
+		ensure_directory(output_directory)
 
 		# Apply global configurations to preserve keepIncludes, etc. in builds.
 		configurations = config.get_config("configurations")
@@ -139,8 +138,6 @@ def get_native_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTa
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed native directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
-		output_directory = GLOBALS.MOD_STRUCTURE.new_build_target("native", relative_directory)
-		ensure_directory(output_directory)
 		stdincludes = collect_stdincludes_directories(config.get_value("stdincludes"))
 		target = BuildTarget(directory, relative_directory, output_directory, config, stdincludes)
 		targets.append(target)
@@ -152,6 +149,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 	library_name = manifest.get_value("shared.name", basename(directory))
 	if len(library_name) == 0 or library_name.isspace() or (manifest.get_value("shared") and library_name == "unnamed"):
 		abort(f"Library directory {directory} uses illegal name {library_name!r}!", code=CODE_FAILED_INVALID_MANIFEST)
+
 	soname = "lib" + library_name + ".so"
 	if manifest.get_value("library.version", -1) < 0 and manifest.get_value("library"):
 		abort(f"Library directory {directory} shares library with illegal version!", code=CODE_FAILED_INVALID_MANIFEST)
@@ -252,6 +250,8 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 						pass
 			else:
 				warn(f"* Dependency directory {dependency} is not found, it will be skipped.")
+		for include in manifest_abi.get_list("include"):
+			includes.append("-I" + join(directory, include))
 
 		# Collect files and prepare output cache directories.
 		source_files = get_all_files(directory, extensions=(".cpp", ".c"))
