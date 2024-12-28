@@ -331,28 +331,30 @@ def build_resources() -> int:
 	return overall_result
 
 def build_pack_graphics() -> int:
-	graphics_groups = GLOBALS.MAKE_CONFIG.get_list("graphics.groups")
-	if len(graphics_groups) == 0 or not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+	graphics_archive = join(GLOBALS.MOD_STRUCTURE.directory, "graphics.zip")
+	if exists(graphics_archive):
+		remove_tree(graphics_archive)
+	graphics_groups = GLOBALS.MAKE_CONFIG.get_value("graphics.groups")
+	if not isinstance(graphics_groups, dict):
 		return 0
+
 	graphics_directory = GLOBALS.MAKE_CONFIG.get_build_path("graphics")
 	remove_tree(graphics_directory)
 	ensure_directory(graphics_directory)
 
-	graphics_archive = join(GLOBALS.MOD_STRUCTURE.directory, "graphics.zip")
-	if exists(graphics_archive):
-		remove_tree(graphics_archive)
-	for name, images in graphics_groups:
+	for name, images in graphics_groups.items():
 		offset = 1
 		if isinstance(images, str):
 			images = [images]
 		for image_directory in images:
 			for image_path in GLOBALS.MAKE_CONFIG.get_paths(image_directory):
 				if not isfile(image_path):
-					warn(f"* Skipping graphics image file {basename(image_path)}, since it does not exists!")
+					warn(f"* Skipping graphics image file {basename(image_path)}, cause it does not exists!")
 					continue
 				copy_file(image_path, join(graphics_directory, f"{name}@{offset}.png"))
 				offset += 1
 
 	from shutil import make_archive
 	make_archive(graphics_archive[:-4], "zip", graphics_directory)
+	print(f"Composed a pack with graphics from {len(graphics_groups.keys())} groups!")
 	return 0
