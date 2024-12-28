@@ -243,6 +243,8 @@ def shortcodes(source: str) -> str:
 	- {datestamp} -> 20231201
 	- {timestamp} -> 1745
 	"""
+	if not isinstance(source, str):
+		return source
 	from datetime import datetime
 	date = datetime.now()
 	source = source.replace("{datestamp}", date.strftime("%Y%m%d"))

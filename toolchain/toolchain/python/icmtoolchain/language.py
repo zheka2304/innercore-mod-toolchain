@@ -1,3 +1,4 @@
+from copy import deepcopy
 from os.path import isdir
 from typing import Callable, Dict, Optional
 
@@ -42,9 +43,10 @@ def get_language_directories(compile_type: str, language_config: BaseConfig, pro
 			if properties_merger:
 				config = properties_merger(config, language_config)
 			else:
+				temporary_config = BaseConfig(deepcopy(language_config.json))
 				if config:
-					language_config.merge_config(config, exclusive_lists=True)
-				config = language_config
+					temporary_config.merge_config(config, exclusive_lists=True)
+				config = temporary_config
 			config.set_value("directory", GLOBALS.MAKE_CONFIG.get_relative_path(flattened_directory))
 			configurables[absolute_directory] = config
 
