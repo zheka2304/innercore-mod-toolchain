@@ -79,6 +79,16 @@ def add_fake_so(executable: str, abi: str, name: str) -> None:
 		else:
 			warn(f"Stubbing fake so failed with result {result}!")
 
+RUNTIME_ARCHES = {
+	"arm64-v8a": "aarch64",
+	"x86_64": "x86-64"
+}
+
+def abi_to_runtime_architecture(abi: str) -> str:
+	if abi in RUNTIME_ARCHES:
+		return RUNTIME_ARCHES[abi]
+	return abi
+
 def is_relevant_configuration(configuration: str, *properties: str) -> bool:
 	if len(configuration) == 0 or configuration == "*":
 		return True
@@ -189,7 +199,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		for abi in abis:
 			source_library = abspath(join(directory, "so", abi, soname))
 			if isfile(source_library):
-				target_library = abspath(join(output_directory, "so", abi, soname))
+				target_library = abspath(join(output_directory, "so", abi_to_runtime_architecture(abi), soname))
 				copy_file(source_library, target_library)
 				libraries_count += 1
 
@@ -209,7 +219,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 	targets = dict()
 	for abi in abis:
 		targets[abi] = abspath(join(output_directory, soname)) if len(abis) == 1 \
-			else abspath(join(output_directory, "so", abi, soname))
+			else abspath(join(output_directory, "so", abi_to_runtime_architecture(abi), soname))
 
 	overall_result = CODE_OK
 	for abi in abis:
