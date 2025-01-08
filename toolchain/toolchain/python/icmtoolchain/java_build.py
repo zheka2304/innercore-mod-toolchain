@@ -361,32 +361,33 @@ def build_java_with_ecj(targets: Collection[BuildTarget], target_directory: str)
 
 def build_java_with_gradle(targets: Collection[BuildTarget], target_directory: str) -> int:
 	setup_gradle_project(targets, target_directory, flatten_classpath_files(targets))
-	gradle_executable = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
-	if platform.system() == "Windows":
-		gradle_executable += ".bat"
+	if len(targets) != 0:
+		gradle_executable = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin/gradlew")
+		if platform.system() == "Windows":
+			gradle_executable += ".bat"
 
-	options = list()
-	for target in targets:
-		if target.manifest.get_value("verbose", False):
-			options += ["--console", "verbose"]
-			break
+		options = list()
+		for target in targets:
+			if target.manifest.get_value("verbose", False):
+				options += ["--console", "verbose"]
+				break
 
-	result = subprocess.run([
-		gradle_executable,
-		"-p", target_directory, "shadowJar"
-	] + options)
+		result = subprocess.run([
+			gradle_executable,
+			"-p", target_directory, "shadowJar"
+		] + options)
+		# if result.returncode != 0:
+			# fallback = result.stderr.splitlines()
+			# if "Could not initialize class org.codehaus.groovy.runtime.InvokerHelper" in fallback or \
+					# "java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.vmplugin.v7.Java7" in fallback:
+				# warn("It seems that you are using an incompatible version of Java. We need OpenJDK 8 to compile sources (e.g., https://github.com/corretto/corretto-8/releases).")
+			# else:
+				# error(result.stderr.strip())
+			# return result.returncode
+		print()
+
 	cleanup_gradle_scripts(targets)
-	# if result.returncode != 0:
-		# fallback = result.stderr.splitlines()
-		# if "Could not initialize class org.codehaus.groovy.runtime.InvokerHelper" in fallback or \
-				# "java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.vmplugin.v7.Java7" in fallback:
-			# warn("It seems that you are using an incompatible version of Java. We need OpenJDK 8 to compile sources (e.g., https://github.com/corretto/corretto-8/releases).")
-		# else:
-			# error(result.stderr.strip())
-		# return result.returncode
-
-	print()
-	return result.returncode
+	return result.returncode if len(targets) != 0 else 0
 
 def setup_gradle_project(targets: Collection[BuildTarget], target_directory: str, classpath: Collection[str]) -> None:
 	with open(join(target_directory, "settings.gradle"), "w", encoding="utf-8") as settings_gradle:
