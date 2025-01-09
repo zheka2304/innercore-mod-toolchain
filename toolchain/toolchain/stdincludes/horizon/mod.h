@@ -1,31 +1,12 @@
-//
-// Created by zheka on 18/07/15.
-//
+#pragma once
 
-#include <jni.h>
-#include <functional>
-#include <vector>
-#include <fstream>
-#include <map>
-#include "definitions.h"
+#include <string>
+#include "modules.h"
 
-#ifndef HORIZON_MOD_H
-#define HORIZON_MOD_H
-
-class Module;
-
-/* represents mod library instance */
-class ModLibrary {
-public:
-    // library handle ptr
-    void* handle = nullptr;
-
-    // initialization result
-    int result = 0;
-
-    // returns list of all modules
-    std::vector<Module*> getModules();
-};
+namespace SignalHandler {
+    // initializes signal handles inside given process, this usually happens automatically
+    void initialize();
+}
 
 /*
  * Modules are main structural units of most mod libraries, that can receive and handle events, contain information etc.
@@ -44,86 +25,21 @@ public:
  * - All API events should be processed inside modules through addListener
  * - Modules also used for profiling and crash handling
  */
-class Module {
-private:
-    ModLibrary* library = NULL;
-    Module* parent = NULL;
-    const char* id = NULL;
-    bool _isInitialized = false;
-
-    std::map<std::string, std::vector<std::function<void()>*>> listeners;
-
+class Module
+{
 public:
+    std::string name;
+    hz_module_handle_t handle;
+
     // receives parent or name ID or both, root module must have name ID
     Module(Module* parent, const char* id);
     Module(const char* id);
-    Module(Module* parent);
-
-    // adds mod listener method, that will be called upon given event
-    template <typename T>
-    void addListener(std::string event, std::function<T> const& function);
-
-    // invokes all listeners for given event
-    template <typename... ARGS>
-    void onEvent(std::string event, ARGS... args);
+    virtual ~Module();
 
     // all initialization must happen here
-    virtual void initialize();
-
-    // separate method for java initialization
-    virtual void initializeJava(JNIEnv* env);
-
-    // returns parent module
-    Module* getParent();
-    // returns name ID
-    const char* getNameID();
-    // returns type, that used inside UI
-    virtual const char* getType();
-    // used to create separate mod log, used, if current profiled section belongs to this module
-    virtual std::ofstream* getLogStream();
-
-    bool isInitialized();
-    // returns mod library, this module belongs to
-    ModLibrary* getLibrary();
+    virtual void initialize() {}
+    virtual void shutdown() {}
 };
-
-/*
- * same class as module, but interpreted as mod inside UI, root module of your mod should implement this class
- */
-class Mod : public Module {
-public:
-    Mod(Module *parent, const char *id);
-    Mod(Module *parent);
-    Mod(const char *id);
-};
-
-
-namespace ModuleRegistry {
-    // returns all modules for given name ID
-    std::vector<Module*> getModulesById(std::string id);
-
-    // invokes event with given name and args for all modules, if filter function returned true
-    template <typename... ARGS>
-    void onFilteredEvent(std::string event, std::function<bool(Module*)> filter,  ARGS... args);
-
-    // invokes event with given name and args for all modules
-    template <typename... ARGS>
-    void onEvent(std::string event, ARGS... args);
-
-    // invokes event with given name and args for all modules with given name ID
-    template <typename... ARGS>
-    void onTargetEvent(std::string module, std::string event, ARGS... args);
-
-    // invokes method for all modules
-    void onAction(std::function<void(Module*)> action);
-};
-
-namespace SignalHandler {
-    // initializes signal handles inside given process, this usually happens automatically
-    void initialize();
-}
-
-
 
 #define JNI_VERSION JNI_VERSION_1_4
 
@@ -138,19 +54,15 @@ namespace SignalHandler {
  */
 
 #define NO_JNI_MAIN \
-            void __entry(ModLibrary* library, int* result); \
-            int __mod_main(ModLibrary* library) {\
+            void __entry(void* library, int* result); \
+            int __mod_main(void* library) {\
                 int result = 0; \
                 SignalHandler::initialize();\
                 __entry(library, &result);\
                 return result;\
             }\
-            void __entry(ModLibrary* library, int* result)
+            void __entry(void* library, int* result)
 
 #define MAIN \
             extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM*, void*) {return JNI_VERSION;} \
             NO_JNI_MAIN
-            
-
-
-#endif //HORIZON_MOD_H

@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <jni.h>
 #include <mod.h>
+#include <map>
 
 
 #ifndef NATIVEJS_H
