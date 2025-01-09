@@ -226,8 +226,12 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 			return 1
 		result = 0
 
-		progress = None
 		captured_errors = dict()
+		pip_output = subprocess.run("pip install setuptools", capture_output=True, text=True)
+		if pip_output.returncode != 0:
+			captured_errors["setuptools"] = pip_output.stderr.strip()
+
+		progress = None
 		if not isinstance(arches, list):
 			arches = [arches]
 		for arch in arches:
@@ -240,7 +244,7 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 				"python3" if platform.system() != "Windows" else "python",
 				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
 				"--arch", str(arch),
-				"--api", "21" if str(arch) == "arm64" else "19",
+				"--api", "21" if "64" in str(arch) else "19",
 				"--install-dir", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
 				"--force"
 			], capture_output=True, text=True)
@@ -272,6 +276,6 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 			shell.leave()
 		if result != 0:
 			error("You are must install it manually by running 'toolchain/temp/ndk/build/tools/make_standalone_toolchain.py':")
-			for arch in captured_errors:
-				error(f"{arch}: {captured_errors[arch]}")
+		for arch in captured_errors:
+			warn(f"{arch}: {captured_errors[arch]}")
 		return result

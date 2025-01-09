@@ -299,8 +299,8 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 
 					debug(f"Compiling {relative_file}{' ' * 48}", end="\r")
 					result = max(result, subprocess.call(compiler_command + [
-						"-c", preprocessed_file, "-shared", "-o", object_file
-					] + options))
+						"-c", preprocessed_file, "-o", object_file
+					] + options + ([] if "64" in abi else ["-shared"])))
 					if result != CODE_OK:
 						if isfile(object_file):
 							os.remove(object_file)
