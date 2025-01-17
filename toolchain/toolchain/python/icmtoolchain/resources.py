@@ -22,18 +22,18 @@ def build_resources() -> int:
 
 	for resource in GLOBALS.MAKE_CONFIG.get_value("resources", fallback=list()):
 		if "path" not in resource or "type" not in resource:
-			error("Skipped invalid source json ", resource, ", it might contain `path` and `type` properties!", sep="")
+			error(f"Skipped invalid resource json {resource}, it might contain `path` and `type` properties!")
 			overall_result = 1
 			continue
 
 		for source_path in GLOBALS.MAKE_CONFIG.get_paths(resource["path"]):
 			if not exists(source_path):
-				warn(f"* Skipped non-existing resource {resource['path']}!", sep="")
+				warn(f"* Skipped non-existing resource {resource['path']!r}!")
 				continue
 
 			resource_type = resource["type"]
 			if resource_type not in VALID_RESOURCE_TYPES:
-				error(f"Invalid resource `type` in source: {resource_type}, it might be one of {VALID_RESOURCE_TYPES}.", sep="")
+				error(f"Invalid resource `type` in resource: {resource_type}, it might be one of {VALID_RESOURCE_TYPES}!")
 				overall_result = 1
 				continue
 
@@ -94,22 +94,28 @@ def build_pack_graphics() -> int:
 	print(f"Composed a pack with graphics from {len(graphics_groups.keys())} groups!")
 	return 0
 
-def build_additional_resources() -> int:
+def build_additional_resources(push_directly: bool = False) -> int:
+	overall_result = 0
+
 	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=list()):
-		if "source" in additional_dir and "targetDir" in additional_dir:
-			for additional_path in GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"]):
-				if not exists(additional_path):
-					warn("* Non-existing additional path: " + additional_path)
-					break
-				target = join(
-					GLOBALS.MOD_STRUCTURE.directory, additional_dir["targetDir"],
-					additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
-				)
-				if isdir(additional_path):
-					copy_directory(additional_path, target)
-				else:
-					copy_file(additional_path, target)
-	return 0
+		if "source" not in additional_dir or "targetDir" not in additional_dir:
+			error(f"Skipped invalid additional resource json {additional_dir}, it might contain `source` and `targetDir` properties!")
+			overall_result += 1
+			continue
+		for additional_path in GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"]):
+			if not exists(additional_path):
+				warn(f"* Skipped non-existing additional resource {additional_path!r}!")
+				break
+			target = join(
+				GLOBALS.MOD_STRUCTURE.directory, additional_dir["targetDir"],
+				additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
+			)
+			if isdir(additional_path):
+				copy_directory(additional_path, target)
+			else:
+				copy_file(additional_path, target)
+
+	return overall_result
 
 def write_mod_info_file() -> int:
 	info_file = join(GLOBALS.MOD_STRUCTURE.directory, "mod.info")
