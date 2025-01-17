@@ -149,7 +149,7 @@ def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 		(directories if is_directory else files).append(filename)
 	return directories, files
 
-def push(directory : str, push_unchanged: bool = False) -> int:
+def push(directory: str, push_unchanged: bool = False) -> int:
 	shell = Shell()
 	shell.inline_flushing = True
 	progress = Progress("Pushing")

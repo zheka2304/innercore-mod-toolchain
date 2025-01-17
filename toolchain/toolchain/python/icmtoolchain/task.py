@@ -233,7 +233,7 @@ def task_update_includes() -> int:
 	description="Copies predefined resources consisting of textures, in-game packs, etc."
 )
 def task_resources() -> int:
-	from .script_build import build_pack_graphics, build_resources
+	from .resources import build_pack_graphics, build_resources
 	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
 		overall_result = build_resources()
 	else:
