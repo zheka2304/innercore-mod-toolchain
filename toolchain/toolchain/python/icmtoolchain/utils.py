@@ -4,8 +4,7 @@ import re
 import shutil
 import subprocess
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import (Any, Callable, Iterable, List, Literal, Optional, Union,
-                    overload)
+from typing import Any, Callable, Iterable, List, Optional, Union, overload
 from zipfile import ZipFile, ZipInfo
 
 from . import GLOBALS
@@ -88,8 +87,6 @@ def copy_directory(source: str, destination: str, clear_destination: bool = Fals
 	if clear_destination:
 		remove_tree(destination)
 	ensure_directory(destination)
-	if not exists(destination):
-		os.makedirs(destination, exist_ok=True)
 	for filename in os.listdir(source):
 		relative_file = join(relative_path, filename) if relative_path else filename
 		input = join(source, filename)
