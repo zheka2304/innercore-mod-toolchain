@@ -149,56 +149,83 @@ def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 		(directories if is_directory else files).append(filename)
 	return directories, files
 
-def push(directory: str, push_unchanged: bool = False) -> int:
-	shell = Shell()
-	shell.inline_flushing = True
-	progress = Progress("Pushing")
-	shell.interactables.append(progress)
-	items = [relpath(path, directory) for path in glob(directory + "/*") if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)]
-	if len(items) == 0:
-		Progress.notify(shell, progress, 1, "Already pushed")
-		with shell: return 0
-
+def push_everything() -> int:
 	destination_directory = get_modpack_push_directory()
 	if not destination_directory:
 		return 1
+	push_unchanged = GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True)
+	cleanup_remote = GLOBALS.PREFERRED_CONFIG.get_value("adb.cleanupRemote", True)
+
+	shell = Shell()
+	shell.inline_flushing = True
 
 	with shell:
-		destination_directory = destination_directory.replace("\\", "/")
-		if not destination_directory.startswith("/"):
-			destination_directory = "/" + destination_directory
-		sources_directory = directory.replace("\\", "/")
+		result = push(GLOBALS.MOD_STRUCTURE.directory, destination_directory, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote, shell=shell)
+		if result != 0:
+			return result
+		for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
+			project_path = GLOBALS.MAKE_CONFIG.get_relative_path(linked_resource["relative_path"])
+			remote_path = destination_directory + "/" + linked_resource["output_path"]
+			remote_push_unchanged = linked_resource["push_unchanged"] if "push_unchanged" in linked_resource else push_unchanged
+			remote_cleanup_remote = linked_resource["cleanup_remote"] if "cleanup_remote" in linked_resource else cleanup_remote
+			result = push(project_path, remote_path, push_unchanged=remote_push_unchanged, cleanup_remote=remote_cleanup_remote, shell=shell)
+			if result != 0:
+				return result
+		if len(shell.interactables) == 0:
+			progress = Progress("Up to date")
+			shell.interactables.append(progress)
 
-		percent = 0
-		for filename in items:
-			src = sources_directory + "/" + filename
-			dst = destination_directory + "/" + filename
-			if shell and progress:
-				progress.seek(percent / len(items), "Pushing " + filename)
-				shell.render()
-			try:
+	if not push_unchanged:
+		GLOBALS.OUTPUT_STORAGE.save()
+	return 0
+
+def push(directory: str, destination_directory: str, push_unchanged: bool = True, cleanup_remote: bool = True, shell: Optional[Shell] = None) -> int:
+	items = [
+		relpath(path, directory) for path in glob(directory + "/*") \
+			if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)
+	]
+	if len(items) == 0:
+		return 0
+	directory_name = basename(directory)
+	if shell:
+		progress = Progress(f"Pushing {directory_name}")
+		shell.interactables.append(progress)
+
+	destination_directory = destination_directory.replace("\\", "/")
+	if not destination_directory.startswith("/"):
+		destination_directory = "/" + destination_directory
+	sources_directory = directory.replace("\\", "/")
+
+	percent = 0
+	for filename in items:
+		src = sources_directory + "/" + filename
+		dst = destination_directory + "/" + filename
+		if shell and progress:
+			progress.seek(percent / len(items), f"Pushing {filename}")
+			shell.render()
+		try:
+			if cleanup_remote:
 				subprocess.call(GLOBALS.ADB_COMMAND + [
 					"shell", "rm", "-r", dst
 				], stderr=DEVNULL, stdout=DEVNULL)
-				result = subprocess.run(GLOBALS.ADB_COMMAND + [
-					"push", src, dst
-				], capture_output=True, text=True)
-			except KeyboardInterrupt:
-				Progress.notify(shell, progress, 1, "Pushing aborted.")
-				return 1
-			percent += 1
+			result = subprocess.run(GLOBALS.ADB_COMMAND + [
+				"push", src, dst
+			], capture_output=True, text=True)
+		except KeyboardInterrupt:
+			Progress.notify(shell, progress, 1, "Pushing aborted.")
+			return 1
+		percent += 1
 
-			if result.returncode != 0:
-				Progress.notify(shell, progress, 1, f"Failed {filename} push")
-				cause = result.stdout.strip().splitlines()[-1]
-				if cause and len(cause) > 0:
+		if result.returncode != 0:
+			Progress.notify(shell, progress, 1, f"Failed pushing {filename}")
+			cause = result.stdout.strip().splitlines()[-1]
+			if cause and len(cause) > 0:
+				if shell:
 					shell.leave()
-					error(cause)
-				return result.returncode
+				error(cause)
+			return result.returncode
 
-		if not push_unchanged:
-			GLOBALS.OUTPUT_STORAGE.save()
-		Progress.notify(shell, progress, 1, "Pushed")
+	Progress.notify(shell, progress, 1, f"Pushed {directory_name}")
 	return 0
 
 def make_locks(*locks: str) -> int:

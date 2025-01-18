@@ -288,8 +288,8 @@ def task_build_package() -> int:
 	description="Sends assembled output folder to a connected device."
 )
 def task_push_everything() -> int:
-	from .device import push
-	return push(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True))
+	from .device import push_everything
+	return push_everything()
 
 @task(
 	"launchApplication",
