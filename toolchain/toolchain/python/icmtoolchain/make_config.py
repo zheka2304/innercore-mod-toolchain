@@ -99,7 +99,7 @@ class ToolchainConfig(BaseConfig):
 					locations.append(file)
 		else:
 			path = self.get_path(relative_path)
-			if not filter or filter(path):
+			if exists(path) and (not filter or filter(path)):
 				locations.append(path)
 		return locations
 

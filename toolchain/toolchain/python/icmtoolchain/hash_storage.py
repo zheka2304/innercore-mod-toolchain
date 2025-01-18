@@ -80,10 +80,10 @@ class HashStorage:
 	def save(self) -> None:
 		os.makedirs(dirname(self.path), exist_ok=True)
 		with open(self.path, "w") as file:
-			file.write(json.dumps({
+			json.dump({
 				**self.last_hashes,
 				**self.hashes
-			}, indent=None, separators=(",", ":"), ensure_ascii=False) + "\n")
+			}, file, indent=None, separators=(",", ":"), ensure_ascii=False)
 
 	def is_path_changed(self, path: str, force: bool = False) -> bool:
 		encoded = encode(bytes(path, "utf-8")).hexdigest()
