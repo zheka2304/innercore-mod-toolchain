@@ -164,7 +164,7 @@ def push_everything() -> int:
 		if result != 0:
 			return result
 		for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
-			project_path = GLOBALS.MAKE_CONFIG.get_relative_path(linked_resource["relative_path"])
+			project_path = GLOBALS.MAKE_CONFIG.get_path(linked_resource["relative_path"])
 			remote_path = destination_directory + "/" + linked_resource["output_path"]
 			remote_push_unchanged = linked_resource["push_unchanged"] if "push_unchanged" in linked_resource else push_unchanged
 			remote_cleanup_remote = linked_resource["cleanup_remote"] if "cleanup_remote" in linked_resource else cleanup_remote

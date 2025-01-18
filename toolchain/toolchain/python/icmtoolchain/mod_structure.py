@@ -191,7 +191,8 @@ class LinkedResourceStorage:
 		ensure_file(self.contents_path)
 		with open(self.contents_path, "w", encoding="utf-8") as contents_file:
 			json.dump(self.contents, contents_file, indent=None, ensure_ascii=False)
-		del self.latest_contents
+		if hasattr(self, "latest_contents"):
+			del self.latest_contents
 
 	def append_resource(self, relative_path: str, output_path: str, **properties: Any) -> None:
 		for linked_resource in self.contents:

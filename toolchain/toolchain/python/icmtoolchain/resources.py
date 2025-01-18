@@ -1,6 +1,6 @@
 import json
 import os
-from os.path import basename, exists, isdir, isfile, join
+from os.path import basename, exists, relpath, isfile, join
 from shutil import make_archive
 
 from . import GLOBALS
@@ -26,22 +26,23 @@ def build_resources() -> int:
 			overall_result = 1
 			continue
 
-		for source_path in GLOBALS.MAKE_CONFIG.get_paths(resource["path"]):
-			if not exists(source_path):
-				warn(f"* Skipped non-existing resource {resource['path']!r}!")
-				continue
+		resource_type = resource["type"]
+		if resource_type not in VALID_RESOURCE_TYPES:
+			error(f"Invalid resource `type` in resource: {resource_type}, it might be one of {VALID_RESOURCE_TYPES}!")
+			overall_result = 1
+			continue
 
-			resource_type = resource["type"]
-			if resource_type not in VALID_RESOURCE_TYPES:
-				error(f"Invalid resource `type` in resource: {resource_type}, it might be one of {VALID_RESOURCE_TYPES}!")
-				overall_result = 1
-				continue
+		resource_files = GLOBALS.MAKE_CONFIG.get_paths(resource["path"])
+		if len(resource_files) == 0:
+			warn(f"* Skipped non-existing resource {resource['path']!r}!")
+			continue
+		push_unchanged = resource["pushUnchangedFiles"] if "pushUnchangedFiles" in resource else None
+		cleanup_remote = resource["cleanupRemote"] if "cleanupRemote" in resource else None
 
-			resource_name = resource["target"] if "target" in resource else basename(source_path)
-			resource_name += "{}"
-
+		for source_path in resource_files:
+			resource_name = basename(source_path)
 			if resource_type in ("resource_directory", "gui"):
-				target = GLOBALS.MOD_STRUCTURE.new_build_target(
+				target = GLOBALS.MOD_STRUCTURE.create_build_target(
 					resource_type,
 					resource_name,
 					declare={
@@ -49,7 +50,7 @@ def build_resources() -> int:
 					}
 				)
 			else:
-				target = GLOBALS.MOD_STRUCTURE.new_build_target(
+				target = GLOBALS.MOD_STRUCTURE.create_build_target(
 					resource_type,
 					resource_name,
 					exclude=True,
@@ -59,8 +60,9 @@ def build_resources() -> int:
 					}
 				)
 
-			remove_tree(target)
-			copy_directory(source_path, target)
+			relative_path = GLOBALS.MAKE_CONFIG.get_relative_path(source_path)
+			output_path = GLOBALS.MOD_STRUCTURE.build_targets[resource_type].directory + "/" + target["name"]
+			GLOBALS.LINKED_RESOURCE_STORAGE.append_resource(relative_path, output_path, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote)
 
 	GLOBALS.MOD_STRUCTURE.update_build_config_list("resources")
 	return overall_result
@@ -103,18 +105,17 @@ def build_additional_resources() -> int:
 			overall_result += 1
 			continue
 
-		target_directory = additional_dir["targetDir"]
-		target_filename = additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
-		target = join(GLOBALS.MOD_STRUCTURE.directory, target_directory, target_filename)
+		additional_files = GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"])
+		if len(additional_files) == 0:
+			warn(f"* Skipped non-existing additional resource {additional_dir['source']!r}!")
+			continue
+		push_unchanged = additional_dir["pushUnchangedFiles"] if "pushUnchangedFiles" in additional_dir else None
+		cleanup_remote = additional_dir["cleanupRemote"] if "cleanupRemote" in additional_dir else None
 
-		for additional_path in GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"]):
-			if not exists(additional_path):
-				warn(f"* Skipped non-existing additional resource {additional_path!r}!")
-				continue
-			if isdir(additional_path):
-				copy_directory(additional_path, target)
-			else:
-				copy_file(additional_path, target)
+		for additional_path in additional_files:
+			relative_path = GLOBALS.MAKE_CONFIG.get_relative_path(additional_path)
+			output_path = f"{additional_dir['targetDir']}/{basename(additional_path)}"
+			GLOBALS.LINKED_RESOURCE_STORAGE.append_resource(relative_path, output_path, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote)
 
 	return overall_result
 
@@ -173,14 +174,15 @@ def build_package() -> int:
 
 	output_temporary_file = join(output_directory, "package.zip")
 	ensure_file_directory(output_temporary_file)
-	output_file = GLOBALS.MAKE_CONFIG.get_path(name + ".zip" if requires_manifest else name + ".icmod")
-	ensure_file(output_file)
 	remove_tree(output_temporary_file)
+	output_file = GLOBALS.MAKE_CONFIG.get_path(name + ".zip" if requires_manifest else name + ".icmod")
+	ensure_file_directory(output_file)
+	remove_tree(output_file)
 
 	copy_directory(GLOBALS.MOD_STRUCTURE.directory, output_package_directory)
 	for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
 		output_package_resource_directory = join(output_package_directory, linked_resource["output_path"])
-		copy_directory(GLOBALS.MAKE_CONFIG.get_relative_path(linked_resource["relative_path"]), output_package_resource_directory)
+		copy_directory(GLOBALS.MAKE_CONFIG.get_path(linked_resource["relative_path"]), output_package_resource_directory)
 	for path in GLOBALS.MAKE_CONFIG.get_list("excludeFromRelease"):
 		for excluded_path in GLOBALS.MAKE_CONFIG.get_paths(join(output_package_directory, path)):
 			remove_tree(excluded_path)
