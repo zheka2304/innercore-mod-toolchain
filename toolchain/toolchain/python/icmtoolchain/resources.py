@@ -20,7 +20,7 @@ def build_resources() -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("minecraft_behavior_pack")
 	overall_result = 0
 
-	for resource in GLOBALS.MAKE_CONFIG.get_value("resources", fallback=list()):
+	for resource in GLOBALS.MAKE_CONFIG.get_list("resources"):
 		if "path" not in resource or "type" not in resource:
 			error(f"Skipped invalid resource json {resource}, it might contain `path` and `type` properties!")
 			overall_result = 1
@@ -94,22 +94,23 @@ def build_pack_graphics() -> int:
 	print(f"Composed a pack with graphics from {len(graphics_groups.keys())} groups!")
 	return 0
 
-def build_additional_resources(push_directly: bool = False) -> int:
+def build_additional_resources() -> int:
 	overall_result = 0
 
-	for additional_dir in GLOBALS.MAKE_CONFIG.get_value("additional", fallback=list()):
+	for additional_dir in GLOBALS.MAKE_CONFIG.get_list("additional"):
 		if "source" not in additional_dir or "targetDir" not in additional_dir:
 			error(f"Skipped invalid additional resource json {additional_dir}, it might contain `source` and `targetDir` properties!")
 			overall_result += 1
 			continue
+
+		target_directory = additional_dir["targetDir"]
+		target_filename = additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
+		target = join(GLOBALS.MOD_STRUCTURE.directory, target_directory, target_filename)
+
 		for additional_path in GLOBALS.MAKE_CONFIG.get_paths(additional_dir["source"]):
 			if not exists(additional_path):
 				warn(f"* Skipped non-existing additional resource {additional_path!r}!")
-				break
-			target = join(
-				GLOBALS.MOD_STRUCTURE.directory, additional_dir["targetDir"],
-				additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
-			)
+				continue
 			if isdir(additional_path):
 				copy_directory(additional_path, target)
 			else:

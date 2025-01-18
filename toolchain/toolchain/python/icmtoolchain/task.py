@@ -259,9 +259,9 @@ def task_build_info() -> int:
 	locks=["cleanup", "push"],
 	description="Copies additional files and directories, besides main resources and code."
 )
-def task_build_additional(push_directly: bool = False) -> int:
+def task_build_additional() -> int:
 	from .resources import build_additional_resources
-	return build_additional_resources(push_directly)
+	return build_additional_resources()
 
 @task(
 	"clearOutput",
