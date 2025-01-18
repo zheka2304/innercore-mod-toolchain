@@ -1,32 +1,28 @@
+from collections import namedtuple
 import json
 import os
-from os.path import isdir, isfile, join, relpath
+from os.path import isdir, isfile, join, relpath, basename
 from typing import Any, Collection, Dict, Final, List, Optional
 
 from . import GLOBALS
 from .shell import warn
-from .utils import ensure_directory, ensure_file_directory, remove_tree
+from .utils import ensure_directory, ensure_file, ensure_file_directory, remove_tree
 
 
-class BuildTargetType:
-	directory: Final[str]; property: Final[str]
-
-	def __init__(self, directory: str, property: str) -> None:
-		self.directory = directory
-		self.property = property
+BuildTargetType = namedtuple("BuildTargetType", "directory property")
 
 class ModStructure:
 	directory: Final[str]
-	targets: Dict[str, List[Dict[Any, Any]]]
+	targets: Dict[str, List[Dict]]
 	build_targets: Dict[str, BuildTargetType]
-	build_config: Optional[Dict[Any, Any]] = None
+	build_config: Optional[Dict] = None
 
 	def __init__(self, output_directory: str) -> None:
 		self.directory = GLOBALS.MAKE_CONFIG.get_absolute_path(output_directory)
 		self.targets = dict()
 		self.setup_build_targets()
 
-	def setup_build_targets(self):
+	def setup_build_targets(self) -> None:
 		self.build_targets = {
 			"resource_directory": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.resource_directory", "resources"), "resources"),
 			"gui": BuildTargetType(GLOBALS.MAKE_CONFIG.get_value("target.gui", "gui"), "resources"),
@@ -58,7 +54,7 @@ class ModStructure:
 		target_type = self.build_targets[keyword]
 		return join(self.directory, str(target_type.directory))
 
-	def new_build_target(self, keyword: str, name: str, **properties: Any) -> str:
+	def create_build_target(self, keyword: str, name: str, **properties: Any) -> Dict:
 		if not "{}" in name:
 			name = name + "{}"
 		formatted_name = name.format("")
@@ -72,14 +68,18 @@ class ModStructure:
 		else:
 			self.targets[keyword] = list()
 
-		output_directory = self.get_target_output_directory(keyword)
-		target_path = join(output_directory, formatted_name)
-		self.targets[keyword].append({
+		target_type = self.build_targets[keyword]
+		output_directory = join(self.directory, target_type.directory)
+		build_target = {
 			"name": formatted_name,
-			"path": target_path,
+			"path": join(output_directory, formatted_name),
 			**properties
-		})
-		return target_path
+		}
+		self.targets[keyword].append(build_target)
+		return build_target
+
+	def new_build_target(self, keyword: str, name: str, **properties: Any) -> str:
+		return self.create_build_target(keyword, name, **properties)["path"]
 
 	def get_all_targets(self, keyword: str, property: Any = None, values: Collection[Any] = ()) -> List[str]:
 		targets = list()
@@ -159,3 +159,57 @@ class ModStructure:
 			raise SystemError()
 		self.build_config[name] = self.create_build_config_list(name, self.build_config["defaultConfig"])
 		self.write_build_config()
+
+class LinkedResourceStorage:
+	contents: List[Dict]
+	latest_contents: List[Dict]
+	contents_path: str
+
+	def __init__(self, contents_path: str) -> None:
+		self.contents = list()
+		self.contents_path = contents_path
+		self.read_contents()
+
+	def read_contents(self):
+		if not isfile(self.contents_path):
+			return
+		with open(self.contents_path, encoding="utf-8") as contents_file:
+			try:
+				contents = json.load(contents_file)
+				if isinstance(contents, list):
+					self.latest_contents = list()
+					for linked_resource in contents:
+						if isinstance(linked_resource, dict) and "relative_path" in linked_resource and "output_path" in linked_resource:
+							self.latest_contents.append(linked_resource)
+					if len(self.latest_contents) == 0:
+						del self.latest_contents
+			except json.JSONDecodeError:
+				from .shell import warn
+				warn(f"* Malformed {basename(self.contents_path)!r}, prebuilt contents will be ignored...")
+
+	def save_contents(self):
+		ensure_file(self.contents_path)
+		with open(self.contents_path, "w", encoding="utf-8") as contents_file:
+			json.dump(self.contents, contents_file, indent=None, ensure_ascii=False)
+		del self.latest_contents
+
+	def append_resource(self, relative_path: str, output_path: str, **properties: Any) -> None:
+		for linked_resource in self.contents:
+			if relative_path == linked_resource["relative_path"] and output_path == linked_resource["output_path"]:
+				warn(f"* Duplicate resource directory {relative_path}, skipping it...")
+				return
+		self.contents.append({
+			"relative_path": relative_path,
+			"output_path": output_path,
+			**properties
+		})
+
+	def iterate_resources(self):
+		if len(self.contents) > 0 and hasattr(self, "latest_contents"):
+			from .shell import warn
+			warn(f"* There is cached and runtime contents at same time, this can lead to duplication of some resources. If you are an add-on developer, please make sure that your LinkedResourceStorage is stored.")
+		for linked_resource in self.contents:
+			yield linked_resource
+		if hasattr(self, "latest_contents"):
+			for linked_resource in self.latest_contents:
+				yield linked_resource

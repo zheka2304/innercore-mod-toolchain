@@ -51,6 +51,13 @@ class Globals:
 		return self.output_storage
 
 	@property
+	def LINKED_RESOURCE_STORAGE(self):
+		if not hasattr(self, "linked_resource_storage"):
+			from .mod_structure import LinkedResourceStorage
+			self.linked_resource_storage = LinkedResourceStorage(self.MAKE_CONFIG.get_build_path(".contents"))
+		return self.linked_resource_storage
+
+	@property
 	def TOOLCHAIN_CONFIG(self):
 		if not hasattr(self, "toolchain_config"):
 			toolchain_config = find_configuration(os.getcwd(), "toolchain.json")
