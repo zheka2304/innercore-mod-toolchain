@@ -173,11 +173,17 @@ def build_package() -> int:
 
 	output_temporary_file = join(output_directory, "package.zip")
 	ensure_file_directory(output_temporary_file)
-
 	output_file = GLOBALS.MAKE_CONFIG.get_path(name + ".zip" if requires_manifest else name + ".icmod")
 	ensure_file(output_file)
 	remove_tree(output_temporary_file)
+
 	copy_directory(GLOBALS.MOD_STRUCTURE.directory, output_package_directory)
+	for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
+		output_package_resource_directory = join(output_package_directory, linked_resource["output_path"])
+		copy_directory(GLOBALS.MAKE_CONFIG.get_relative_path(linked_resource["relative_path"]), output_package_resource_directory)
+	for path in GLOBALS.MAKE_CONFIG.get_list("excludeFromRelease"):
+		for excluded_path in GLOBALS.MAKE_CONFIG.get_paths(join(output_package_directory, path)):
+			remove_tree(excluded_path)
 	make_archive(output_temporary_file[:-4], "zip", output_directory, name)
 
 	remove_tree(output_package_directory)

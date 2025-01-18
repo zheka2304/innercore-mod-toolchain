@@ -272,20 +272,6 @@ def task_clear_output(force: bool = False) -> int:
 	return 0
 
 @task(
-	"excludeDirectories",
-	locks=["push", "assemble", "native", "java"],
-	description="Deletes predefined config files and directories that should be excluded prior to publication."
-)
-def task_exclude_directories() -> int:
-	for path in GLOBALS.MAKE_CONFIG.get_value("excludeFromRelease", list()):
-		for exclude in GLOBALS.MAKE_CONFIG.get_paths(join(relpath(GLOBALS.MOD_STRUCTURE.directory, GLOBALS.MAKE_CONFIG.directory), path)):
-			if isdir(exclude):
-				remove_tree(exclude)
-			elif isfile(exclude):
-				os.remove(exclude)
-	return 0
-
-@task(
 	"buildPackage",
 	locks=["push", "assemble", "native", "java", "resource", "script"],
 	description="Assembles project's output folder into an archive, specifically for publishing in a mod browser."
