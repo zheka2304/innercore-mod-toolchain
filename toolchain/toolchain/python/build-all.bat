@@ -1,2 +1,2 @@
 @echo off
-python -m icmtoolchain ensureProjectExists clearOutput buildScripts buildResources compileNative compileJava buildAdditional buildInfo
+python -m icmtoolchain ensureProjectExists clearOutput buildScripts compileNative compileJava buildResources buildInfo

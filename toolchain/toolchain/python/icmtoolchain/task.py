@@ -229,11 +229,15 @@ def task_update_includes() -> int:
 	description="Copies predefined resources consisting of textures, in-game packs, etc."
 )
 def task_resources() -> int:
-	from .resources import build_pack_graphics, build_resources
+	from .resources import build_additional_resources, build_pack_graphics, build_resources
 	if not GLOBALS.MAKE_CONFIG.has_value("manifest"):
 		overall_result = build_resources()
 	else:
 		overall_result = build_pack_graphics()
+	if overall_result == 0:
+		overall_result = build_additional_resources()
+	if overall_result == 0:
+		GLOBALS.LINKED_RESOURCE_STORAGE.save_contents()
 	return overall_result
 
 @task(
@@ -255,17 +259,8 @@ def task_build_info() -> int:
 	return 0
 
 @task(
-	"buildAdditional",
-	locks=["cleanup", "push"],
-	description="Copies additional files and directories, besides main resources and code."
-)
-def task_build_additional() -> int:
-	from .resources import build_additional_resources
-	return build_additional_resources()
-
-@task(
 	"clearOutput",
-	locks=["assemble", "push", "native", "java"],
+	locks=["assemble", "push", "native", "java", "resource", "script"],
 	description="Optionally deletes the output folder; has no effect by default."
 )
 def task_clear_output(force: bool = False) -> int:
@@ -292,7 +287,7 @@ def task_exclude_directories() -> int:
 
 @task(
 	"buildPackage",
-	locks=["push", "assemble", "native", "java"],
+	locks=["push", "assemble", "native", "java", "resource", "script"],
 	description="Assembles project's output folder into an archive, specifically for publishing in a mod browser."
 )
 def task_build_package() -> int:
