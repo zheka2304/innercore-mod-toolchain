@@ -2,6 +2,7 @@ import platform
 import re
 import struct
 import subprocess
+import sys
 import zipfile
 from os import environ, getenv, listdir, makedirs
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
@@ -10,7 +11,7 @@ from typing import List, Optional, Union
 from urllib.error import URLError
 
 from . import GLOBALS
-from .shell import Progress, Shell, abort, confirm, error, warn
+from .shell import Progress, Shell, abort, confirm, error, link, warn
 from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories,
                     remove_tree)
 
@@ -227,9 +228,16 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		result = 0
 
 		captured_errors = dict()
-		pip_output = subprocess.run("pip install setuptools", capture_output=True, text=True)
-		if pip_output.returncode != 0:
-			captured_errors["setuptools"] = pip_output.stderr.strip()
+		try:
+			pip_output = subprocess.run([
+				"pip3" if platform.system() != "Windows" else "pip",
+				"install", "setuptools"
+			], capture_output=True, text=True)
+			setuptools_installed = pip_output.returncode == 0
+			if not setuptools_installed:
+				captured_errors["setuptools"] = pip_output.stderr.strip()
+		except OSError:
+			setuptools_installed = False
 
 		progress = None
 		if not isinstance(arches, list):
@@ -274,8 +282,24 @@ def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) 
 		if shell:
 			shell.render()
 			shell.leave()
-		if result != 0:
-			error("You are must install it manually by running 'toolchain/temp/ndk/build/tools/make_standalone_toolchain.py':")
 		for arch in captured_errors:
 			warn(f"{arch}: {captured_errors[arch]}")
+		if result != 0:
+			if not setuptools_installed:
+				if sys.version_info > (3, 11):
+					troubleshoot = "To use Android NDK starting with Python 3.12 requires installation of distutils dependency."
+				else:
+					troubleshoot = "Your Python installation does not contain distutils dependency needed to run Android NDK."
+				warn(troubleshoot, "We were unable to do this automatically, so you can try following options to solve problem:")
+				if platform.system() == 'Windows':
+					warn(" - pip install setuptools")
+					warn(" - python -m pip install setuptools")
+				else:
+					warn(" - apt-get install python-setuputils")
+					warn(" - pacman -S python-setuputils")
+					warn(" - pip3 install setuptools")
+					warn(" - python3 -m pip install setuptools")
+				warn(f"Visit {link('https://docs.python.org/3/library/distutils.html')} for details.")
+			else:
+				warn("Please use a different version of Android NDK or report this issue to developer.")
 		return result
