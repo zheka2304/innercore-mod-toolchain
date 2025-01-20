@@ -4,7 +4,7 @@ import re
 import shutil
 import subprocess
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import Any, Callable, Iterable, List, Optional, Union, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, TextIO, Union, overload
 from zipfile import ZipFile, ZipInfo
 
 from . import GLOBALS
@@ -298,6 +298,26 @@ def request_executable_version(executable: Union[str, List[str]]) -> float:
 		if result:
 			return float(result.group())
 	return 0.0
+
+def parse_properties_property(line: str) -> tuple[str, str]:
+	try:
+		key, value = line.strip().split("=", 1)
+		return key.rstrip(), value.lstrip()
+	except ValueError as exc:
+		return "", str(exc)
+
+def read_properties_stream(io: TextIO, skip_duplicates: bool = False, error_handler: Optional[Callable[[str], None]] = None) -> Dict[str, str]:
+	properties = dict()
+	line = io.readline()
+	while line:
+		key, value = parse_properties_property(line)
+		if len(key) != 0:
+			if not skip_duplicates or key not in properties:
+				properties[key] = value
+		elif error_handler:
+			error_handler(value)
+		line = io.readline()
+	return properties
 
 class AttributeZipFile(ZipFile):
 	def _extract_member(self, member: Union[ZipInfo, str], targetpath: str, pwd: Optional[str]) -> str:

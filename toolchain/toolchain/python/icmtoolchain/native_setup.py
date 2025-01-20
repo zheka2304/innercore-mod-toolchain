@@ -7,12 +7,12 @@ import zipfile
 from os import environ, getenv, listdir, makedirs
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
                      realpath)
-from typing import List, Optional, Union
+from typing import Generator, List, Optional, Union
 from urllib.error import URLError
 
 from . import GLOBALS
-from .shell import Progress, Shell, abort, confirm, error, link, warn
-from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories,
+from .shell import Progress, Shell, abort, confirm, error, info, link, warn
+from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories, read_properties_stream,
                     remove_tree)
 
 ABIS = {
@@ -20,6 +20,11 @@ ABIS = {
 	"arm64-v8a": "arm64",
 	"x86": "x86",
 	"x86_64": "x86_64"
+}
+
+FALLBACK_NDK_VERSIONS = {
+	"armeabi-v7a": "16.1.4479499",
+	"arm64-v8a": "21.4.7075529"
 }
 
 GCC_EXECUTABLES = dict()
@@ -30,7 +35,27 @@ def abi_to_arch(abi: str) -> str:
 		return ABIS[abi]
 	raise ValueError(f"Unsupported ABI {abi!r}!")
 
-def search_ndk_subdirectories(directory: str) -> Optional[str]:
+def arch_to_abi(arch: str) -> str:
+	for abi in ABIS:
+		if arch == ABIS[abi]:
+			return abi
+	raise ValueError(f"Unsupported architecture {abi!r}!")
+
+def ndk_version_to_revision(version: str) -> str:
+	try:
+		major, minor = version.split(".", 3)
+	except ValueError:
+		major = version
+		minor = "0"
+	try:
+		major = int(major)
+		minor = int(minor)
+	except ValueError:
+		raise RuntimeCodeError(1, "Invalid NDK Version: " + version)
+	suffix = "" if minor <= 0 else chr(97 + minor)
+	return "r" + str(major) + suffix
+
+def search_ndk_subdirectories(directory: str) -> Generator[str]:
 	preferred_directory_regexes = [
 		r"android-ndk-r\d+\b",
 		r"android-ndk-.*",
@@ -41,37 +66,59 @@ def search_ndk_subdirectories(directory: str) -> Optional[str]:
 		compiled_pattern = re.compile(directory_regex + "$")
 		for subdirectory in iterate_subdirectories(directory):
 			if re.search(compiled_pattern, subdirectory):
-				return subdirectory
+				yield subdirectory
 
-def search_ndk_path(home_directory: str, contains_ndk: bool = False) -> Optional[str]:
+def search_unversioned_ndk_path(home_directory: str, contains_ndk: bool = False) -> Generator[str]:
 	if contains_ndk:
-		ndk = search_ndk_subdirectories(home_directory)
-		if ndk: return ndk
+		for ndk in search_ndk_subdirectories(home_directory):
+			yield ndk
 	try:
 		android_tools = environ["ANDROID_SDK_ROOT"]
 	except KeyError:
 		android_tools = join(home_directory, "Android")
 	if exists(android_tools):
-		ndk = search_ndk_subdirectories(android_tools)
-		if ndk: return ndk
+		for ndk in search_ndk_subdirectories(android_tools):
+			yield ndk
 	android_tools = join(android_tools, "ndk")
 	if exists(android_tools):
-		ndk = search_ndk_subdirectories(android_tools)
-		if ndk: return ndk
+		for ndk in search_ndk_subdirectories(android_tools):
+			yield ndk
 
-def get_ndk_path() -> Optional[str]:
+def search_ndk_path(home_directory: str, contains_ndk: bool = False, ndk_version: Optional[str] = None) -> Optional[str]:
+	for ndk_path in search_unversioned_ndk_path(home_directory, contains_ndk):
+		if not ndk_version:
+			return ndk_path
+		package_version = read_ndk_source_version(ndk_path)
+		if package_version:
+			if "." not in ndk_version:
+				package_version = package_version.split(".", 1)[0]
+			if ndk_version == package_version:
+				return ndk_path
+
+def read_ndk_source_version(ndk_path: str) -> Optional[str]:
+	properties_path = join(ndk_path, "source.properties")
+	if not isfile(properties_path):
+		return
+	with open(properties_path, encoding="utf-8") as properties_file:
+		properties = read_properties_stream(properties_file)
+	try:
+		return properties["Pkg.Revision"]
+	except KeyError:
+		pass
+
+def get_ndk_path(ndk_version: Optional[str] = None) -> Optional[str]:
 	path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_value("native.ndkPath", GLOBALS.TOOLCHAIN_CONFIG.get_value("ndkPath"))
-	if path_from_config and isinstance(path_from_config, str):
+	if path_from_config:
 		path_from_config = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(path_from_config)
 		if isdir(path_from_config):
 			return path_from_config
-	# Unix
 	try:
-		return search_ndk_path(environ["HOME"])
+		# Unix
+		return search_ndk_path(environ["HOME"], ndk_version=ndk_version)
 	except KeyError:
 		pass
 	# Windows
-	return search_ndk_path(getenv("LOCALAPPDATA", "."))
+	return search_ndk_path(getenv("LOCALAPPDATA", "."), ndk_version=ndk_version)
 
 def search_for_gcc_executable(ndk_directory: str) -> Optional[str]:
 	search_directory = join(realpath(ndk_directory), "bin")
@@ -143,8 +190,9 @@ def get_download_ndk_url(revision: str) -> str:
 		package_suffix = "linux-x86_64" if requires_architecture else "linux"
 	return f"https://dl.google.com/android/repository/android-ndk-{revision}-{package_suffix}.zip"
 
-def download_gcc(shell: Optional[Shell] = None, revision: Optional[str] = None) -> Optional[str]:
+def download_gcc(shell: Optional[Shell] = None, ndk_version: Optional[str] = None) -> Optional[str]:
 	from urllib import request
+	revision = ndk_version_to_revision(ndk_version) if ndk_version else "r16b"
 	archive_path = GLOBALS.TOOLCHAIN_CONFIG.get_path(f"toolchain/temp/ndk-{revision}.zip")
 	makedirs(dirname(archive_path), exist_ok=True)
 
@@ -154,7 +202,7 @@ def download_gcc(shell: Optional[Shell] = None, revision: Optional[str] = None) 
 			progress = Progress(text="C++ GCC Compiler (NDK)")
 			shell.interactables.append(progress)
 			shell.render()
-		url = get_download_ndk_url(revision or "r16b")
+		url = get_download_ndk_url(revision)
 		try:
 			with request.urlopen(url) as response:
 				with open(archive_path, "wb") as f:
@@ -199,107 +247,129 @@ def download_gcc(shell: Optional[Shell] = None, revision: Optional[str] = None) 
 		except OSError as exc:
 			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)} (security fail)")
 
-	return search_ndk_path(extract_path, contains_ndk=True)
+	return search_ndk_path(extract_path, contains_ndk=True, ndk_version=ndk_version)
+
+def install_distutils_optionally() -> bool:
+	try:
+		try:
+			import distutils # type: ignore
+			distutils.__version__
+			return True
+		except BaseException:
+			pass
+		pip_output = subprocess.run([
+			"pip3" if platform.system() != "Windows" else "pip",
+			"install", "setuptools"
+		], capture_output=True, text=True)
+		setuptools_installed = pip_output.returncode == 0
+		if setuptools_installed:
+			info("Dependency distutils for Android NDK successfully installed!")
+		else:
+			warn("Android NDK requires distutils dependency in order to work, but installation went wrong:")
+			warn(pip_output.stderr.strip())
+		return setuptools_installed
+	except OSError:
+		pass
+	return False
+
+def download_and_make_standalone_toolchain(arch: str, reinstall: bool = False, shell: Optional[Shell] = None) -> int:
+	abi = arch_to_abi(arch)
+	ndk_version = GLOBALS.PREFERRED_CONFIG.get_value("native.ndkVersions." + abi)
+	if not ndk_version and abi in FALLBACK_NDK_VERSIONS:
+		ndk_version = FALLBACK_NDK_VERSIONS[abi]
+	ndk_path = get_ndk_path(ndk_version=ndk_version)
+
+	if not ndk_path:
+		if not reinstall:
+			print(f"Not found valid NDK installation for {abi}.")
+		question = "Install NDK from Android Repository?"
+		if ndk_version:
+			question = f"Install NDK {ndk_version} from Android Repository?"
+		if reinstall or confirm(question, True):
+			if shell:
+				shell.enter()
+			ndk_path = download_gcc(shell, ndk_version=ndk_version)
+		else:
+			abort()
+	elif shell:
+		shell.enter()
+
+	if not ndk_path:
+		if shell:
+			shell.leave()
+		error("Installation interrupted by raised cause above, you are must extract 'toolchain/temp/ndk-r**.zip' manually into toolchain/temp and retry task.")
+		return 1
+
+	progress = None
+	if shell:
+		progress = Progress(text=f"Installing {abi}")
+		shell.interactables.append(progress)
+		shell.render()
+	output = subprocess.run([
+		"python3" if platform.system() != "Windows" else "python",
+		join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
+		"--arch", arch,
+		"--api", "21" if "64" in arch else "19",
+		"--install-dir", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + arch),
+		"--force"
+	], capture_output=True, text=True)
+	if output.returncode != 0:
+		Progress.notify(shell, progress, 1, f"Installation of {abi} failed with result {output.returncode}")
+		if shell:
+			shell.leave()
+		error(output.stderr.strip())
+	else:
+		open(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + arch), "tw").close()
+		Progress.notify(shell, progress, 1, f"Successfully installed {abi}")
+	return output.returncode
 
 def install_gcc(arches: Union[str, List[str]] = "arm", reinstall: bool = False) -> int:
 	if not reinstall and check_installation(arches):
 		return 0
-	else:
-		shell = Shell()
-		shell.inline_flushing = True
-		ndk_path = get_ndk_path()
-		if not ndk_path:
-			if not reinstall:
-				print(f"Not found valid NDK installation for {arches if isinstance(arches, str) else ', '.join(arches)}.", sep="")
-			if reinstall or confirm("Download android-ndk-r16b from Android Repository?", True):
-				if shell:
-					shell.enter()
-				ndk_path = download_gcc(shell)
-			else:
-				abort()
-		elif shell:
-			shell.enter()
 
-		if not ndk_path:
-			if shell:
-				shell.leave()
-			error("Installation interrupted by raised cause above, you are must extract 'toolchain/temp/ndk-r**.zip' manually into toolchain/temp and retry task.")
-			return 1
-		result = 0
+	setuptools_troubleshoot = install_distutils_optionally()
+	if not isinstance(arches, list):
+		arches = [arches]
+	shell = Shell()
+	shell.inline_flushing = True
 
-		captured_errors = dict()
-		try:
-			pip_output = subprocess.run([
-				"pip3" if platform.system() != "Windows" else "pip",
-				"install", "setuptools"
-			], capture_output=True, text=True)
-			setuptools_installed = pip_output.returncode == 0
-			if not setuptools_installed:
-				captured_errors["setuptools"] = pip_output.stderr.strip()
-		except OSError:
-			setuptools_installed = False
-
-		progress = None
-		if not isinstance(arches, list):
-			arches = [arches]
-		for arch in arches:
-			progress = None
-			if shell:
-				progress = Progress(text=f"Installing {arch}")
-				shell.interactables.append(progress)
-				shell.render()
-			output = subprocess.run([
-				"python3" if platform.system() != "Windows" else "python",
-				join(ndk_path, "build", "tools", "make_standalone_toolchain.py"),
-				"--arch", str(arch),
-				"--api", "21" if "64" in str(arch) else "19",
-				"--install-dir", GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/" + str(arch)),
-				"--force"
-			], capture_output=True, text=True)
-			if output.returncode != 0:
-				captured_errors[arch] = output.stderr.strip()
-				Progress.notify(shell, progress, 1, f"Installation of {arch} failed with result {str(result)}")
-			else:
-				open(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/ndk/.installed-" + str(arch)), "tw").close()
-				Progress.notify(shell, progress, 1, f"Successfully installed {arch}")
-			result += output.returncode
-
-		if result == 0:
-			progress = None
-			if shell:
-				progress = Progress(progress=0.9, text=f"Removing temporary files")
-				shell.interactables.append(progress)
-				shell.render()
-			try:
-				remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
-				if progress:
-					progress.seek(1, "C++ GCC Compiler (NDK)")
-			except OSError as exc:
-				Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
-		else:
-			Progress.notify(shell, progress, 1, f"Installation failed with result {str(result)}")
-
-		if shell:
-			shell.render()
-			shell.leave()
-		for arch in captured_errors:
-			warn(f"{arch}: {captured_errors[arch]}")
+	result = 0
+	for arch in arches:
+		result = download_and_make_standalone_toolchain(arch, reinstall=reinstall, shell=shell)
 		if result != 0:
-			if not setuptools_installed:
-				if sys.version_info > (3, 11):
-					troubleshoot = "To use Android NDK starting with Python 3.12 requires installation of distutils dependency."
-				else:
-					troubleshoot = "Your Python installation does not contain distutils dependency needed to run Android NDK."
-				warn(troubleshoot, "We were unable to do this automatically, so you can try following options to solve problem:")
-				if platform.system() == 'Windows':
-					warn(" - pip install setuptools")
-					warn(" - python -m pip install setuptools")
-				else:
-					warn(" - apt-get install python-setuputils")
-					warn(" - pacman -S python-setuputils")
-					warn(" - pip3 install setuptools")
-					warn(" - python3 -m pip install setuptools")
-				warn(f"Visit {link('https://docs.python.org/3/library/distutils.html')} for details.")
+			break
+
+	if result == 0:
+		progress = None
+		if shell:
+			progress = Progress(progress=0.9, text=f"Removing temporary files")
+			shell.interactables.append(progress)
+			shell.render()
+		try:
+			remove_tree(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/temp"))
+			if progress:
+				progress.seek(1, "C++ GCC Compiler (NDK)")
+		except OSError as exc:
+			Progress.notify(shell, progress, 0, f"#{exc.errno}: {basename(exc.filename)}")
+	if shell:
+		shell.leave()
+
+	if result != 0:
+		if setuptools_troubleshoot:
+			if sys.version_info > (3, 11):
+				troubleshoot = "To use Android NDK starting with Python 3.12 requires installation of distutils dependency."
 			else:
-				warn("Please use a different version of Android NDK or report this issue to developer.")
-		return result
+				troubleshoot = "Your Python installation does not contain distutils dependency needed to run Android NDK."
+			warn(troubleshoot, "We were unable to do this automatically, so you can try following options to solve problem:")
+			if platform.system() == 'Windows':
+				warn(" - pip install setuptools")
+				warn(" - python -m pip install setuptools")
+			else:
+				warn(" - apt-get install python-setuputils")
+				warn(" - pacman -S python-setuputils")
+				warn(" - pip3 install setuptools")
+				warn(" - python3 -m pip install setuptools")
+			warn(f"Visit {link('https://docs.python.org/3/library/distutils.html')} for details.")
+		else:
+			warn("Please use a different version of Android NDK or report this issue to developer.")
+	return result
