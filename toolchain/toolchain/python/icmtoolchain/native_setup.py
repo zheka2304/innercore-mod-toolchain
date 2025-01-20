@@ -7,7 +7,7 @@ import zipfile
 from os import environ, getenv, listdir, makedirs
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
                      realpath)
-from typing import Generator, List, Optional, Union
+from typing import Any, Generator, List, Optional, Union
 from urllib.error import URLError
 
 from . import GLOBALS
@@ -43,19 +43,22 @@ def arch_to_abi(arch: str) -> str:
 
 def ndk_version_to_revision(version: str) -> str:
 	try:
-		major, minor = version.split(".", 3)
+		try:
+			major, minor, patch = version.split(".", 3)
+		except ValueError:
+			major, minor = version.split(".", 2)
 	except ValueError:
 		major = version
 		minor = "0"
 	try:
 		major = int(major)
 		minor = int(minor)
-	except ValueError:
-		raise RuntimeCodeError(1, "Invalid NDK Version: " + version)
+	except ValueError as exc:
+		raise RuntimeCodeError(1, "Invalid NDK Version: " + version + " (" + str(exc) + ")")
 	suffix = "" if minor <= 0 else chr(97 + minor)
 	return "r" + str(major) + suffix
 
-def search_ndk_subdirectories(directory: str) -> Generator[str]:
+def search_ndk_subdirectories(directory: str) -> Generator[str, Any, Any]:
 	preferred_directory_regexes = [
 		r"android-ndk-r\d+\b",
 		r"android-ndk-.*",
@@ -68,7 +71,7 @@ def search_ndk_subdirectories(directory: str) -> Generator[str]:
 			if re.search(compiled_pattern, subdirectory):
 				yield subdirectory
 
-def search_unversioned_ndk_path(home_directory: str, contains_ndk: bool = False) -> Generator[str]:
+def search_unversioned_ndk_path(home_directory: str, contains_ndk: bool = False) -> Generator[str, Any, Any]:
 	if contains_ndk:
 		for ndk in search_ndk_subdirectories(home_directory):
 			yield ndk
