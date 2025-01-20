@@ -1,6 +1,6 @@
 import json
 import os
-from os.path import basename, exists, relpath, isfile, join
+from os.path import basename, exists, isdir, isfile, join
 from shutil import make_archive
 
 from . import GLOBALS
@@ -110,7 +110,7 @@ def build_additional_resources() -> int:
 			warn(f"* Skipped non-existing additional resource {additional_dir['source']!r}!")
 			continue
 		push_unchanged = additional_dir["pushUnchangedFiles"] if "pushUnchangedFiles" in additional_dir else None
-		cleanup_remote = additional_dir["cleanupRemote"] if "cleanupRemote" in additional_dir else None
+		cleanup_remote = additional_dir["cleanupRemote"] if "cleanupRemote" in additional_dir else False
 
 		for additional_path in additional_files:
 			relative_path = GLOBALS.MAKE_CONFIG.get_relative_path(additional_path)
@@ -181,8 +181,14 @@ def build_package() -> int:
 
 	copy_directory(GLOBALS.MOD_STRUCTURE.directory, output_package_directory)
 	for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
-		output_package_resource_directory = join(output_package_directory, linked_resource["output_path"])
-		copy_directory(GLOBALS.MAKE_CONFIG.get_path(linked_resource["relative_path"]), output_package_resource_directory)
+		input_resource = GLOBALS.MAKE_CONFIG.get_path(linked_resource["relative_path"])
+		output_package_resource = join(output_package_directory, linked_resource["output_path"])
+		if isfile(input_resource):
+			copy_file(input_resource, output_package_resource)
+		elif isdir(input_resource):
+			copy_directory(input_resource, output_package_resource)
+		else:
+			warn(f"* We cannot copy {linked_resource['relative_path']} resource because we could not determine its type.")
 	for path in GLOBALS.MAKE_CONFIG.get_list("excludeFromRelease"):
 		for excluded_path in GLOBALS.MAKE_CONFIG.get_paths(join(output_package_directory, path)):
 			remove_tree(excluded_path)

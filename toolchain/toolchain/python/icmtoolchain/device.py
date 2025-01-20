@@ -2,7 +2,7 @@ import platform
 import re
 import socket
 import subprocess
-from os.path import basename, join, relpath
+from os.path import basename, isdir, isfile, join, relpath
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import GLOBALS
@@ -149,18 +149,18 @@ def ls(path: str, *args: str) -> Tuple[List[str], List[str]]:
 		(directories if is_directory else files).append(filename)
 	return directories, files
 
-def push_everything() -> int:
+def push_everything(push_unchanged: bool = True, cleanup_remote: bool = True) -> int:
 	destination_directory = get_modpack_push_directory()
 	if not destination_directory:
 		return 1
-	push_unchanged = GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", True)
-	cleanup_remote = GLOBALS.PREFERRED_CONFIG.get_value("adb.cleanupRemote", True)
+	push_unchanged = GLOBALS.PREFERRED_CONFIG.get_value("adb.pushUnchangedFiles", push_unchanged)
+	cleanup_remote = GLOBALS.PREFERRED_CONFIG.get_value("adb.cleanupRemote", cleanup_remote)
 
 	shell = Shell()
 	shell.inline_flushing = True
 
 	with shell:
-		result = push(GLOBALS.MOD_STRUCTURE.directory, destination_directory, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote, shell=shell)
+		result = push_directory(GLOBALS.MOD_STRUCTURE.directory, destination_directory, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote, shell=shell)
 		if result != 0:
 			return result
 		for linked_resource in GLOBALS.LINKED_RESOURCE_STORAGE.iterate_resources():
@@ -168,7 +168,12 @@ def push_everything() -> int:
 			remote_path = destination_directory + "/" + linked_resource["output_path"]
 			remote_push_unchanged = linked_resource["push_unchanged"] if "push_unchanged" in linked_resource else push_unchanged
 			remote_cleanup_remote = linked_resource["cleanup_remote"] if "cleanup_remote" in linked_resource else cleanup_remote
-			result = push(project_path, remote_path, push_unchanged=remote_push_unchanged, cleanup_remote=remote_cleanup_remote, shell=shell)
+			if isfile(project_path):
+				result = push_file(project_path, remote_path, push_unchanged=remote_push_unchanged, cleanup_remote=remote_cleanup_remote, shell=shell)
+			elif isdir(project_path):
+				result = push_directory(project_path, remote_path, push_unchanged=remote_push_unchanged, cleanup_remote=remote_cleanup_remote, shell=shell)
+			else:
+				warn(f"* We cannot push {linked_resource['relative_path']} resource because we could not determine its type.")
 			if result != 0:
 				return result
 		if len(shell.interactables) == 0:
@@ -179,16 +184,54 @@ def push_everything() -> int:
 		GLOBALS.OUTPUT_STORAGE.save()
 	return 0
 
-def push(directory: str, destination_directory: str, push_unchanged: bool = True, cleanup_remote: bool = True, shell: Optional[Shell] = None) -> int:
+def push_file(file: str, destination_file: str, push_unchanged: bool = True, cleanup_remote: bool = True, shell: Optional[Shell] = None) -> int:
+	if not push_unchanged and not GLOBALS.OUTPUT_STORAGE.is_path_changed(file):
+		return 0
+	file_basename = basename(file)
+	if shell:
+		progress = Progress(f"Pushing {file_basename}")
+		shell.interactables.append(progress)
+
+	destination_file = destination_file.replace("\\", "/")
+	if not destination_file.startswith("/"):
+		destination_file = "/" + destination_file
+	sources_file = file.replace("\\", "/")
+	if shell and progress:
+		progress.seek(1, f"Pushing {file_basename}")
+		shell.render()
+	try:
+		if cleanup_remote:
+			subprocess.call(GLOBALS.ADB_COMMAND + [
+				"shell", "rm", "-r", destination_file
+			], stderr=DEVNULL, stdout=DEVNULL)
+		result = subprocess.run(GLOBALS.ADB_COMMAND + [
+			"push", sources_file, destination_file
+		], capture_output=True, text=True)
+	except KeyboardInterrupt:
+		Progress.notify(shell, progress, 1, "Pushing aborted.")
+		return 1
+
+	if result.returncode != 0:
+		Progress.notify(shell, progress, 1, f"Failed pushing {file_basename}")
+		cause = result.stdout.splitlines()[-1]
+		if cause and len(cause) > 0:
+			if shell:
+				shell.leave()
+			error(cause)
+	else:
+		Progress.notify(shell, progress, 1, f"Pushed {file_basename}")
+	return result.returncode
+
+def push_directory(directory: str, destination_directory: str, push_unchanged: bool = True, cleanup_remote: bool = True, shell: Optional[Shell] = None) -> int:
 	items = [
 		relpath(path, directory) for path in glob(directory + "/*") \
 			if push_unchanged or GLOBALS.OUTPUT_STORAGE.is_path_changed(path)
 	]
 	if len(items) == 0:
 		return 0
-	directory_name = basename(directory)
+	directory_basename = basename(directory)
 	if shell:
-		progress = Progress(f"Pushing {directory_name}")
+		progress = Progress(f"Pushing {directory_basename}")
 		shell.interactables.append(progress)
 
 	destination_directory = destination_directory.replace("\\", "/")
@@ -225,7 +268,7 @@ def push(directory: str, destination_directory: str, push_unchanged: bool = True
 				error(cause)
 			return result.returncode
 
-	Progress.notify(shell, progress, 1, f"Pushed {directory_name}")
+	Progress.notify(shell, progress, 1, f"Pushed {directory_basename}")
 	return 0
 
 def make_locks(*locks: str) -> int:
