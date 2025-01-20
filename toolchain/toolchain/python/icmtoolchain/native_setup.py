@@ -12,8 +12,8 @@ from urllib.error import URLError
 
 from . import GLOBALS
 from .shell import Progress, Shell, abort, confirm, error, info, link, warn
-from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories, read_properties_stream,
-                    remove_tree)
+from .utils import (AttributeZipFile, RuntimeCodeError, iterate_subdirectories,
+                    read_properties_stream, remove_tree)
 
 ABIS = {
 	"armeabi-v7a": "arm",
@@ -252,10 +252,9 @@ def download_gcc(shell: Optional[Shell] = None, ndk_version: Optional[str] = Non
 def install_distutils_optionally() -> bool:
 	try:
 		try:
-			import distutils # type: ignore
-			distutils.__version__
+			from distutils.core import setup  # type: ignore
 			return True
-		except BaseException:
+		except ImportError:
 			pass
 		pip_output = subprocess.run([
 			"pip3" if platform.system() != "Windows" else "pip",

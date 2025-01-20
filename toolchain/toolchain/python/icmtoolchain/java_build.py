@@ -20,6 +20,8 @@ from .utils import (RuntimeCodeError, copy_directory, copy_file,
 
 BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_directory manifest classpath")
 
+TOOLCHAIN_CLASSPATH = None
+
 def collect_classpath_files(directories: Optional[Collection[str]]) -> List[str]:
 	classpath = list()
 	if not directories:
@@ -29,10 +31,24 @@ def collect_classpath_files(directories: Optional[Collection[str]]) -> List[str]
 		if not isdir(classpath_directory):
 			classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_absolute_path(directory)
 		if not isdir(classpath_directory):
-			warn(f"* Skipped non-existing classpath directory {directory!r}, please make sure that them exist!")
+			warn(f"* Skipped non-existing classpath directory {directory!r}, please make sure that it exist!")
 			continue
 		libraries = get_all_files(classpath_directory, (".jar"))
 		classpath.extend(libraries)
+	global TOOLCHAIN_CLASSPATH
+	if not TOOLCHAIN_CLASSPATH:
+		classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
+		if isdir(classpath_directory):
+			requires_manifest = GLOBALS.MAKE_CONFIG.has_value("manifest")
+			TOOLCHAIN_CLASSPATH = get_all_files(classpath_directory, (".jar"))
+			if requires_manifest:
+				innercore_test = join(classpath_directory, "innercore-test.jar")
+				try:
+					TOOLCHAIN_CLASSPATH.remove(innercore_test)
+				except ValueError:
+					warn("* Failed to exclude 'innercore-test.jar' from classpath for package build, contact developer and tell them they are a arsehole.")
+	if TOOLCHAIN_CLASSPATH:
+		classpath.extend(TOOLCHAIN_CLASSPATH)
 	return classpath
 
 def flatten_classpath_files(targets: Collection[BuildTarget]) -> List[str]:
@@ -549,8 +565,6 @@ def compile_java(tool: str = "gradle") -> int:
 	classpath_directory = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/classpath")
 	if not isdir(classpath_directory):
 		warn("Not found 'toolchain/classpath', in most cases build will be failed, please install it via tasks.")
-	else:
-		classpath_directories.append(classpath_directory)
 	project_classpath_directory = GLOBALS.MAKE_CONFIG.get_path("classpath")
 	if exists(project_classpath_directory):
 		classpath_directories.append(project_classpath_directory)
