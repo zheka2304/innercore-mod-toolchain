@@ -22,10 +22,8 @@ BuildTarget = namedtuple("BuildTarget", "directory relative_directory output_dir
 
 TOOLCHAIN_CLASSPATH = None
 
-def collect_classpath_files(directories: Optional[Collection[str]]) -> List[str]:
+def collect_classpath_files(directories: Collection[str]) -> List[str]:
 	classpath = list()
-	if not directories:
-		return classpath
 	for directory in directories:
 		classpath_directory = GLOBALS.MAKE_CONFIG.get_absolute_path(directory)
 		if not isdir(classpath_directory):
@@ -480,7 +478,7 @@ def get_java_build_targets(directories: Dict[str, BaseConfig]) -> List[BuildTarg
 			except json.JSONDecodeError as exc:
 				raise RuntimeCodeError(2, f"* Malformed java directory {directory!r} manifest, you should fix it: {exc.msg}.")
 
-		classpath = collect_classpath_files(config.get_value("classpath"))
+		classpath = collect_classpath_files(config.get_list("classpath"))
 		target = BuildTarget(directory, relative_directory, output_directory, config, classpath)
 		targets.append(target)
 
