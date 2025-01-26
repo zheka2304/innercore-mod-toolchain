@@ -185,10 +185,13 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		# Also copy includes if necessary.
 		keep_includes = manifest.get_value("keepIncludes", fallback=False)
 		for include_path in manifest.get_list("shared.include"):
-			src_include_path = join(directory, include_path)
 			output_include_path = join(output_directory, include_path)
 			if keep_includes:
-				copy_directory(src_include_path, output_include_path, clear_destination=True)
+				src_include_path = join(directory, include_path)
+				if isdir(src_include_path):
+					copy_directory(src_include_path, output_include_path, clear_destination=True)
+				else:
+					warn(f"* Shared headers folder {include_path!r} does not exist, check your build configuration!")
 			else:
 				remove_tree(output_include_path)
 
