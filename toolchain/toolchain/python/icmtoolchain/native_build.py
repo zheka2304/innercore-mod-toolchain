@@ -235,7 +235,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			configuration = merge_relevant_configurations(configurations, abi)
 			configuration_options = configuration.get_value("options")
 			if configuration_options and len(configuration_options) != 0:
-				info(f"{', '.join(options)} (architecture configuration: {', '.join(configuration_options)})")
+				debug(f"{', '.join(options)} (architecture configuration: {', '.join(configuration_options)})")
 				displayed_configuration = True
 			manifest_abi = BaseConfig()
 			manifest_abi.merge_config(manifest)
@@ -244,7 +244,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		if not options or len(options) == 0:
 			options = ["-std=c++11"]
 		if not displayed_configuration:
-			info(", ".join(options))
+			debug(", ".join(options))
 
 		executable = prepare_compiler_executable(abi)
 		compiler_command = [executable, "-DANDROID_STL=c++_static"]
@@ -287,10 +287,13 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		# Preprocess to compile changed sources.
 		import filecmp
 		object_files = list()
+		object_position = 1
 		recompiled_count = 0
+		total_count = len(source_files)
+
 		for file in source_files:
 			relative_file = relpath(file, directory)
-			debug(f"Preprocessing {relative_file}{' ' * 48}", end="\r")
+			debug(f"Preprocessing {relative_file} ({object_position}/{total_count}){' ' * 48}", end="\r")
 
 			object_file = join(object_directory, relative_file) + ".o"
 			preprocessed_file = join(preprocessed_directory, relative_file)
@@ -302,6 +305,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			result = subprocess.call(compiler_command + [
 				"-E", file, "-o", tmp_preprocessed_file
 			] + includes + options)
+
 			if result == CODE_OK:
 				if not isfile(preprocessed_file) or not isfile(object_file) \
 						or not filecmp.cmp(preprocessed_file, tmp_preprocessed_file):
@@ -311,7 +315,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 					if isfile(object_file):
 						os.remove(object_file)
 
-					debug(f"Compiling {relative_file}{' ' * 48}", end="\r")
+					debug(f"Compiling {relative_file} ({object_position}/{total_count}){' ' * 48}", end="\r")
 					result = max(result, subprocess.call(compiler_command + [
 						"-c", preprocessed_file, "-o", object_file
 					] + options + ([] if "64" in abi else ["-shared"])))
@@ -325,11 +329,12 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 				if isfile(object_file):
 					os.remove(object_file)
 				overall_result = result
+			object_position += 1
 
-		print()
 		if overall_result != CODE_OK:
+			print()
 			return overall_result
-		info(f"Recompiled {recompiled_count}/{len(object_files)} files with result {overall_result}")
+		debug(f"Recompiled {recompiled_count}/{total_count} files with result {overall_result} ({'OK' if overall_result == 0 else 'ERROR'}){' ' * 48}")
 
 		for link in manifest_abi.get_list("linkStatic"):
 			link_path = GLOBALS.MAKE_CONFIG.get_path(join("static_libs", abi, link))
