@@ -140,11 +140,11 @@ def run_d8(target: BuildTarget, modified_pathes: Dict[str, List[str]], classpath
 	ensure_directory(target_d8_directory)
 
 	modified_class_pathes = modified_pathes["classes"]
-	modified_classes = join(target_d8_directory, "modified_classes.txt")
+	modified_classes = join(target_d8_directory, "modified_classes.rsp")
 	with open(modified_classes, "w", encoding="utf-8") as modified:
 		modified.writelines(path + "\n" for path in modified_class_pathes)
 	modified_library_pathes = modified_pathes["libraries"]
-	modified_libraries = join(target_d8_directory, "modified_libraries.txt")
+	modified_libraries = join(target_d8_directory, "modified_libraries.rsp")
 	with open(modified_libraries, "w", encoding="utf-8") as modified:
 		modified.writelines(path + "\n" for path in modified_library_pathes)
 

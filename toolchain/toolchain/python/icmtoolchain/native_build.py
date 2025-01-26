@@ -346,7 +346,10 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		debug("Linking object files")
 		linking_command = list()
 		linking_command += compiler_command
-		linking_command += object_files
+		modified_objects = join(target_directory, "modified_objects.rsp")
+		with open(modified_objects, "w", encoding="utf-8") as modified:
+			modified.writelines(path.replace("\\", "\\\\") + "\n" for path in object_files)
+		linking_command.append("@" + modified_objects)
 		if make and len(make) != 0 and not make.isspace():
 			linking_command.append(make)
 		linking_command.append("-shared")
