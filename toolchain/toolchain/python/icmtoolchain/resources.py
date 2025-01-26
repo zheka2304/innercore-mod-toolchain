@@ -6,8 +6,8 @@ from shutil import make_archive
 from . import GLOBALS
 from .base_config import BaseConfig
 from .make_config import ToolchainConfig
-from .shell import error, warn
-from .utils import (copy_directory, copy_file, ensure_directory, ensure_file,
+from .shell import debug, error, warn
+from .utils import (copy_directory, copy_file, ensure_directory,
                     ensure_file_directory, remove_tree, shortcodes)
 
 VALID_RESOURCE_TYPES = ("resource_directory", "gui", "minecraft_resource_pack", "minecraft_behavior_pack")
@@ -114,7 +114,9 @@ def build_additional_resources() -> int:
 
 		for additional_path in additional_files:
 			relative_path = GLOBALS.MAKE_CONFIG.get_relative_path(additional_path)
-			output_path = f"{additional_dir['targetDir']}/{basename(additional_path)}"
+			output_relative_filename = additional_dir["targetFile"] if "targetFile" in additional_dir else basename(additional_path)
+			output_path = f"{additional_dir['targetDir']}/{output_relative_filename}"
+			debug(f"Referencing {additional_dir['source']!r} to {output_path!r} on remote")
 			GLOBALS.LINKED_RESOURCE_STORAGE.append_resource(relative_path, output_path, push_unchanged=push_unchanged, cleanup_remote=cleanup_remote)
 
 	return overall_result
