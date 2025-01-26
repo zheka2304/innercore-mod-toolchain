@@ -226,11 +226,22 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 	for abi in abis:
 		info(f"* Compiling {library_name!r} for {abi}")
 		manifest_abi = manifest
+		options = manifest_abi.get_value("options")
+		displayed_configuration = False
 		if configurations:
 			configuration = merge_relevant_configurations(configurations, abi)
+			configuration_options = configuration.get_value("options")
+			if configuration_options and len(configuration_options) != 0:
+				info(f"{', '.join(options)} (architecture configuration: {', '.join(configuration_options)})")
+				displayed_configuration = True
 			manifest_abi = BaseConfig()
 			manifest_abi.merge_config(manifest)
 			manifest_abi.merge_config(configuration)
+			options = manifest_abi.get_value("options")
+		if not options or len(options) == 0:
+			options = ["-std=c++11"]
+		if not displayed_configuration:
+			info(", ".join(options))
 
 		executable = prepare_compiler_executable(abi)
 		compiler_command = [executable, "-DANDROID_STL=c++_static"]
@@ -244,7 +255,6 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		for link in links:
 			add_fake_so(executable, abi, link)
 			dependencies.append(f"-l{link}")
-		options = manifest_abi.get_value("options", ["-std=c++11"])
 
 		# Always search for dependencies in current directory.
 		search_directory = abspath(join(directory, ".."))
