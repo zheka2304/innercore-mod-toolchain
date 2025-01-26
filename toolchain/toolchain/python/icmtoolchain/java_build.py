@@ -503,7 +503,7 @@ def build_java_directories(tool: str, directories: Dict[str, BaseConfig], target
 			if tool == "gradle":
 				info(f"* Directory {target.relative_directory!r} is not changed.")
 		else:
-			debug(f"* Running d8 with {target.relative_directory!r}")
+			info(f"* Running d8 with {target.relative_directory!r}")
 			result = run_d8(target, modified_targets[target.relative_directory], target.classpath, target_directory)
 			if result != 0:
 				error(f"Failed to dex {target.relative_directory!r} with result {result}.")

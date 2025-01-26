@@ -433,11 +433,13 @@ def compile_native(abis: Collection[str]) -> int:
 
 def copy_shared_objects(abis: Collection[str]) -> int:
 	shared_objects = GLOBALS.MAKE_CONFIG.get_list("native.sharedObjects")
-	if len(shared_objects) == 0 or not GLOBALS.MAKE_CONFIG.has_value("manifest"):
+	shared_objects_count = len(shared_objects)
+	if shared_objects_count == 0 or not GLOBALS.MAKE_CONFIG.has_value("manifest"):
 		return 0
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("shared_object")
 	order = set()
 
+	debug(f"Including {shared_objects_count} shared objects")
 	overall_result = 0
 	for shared_object in shared_objects:
 		formatted_shared_object = shared_object.format("")
@@ -454,12 +456,13 @@ def copy_shared_objects(abis: Collection[str]) -> int:
 				shared_object_name = basename(shared_object_path)
 				if shared_object_name in order:
 					warn(f"* Found duplicate shared object {formatted_shared_object}, overriding existing one...")
-				output_file = GLOBALS.MOD_STRUCTURE.new_build_target("shared_object", shared_object_name)
+				output_relative_file = join(abi_to_runtime_architecture(abi), shared_object_name)
+				output_file = GLOBALS.MOD_STRUCTURE.new_build_target("shared_object", output_relative_file)
 				copy_file(shared_object_path, output_file)
 				order.add(shared_object_name)
 
 	if len(order) > 0:
-		output_directory = GLOBALS.MOD_STRUCTURE.get_target_directories("shared_object")[0]
+		output_directory = GLOBALS.MOD_STRUCTURE.get_target_output_directory("shared_object")
 		with open(join(output_directory, "order.txt"), "w", encoding="utf-8") as order_file:
 			order_file.write("\n".join(order) + "\n")
 	if overall_result == 0:
