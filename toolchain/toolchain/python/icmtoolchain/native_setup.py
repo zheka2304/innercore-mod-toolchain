@@ -39,7 +39,7 @@ def arch_to_abi(arch: str) -> str:
 	for abi in ABIS:
 		if arch == ABIS[abi]:
 			return abi
-	raise ValueError(f"Unsupported architecture {abi!r}!")
+	raise ValueError(f"Unsupported architecture {arch!r}!")
 
 def ndk_version_to_revision(version: str) -> str:
 	try:

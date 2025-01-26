@@ -8,7 +8,7 @@ from typing import Collection, Dict, List, Optional
 from . import GLOBALS, PROPERTIES
 from .language import get_language_directories
 from .make_config import BaseConfig, ToolchainConfig
-from .native_setup import abi_to_arch, prepare_compiler_executable
+from .native_setup import arch_to_abi, prepare_compiler_executable
 from .shell import abort, debug, error, info, warn
 from .utils import (RuntimeCodeError, copy_directory, copy_file,
                     ensure_directory, ensure_file_directory, get_all_files,
@@ -96,11 +96,12 @@ def is_relevant_configuration(configuration: str, *properties: str) -> bool:
 	rule_match_abi = None
 	for rule in rules:
 		try:
-			arch = abi_to_arch(rule)
+			arch = arch_to_abi(rule)
 			if arch in properties:
 				rule_match_abi = True
 			elif rule_match_abi is None:
 				rule_match_abi = False
+			continue
 		except ValueError:
 			pass
 		if rule == "debug" or rule == "release":
