@@ -1,13 +1,13 @@
-from collections import namedtuple
 import json
 import os
-from os.path import isdir, isfile, join, relpath, basename
+from collections import namedtuple
+from os.path import basename, isdir, isfile, join, relpath
 from typing import Any, Collection, Dict, Final, List, Optional
 
 from . import GLOBALS
 from .shell import warn
-from .utils import ensure_directory, ensure_file, ensure_file_directory, remove_tree
-
+from .utils import (ensure_directory, ensure_file, ensure_file_directory,
+                    remove_tree)
 
 BuildTargetType = namedtuple("BuildTargetType", "directory property")
 
@@ -202,7 +202,7 @@ class LinkedResourceStorage:
 		self.contents.append({
 			"relative_path": relative_path,
 			"output_path": output_path,
-			**properties
+			**{ key: value for key, value in properties.items() if value is not None }
 		})
 
 	def iterate_resources(self):

@@ -173,15 +173,15 @@ def push_everything(push_unchanged: bool = True, cleanup_remote: bool = True) ->
 			elif isdir(project_path):
 				result = push_directory(project_path, remote_path, push_unchanged=remote_push_unchanged, cleanup_remote=remote_cleanup_remote, shell=shell)
 			else:
-				warn(f"* We cannot push {linked_resource['relative_path']} resource because we could not determine its type.")
+				print()
+				abort(f"We cannot push {linked_resource['relative_path']!r} resource because we could not determine its type!")
 			if result != 0:
 				return result
 		if len(shell.interactables) == 0:
 			progress = Progress("Up to date")
 			shell.interactables.append(progress)
 
-	if not push_unchanged:
-		GLOBALS.OUTPUT_STORAGE.save()
+	GLOBALS.OUTPUT_STORAGE.save()
 	return 0
 
 def push_file(file: str, destination_file: str, push_unchanged: bool = True, cleanup_remote: bool = True, shell: Optional[Shell] = None) -> int:
