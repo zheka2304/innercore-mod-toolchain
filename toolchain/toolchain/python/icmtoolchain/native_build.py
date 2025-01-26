@@ -249,7 +249,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 		executable = prepare_compiler_executable(abi)
 		compiler_command = [executable, "-DANDROID_STL=c++_static"]
 		includes = list()
-		for stdincludes_directory in stdincludes:
+		for stdincludes_directory in reversed(list(stdincludes)):
 			includes.append(f"-I{stdincludes_directory}")
 		dependencies = [f"-L{get_fake_so_directory(abi)}", "-landroid", "-lm", "-llog", "-ldl", "-lc"]
 		links = manifest_abi.get_list("link")
