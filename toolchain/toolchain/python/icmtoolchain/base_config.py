@@ -149,6 +149,7 @@ class BaseConfig:
 					if not isinstance(previous_value, list):
 						previous_value = list(previous_value)
 					previous_value.extend(value)
+				continue
 
 			# Any other case, such as old value is config, new is string.
 			self.json[key] = value
