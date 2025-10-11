@@ -235,7 +235,7 @@ def build_native_with_ndk(directory: str, output_directory: str, target_director
 			configuration = merge_relevant_configurations(configurations, abi)
 			configuration_options = configuration.get_value("options")
 			if configuration_options and len(configuration_options) != 0:
-				debug(f"{', '.join(options)} (architecture configuration: {', '.join(configuration_options)})")
+				debug(f"{', '.join(options or ['-std=c++11'])} (architecture configuration: {', '.join(configuration_options)})")
 				displayed_configuration = True
 			manifest_abi = BaseConfig()
 			manifest_abi.merge_config(manifest)
