@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(ARM64) || defined(_M_ARM64) || defined(__aarch64__)
 struct HzModuleRecord;
 using hz_module_handle_t = HzModuleRecord*;
 using HzModuleInitFn = void(*)(void*);
@@ -22,3 +23,4 @@ void hz_module_stack_pop(hz_module_handle_t module);
 bool hz_modules_ensure_all_resolved();
 void hz_modules_init_all();
 void hz_modules_debug_print_all();
+#endif

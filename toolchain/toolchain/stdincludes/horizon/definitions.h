@@ -1,5 +1,8 @@
 #pragma once
 
+// deprecated, use HZ_KEEP_STATIC_VAR instead
+#define API __attribute__((used))
+
 #define HZ_ALWAYS_INLINE __attribute__((always_inline))
 #define HZ_NOINLINE __attribute__((used)) __attribute__((noinline))
 #define HZ_KEEP_STATIC_VAR __attribute__((used))

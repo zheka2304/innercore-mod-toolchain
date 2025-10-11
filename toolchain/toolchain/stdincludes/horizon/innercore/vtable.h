@@ -9,12 +9,12 @@
 
 template <typename R, typename... ARGS>
 R VTABLE_CALL(int index, void* target, ARGS... args) {
-    return (*(R (**) (void*, ARGS...)) (*(char**) target + index * 4))(target, args...);
+    return ((R (*) (void*, ARGS...)) (*(void***) target)[index])(target, args...);
 };
 
 template <typename R, typename... ARGS>
 R VTABLE_CALL_RESULT_PTR(int index, void* result, void* target, ARGS... args) {
-    return (*(R (**) (void*, void*, ARGS...)) (*(char**) target + index * 4))(result, target, args...);
+    return ((R (*) (void*, void*, ARGS...)) (*(void***) target)[index])(result, target, args...);
 };
 
 inline int getVtableOffset(const char* vtableName, const char* functionName) {
