@@ -7,6 +7,9 @@
 
 **Inner Core Mod Toolchain for Horizon** is a toolchain that allows you to efficiently develop and build modifications for mobile Minecraft: Bedrock Edition directly from your PC.
 
+> [!WARNING] Migration Notice
+> We are currently undergoing a global overhaul of this toolchain, so updates and fixes for some features may take longer than usual. We apologize for any inconvenience and ask that you stay tuned for further updates.
+
 ## Requirements
 
 To work correctly, this toolchain requires:
