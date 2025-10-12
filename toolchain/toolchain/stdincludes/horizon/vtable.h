@@ -5,7 +5,7 @@
 #ifndef HORIZON_VTABLE_H
 #define HORIZON_VTABLE_H
 
-#include <string.h>
+#include <string>
 
 namespace VTableManager {
     int __vtable_index(void*, const char*);

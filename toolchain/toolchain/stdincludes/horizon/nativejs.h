@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <stdlib.h>
 #include <functional>
 #include <logger.h>
@@ -5,6 +6,7 @@
 #include <stdarg.h>
 #include <jni.h>
 #include <mod.h>
+#include <string>
 #include <map>
 
 
