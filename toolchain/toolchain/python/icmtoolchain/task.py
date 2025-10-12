@@ -547,6 +547,28 @@ def task_update_toolchain() -> int:
 	return 0
 
 @task(
+	"fetchDeclarations",
+	description="Fetches latest declaration that might be a little more unstable, but includes recently added abilities."
+)
+def task_fetch_declarations() -> int:
+	from urllib.request import urlopen
+	response = urlopen("https://nernar.github.io/declarations/core-engine.d.ts")
+	declaration = response.read().decode("utf-8")
+
+	declaration_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
+	if not exists(declaration_path):
+		os.mkdir(declaration_path)
+	with open(join(declaration_path, "core-engine.d.ts"), "w", encoding="utf-8") as file:
+		file.write(declaration)
+	commit_path = join(declaration_path, ".commit")
+	if isfile(commit_path):
+		open(commit_path, "w")
+
+	info("Installed latest version of core-engine.d.ts declarations.")
+	warn("* To rollback changes, invoke an `Reinstall Components` task.")
+	return 0
+
+@task(
 	"componentIntegrity",
 	description="Installs additional components required for compilation or performs a initial setup."
 )

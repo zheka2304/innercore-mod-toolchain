@@ -593,6 +593,31 @@
 			}
 		},
 		{
+			"label": "Fetch Declarations",
+			"icon": {
+				"id": "book"
+			},
+			"presentation": {
+				"focus": true
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"type": "shell",
+			"command": "./fetch-declarations.sh",
+			"options": {
+				"cwd": "./toolchain/python"
+			},
+			"windows": {
+				"command": ".\\fetch-declarations.bat",
+				"options": {
+					"cwd": ".\\toolchain\\python"
+				}
+			}
+		},
+		{
 			"label": "Reinstall Components",
 			"icon": {
 				"id": "package"
