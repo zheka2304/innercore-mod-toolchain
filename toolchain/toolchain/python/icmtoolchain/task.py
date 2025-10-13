@@ -297,38 +297,18 @@ def task_push_everything() -> int:
 	description="Starts launcher with predefined autostart setting on a connected device using ADB."
 )
 def task_monkey_launcher() -> int:
-	from subprocess import run
+	from subprocess import run, CalledProcessError
 	run(GLOBALS.ADB_COMMAND + [
 		"shell", "input",
 		"keyevent", "KEYCODE_WAKEUP"
 	], stdout=DEVNULL, stderr=DEVNULL)
+
 	try:
-		process = run(GLOBALS.ADB_COMMAND + [
-			"shell", "monkey",
-			"-p", "com.zheka.horizon",
-			"-c", "android.intent.category.LAUNCHER", "1"
-		], check=True, capture_output=True, text=True)
-		successful = False
-		for line in process.stdout.splitlines():
-			if line[:15] == "Events injected":
-				successful = True
-				break
-		if not successful:
-			raise RuntimeError()
-		run(GLOBALS.ADB_COMMAND + [
-			"shell", "touch",
-			"/storage/emulated/0/games/horizon/.flag_auto_launch"
-		], stdout=DEVNULL, stderr=DEVNULL)
-		run(GLOBALS.ADB_COMMAND + [
-			"shell", "touch",
-			"/storage/emulated/0/Android/data/com.zheka.horizon/files/horizon/.flag_auto_launch"
-		], stdout=DEVNULL, stderr=DEVNULL)
-	except BaseException:
 		try:
 			process = run(GLOBALS.ADB_COMMAND + [
-				"shell", "monkey",
-				"-p", "com.zhekasmirnov.innercore",
-				"-c", "android.intent.category.LAUNCHER", "1"
+				"shell", "am", "start",
+				"-n", "com.zheka.horizon/com.zhekasmirnov.horizon.activity.main.StartupWrapperActivity",
+				"--ez", "autoLaunchFlag", "true"
 			], check=True, capture_output=True, text=True)
 			successful = False
 			for line in process.stdout.splitlines():
@@ -336,9 +316,38 @@ def task_monkey_launcher() -> int:
 					successful = True
 					break
 			if not successful:
-				raise RuntimeError()
-		except BaseException:
-			warn("* Horizon is not installed, nothing to launch.")
+				raise ValueError()
+
+		except (CalledProcessError, ValueError):
+			push_to = GLOBALS.PREFERRED_CONFIG.get_value("pushTo", accept_prototype=False)
+			if push_to and ("32" in push_to or ("arm" in push_to.lower() and not "64" in push_to)):
+				process = run(GLOBALS.ADB_COMMAND + [
+					"shell", "am", "start",
+					"-n", "com.zheka.horizon32/com.zhekasmirnov.horizon.activity.main.StartupWrapperActivity",
+					"--ez", "autoLaunchFlag", "true"
+				], check=True, capture_output=True, text=True)
+			else:
+				process = run(GLOBALS.ADB_COMMAND + [
+					"shell", "am", "start",
+					"-n", "com.zheka.horizon64/com.zhekasmirnov.horizon.activity.main.StartupWrapperActivity",
+					"--ez", "autoLaunchFlag", "true"
+				], check=True, capture_output=True, text=True)
+
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "touch",
+			"/sdcard/games/horizon/.flag_auto_launch"
+		], stdout=DEVNULL, stderr=DEVNULL)
+	except CalledProcessError as exc:
+		try:
+			process = run(GLOBALS.ADB_COMMAND + [
+				"shell", "monkey",
+				"-p", "com.zhekasmirnov.innercore",
+				"-c", "android.intent.category.LAUNCHER", "1"
+			], check=True, capture_output=True, text=True)
+		except CalledProcessError:
+			warn("* Horizon is not installed, nothing to launch.", f"(#{exc.returncode})")
+			return exc.returncode
+
 	return 0
 
 @task(
@@ -351,6 +360,14 @@ def task_stop_launcher() -> int:
 		run(GLOBALS.ADB_COMMAND + [
 			"shell", "am",
 			"force-stop", "com.zheka.horizon"
+		], check=True, stdout=DEVNULL, stderr=DEVNULL)
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "am",
+			"force-stop", "com.zheka.horizon64"
+		], check=True, stdout=DEVNULL, stderr=DEVNULL)
+		run(GLOBALS.ADB_COMMAND + [
+			"shell", "am",
+			"force-stop", "com.zheka.horizon32"
 		], check=True, stdout=DEVNULL, stderr=DEVNULL)
 		run(GLOBALS.ADB_COMMAND + [
 			"shell", "am",
