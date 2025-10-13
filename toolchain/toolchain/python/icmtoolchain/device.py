@@ -20,7 +20,7 @@ def get_modpack_push_directory() -> Optional[str]:
 		if directory:
 			if not isinstance(GLOBALS.PREFERRED_CONFIG, MakeConfig) or not GLOBALS.MAKE_CONFIG.current_project:
 				return None
-			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project)) if "/horizon/packs/" in directory \
+			directory = join(directory, "mods", basename(GLOBALS.MAKE_CONFIG.current_project)) if "/packs/" in directory \
 				else join(directory, basename(GLOBALS.MAKE_CONFIG.current_project))
 
 	if not directory:
@@ -30,7 +30,7 @@ def get_modpack_push_directory() -> Optional[str]:
 		GLOBALS.TOOLCHAIN_CONFIG.save()
 		return get_modpack_push_directory()
 
-	if "/horizon/packs/" not in directory and not GLOBALS.PREFERRED_CONFIG.get_value("adb.pushAnyLocation", False):
+	if "/packs/" not in directory and not GLOBALS.PREFERRED_CONFIG.get_value("adb.pushAnyLocation", False):
 		print(
 			f"Push directory {directory} looks suspicious, it does not belong to Horizon packs directory. " +
 			"This action may easily corrupt all content inside, allow it only if you know what are you doing."
@@ -83,7 +83,7 @@ def person_readable_modpack_name(path: str) -> str:
 def get_sdcard_directory() -> Optional[str]:
 	locations = GLOBALS.TOOLCHAIN_CONFIG.get_value("storageLocations")
 	if not locations or len(locations) == 0:
-		locations = ["/storage/emulated/0", "/mnt/sdcard", "/sdcard"]
+		locations = ["/sdcard", "/storage/emulated/0", "/mnt/sdcard"]
 	for location in locations:
 		if test_directory_exist(location):
 			return location
@@ -97,7 +97,18 @@ def get_sdcard_directory() -> Optional[str]:
 def setup_modpack_directory() -> Optional[str]:
 	locations = GLOBALS.TOOLCHAIN_CONFIG.get_value("modpackLocations")
 	if not locations or len(locations) == 0:
-		locations = ["games/horizon/packs", "Android/data/com.zheka.horizon/files/horizon/packs"]
+		locations = [
+			"games/horizon/packs",
+			"Android/media/com.zheka.horizon/packs",
+			"Android/media/com.zheka.horizon64/packs",
+			"Android/media/com.zheka.horizon32/packs",
+			"Android/data/com.zheka.horizon/files/packs",
+			"Android/data/com.zheka.horizon/files/horizon/packs",
+			"Android/data/com.zheka.horizon64/files/packs",
+			"Android/data/com.zheka.horizon64/files/horizon/packs",
+			"Android/data/com.zheka.horizon32/files/packs",
+			"Android/data/com.zheka.horizon32/files/horizon/packs",
+		]
 	sdcard_directory = get_sdcard_directory()
 	if not sdcard_directory:
 		error("We were unable to find storage folder on your device.")
@@ -212,12 +223,12 @@ def push_file(file: str, destination_file: str, push_unchanged: bool = True, cle
 		return 1
 
 	if result.returncode != 0:
-		Progress.notify(shell, progress, 1, f"Failed pushing {file_basename}")
-		cause = result.stdout.splitlines()[-1]
-		if cause and len(cause) > 0:
+		Progress.notify(shell, progress, 1, f"Failed pushing file {file_basename}")
+		cause = (result.stderr.strip() or result.stdout.strip()).splitlines()
+		if cause and len(cause[-1]) > 0:
 			if shell:
 				shell.leave()
-			error(cause)
+			error(cause[-1])
 	else:
 		Progress.notify(shell, progress, 1, f"Pushed {file_basename}")
 	return result.returncode
@@ -260,12 +271,12 @@ def push_directory(directory: str, destination_directory: str, push_unchanged: b
 		percent += 1
 
 		if result.returncode != 0:
-			Progress.notify(shell, progress, 1, f"Failed pushing {filename}")
-			cause = result.stdout.strip().splitlines()[-1]
-			if cause and len(cause) > 0:
+			Progress.notify(shell, progress, 1, f"Failed pushing directory {filename}")
+			cause = (result.stderr.strip() or result.stdout.strip()).splitlines()
+			if cause and len(cause[-1]) > 0:
 				if shell:
 					shell.leave()
-				error(cause)
+				error(cause[-1])
 			return result.returncode
 
 	Progress.notify(shell, progress, 1, f"Pushed {directory_basename}")
