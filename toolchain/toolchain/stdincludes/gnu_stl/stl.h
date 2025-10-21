@@ -154,9 +154,18 @@ template<typename _Tp>
 using stl_weak_ptr = std::__ndk1::weak_ptr<_Tp>; 
 
 // std::function
+template<typename... Args>
+struct stl_function_impl;
+template<typename Signature>
+struct stl_function_impl<_Signature> {
+    using type = std::__ndk1::function<_Signature>;
+};
 template<typename _Res, typename... _ArgTypes>
-using stl_function = std::__ndk1::function<_Res(_ArgTypes...)>; 
-
+struct stl_function_impl<_Res, _ArgTypes...> {
+    using type = std::__ndk1::function<_Res(_ArgTypes...)>;
+};
+template<typename... Args>
+using stl_function = typename stl_function_impl<Args...>::type;
 
 inline std::string to_std(std::__ndk1::string const& s) {
     return std::string(s.data());
@@ -209,8 +218,19 @@ using stl_unique_ptr = std::unique_ptr<_Tp>;
 template<typename _Tp>
 using stl_weak_ptr = std::weak_ptr<_Tp>; 
 
+// std::function
+template<typename... _Args>
+struct stl_function_impl;
+template<typename _Signature>
+struct stl_function_impl<_Signature> {
+    using type = std::function<_Signature>;
+};
 template<typename _Res, typename... _ArgTypes>
-using stl_function = std::function<_Res(_ArgTypes...)>; 
+struct stl_function_impl<_Res, _ArgTypes...> {
+    using type = std::function<_Res(_ArgTypes...)>;
+};
+template<typename... Args>
+using stl_function = typename stl_function_impl<Args...>::type;
 
 #define to_std(X) X
 #define to_stl(X) X
