@@ -129,6 +129,10 @@ using stl_string = std::__ndk1::basic_string<char>;
 template<typename _Tp>
 using stl_vector = std::__ndk1::vector<_Tp>; 
 
+// std::array
+template<typename _T, size_t _N>
+using stl_array = std::__ndk1::array<_T, _N>;
+
 // std::map
 template<typename _Key, typename _Tp>
 using stl_map = std::__ndk1::map<_Key, _Tp>; 
@@ -192,7 +196,11 @@ using stl_string = std::string;
 
 // std::vector
 template<typename _Tp>
-using stl_vector = std::vector<_Tp>; 
+using stl_vector = std::vector<_Tp>;
+
+// std::array
+template<typename _T, size_t _N>
+using stl_array = std::array<_T, _N>;
 
 // std::map
 template<typename _Key, typename _Tp>
