@@ -1,0 +1,25 @@
+{
+	"$schema": "schemas/toolchain.schema.json",
+	"native": {
+		"abis": [
+			"armeabi-v7a",
+			"arm64-v8a"
+		],
+		"link": [
+			"minecraftpe",
+			"innercore",
+			"nativejs"
+		],
+		"ndkVersions": {
+			"armeabi-v7a": "16.1.4479499",
+			"arm64-v8a": "21.4.7075529"
+		}
+	},
+	"debugIncludesExclude": [
+		"toolchain/declarations/android.d.ts"
+	],
+	"projectLocations": [
+		"../"
+	],
+	"workspaceFile": "../toolchain.code-workspace"
+}
