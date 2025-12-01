@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration name="Build Native" default="false" type="CompoundRunConfigurationType">
+    <method v="2"/>
+    <toRun name="Build Native (No push)" type="CompoundRunConfigurationType"/>
+    <toRun name="Push" type="CompoundRunConfigurationType"/>
+  </configuration>
+</component>
