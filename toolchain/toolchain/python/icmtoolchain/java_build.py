@@ -550,7 +550,13 @@ def compile_java(tool: str = "gradle") -> int:
 		return 255
 	from time import time
 	startup_millis = time()
-	target_directory = GLOBALS.MAKE_CONFIG.get_build_path(tool)
+
+	target_directory = GLOBALS.MAKE_CONFIG.get_value(tool + ".build")
+	if target_directory is None:
+		target_directory = GLOBALS.MAKE_CONFIG.get_build_path(tool)
+	else:
+		target_directory = GLOBALS.MAKE_CONFIG.get_path(target_directory)
+
 	ensure_directory(target_directory)
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("java")
 
