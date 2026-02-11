@@ -44,7 +44,7 @@ jobs:
       - name: Fetch curl raw manifest
         run: |
           GITLAB_MANIFEST=$(curl --silent --fail --show-error \
-            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore-test%2Fmanifest.json/raw?ref=master)
+            https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_INNERCORE_PROJECT_ID }}/repository/files/innercore64%2Fmanifest.json/raw?ref=master)
           echo "GITLAB_MANIFEST<<EOF" >> $GITHUB_ENV
           echo "$GITLAB_MANIFEST" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -59,18 +59,18 @@ jobs:
       - name: Download curl pack.zip
         run: |
           curl --silent --fail --show-error --output pack.zip -L -H "Accept:application/octet-stream" \
-            https://gitlab.com/${{ secrets.GITLAB_INNERCORE_PROJECT_PACK }}/-/raw/master/innercore-test/pack.zip
-      - name: Unpack pack.zip *.dex to innercore-test
+            https://gitlab.com/${{ secrets.GITLAB_INNERCORE_PROJECT_PACK }}/-/raw/master/innercore64/pack.zip
+      - name: Unpack pack.zip *.dex to innercore64
         run: |
-          unzip pack.zip -d innercore-test -C java/**/*.dex 2>&1 || :
-      - name: Merge *.dex into innercore-test.apk
-        working-directory: innercore-test
+          unzip pack.zip -d innercore64 -C java/**/*.dex 2>&1 || :
+      - name: Merge *.dex into innercore64.apk
+        working-directory: innercore64
         run: |
           mkdir classes
           mv --backup=numbered -t classes java/**/*.dex
           ls -v classes | cat -n | while read n f; do mv -n "classes/$f" "classes$n.dex"; done
           if test -f classes1.dex; then mv classes1.dex classes.dex; fi
-          zip -0 innercore-test.apk *.dex
+          zip -0 innercore64.apk *.dex
       - uses: actions/setup-java@v3
         with:
           distribution: "temurin"
@@ -97,13 +97,13 @@ jobs:
       - name: Unpack dex2jar.zip to dex2jar
         run: |
           unzip dex2jar.zip -d dex2jar 2>&1 || :
-      - name: Run dex2jar on innercore-test.apk
+      - name: Run dex2jar on innercore64.apk
         run: |
           cd $(ls -d dex2jar/* | head -n 1)
-          ./d2j-dex2jar.sh --force --no-code --output ../../innercore-test/innercore-test.jar ../../innercore-test/innercore-test.apk
-      - name: Run mv innercore-test.jar to develop
+          ./d2j-dex2jar.sh --force --no-code --output ../../innercore64/innercore64.jar ../../innercore64/innercore64.apk
+      - name: Run mv innercore64.jar to develop
         run: |
-          mv innercore-test/innercore-test.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
+          mv innercore64/innercore64.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
           echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_DEVELOP/toolchain/toolchain/classpath/.labcommit
       - name: Configure git
         run: |
