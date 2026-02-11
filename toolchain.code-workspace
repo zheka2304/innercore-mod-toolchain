@@ -1,0 +1,28 @@
+{
+	"folders": [
+		{
+			"path": "toolchain",
+			"name": "Inner Core Mod Toolchain"
+		},
+		{
+			"path": "toolchain/toolchain-sample-mod",
+			"name": "Sample Mod"
+		}
+	],
+	"settings": {
+		"window.title": "${dirty}${activeEditorMedium}${separator}Inner Core Mod Toolchain",
+		"window.titleSeparator": " — ",
+		"search.useParentIgnoreFiles": true,
+		"java.project.explorer.showNonJavaResources": false
+	},
+	"extensions": {
+		"recommendations": [
+			"dbaeumer.vscode-eslint",
+			"ms-vscode.cpptools-extension-pack",
+			"vscjava.vscode-java-pack"
+		],
+		"unwantedRecommendations": [
+			"ms-vscode.vscode-typescript-tslint-plugin"
+		]
+	}
+}

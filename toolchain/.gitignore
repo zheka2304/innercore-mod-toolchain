@@ -1,0 +1,12 @@
+/toolchain/build
+/toolchain/temp
+/toolchain/ndk
+
+output/
+**/tsconfig.json
+*.cache
+.gradle
+
+*.log
+*.icmod
+.*commit

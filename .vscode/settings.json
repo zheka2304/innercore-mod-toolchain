@@ -1,0 +1,31 @@
+{
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"**/*.code-search": true,
+		"toolchain/toolchain/adb": true,
+		"toolchain/toolchain/bin": true,
+		"toolchain/toolchain/build": true,
+		"toolchain/toolchain/declarations": true,
+		"toolchain/toolchain/ndk": true,
+		"toolchain/toolchain/stdincludes": true,
+		"toolchain/toolchain/temp": true
+	},
+	"[python]": {
+		"editor.defaultFormatter": "ms-python.autopep8",
+		"editor.codeActionsOnSave": {
+			"source.fixAll": "explicit",
+			"source.organizeImports": "explicit"
+		}
+	},
+	"python.analysis.typeCheckingMode": "basic",
+	"python.analysis.diagnosticMode": "workspace",
+	"python.analysis.importFormat": "relative",
+	"python.analysis.include": [
+		"toolchain/toolchain/python",
+		"*.py"
+	],
+	"python.analysis.exclude": [
+		"toolchain/toolchain/python/icmtoolchain/colorama"
+	]
+}

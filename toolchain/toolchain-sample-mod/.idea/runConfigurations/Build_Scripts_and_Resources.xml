@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration name="Build Scripts and Resources" default="false" type="CompoundRunConfigurationType">
+    <method v="2"/>
+    <toRun name="Build Scripts and Resources (No push)" type="CompoundRunConfigurationType"/>
+    <toRun name="Push" type="CompoundRunConfigurationType"/>
+  </configuration>
+</component>

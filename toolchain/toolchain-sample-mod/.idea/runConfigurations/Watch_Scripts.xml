@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration name="Watch Scripts" default="false" type="CompoundRunConfigurationType">
+    <method v="2"/>
+    <toRun name="Watch Scripts (No push)" type="CompoundRunConfigurationType"/>
+    <toRun name="Push" type="CompoundRunConfigurationType"/>
+  </configuration>
+</component>
