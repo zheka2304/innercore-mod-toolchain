@@ -756,7 +756,7 @@ declare namespace Block {
 	 * by game itself and manually by developer.
 	 * @param id numeric block ID
 	 * @param state numeric state that will be added for block
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
 	 */
 	function addBlockStateId(id: number, state: EBlockStates | number): void;
 
@@ -770,7 +770,7 @@ declare namespace Block {
 	 * @param id numeric block ID
 	 * @param key named state that will be added for block,
 	 * usually key of {@link EBlockStates}
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
 	 */
 	function addBlockState(id: number, key: string): void;
 
@@ -890,14 +890,16 @@ declare namespace Block {
 	/**
 	 * Function used to determine when block is broken by
 	 * environment (explosions, pistons, etc.).
-	 * @param blockCoords coordinates where the block is destroyed and side from
-	 * where it is destroyed
-	 * @param block information about block that is broken
-	 * @param region BlockSource object
-	 * @param i unknown parameter, supposed to always be zero
 	 */
 	interface PopResourcesFunction {
-		(blockCoords: Vector, block: Tile, region: BlockSource, explosionRadius: number, i: number): void
+		/**
+		 * @param blockCoords coordinates where the block is destroyed and side from
+		 * where it is destroyed
+		 * @param block information about block that is broken (since 3.1.1b127 passes {@link BlockState})
+		 * @param region BlockSource object
+		 * @param i unknown parameter, supposed to always be zero
+		 */
+		(blockCoords: Vector, block: Tile | BlockState, region: BlockSource, explosionRadius: number, i: number): void
 	}
 
 	/**
@@ -919,7 +921,10 @@ declare namespace Block {
 	function registerEntityInsideFunction(id: string | number, func: EntityInsideFunction): boolean;
 
 	interface EntityInsideFunction {
-		(blockCoords: Vector, block: Tile, entity: number): void
+		/**
+		 * @param block event block (since 3.1.1b127 passes {@link BlockState})
+		 */
+		(blockCoords: Vector, block: Tile | BlockState, entity: number): void
 	}
 
 	/**
@@ -941,7 +946,10 @@ declare namespace Block {
 	function registerEntityStepOnFunction(id: string | number, func: EntityStepOnFunction): boolean;
 
 	interface EntityStepOnFunction {
-		(coords: Vector, block: Tile, entity: number): void
+		/**
+		 * @param block event block (since 3.1.1b127 passes {@link BlockState})
+		 */
+		(coords: Vector, block: Tile | BlockState, entity: number): void
 	}
 
 	/**
@@ -964,13 +972,15 @@ declare namespace Block {
 
 	/**
 	 * Function used to check block's neighbours changes.
-	 * @param coords coords vector of the block
-	 * @param block Tile object of the block
-	 * @param changedCoords coords vector of the neighbour block that was changed
-	 * @param region BlockSource object
 	 */
 	interface NeighbourChangeFunction {
-		(coords: Vector, block: Tile, changedCoords: Vector, region: BlockSource): void
+		/**
+		 * @param coords coords vector of the block
+		 * @param block Tile object of the block (since 3.1.1b127 passes {@link BlockState})
+		 * @param changedCoords coords vector of the neighbour block that was changed
+		 * @param region BlockSource object
+		 */
+		(coords: Vector, block: Tile | BlockState, changedCoords: Vector, region: BlockSource): void
 	}
 
 	/**
@@ -1324,9 +1334,9 @@ declare namespace Block {
 		color_source?: ColorSource,
 		/**
 		 * Specifies sounds of the block, one of {@link Block.Sound}.
-		 * @since 2.0.2b25
+		 * @since 2.0.2b25 (from 3.1.0b126 can be custom from resource packs)
 		 */
-		sound?: Sound,
+		sound?: Sound | (string & {}),
 		/**
 		 * Whether or not block may filled by water bucket or
 		 * other custom fillable liquids.
@@ -1347,9 +1357,9 @@ declare namespace Block {
 		 * you can always add your own using {@link BlockState.registerBlockState}.
 		 * Inexistent states are ignored.
 		 * @default ["color"] // this state always has been here
-		 * @since 2.4.0b122-4 arm64
+		 * @since 2.4.0b122-4
 		 */
-		states?: [EBlockStates | number | string][],
+		states?: (number | string)[],
 		/**
 		 * Alternatively catch on fire chance modifier,
 		 * values between 0 and 100, with a higher number
@@ -2062,7 +2072,7 @@ declare class BlockSource {
 	 * it is registered in {@link Block.SpecialType}, e.g. 5 for liquids and 3 by default
 	 * @returns Is requested material available in that bounds,
 	 * preferably for a quick check of block pile.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
 	 */
 	containsMaterial(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, material: number): boolean;
 
@@ -2225,6 +2235,38 @@ declare class BlockSource {
 	 */
 	randomTick(x: number, y: number, z: number): void;
 
+    /**
+     * Plays sound on defined coordsby radius 16 blocks from source,
+	 * if volume bigger than 1.0, radius multiplies to volume.
+     * @param sound resource pack sound name
+     * @param volume default `1.0`
+     * @param pitch default `1.0`
+     * @param playerUids if not set, players in volume multiplied
+	 * radius will be detected automatically
+     * @since 3.1.1b127
+     */
+    playSound(x: number, y: number, z: number, sound: string, volume?: number, pitch?: number, playerUids?: number[]): void;
+
+    /**
+     * Plays sound to entity by radius 16 blocks from source,
+	 * if volume bigger than 1.0, radius multiplies to volume.
+     * @param sound resource pack sound name
+     * @param volume default `1.0`
+     * @param pitch default `1.0`
+     * @param playerUids if not set, players in volume multiplied
+	 * radius will be detected automatically
+     * @since 3.1.1b127
+     */
+    playSoundAtEntity(entityUid: number, sound: string, volume?: number, pitch?: number, playerUids?: number[]): void;
+
+    /**
+     * Method to stop sound by name for defined player list.
+     * @param sound resource pack sound name
+     * @param playerUids if not set, players in volume multiplied
+	 * radius will be detected automatically
+     * @since 3.1.1b127
+     */
+    stopSound(sound: string, playerUids?: number[]): void;
 }
 declare namespace BlockState {
     interface KeyStateScriptable {
@@ -2286,35 +2328,35 @@ declare class BlockState implements Tile {
      *     region.setBlock(coords.x, coords.y, coords.z, block);
      * });
      * ```
-     * @since 2.4.0b122-4 arm64 (until 2.4.0b123-2 arm64 identifiers could be mismatched)
+     * @since 2.4.0b122-4 (until 2.4.0b123-2 identifiers could be mismatched)
      */
     static registerBlockState(key: string, capacity: number): number;
 
     /**
      * @returns Numeric state identifier that can be used for most
      * block operations. Works for both new and vanilla states.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     static getIdByName(key: string): EBlockStates | number;
 
     /**
      * @returns Named state identifier, stable for saving in tiles and
      * other objects in mods. Works for both new and vanilla states.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     static getNameById(state: number): string;
 
     /**
      * @returns List of all state keys, including vanilla ones
      * from {@link EBlockStates}. Order is randomized.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     static getAllStates(): string[];
 
     /**
      * @returns Maximum capacity of state, state takes
      * values from 0 to capacity (exclusive).
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     static getBlockStateCapacity(state: EBlockStates | number): number;
 
@@ -2452,9 +2494,9 @@ declare namespace Callback {
      */
     function invokeCallback(name: string, o1?: any, o2?: any, o3?: any, o4?: any, o5?: any, o6?: any, o7?: any, o8?: any, o9?: any, o10?: any): void;
 
-    type InferCallbackFunction<T extends any[]> = T extends [
+    type InferCallbackFunction<T extends unknown[]> = T extends [
         infer A1, infer A2, infer A3, infer A4, infer A5,
-        infer A6, infer A7, infer A8, infer A9, infer A10, ...any[]
+        infer A6, infer A7, infer A8, infer A9, infer A10, ...unknown[]
     ] ? [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10] : T;
 
     /**
@@ -2585,11 +2627,11 @@ declare namespace Callback {
          * @param coords set of all coordinate values that can be useful to write
          * custom use logics, relative and vectorized one
          * @param item item that was in the player's hand when it touched the block
-         * @param block block that was touched
+         * @param block block that was touched (since 3.1.1b127 passes {@link BlockState})
          * @param isExternal received from external player on server
          * @param playerUid player entity UID
          */
-        (coords: ItemUseCoordinates, item: ItemInstance, block: Tile, isExternal: boolean, playerUid: number): void
+        (coords: ItemUseCoordinates, item: ItemInstance, block: Tile | BlockState, isExternal: boolean, playerUid: number): void
     }
 
     function addCallback(name: "ItemUse", func: LegacyItemUseFunction, priority?: number): void;
@@ -2604,10 +2646,10 @@ declare namespace Callback {
          * @param coords set of all coordinate values that can be useful to write
          * custom use logics
          * @param item item that was in the player's hand when it touched the block
-         * @param block block that was touched
+         * @param block block that was touched (since 3.1.1b127 passes {@link BlockState})
          * @param playerUid player entity UID
          */
-        (coords: ItemUseCoordinates, item: ItemInstance, block: Tile, playerUid: number): void
+        (coords: ItemUseCoordinates, item: ItemInstance, block: Tile | BlockState, playerUid: number): void
     }
 
     function addCallback(name: "ItemUseServer", func: ItemUseFunction, priority?: number): void;
@@ -2732,10 +2774,10 @@ declare namespace Callback {
         /**
          * @param coords coordinates where the block is destroyed and side from
          * where it is destroyed
-         * @param block block that is destroyed
+         * @param block block that is destroyed (since 3.1.1b127 passes {@link BlockState})
          * @param playerUid player entity unique numeric ID
          */
-        (coords: ItemUseCoordinates, block: Tile, playerUid: number): void
+        (coords: ItemUseCoordinates, block: Tile | BlockState, playerUid: number): void
     }
 
     function addCallback(name: "DestroyBlock", func: DestroyBlockFunction, priority?: number): void;
@@ -2749,10 +2791,10 @@ declare namespace Callback {
         /**
          * @param coords coordinates where the block is destroyed and side from
          * where it is destroyed
-         * @param block block that is destroyed
+         * @param block block that is destroyed (since 3.1.1b127 passes {@link BlockState})
          * @param progress current fraction of breaking progress
          */
-        (coords: ItemUseCoordinates, block: Tile, progress: number): void
+        (coords: ItemUseCoordinates, block: Tile | BlockState, progress: number): void
     }
 
     function addCallback(name: "DestroyBlockContinue", func: DestroyBlockContinueFunction, priority?: number): void;
@@ -2764,10 +2806,10 @@ declare namespace Callback {
         /**
          * @param coords coordinates where the block is placed and side from
          * where it is placed
-         * @param block block that is placed
+         * @param block block that is placed (since 3.1.1b127 passes {@link BlockState})
          * @param playerUid player entity unique numeric ID
          */
-        (coords: ItemUseCoordinates, block: Tile, playerUid: number): void
+        (coords: ItemUseCoordinates, block: Tile | BlockState, playerUid: number): void
     }
 
     function addCallback(name: "BuildBlock", func: BuildBlockFunction, priority?: number): void;
@@ -2778,10 +2820,10 @@ declare namespace Callback {
     interface BlockChangedFunction {
         /**
          * @param coords coordinates where block change occurred
-         * @param oldBlock the block that is being replaced
-         * @param newBlock replacement block
+         * @param oldBlock the block that is being replaced (since 3.1.1b127 passes {@link BlockState})
+         * @param newBlock replacement block (since 3.1.1b127 passes {@link BlockState})
          */
-        (coords: Vector, oldBlock: Tile, newBlock: Tile, region: BlockSource): void
+        (coords: Vector, oldBlock: Tile | BlockState, newBlock: Tile | BlockState, region: BlockSource): void
     }
 
     function addCallback(name: "BlockChanged", func: BlockChangedFunction, priority?: number): void;
@@ -2846,11 +2888,11 @@ declare namespace Callback {
     interface PopBlockResourcesFunction {
         /**
          * @param coords coordinates of the block that was broken
-         * @param block information about the block that was broken
+         * @param block information about the block that was broken (since 3.1.1b127 passes {@link BlockState})
          * @param explosionRadius explosion power in case of exploding
          * @param cause cause information, supposed to always be zero
          */
-        (coords: Vector, block: Tile, explosionRadius: number, cause: number, region: BlockSource): void
+        (coords: Vector, block: Tile | BlockState, explosionRadius: number, cause: number, region: BlockSource): void
     }
 
     function addCallback(name: "PopBlockResources", func: PopBlockResourcesFunction, priority?: number): void;
@@ -2875,9 +2917,9 @@ declare namespace Callback {
         /**
          * @param renderer object used to manipulate block rendering process
          * @param coords rendering block coordinates
-         * @param block block information
+         * @param block block information (since 3.1.1b127 passes {@link BlockState})
          */
-        (renderer: BlockRenderer.RenderAPI, coords: Vector, block: Tile): void
+        (renderer: BlockRenderer.RenderAPI, coords: Vector, block: Tile | BlockState): void
     }
 
     function addCallback(name: "CustomBlockTessellation", func: CustomBlockTessellationFunction, priority?: number): void;
@@ -4424,14 +4466,14 @@ declare namespace Dimensions {
          * Constructs a new dimension with specified name and preferred ID.
          * @param name dimension name, can be used to get dimension via 
          * {@link Dimensions.getDimensionByName} call
-         * @param preferredId preferred dimension ID. If ID is already occupied
-         * by some another dimension, constructor will look for the next empty
-         * dimension ID and assign it to the current dimension
+         * @param preferredId preferred dimension ID, can't be smaller than 4;
+         * if ID is already occupied by some another dimension, constructor will
+         * look for the next empty dimension ID and assign it to the current dimension
          */
         constructor(name: string, preferredId: number);
 
         /**
-         * Custom dimension ID.
+         * Custom dimension ID. Can't be smaller than 4.
          */
         id: number;
 
@@ -4448,7 +4490,7 @@ declare namespace Dimensions {
          * (like in the End or Nether).
          * @param hasSkyLight if true, the sky produces light in the dimension
          * @returns Reference to itself to be used in sequential calls.
-         * @default true
+         * @since 3.1.0b126 (existed but not working until it)
          */
         setHasSkyLight(hasSkyLight: boolean): CustomDimension;
 
@@ -4536,6 +4578,76 @@ declare namespace Dimensions {
          * @since 2.0.2b20
          */
         resetFogDistance(): CustomDimension;
+
+        /**
+         * Sets, can liquid evaporate or not.
+         * @param evaporates if true water will evaporate just like nether
+         * @since 3.1.0b126
+         */
+        setEvaporatesLiquids(evaporates: boolean): CustomDimension;
+
+        /**
+         * Sets, has world tick of weather seasons or not. 
+         * @param seasons if true weather will work
+         * @since 3.1.0b126
+         */
+        setWeatherSeasons(seasons: boolean): CustomDimension;
+
+        /**
+         * Sets behavior with interacting between player and bed like a nether or end.
+         * @param explode if true player can't sleep on beds
+         * @since 3.1.0b126
+         */
+        setBedExplodesOnSleep(explode: boolean): CustomDimension;
+
+        /**
+         * Sets visualization of sky like overworld.
+         * @param enabled 
+         * @since 3.1.0b126
+         */
+        setSkyAtmosphereEnabled(enabled: boolean): CustomDimension;
+
+        /**
+         * Sets height of clouds.
+         * @param height height by "y" angle 
+         * @since 3.1.0b126
+         */
+        setCloudHeight(height: number): CustomDimension;
+
+        /**
+         * Overrides time of day by interval [0, 1].
+         * @param interval number between 0 and 1,
+         * e.g. 0.25 represents noon, 0.75 midnight
+         * @since 3.1.0b126
+         */
+        setTimeOfDay(interval: number): CustomDimension;
+
+        /**
+         * Multiplies time for dimension based on world one
+         * (e.g., {@link World.getWorldTime}() * amplifier).
+         * @param amplifier any number
+         * @since 3.1.0b126
+         */
+        setTimeOfDayAmplifier(amplifier: number): CustomDimension;
+
+        /**
+         * Resets custom time of day interval.
+         * @since 3.1.0b126
+         */
+        resetTimeOfDay(): CustomDimension;
+
+        /**
+         * Sets star brightness.
+         * @param interval number between 0 and 1
+         * @since 3.1.0b126
+         */
+        setStarBrightness(interval: number): CustomDimension;
+
+        /**
+         * Resets star brightness.
+         * @since 3.1.0b126
+         */
+        resetStarBrightness(): CustomDimension;
     }
 
     /**
@@ -4587,7 +4699,7 @@ declare namespace Dimensions {
          * Determines whether the generator should generate underground
          * and/or underwater caves as part of its result.
          * Wworks only with the "overworld"1" and "flat" base types.
-         * @param caves generate caves (until 2.4.0b123-2 arm64 inverted)
+         * @param caves generate caves (until 2.4.0b123-2 inverted)
          * @param underwaterCaves generate large caves and canyons
 	     * @since 2.3.1b115
          */
@@ -4919,6 +5031,72 @@ declare namespace Dimensions {
         [number, number] |
         { x: number, y: number } |
         number
+
+    /**
+     * Function to enable or disable stars by nights.
+     * @param dimensionId numeric id of the dimension
+     * @param enabled 
+     */
+    function setShouldRenderStars(dimensionId: number, enabled: boolean): void;
+    
+    /**
+     * Function to enable or disable sun by days.
+     * @param dimensionId numeric id of the dimension
+     * @param enabled 
+     */
+    function setShouldRenderSun(dimensionId: number, enabled: boolean): void;
+
+    /**
+     * Function to enable or disable moon by nights.
+     * @param dimensionId numeric id of the dimension
+     * @param enabled 
+     */
+    function setShouldRenderMoon(dimensionId: number, enabled: boolean): void;
+
+    /**
+     * Function to enable or disable clouds.
+     * @param dimensionId numeric id of the dimension
+     * @param enabled 
+     */
+    function setShouldRenderClouds(dimensionId: number, enabled: boolean): void;
+
+    /**
+     * Function to set, can liquid evaporate or not.
+     * @param dimensionId numeric id of the dimension
+     * @param evaporates if true water will evaporate just like nether
+     */
+    function setEvaporatesLiquids(dimensionId: number, evaporates: boolean): void;
+
+    /**
+     * Function to set, has world tick of weather seasons or not. 
+     * @param dimensionId numeric id of the dimension
+     * @param seasons if true weather will work
+     */
+    function setWeatherSeasons(dimensionId: number, seasons: boolean): void;
+
+    /**
+     * Function specifies whether the sky produces light (like in overworld) or not 
+     * (like in the End or Nether).
+     * @param dimensionId numeric id of the dimension
+     * @param hasSkyLight if true, the sky produces light in the dimension
+     */
+    function setHasSkyLight(dimensionId: number, hasSkyLight: boolean): void;
+
+    /**
+     * Returns number between 0 and 7 (inclusive), which represents chance to spawn
+     * slimes, equipped mobs, etc. (see {@link https://minecraft.wiki/w/Moon})
+     * @param dimensionId numeric id of the dimension
+     * @since 3.1.0b126
+     */
+    function getMoonPhase(dimensionId: number): number;
+
+    /**
+     * Returns floating number in range [0, 1], which represents chance to spawn
+     * slimes, equipped mobs, etc. (see {@link https://minecraft.wiki/w/Moon})
+     * @param dimensionId numeric id of the dimension
+     * @since 3.1.0b126
+     */
+    function getMoonBrightness(dimensionId: number): number;
 }
 /**
  * @since 2.3.1b115
@@ -5314,7 +5492,7 @@ declare namespace Entity {
     /**
      * @returns Start and end physical bounds in that entity will take
      * damage when hit and will also push entities on contact.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     function getAABB(entityUid: number): AxisAlignedBoundingBox;
 
@@ -5409,12 +5587,21 @@ declare namespace Entity {
     function getCustom(entityUid: number): CustomEntity;
 
     /**
-     * @deprecated Use attributes instead.
+     * Represents the age of the entity in ticks; when negative,
+     * the entity is a baby. When 0, the entity becomes an adult.
+     * Also represents alive time, e.g. dropped item and experience
+     * orbs disappears after 6000 ticks.
+     * @since 3.1.1b127 (method existed, but unimplemented before)
      */
     function getAge(entityUid: number): number;
 
     /**
-     * @deprecated Use attributes instead.
+     * Represents the age of the entity in ticks; when negative,
+     * the entity is a baby. When 0, the entity becomes an adult.
+     * Also represents alive time, e.g. dropped item and experience
+     * orbs disappears after 6000 ticks.
+     * @param age in ticks
+     * @since 3.1.1b127 (method existed, but unimplemented before)
      */
     function setAge(entityUid: number, age: number): void;
 
@@ -5589,7 +5776,7 @@ declare namespace Entity {
     /**
      * @returns Whether a entity is in a sleeping state, sleeping is defined
      * as player or villagers being on a bed, as well as foxes napping.
-     * @since 2.4.0b122-4 arm64
+     * @since 2.4.0b122-4
      */
     function isSleeping(entityUid: number): boolean;
 
@@ -5878,7 +6065,7 @@ declare namespace Entity {
      * @returns Object used to manipulate entity's attributes.
      * @since 2.0.3b33
      */
-    function getAttribute(entityUid: number, attribute: Attribute | string): AttributeInstance;
+    function getAttribute(entityUid: number, attribute: Attribute | (string & {})): AttributeInstance;
 
     /**
      * Interface used to modify attribute values.
@@ -5939,7 +6126,7 @@ declare namespace Entity {
      * Object used to build path and move mobs to the required coordinates using
      * specified parameters. All the setters return current {@link Entity.PathNavigation} 
      * instance to be able to produce chained calls.
-     * @since 2.0.3b33
+     * @since 2.0.3b33 (broken in 3.0.0b124, 3.1.0b125)
      */
     interface PathNavigation {
         /**
@@ -6130,7 +6317,7 @@ declare namespace Entity {
      * @param coords2 end search range coordinates
      * @param type entity type ID, `255` by default
      * @param flag white- or blacklist, `true` by default
-     * @since 2.0.4b35
+     * @since 2.0.4b35 (broken in 3.1.0b126, fixed in next version)
      * @remarks
      * Local method, use {@link BlockSource.listEntitiesInAABB} instead.
      */
@@ -6785,6 +6972,16 @@ declare namespace Game {
      * @returns Current level game mode, one of the {@link EGameMode} values.
      */
     function getGameMode(): number;
+
+    /**
+     * @since 3.1.1b127
+     */
+    function getPackVersion(): number;
+    
+    /**
+     * @since 3.1.1b127
+     */
+    function getPackVersionCode(): number;
 
     /**
      * Option types, which can be used to determine option data:
@@ -7591,23 +7788,40 @@ declare namespace IDRegistry {
     const MAX_ID: number;
 
     /**
-     * Generates a new numeric block ID.
-     * @param name string block ID. Used in {@link Block} module functions and 
-     * in some other block-related functions. Inner Core converts it to 
-     * block_<name> as minecraft vanilla block ID to avoid string ID clashes
+     * Generates a new numeric block ID. Used in {@link Block} module functions
+     * and  in some other block-related functions.
+     * @param name string block ID; Inner Core converts it to 
+     * block_\<name\> as minecraft vanilla block ID to avoid string ID clashes
+     * (since 3.1.0b126 support namespaces, should be namespace:snake_case)
      * @returns Numeric block ID.
      */
     function genBlockID(name: string): number;
 
     /**
-     * Generates a new numeric item ID.
-     * @param name string item ID. Used in {@link Item} module functions and 
-     * in some other item-related functions. Inner Core converts it to 
-     * item_<name> as minecraft vanilla item ID to avoid string ID clashes
+     * Generates a new numeric item ID. Used in {@link Item} module functions
+     * and in some other item-related functions.
+     * @param name string item ID; Inner Core converts it to 
+     * item_\<name\> as minecraft vanilla item ID to avoid string ID clashes
+     * (since 3.1.0b126 support namespaces, should be namespace:snake_case)
      * @returns Numeric item ID.
      */
     function genItemID(name: string): number;
 
+    interface Namespace {
+        [key: string]: number
+    }
+
+    interface ItemNamespace extends Namespace { }
+    
+    interface BlockNamespace extends Namespace { }
+
+    /**
+     * Returns identifier namespace, which consist of both
+     * item and block name IDs to numeric conversion.
+     * @since 3.1.0b126
+     */
+    function useNamespace(namespace: string): Namespace;
+ 
     /**
      * Gets known modded item or block string ID by it's numeric ID.
      * @param id numeric item or block ID
@@ -7686,6 +7900,7 @@ declare namespace Item {
      * item.
      * @param id string ID of the item
      * @returns NativeItem instance associated with this item.
+     * @deprecated
      */
     function getItemById(id: string): NativeItem;
 
@@ -7735,6 +7950,14 @@ declare namespace Item {
     }
 
     /**
+     * @since 3.1.1b127
+     */
+    function isFood(id: number | string): boolean;
+    /**
+     * @since 3.1.1b127
+     */
+    function getNutrition(id: number | string): number;
+    /**
      * Creates eatable item using specified parameters.
      * @param nameID string ID of the item. You should register it via 
      * {@link IDRegistry.genItemID} call first
@@ -7747,8 +7970,7 @@ declare namespace Item {
     function createFoodItem(nameID: string, name: string, texture: TextureData, params?: FoodParams): NativeItem;
 
     /**
-     * @deprecated Use {@link Item.createItem} and
-     * {@link Recipes.addFurnaceFuel} instead.
+     * @deprecated Use {@link Item.createItem} and {@link Recipes.addFurnaceFuel} instead.
      * @throws Unsupported usage.
      */
     function createFuelItem(nameID: string, name: string, texture: TextureData, params?: ItemParams): void;
@@ -7791,6 +8013,22 @@ declare namespace Item {
     }
 
     /**
+     * @since 3.1.1b127
+     */
+    function isArmor(id: number | string): boolean;
+    /**
+     * Natural armor points, that also is displayed above hotbar.
+     * @param id numeric item ID
+     * @returns Natural armor half points.
+     * @since 2.4.0b119
+     */
+    function getArmorValue(id: number | string): number;
+    function setArmorDamageable(id: number | string, damageable: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isArmorDamageable(id: number | string): boolean;
+    /**
      * Creates armor item using specified parameters.
      * @param nameID string ID of the item; you should register it via 
      * {@link IDRegistry.genItemID} call first
@@ -7802,6 +8040,10 @@ declare namespace Item {
      */
     function createArmorItem(nameID: string, name: string, texture: TextureData, params: ArmorParams): NativeItem;
 
+    /**
+     * @since 3.1.1b127
+     */
+    function isThrowable(id: number | string): boolean;
     /**
      * Creates throwable item using specified parameters.
      * @param nameID string ID of the item; you should register it via 
@@ -7821,24 +8063,30 @@ declare namespace Item {
     function isNativeItem(id: number): boolean;
 
     /**
-     * @param id numeric item ID
-     * @returns Maximum damage value for the specified item.
+     * @since 3.1.1b127
      */
-    function getMaxDamage(id: number): number;
-
+    function setMaxStack(id: number | string, size: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function setMaxStackSize(id: number | string, size: number): void;
     /**
      * @param id numeric item ID
      * @returns Maximum stack size for the specified item.
      * @deprecated Use same function with data parameter.
      */
     function getMaxStack(id: number): number;
-
     /**
      * @param id numeric item ID
      * @returns Maximum stack size for the specified item.
      * @since 2.2.0b1 pre-alpha
      */
     function getMaxStack(id: number, data: number): number;
+    /**
+     * @returns Maximum stack size for the specified item.
+     * @since 3.1.1b127
+     */
+    function getMaxStackSize(id: number | string, data?: number): number;
 
     /**
      * @param id numeric item ID
@@ -7846,7 +8094,6 @@ declare namespace Item {
      * @returns Current item name.
      */
     function getName(id: number, data: number): string;
-
     /**
      * @param id numeric item ID
      * @param data item data
@@ -7857,12 +8104,9 @@ declare namespace Item {
     function getName(id: number, data: number, encode: any): string;
 
     /**
-     * Natural armor points, that also is displayed above hotbar.
-     * @param id numeric item ID
-     * @returns Natural armor half points.
-     * @since 2.4.0b119
+     * @since 3.1.1b127
      */
-    function getArmorValue(id: number): number;
+    function getDynamicIconOverride(id: number, count: number, data: number, extra: ItemExtraData): void;
 
     /**
      * @param id numeric item ID
@@ -7870,7 +8114,6 @@ declare namespace Item {
      * @since 2.2.1b94 (not worked before)
      */
     function isValid(id: number): boolean;
-
     /**
      * @param id numeric item ID
      * @param data no longer supported, do not use this parameter
@@ -7885,15 +8128,22 @@ declare namespace Item {
      * @param count amount of the item to be added, generally should be 1
      * @param data item data
      */
-    function addToCreative(id: number | string, count: number, data: number, extra?: ItemExtraData): void;
-
+    function addToCreative(id: number | string, count?: number, data?: number, extra?: ItemExtraData): void;
     /**
      * Creates group of creative items.
      * @param name name of group
      * @param displayedName name of group in game
      * @param ids array of items in group
      */
-    function addCreativeGroup(name: string, displayedName: string, ids: number[]): void
+    function addCreativeGroup(name: string, displayedName: string, ids: number[]): void;
+    /**
+     * Adds or creates a creative group with specified item.
+     * @param name name of group
+     * @param displayedName name of group in game
+     * @param id single numeric or string id in group
+     * @since 3.1.1b127
+     */
+    function addToCreativeGroup(name: string, displayedName: string, id: number | string): void;
 
     /**
      * Applies several properties via one method call.
@@ -7909,6 +8159,22 @@ declare namespace Item {
      * {@link EItemCategory} values
      */
     function setCategory(id: number | string, category: number): void;
+    /**
+     * Sets item creative category.
+     * @param id string or numeric item ID
+     * @param category item category, should be one of the 
+     * {@link EItemCategory} values
+     * @since 3.1.1b127
+     */
+    function setCreativeCategory(id: number | string, category: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function getCategory(id: number | string): EItemCategory;
+    /**
+     * @since 3.1.1b127
+     */
+    function getCreativeCategory(id: number | string): EItemCategory;
 
     /**
      * Specifies how the item can be enchanted.
@@ -7919,6 +8185,18 @@ declare namespace Item {
      * value is, the better enchants you get with the same level
      */
     function setEnchantType(id: number | string, enchant: number, value: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function setEnchantibility(id: number | string, type: number, value: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function getEnchantSlot(id: number | string): number;
+    /**
+     * @since 3.1.1b127
+     */
+    function getEnchantValue(id: number | string): number;
 
     /**
      * Specifies what items can be used to repair this item in the anvil.
@@ -7926,6 +8204,27 @@ declare namespace Item {
      * @param items array of numeric item IDs to be used as repair items
      */
     function addRepairItemIds(id: number | string, items: number[]): void;
+    /**
+     * Specifies what items can be used to repair this item in the anvil.
+     * @param id string or numeric item ID
+     * @param items array of numeric item IDs to be used as repair items
+     * @since 3.1.1b127
+     */
+    function addRepairItems(id: number | string, items: (number | string)[]): void;
+    /**
+     * Specifies what items can be used to repair this item in the anvil.
+     * @param id string or numeric item ID
+     * @param repairId string or numeric repair item ID
+     * @since 3.1.1b127
+     */
+    function addRepairItemId(id: number | string, repairId: number | string): void;
+    /**
+     * Specifies what items can be used to repair this item in the anvil.
+     * @param id string or numeric item ID
+     * @param repairId string or numeric repair item ID
+     * @since 3.1.1b127
+     */
+    function addRepairItem(id: number | string, repairId: number | string): void;
 
     /**
      * Specifies how the player should hold the item.
@@ -7934,13 +8233,34 @@ declare namespace Item {
      * item
      */
     function setToolRender(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isToolRender(id: number | string): boolean;
+
+    /**
+     * Specifies how the player should hold the item.
+     * @param id string or numeric item ID
+     * @param enabled if true, player holds the item as a tool, not as a simple
+     * item
+     */
+    function setHandEquipped(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isHandEquipped(id: number | string): boolean;
 
     /**
      * Sets item maximum data value.
      * @param id string or numeric item ID
-     * @param maxdamage maximum data value for the item
+     * @param damage maximum data value for the item
      */
-    function setMaxDamage(id: number | string, maxdamage: number): void;
+    function setMaxDamage(id: number | string, damage: number): void;
+    /**
+     * @param id numeric item ID
+     * @returns Maximum damage value for the specified item.
+     */
+    function getMaxDamage(id: number | string): number;
 
     /**
      * Sets item as glint (like enchanted tools or golden apple).
@@ -7948,6 +8268,10 @@ declare namespace Item {
      * @param enabled if true, the item will be displayed as glint item
      */
     function setGlint(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isGlint(id: number | string, data?: number, extra?: ItemExtraData): void;
 
     /**
      * Allows to click with item on liquid blocks.
@@ -7955,13 +8279,19 @@ declare namespace Item {
      * @param enabled if true, liquid blocks can be selected on click
      */
     function setLiquidClip(id: number | string, enabled: boolean): void;
-
-    function setArmorDamageable(damageable: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isLiquidClip(id: number | string, data?: number): boolean;
 
     /**
-     * @deprecated No longer supported.
+     * @deprecated No longer supported. Probably?
      */
     function setStackedByData(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isStackedByData(id: number | string): boolean;
 
     /**
      * Allows item to be put in offhand slot.
@@ -7969,6 +8299,10 @@ declare namespace Item {
      * @since 2.0.4b35
      */
     function setAllowedInOffhand(id: number | string, allowed: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isAllowedInOffhand(id: number | string): boolean;
 
     /**
      * 
@@ -7977,6 +8311,10 @@ declare namespace Item {
      * @since 2.4.0b119
      */
     function setShouldDespawn(id: number | string, should: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isShouldDespawn(id: number | string): boolean;
 
     /**
      * 
@@ -7985,14 +8323,19 @@ declare namespace Item {
      * @since 2.4.0b119
      */
     function setFireResistant(id: number | string, resistant: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isFireResistant(id: number | string): boolean;
 
     /**
-     * 
-     * @param id 
-     * @param explodable 
      * @since 2.4.0b119
      */
     function setExplodable(id: number | string, explodable: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isExplodable(id: number | string): boolean;
 
     /**
      * Sets additional properties for the item, uses Minecraft mechanisms to
@@ -8009,6 +8352,10 @@ declare namespace Item {
      * values
      */
     function setUseAnimation(id: number | string, animType: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function getUseAnimation(id: number | string): EItemAnimation;
 
     /**
      * Limits maximum use duration. This is useful to create such items as bows.
@@ -8016,6 +8363,28 @@ declare namespace Item {
      * @param duration maximum use duration in ticks
      */
     function setMaxUseDuration(id: number | string, duration: number): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function getMaxUseDuration(id: number | string): number;
+
+    /**
+     * @since 3.1.1b127
+     */
+    function setRequiresIconOverride(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isRequiresIconOverride(id: number | string): boolean;
+
+    /**
+     * @since 3.1.1b127
+     */
+    function setMirroredSprite(id: number | string, enabled: boolean): void;
+    /**
+     * @since 3.1.1b127
+     */
+    function isMirroredSprite(id: number | string): boolean;
 
     /**
      * Same as {@link Item.registerUseFunction}, but supports numeric IDs only.
@@ -8055,7 +8424,7 @@ declare namespace Item {
 
     /**
      * Registers function to perform item name overrides.
-     * Since 2.4.0b122-4 arm64 also supports vanilla items and blocks.
+     * Since 2.4.0b122-4 also supports vanilla items and blocks.
      * @param nameID string or numeric ID of the item
      * @param func function that is called to override item name. Should return 
      * string to be used as new item name
@@ -8114,6 +8483,7 @@ declare namespace Item {
 
     /**
      * Class representing item used to set it's properties.
+     * @deprecated Use {@link Item} methods instead.
      */
     interface NativeItem {
         addRepairItem(id: number): void;
@@ -8179,7 +8549,7 @@ declare namespace Item {
 	/**
 	 * Once upon a time, a new way of registering items, however,
 	 * in current state, either does not work or is undesirable to use.
-     * @deprecated
+     * @deprecated Since 3.1.1b127 warnings user of usage in developer mode.
 	 */
 	interface ItemLegacyPrototype {
         type: "createItem" | "createFoodItem" | "createArmorItem" | "createThrowableItem",
@@ -9278,6 +9648,14 @@ declare namespace Logger {
     function error(tag: string, message: string, error?: java.lang.Throwable): void;
 
     /**
+     * Methot to get stacktrace like string in format `"at script:line, script:line"`
+     * @param limit default `-1`
+     * @param inlined default `false`
+     * @since 3.1.1b127
+     */
+    function captureRhinoStackTrace(limit: number, inlined: boolean): string;
+
+    /**
      * Logs java Throwable with full stack trace to.
      * @param error java Throwable to be logged
      */
@@ -9332,7 +9710,7 @@ declare namespace LowLevelUtils {
 	/**
 	 * @throws Java {@link java.lang.RuntimeException} with specified message.
 	 */
-	function throwException(message: string): void;
+	function throwException(message: string): never;
 	/**
 	 * Dumps AdaptedScript API hieracly to log with debug priority.
 	 */
@@ -10363,1246 +10741,6 @@ declare namespace NBT {
          * Removes all the tags from the compound tags.
          */
         clear(): void;
-    }
-
-    /**
-     * Templates to typofication of resulted {@link CompoundTag.toScriptable},
-     * which is used to determine containment of tags.
-     * Not includes structure `.nbt`, only in-game definitions.
-     * @remarks
-     * Booleans still "bytes", which means it just omitted when
-     * comparing `<obj>.property == false` nor `<obj>.property === false`.
-     */
-    namespace Templates {
-        interface Block extends Scriptable {
-            name: string;
-            states: BlockState[];
-            /**
-             * Database tracking identifier (in 1.16 equals `17825808`).
-             */
-            version: number;
-        }
-
-        interface BlockState extends Scriptable {
-        }
-
-        interface Item<T extends Nullable<ItemTag> = ItemTag> extends Scriptable {
-            Block?: Block;
-            /**
-             * Amount of item in slot.
-             */
-            Count: number;
-            /**
-             * Dealed damage, when it comes to {@link Item.getMaxDamage} item will be broken.
-             * @default 0 // not damaged at all
-             */
-            Damage: number;
-            /**
-             * Typed identifier, such as `"minecraft:stick"`.
-             */
-            Name: string;
-            /**
-             * Indexed slot, required in containers with more than one slots.
-             */
-            Slot?: number;
-            /**
-             * Picked up by entity, denies despawn it naturally.
-             */
-            WasPickedUp: boolean;
-            /**
-             * Additional data, such as nametags, enchantments, etc.
-             */
-            tag?: T;
-        }
-
-        interface ItemWritableBookTagPage extends Scriptable {
-            /**
-             * Screenshot shotted on server (appears in pause menu), specially based on Education Edition.
-             * @default ""
-             */
-            photoname: string;
-            /**
-             * Text placed on page as-is (with new lines `\n`).
-             */
-            text: string;
-        }
-
-        interface ItemTag extends Scriptable {
-            /**
-             * List of applied enchantments in index-numeral sorting.
-             */
-            ench?: ItemTagEnchantment[];
-        }
-
-        interface ItemFilledMapTag extends ItemTag {
-            /**
-             * Whether map should display compasses for players or not.
-             */
-            map_display_players: boolean;
-            /**
-             * Displayed for players map number, starts with `1`.
-             */
-            map_name_index: number;
-            /**
-             * UID to be taken from world NBT.
-             */
-            map_uuid: number;
-        }
-
-        interface ItemWritableBookTag extends ItemTag {
-            /**
-             * Written book author, assigned when signing book.
-             * @default "Author Unknown"
-             */
-            author?: string;
-            /**
-             * Number of written copy, `0` means original.
-             * @default 0
-             */
-            generation?: number;
-            /**
-             * List of created pages in index-numeral sorting.
-             */
-            pages: ItemWritableBookTagPage[];
-            /**
-             * Written book title, assigned when signing book.
-             */
-            title?: string;
-            /**
-             * Linked teacher book, especially for Education Edition.
-             * @default 0
-             */
-            xuid?: string;
-        }
-
-        interface ItemTagEnchantment extends Scriptable {
-            /**
-             * One of {@link EEnchantment} enum values.
-             */
-            id: number;
-            /**
-             * Level of strength, value between `0` and `255` (more buggy up to `32768`).
-             */
-            lvl: number;
-        }
-
-        interface Entity extends Scriptable {
-            /**
-             * Countdown in ticks before entity become adult.
-             */
-            Age?: number;
-            /**
-             * Countdown in ticks before entity start drowning.
-             */
-            Air: number;
-            /**
-             * Helmet, Chestplate, Leggings, Boots. Accessible by index, not marked with `Slot` property.
-             */
-            Armor: Item[];
-            /**
-             * Last attack tick, determines time between attacks.
-             */
-            AttackTime: number;
-            /**
-             * Entity attributes, such as `"minecraft:health"`, `"minecraft:follow_range"`, etc.
-             */
-            Attributes: EntityAttribute[];
-            /**
-             * Entity body yaw rotation in degrees, with offset of {@link Rotation}.
-             */
-            BodyRot: number;
-            /**
-             * Llama or mule equipped chests.
-             */
-            Chested: boolean;
-            Color: number;
-            Color2: number;
-            /**
-             * Entity is dead, which is required to visualize animation of dying.
-             */
-            Dead: boolean;
-            /**
-             * Tick when entity become dead (health <= 0).
-             */
-            DeathTime: number;
-            /**
-             * Last synchronized distance between ground and entity.
-             */
-            FallDistance: number;
-            /**
-             * Fire ticks before burning stopped, alternative of {@link Entity.setFire}.
-             */
-            Fire: number;
-            HasExecuted: false;
-            HomeDimensionId: number;
-            /**
-             * @default [-2147483648, -2147483648, -2147483648] // when not set
-             */
-            HomePos: number[];
-            /**
-             * Last hurt tick, determines entity panic/attack state.
-             */
-            HurtTime: number;
-            /**
-             * Immune to in-game damage types, such as NPCs and Agents.
-             */
-            Invulnerable: boolean;
-            /**
-             * Normally, entity become angry when attacked.
-             */
-            IsAngry: boolean;
-            /**
-             * Entity can move, alternative of {@link Entity.setMobile}.
-             */
-            IsAutonomous: boolean;
-            /**
-             * Entity is not adult, so when {@link Age} reaches `0` it is not baby.
-             */
-            IsBaby: boolean;
-            /**
-             * Entity is eating {@link Mainhand} item, displays particles around.
-             */
-            IsEating: boolean;
-            /**
-             * Entity is using elytra (to glide).
-             */
-            IsGliding: boolean;
-            IsGlobal: boolean;
-            /**
-             * Patrols of pillagers following their leader.
-             */
-            IsIllagerCaptain: boolean;
-            IsOrphaned: boolean;
-            IsOutOfControl: boolean;
-            /**
-             * Entity breeded and prepared to duplicate itself, such as turtles.
-             */
-            IsPregnant: boolean;
-            IsRoaring: boolean;
-            /**
-             * Entity sees dangerous thing around, such as villagers flee.
-             */
-            IsScared: boolean;
-            IsStunned: boolean;
-            /**
-             * Entity is standing on water.
-             */
-            IsSwimming: boolean;
-            /**
-             * Entity is tamed, such as cats or dogs.
-             */
-            IsTamed: boolean;
-            /**
-             * Entity is trusting player (do not panic when it came),
-             * such as foxes childs breeded by someone.
-             */
-            IsTrusting: boolean;
-            /**
-             * Dimension from entity transfered when is going to portal,
-             * last saved state when loaded into dimension.
-             */
-            LastDimensionId: number;
-            /**
-             * Leashed with knot entity (normally, player).
-             * @default -1
-             */
-            LeasherID: number;
-            /**
-             * Required on first death tick, drops loot again if set to `false`.
-             */
-            LootDropped: boolean;
-            /**
-             * @default 0 // when is not breeded
-             */
-            LoveCause: number;
-            /**
-             * Item set by {@link Entity.setCarriedItem}, entities uses it for attack and other AI-related things.
-             */
-            Mainhand: Item;
-            MarkVariant: number;
-            /**
-             * Velocity of physics in-world, vector of moving target.
-             */
-            Motion: number[];
-            /**
-             * Entity is naturally spawned, not breeded or summoned.
-             */
-            NaturalSpawn: boolean;
-            /**
-             * Item set by {@link Entity.setOffhandItem}, in common cases entities ignores it, but players or extra-powered items (Totem of Undying fully restores non-player entities health) are useful.
-             */
-            Offhand: Item;
-            /**
-             * Entity is standing on landing.
-             */
-            OnGround: boolean;
-            /**
-             * Projectile shooter entity UID.
-             * @default -1
-             */
-            OwnerNew: number;
-            /**
-             * Entity can not be despawned.
-             */
-            Persistent: boolean;
-            /**
-             * Ticks before entity can move through portal again.
-             */
-            PortalCooldown: number;
-            /**
-             * XYZ absolute coordinates, alternative of {@link Entity.setPosition}.
-             */
-            Pos: number[];
-            /**
-             * Yaw (horizontal rotation angle) and pitch (vertical rotation angle) respectively in degrees, alternative of {@link Entity.setLookAngle}.
-             */
-            Rotation: number[];
-            /**
-             * When pig or strider is saddled (excludes horses or not?).
-             */
-            Saddled: boolean;
-            /**
-             * When sheep or snow golem is sheared.
-             */
-            Sheared: boolean;
-            ShowBottom: boolean;
-            /**
-             * Entity is sitting, such as players or foxes.
-             */
-            Sitting: boolean;
-            SkinID: number;
-            Strength: number;
-            StrengthMax: number;
-            Surface: number;
-            Tags: string[];
-            /**
-             * Following, attacking or anything else targeted entity.
-             * @default -1
-             */
-            TargetID: number;
-            /**
-             * Tick when entity is born, used to {@link limitedLife} property.
-             */
-            TimeStamp: number;
-            TradeExperience: number;
-            TradeTier: number;
-            /**
-             * Entity UID, which is passed to Inner Core callbacks.
-             */
-            UniqueID: number;
-            Variant: number;
-            boundX: number;
-            boundY: number;
-            boundZ: number;
-            /**
-             * Entity may equip, take or replace containing item from drop.
-             */
-            canPickupItems: boolean;
-            /**
-             * Set of rules applied (starts with `+`) or excluded (starts with `-`)
-             * from entity; it includes properties, tasks, etc.
-             */
-            definitions: string[];
-            hasBoundOrigin: boolean;
-            hasSetCanPickupItems: boolean;
-            /**
-             * Typed entity identifier without tags, such as `"minecraft:cow"`.
-             */
-            identifier: string;
-            /**
-             * Ticks after {@link TimeStamp} when entity become {@link Dead}.
-             */
-            limitedLife: number;
-        }
-
-        interface EntityAttribute extends Scriptable {
-            Base: number;
-            Current: number;
-            DefaultMax: number;
-            DefaultMin: number;
-            Max: number;
-            Min: number;
-            /**
-             * One of {@link Entity.Attribute} or your custom one.
-             */
-            Name: Entity.Attribute | string;
-        }
-
-        interface IBlockEntity extends Scriptable {
-            /**
-             * Typed identifier, such as `"Chest"`, `"Beacon"`, etc.
-             */
-            id: string;
-            /**
-             * Block Entity will be saved without instantiating new one when transporting (via pistons, commands, etc.).
-             */
-            isMovable: boolean;
-            x: number, y: number, z: number;
-        }
-
-        interface IContainerBlockEntity extends IBlockEntity {
-            /**
-             * Contained slots, which is stored in numeral-index sorting starting with zero.
-             * @remarks
-             * Normally, slot information removes when item became "air" (disappears), so please
-             * be careful when calling via `<tag>.Items[<index>]` convention!
-             */
-            Items: Item[];
-        }
-
-        interface ILootableBlockEntity extends IContainerBlockEntity {
-            /**
-             * Exploration map can be pointed here, tract as treasure.
-             * @default false
-             */
-            Findable: boolean;
-            /**
-             * Definition to behavior pack path with extension, such as `"loot_tables/chests/end_city_treasure.json"`.
-             */
-            LootTable?: string;
-            /**
-             * Randomly generated seed to determine containment.
-             */
-            LootTableSeed?: number;
-        }
-
-        /**
-         * **Chest** (Chest / Trapped Chest) with `ID = 0`.
-         */
-        interface ChestBlockEntity extends ILootableBlockEntity {
-            id: "Chest";
-            /**
-             * If there's sometime created connection with double-chest.
-             */
-            pairlead?: boolean;
-            pairx?: number;
-            pairz?: number;
-        }
-
-        interface IFurnaceBlockEntity extends IContainerBlockEntity {
-            /**
-             * Currently burning fuel (appears in slot `1`) total time in ticks (e.g. coal burns in `1600` ticks) before burning completed.
-             * @default 0
-             */
-            BurnDuration: number;
-            /**
-             * Counter to {@link BurnDuration}, when them equals furnace unlit.
-             * @default 0
-             */
-            BurnTime: number;
-            /**
-             * Currently smelting item (appears in slot `0`) progress, result will be presented in slot with index `2`.
-             */
-            CookTime: number;
-            /**
-             * Accumulated experience, it will be dropped when result taken or furnace digged.
-             * @default 0
-             */
-            StoredXPInt: number;
-        }
-
-        /**
-         * **Furnace** with `ID = 1`.
-         */
-        interface FurnaceBlockEntity extends IFurnaceBlockEntity {
-            id: "Furnace";
-        }
-
-        /**
-         * **Hopper** with `ID = 2`.
-         */
-        interface HopperBlockEntity extends IContainerBlockEntity {
-            id: "Hopper";
-            /**
-             * Ticks counter before transfering to watching side or down if hoppers unlocked.
-             * @default 0
-             */
-            TransferCooldown: number;
-        }
-
-        /**
-         * **NetherReactor** (Nether Reactor Core) with `ID = 3`.
-         */
-        interface NetherReactorBlockEntity extends IBlockEntity {
-            id: "NetherReactor";
-            /**
-             * @default false
-             */
-            HasFinished: boolean;
-            /**
-             * @default false
-             */
-            IsInitialized: boolean;
-            /**
-             * @default 0
-             */
-            Progress: number;
-        }
-
-        /**
-         * **Sign** with `ID = 4`.
-         */
-        interface SignBlockEntity extends IBlockEntity {
-            id: "Sign";
-            /**
-             * Written text, delimited with newlines (`\n`, it may be more than 4 lines, but not rendered in-world).
-             */
-            Text: string;
-            /**
-             * No. Owners. Constant.
-             * @default ""
-             */
-            TextOwner: string;
-            /**
-             * Basic text color, {@link EColor.RESET} restores it.
-             */
-            Color?: string;
-        }
-
-        /**
-         * **MobSpawner** (Spawner) with `ID = 5`.
-         */
-        interface MobSpawnerBlockEntity extends IBlockEntity {
-            id: "MobSpawner";
-            /**
-             * Ticks before spawning next entity.
-             */
-            Delay: number;
-            /**
-             * Placeholder animation in spawner height, constant.
-             * @default 1.7999999523162842
-             */
-            DisplayEntityHeight: number;
-            /**
-             * Placeholder animation in spawner size relative to block itself.
-             */
-            DisplayEntityScale: number;
-            /**
-             * Placeholder animation in spawner width, constant.
-             * @default 0.6000000238418579
-             */
-            DisplayEntityWidth: number;
-            /**
-             * Typed entity identifier, such as `"minecraft:enderman"`.
-             * @default ""
-             */
-            EntityIdentifier: string;
-            /**
-             * Maximum containment mobs in {@link SpawnRange}, if here are more
-             * spawner just emitting particles.
-             * @default 6
-             */
-            MaxNearbyEntities: number;
-            /**
-             * Maximum time in ticks between mob spawing.
-             * @default 800
-             */
-            MaxSpawnDelay: number;
-            /**
-             * Minimum time in ticks between mob spawing.
-             * @default 800
-             */
-            MinSpawnDelay: number;
-            /**
-             * Anyone (of players) must be near to spawner, otherwise spawner
-             * hides placeholder animation and stops.
-             * @default 16
-             */
-            RequiredPlayerRange: number;
-            /**
-             * Maximum spawning limit, not everyone may spawned with each other
-             * when place above comes to zero.
-             * @default 4
-             */
-            SpawnCount: number;
-            /**
-             * Ranged AABB box where entities became.
-             * @default 4
-             */
-            SpawnRange: number;
-        }
-
-        /**
-         * **Skull** (Mob Head) with `ID = 6`.
-         */
-        interface SkullBlockEntity extends IBlockEntity {
-            id: "Skull";
-            /**
-             * Whether dragon mouth powered by redstone.
-             * @default 0
-             */
-            MouthMoving: boolean;
-            /**
-             * Cycling time in ticks, between full-cycled move down and up.
-             * @default 0
-             */
-            MouthTickCount: number;
-            /**
-             * Rotation angle in degrees, value between `22.5` and `180` (with in-game step `22.5`).
-             */
-            Rotation: number;
-            /**
-             * `0` means skeleton, `1` wither skeleton, `2` zombie, `3` player, `4` creeper and `5` ender dragon.
-             */
-            SkullType: number;
-        }
-
-        /**
-         * **FlowerPot** (Flower Pot) with `ID = 7`.
-         */
-        interface FlowerPotBlockEntity extends IBlockEntity {
-            id: "FlowerPot";
-            /**
-             * Anything in particular, my cat preferr `"minecraft:brown_mushroom"` (`name` property).
-             */
-            PlantBlock?: Block;
-        }
-
-        /**
-         * **BrewingStand** (Brewing Stand) with `ID = 8`.
-         */
-        interface BrewingStandBlockEntity extends IContainerBlockEntity {
-            id: "BrewingStand";
-            /**
-             * Every potion cooks on same time ticks, counter.
-             * When next ingredient is done, every potion in slots `1`-`3`
-             * obtains tag `"wasJustBrewed" = true`.
-             * @default 0
-             */
-            CookTime: number;
-            /**
-             * Fuel left of {@link FuelTotal} property, when it comes to zero
-             * next charge from slot `4` was used.
-             * @default 0
-             */
-            FuelAmount: number;
-            /**
-             * When fuel was taken from slot changes to it capacity, now availabled
-             * only `"minecraft:blaze_powder"` (`name` property), which sets fuel to `20`.
-             * @default 0
-             */
-            FuelTotal: number;
-        }
-
-        /**
-         * **EnchantTable** (Enchanting Table) with `ID = 9`.
-         */
-        interface EnchantTableBlockEntity extends IBlockEntity {
-            id: "EnchantTable";
-            /**
-             * Rotation angle in radians between `-Math.PI` and `Math.PI`.
-             */
-            rott: number;
-        }
-
-        /**
-         * **DaylightDetector** (Daylight Sensor) with `ID = 10`.
-         */
-        interface DaylightDetectorBlockEntity extends IBlockEntity {
-            id: "DaylightDetector";
-        }        
-
-        /**
-         * **Music** (Note Block) with `ID = 11`.
-         */
-        interface MusicBlockEntity extends IBlockEntity {
-            id: "Music";
-            /**
-             * Number between `0` and `24`, which changes note tone.
-             */
-            note: number;
-        }
-
-        /**
-         * **Comparator** (Redstone Comparator) with `ID = 12`.
-         */
-        interface ComparatorBlockEntity extends IBlockEntity {
-            id: "Comparator";
-            /**
-             * Redstone power, value between `0` and `15`.
-             */
-            OutputSignal: number;
-        }
-
-        /**
-         * **Dispenser** with `ID = 13`.
-         */
-        interface DispenserBlockEntity extends IContainerBlockEntity {
-            id: "Dispenser";
-        }
-
-        /**
-         * **Dropper** with `ID = 14`.
-         */
-        interface DropperBlockEntity extends IContainerBlockEntity {
-            id: "Dropper";
-        }
-
-        /**
-         * **Cauldron** with `ID = 16`.
-         * @remarks
-         * Contains {@link Items}, but it intentionally not used.
-         */
-        interface CauldronBlockEntity extends IContainerBlockEntity {
-            id: "Cauldron";
-            /**
-             * One of {@link EPotionEffect} enum values.
-             * But... Maybe try `<enum value> - 1`?
-             */
-            PotionId: number;
-            /**
-             * Level of strength, value between `0` and `255` (more buggy to `32768`).
-             * @default -1
-             */
-            PotionType: number;
-            /**
-             * Packed RGB color, one of my favorites is `-75715`.
-             */
-            CustomColor?: number;
-        }
-
-        /**
-         * **ItemFrame** (Item Frame) with `ID = 17`.
-         */
-        interface ItemFrameBlockEntity extends IBlockEntity {
-            id: "ItemFrame";
-            /**
-             * Item to be displayed in frame, tag doesn't exist by default.
-             */
-            Item?: Item;
-            /**
-             * Percent value between `0` and `1`; everything just cool when elytra
-             * drops with chance `0.01`.
-             * @default 1
-             */
-            ItemDropChance?: number;
-            /**
-             * Rotation angle in degress between `0` and `315` (with in-game step `45`).
-             * Also changes comparator strength, triggers observers.
-             */
-            ItemRotation?: number;
-        }
-
-        /**
-         * **PistonArm** (Piston) with `ID = 18`.
-         */
-        interface PistonArmBlockEntity extends IBlockEntity {
-            id: "PistonArm";
-            /**
-             * Blocks attached to piston (excluding head) with slime and honey blocks.
-             */
-            AttachedBlocks: Block[];
-            /**
-             * Blocks prevents piston from moving, such as obsidian.
-             */
-            BreakBlocks: Block[];
-            /**
-             * Latest successfully changed state progress, which determine piston movement.
-             */
-            LastProgress: number;
-            /**
-             * Required by redstone state, if nothing blocking way, piston moves.
-             */
-            NewState: number;
-            /**
-             * Percent between `0` and `1` (with in-game step `0.5`), where `1` means activated.
-             */
-            Progress: number;
-            /**
-             * Currently state, `0` means pulled, `1` moving and `2` pushed.
-             */
-            State: number;
-            /**
-             * Whether piston crafted with slime and can transfer blocks back.
-             */
-            Sticky: boolean;
-        }
-
-        /**
-         * **MovingBlock** (Moving Block) with `ID = 19`.
-         */
-        interface MovingBlockEntity extends IBlockEntity {
-            id: "MovingBlock";
-            /**
-             * Block to be rendered as moving, let give a try with a `"minecraft:cake"` (`name` property).
-             */
-            movingBlock: Block;
-            /**
-             * Block to be rendered as moving above {@link movingBlock}, let give a try with a `"minecraft:flowing_lava"` (`name` property).
-             */
-            movingBlockExtra: Block;
-            /**
-             * If block connected with a sticky piston, it will appears here.
-             * @default 0
-             */
-            pistonPosX: number;
-            /**
-             * If block connected with a sticky piston, it will appears here.
-             * @default 1
-             */
-            pistonPosY: number;
-            /**
-             * If block connected with a sticky piston, it will appears here.
-             * @default 0
-             */
-            pistonPosZ: number;
-        }
-
-
-        /**
-         * **Beacon** with `ID = 21`.
-         * @remarks
-         * Primary effect requires just one-level platform, meanwhile secondary
-         * works only when four-level built, otherwise fallbacks to primary.
-         */
-        interface BeaconBlockEntity extends IBlockEntity {
-            id: "Beacon";
-            /**
-             * `0` means none, `1` speed, `2` haste, `3` resistance, `4` jump boost and `5` strength.
-             * @default 0
-             */
-            primary: number;
-            /**
-             * `0` means none, `1` regeneration and `2` boost {@link primary} effect.
-             * @default 0
-             */
-            secondary: number;
-        }
-
-        /**
-         * **EndPortal** (End Portal) with `ID = 22`.
-         */
-        interface EndPortalBlockEntity extends IBlockEntity {
-            id: "EndPortal";
-        }
-
-        /**
-         * **EnderChest** (Ender Chest) with `ID = 23`.
-         */
-        interface EnderChestBlockEntity extends ILootableBlockEntity {
-            id: "EnderChest";
-        }
-
-        /**
-         * **EndGateway** (End Gateway) with `ID = 24`.
-         */
-        interface EndGatewayBlockEntity extends IBlockEntity {
-            id: "EndGateway";
-            /**
-             * Counter, that drops when entity moves through portal.
-             * Used to display purple beacon in portal for few hundred ticks.
-             */
-            Age: number;
-            /**
-             * XYZ coordinates of place portal transfers to.
-             * @default [0, 0, 0] // so, under world
-             */
-            ExitPortal: number[];
-        }
-
-        /**
-         * **ShulkerBox** (Shulker Box) with `ID = 25`.
-         */
-        interface ShulkerBoxBlockEntity extends ILootableBlockEntity {
-            id: "ShulkerBox";
-            /**
-             * One of {@link EBlockSide} enum values.
-             */
-            facing: number;
-        }
-
-        /**
-         * **CommandBlock** (Command Block) with `ID = 26`.
-         */
-        interface CommandBlockEntity extends IBlockEntity {
-            id: "CommandBlock";
-            /**
-             * Command to be executed here, such as `/playanimation \@e[type=!minecraft:player] animation.humanoid.celebrating null 20`.
-             */
-            Command: string;
-            /**
-             * Like nametag, but above command block; hovering text.
-             */
-            CustomName: string;
-            /**
-             * When {@link LPCommandMode} is set to cycled and conditions are done,
-             * first command executes without {@link TickDelay}.
-             */
-            ExecuteOnFirstTick: boolean;
-            /**
-             * `0` means impulse (single activation), `1` chain (activation when pointed to chain command block executed) and `2` cycled (forever execution between delay with condition checking).
-             */
-            LPCommandMode: number;
-            /**
-             * `0` means statement, `1` doesn't care about result.
-             */
-            LPConditionalMode: number;
-            /**
-             * `0` means always active, `1` requires redstone.
-             */
-            LPRedstoneMode: number;
-            /**
-             * When last execution has been performed.
-             */
-            LastExecution: number;
-            /**
-             * Message recorded with last execution, requires {@link TrackOutput} to be set to `true`.
-             */
-            LastOutput: string;
-            /**
-             * Splitted to command parts without first slash (or symbol if slash is not provided), requires {@link TrackOutput} to be set to `true`.
-             */
-            LastOutputParams: string[];
-            SuccessCount: number;
-            /**
-             * Delay in ticks between executions (cycled blocks) or before starting it.
-             */
-            TickDelay: number;
-            /**
-             * Save last execution command results.
-             */
-            TrackOutput: boolean;
-            /**
-             * Database tracking identifier (in 1.16 equals `13`).
-             */
-            Version: number;
-            auto: number;
-            /**
-             * Condition right now is `true`?
-             */
-            conditionMet: boolean;
-            /**
-             * Redstone signal found?
-             */
-            powered: boolean;
-        }
-
-        /**
-         * **Bed** with `ID = 27`.
-         */
-        interface BedBlockEntity extends IBlockEntity {
-            id: "Bed";
-            /**
-             * Index of bed color, where `0` is white; block palettes are same.
-             * @default 0
-             */
-            color: number;
-        }
-
-        interface BannerPatternEntry extends Scriptable {
-            /**
-             * Index of pattern color, where `0` is white; block palettes are same.
-             * @default 0
-             */
-            Color: number;
-            /**
-             * Pattern shortcut name, such as `"gra"`, `"mc"`, etc.
-             */
-            Pattern: string;
-        }
-
-        /**
-         * **Banner** with `ID = 28`.
-         */
-        interface BannerBlockEntity extends IBlockEntity {
-            id: "Banner";
-            /**
-             * Index of banner color, where `0` is white; block palettes are same.
-             * @default 0
-             */
-            Base: number;
-            /**
-             * @default 0
-             */
-            Type: number;
-            /**
-             * Patterns to be applied on {@link Base} color.
-             */
-            Patterns?: BannerPatternEntry[];
-        }
-
-        /**
-         * **StructureBlock** (Structure Block) with `ID = 32`.
-         */
-        interface StructureBlockEntity extends IBlockEntity {
-            id: "StructureBlock";
-            /**
-             * Mode of structure block; `0` means load, `1` data (consumed by pools), `2` save.
-             */
-            data: number;
-            /**
-             * Metadata to be passed when {@link data} is set to data mode.
-             */
-            dataField: string;
-            /**
-             * Load or save NBT data of entities contained in bounds, existing data will be omitted.
-             */
-            ignoreEntities: boolean;
-            /**
-             * Load or save NBT data of players contained in bounds.
-             */
-            includePlayers: boolean;
-            /**
-             * Lower values destructs more random selected blocks.
-             */
-            integrity: number;
-            /**
-             * Powered by redstone signal?
-             */
-            isPowered: boolean;
-            /**
-             * `0` means no mirroring, `1` mirror above x, `2` mirror above y, `3` mirror above z
-             */
-            mirror: number;
-            /**
-             * `0` means save signal power (lit lamps, redstone itself, etc.), `1` forget (unlit sources will be updated when structure is placed).
-             */
-            redstoneSaveMode: number;
-            /**
-             * Blocks will be merged (with structure air as real air) or pasted as-is.
-             */
-            removeBlocks: boolean;
-            /**
-             * `0` means no rotation, `1` 90 degress, `2` 180 degress, `3` 270 degress.
-             */
-            rotation: number;
-            /**
-             * Seed to be passed when configuring {@link integrity}
-             */
-            seed: number;
-            /**
-             * Display bounds of structure in-world, includes vertex frame above.
-             */
-            showBoundingBox: boolean;
-            /**
-             * Vanilla or behavior pack namespaced (first directory determines namespace, subfolders joined with `.`) relative path to structure, try something like `"minecraft:endcity.ship"`.
-             */
-            structureName: string;
-            xStructureOffset: number, yStructureOffset: number, zStructureOffset: number;
-            xStructureSize: number, yStructureSize: number, zStructureSize: number;
-        }
-
-        /**
-         * **Jukebox** with `ID = 33`.
-         */
-        interface JukeboxBlockEntity extends IBlockEntity {
-            id: "JukeboxBlock";
-            /**
-             * Record disc that will be played, what about `"minecraft:music_disc_strad"` (`name` property).
-             */
-            RecordItem?: Item;
-        }
-
-        /**
-         * **ChemistryTable** (Chemistry Equipment) with `ID = 34`.
-         */
-        interface ChemistryTableBlockEntity extends IBlockEntity {
-            id: "ChemistryTable";
-            /**
-             * Brewing item data, that will be transpiled into materials, such as `17`, etc.
-             */
-            itemAux?: number;
-            /**
-             * Brewing item numeric ID, that will be transpiled into materials, such as `583`, etc.
-             */
-            itemId?: number;
-            /**
-             * Brewing item count, that will be transpiled into materials, such as `1`, etc.
-             */
-            itemStack?: number;
-        }
-
-        /**
-         * **Conduit** with `ID = 35`.
-         */
-        interface ConduitBlockEntity extends IBlockEntity {
-            id: "Conduit";
-            /**
-             * Whether conduit constructed or not, underwater monument blocks come out to help.
-             * @default false
-             */
-            Active: boolean;
-            /**
-             * Entity UID to protect players in water nearest, attacks monsters when fully constructed.
-             */
-            Target: number;
-        }
-
-        /**
-         * **JigsawBlock** (Jigsaw Block) with `ID = 36`.
-         */
-        interface JigsawBlockEntity extends IBlockEntity {
-            id: "JigsawBlock";
-            /**
-             * Typed block identifier (includes state support such as `[facing=east]`) to be replaced when jigsaw activated.
-             * @default "minecraft:air"
-             */
-            final_state: string;
-            /**
-             * Connection between jigsaw nodes, as-is.
-             * @default "rollable"
-             */
-            joint: "rollable" | "aligned";
-            /**
-             * Associated structure name, jigsaw identifier, such as `"template:bundle"`.
-             * @default "minecraft:empty"
-             */
-            name: string;
-            /**
-             * Required structure subset to be aligned with, such as, such as `"template:pipe"`.
-             * @default "minecraft:empty"
-             */
-            target: string;
-            /**
-             * Pool in which jigsaws will be connected with each others, such as `"template:bundle/pipe"`.
-             * @default "minecraft:empty"
-             */
-            target_pool: string;
-        }
-
-        /**
-         * **Lectern** with `ID = 37`.
-         */
-        interface LecternBlockEntity extends IBlockEntity {
-            id: "Lectern";
-            /**
-             * Standing book item, tag determines book placement.
-             */
-            book?: Item<ItemWritableBookTag>;
-            /**
-             * If book is placed, observer detects changed block.
-             */
-            hasBook?: boolean;
-            /**
-             * Index of page opened on lectern, redstone comparator obtains power `page / totalPages * 15`.
-             */
-            page?: number;
-            /**
-             * Total pages counted in {@link book}.
-             */
-            totalPages?: number;
-        }
-
-        /**
-         * **BlastFurnace** (Blast Furnace) with `ID = 38`.
-         */
-        interface BlastFurnaceBlockEntity extends IFurnaceBlockEntity {
-            id: "BlastFurnace";
-        }
-
-        /**
-         * **Smoker** with `ID = 39`.
-         */
-        interface SmokerBlockEntity extends IFurnaceBlockEntity {
-            id: "Smoker";
-        }
-
-        /**
-         * **Bell** with `ID = 40`.
-         */
-        interface BellBlockEntity extends IBlockEntity {
-            id: "Bell";
-            /**
-             * There is 2 surface (such as `1`), 4 on side and 1 at top (`255`) locations.
-             */
-            Direction: number;
-            /**
-             * Whether sound is playing.
-             */
-            Ringing: boolean;
-            /**
-             * Ringing counter, determines animation of bell.
-             */
-            Ticks: number;
-        }
-
-        /**
-         * **Campfire** (Campfire / Soul Campfire) with `ID = 41`.
-         */
-        interface CampfireBlockEntity extends IBlockEntity {
-            id: "Campfire";
-            /**
-             * Ticks counter of smelting item.
-             * @default 0
-             */
-            ItemTime1: number;
-            /**
-             * Item that will be smelted on campfire.
-             */
-            Item1?: Item;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.ItemTime1}
-             */
-            ItemTime2: number;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.Item1}
-             */
-            Item2?: Item;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.ItemTime1}
-             */
-            ItemTime3: number;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.Item1}
-             */
-            Item3?: Item;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.ItemTime1}
-             */
-            ItemTime4: number;
-            /**
-             * {@inheritDoc NBT.Templates.CampfireBlockEntity.Item1}
-             */
-            Item4?: Item;
-        }
-
-        /**
-         * **Barrel** with `ID = 42`.
-         */
-        interface BarrelBlockEntity extends ILootableBlockEntity {
-            id: "Barrel";
-        }
-
-        /**
-         * **Beehive** (Beehive / Bee Nest) with `ID = 43`.
-         */
-        interface BeehiveBlockEntity extends IBlockEntity {
-            id: "Beehive";
-            /**
-             * Naturally generated beehives summon bees inside, before player encounters them.
-             * @default false
-             */
-            ShouldSpawnBees: boolean;
-            /**
-             * Bees. Theoretically, any entity may enter and leave onto beehive.
-             */
-            Occupants?: BeehiveBlockEntityOccupant[];
-        }
-
-        interface BeehiveBlockEntityOccupant extends Scriptable {
-            /**
-             * Typed entity identifier with tags, such as `"minecraft:bee<>"`.
-             */
-            ActorIdentifier: string;
-            /**
-             * Entity NBTs; properties, attributes, definitions, etc.
-             */
-            SaveData: Entity;
-            /**
-             * Countdown before entity left beehive in ticks.
-             */
-            TicksLeftToStay: number;
-        }
-        /**
-         * **Lodestone** with `ID = 44`.
-         */
-        interface LodestoneBlockEntity extends IBlockEntity {
-            id: "Lodestone";
-            /**
-             * Compass points to this lodestone.
-             */
-            trackingHandle: boolean;
-        }
     }
 }
 /**
@@ -13132,6 +12270,12 @@ declare namespace Player {
     function getPosition(): Vector;
 
     /**
+     * Returns data about moving player by look angle. One example: if player go forward - x is + 1, if go back - x is - 1, if staying - x is 0. Working even if player riding on any mob.
+     * @since 3.1.1b127
+     */
+    function getMoveInputVector(): Vector
+
+    /**
      * Sets specified coordinates as player's position.
      * @deprecated Client-side only, use {@link Entity.setPosition} instead.
      */
@@ -13502,15 +12646,36 @@ declare namespace Player {
     function getScore(): number;
 
     /**
-     * Sets view zoom, to reset value call {@link Player.resetFov}.
-     * @param fov view zoom, default zoom is about 70
+     * Overrides view zoom, to reset value call {@link Player.resetFov} to
+     * prevent override (you should do it when leaving a world or a little later).
+     * @param fov view zoom, can be any value in range [0, 360),
+     * default zoom is `70`, values smaller means more closer look,
+     * values higher means more further look, when is more than 180
+     * view becomes flipped, which is kinda nice feature
      */
     function setFov(fov: number): void;
 
     /**
-     * Resets view zoom to the default value.
+     * Resets view zoom to the initial value, should always be called
+     * after overriding it.
      */
     function resetFov(): void;
+
+    /**
+     * Overrides view zoom, always call {@link Player.resetViewPerspective} to
+     * prevent override (you should do it when leaving a world or a little later).
+     * @param perspective view perspective, can be first person (`0`),
+     * third person (`1`) or third person front (`2`)
+     * @since 3.1.1b127
+     */
+    function setViewPerspective(perspective: number): void;
+
+    /**
+     * Resets view perspective to the initial value, should always be called
+     * after overriding it.
+     * @since 3.1.1b127
+     */
+    function resetViewPerspective(): void;
 
     /**
      * Sets player's camera to the specified entity.
@@ -16089,7 +15254,7 @@ declare namespace TileEntity {
 		/**
          * Called on server side and returns UI name to open on click.
          */
-        getScreenName?: (player: number, coords: Vector) => Nullable<string>;
+        getScreenName?: (player: number, coords: Callback.ItemUseCoordinates) => Nullable<string>;
 
         /**
          * Called on client side, returns the window to open.
@@ -17235,7 +16400,7 @@ declare namespace UI {
 
 	interface ColorDrawing {
 		type: "background",
-		color?: number,
+		color?: UI.FontColor,
 		mode?: number,
 		colorMode?: number;
 	}
@@ -17468,8 +16633,7 @@ declare namespace UI {
 		debug(canvas: android.graphics.Canvas, scale: number): void;
 	}
 
-	interface UICustomElement extends UIElement {
-		type: "custom",
+	interface UICustomElementProps extends UIElement {
 		custom?: {
 			onSetup?: (element: ICustomElement) => void,
 			onDraw?: (element: ICustomElement, cvs: android.graphics.Canvas, scale: number) => void,
@@ -17480,6 +16644,8 @@ declare namespace UI {
 			onContainerInit?: (element: ICustomElement, container: UiAbstractContainer, elementName: string) => void;
 		};
 	}
+
+    type UICustomElement = UICustomElementProps & { type: "custom" };
 
 	interface ICustomElement extends IElement {
 		getScope(): object;
@@ -17492,12 +16658,13 @@ declare namespace UI {
 		setupInitialBindings(container: UiAbstractContainer, elementName: string): void;
 	}
 
-	interface UIButtonElement extends UIElement {
-		type: "button" | "closeButton" | "close_button",
+	interface UIButtonElementProps extends UIElement {
 		scale?: number,
 		bitmap?: BitmapTypes,
 		bitmap2?: BitmapTypes;
 	}
+
+    type UIButtonElement = UIButtonElementProps & { type: "button" | "closeButton" | "close_button" };
 
 	interface IButtonElement extends IElement {
 		onSetup<T = UIButtonElement>(desc: T): void;
@@ -17518,8 +16685,7 @@ declare namespace UI {
 		right?: boolean;
 	}
 
-	interface UIFrameElement extends UIElement {
-		type: "frame",
+	interface UIFrameElementProps extends UIElement {
 		bitmap?: BitmapTypes,
 		width?: number,
 		height?: number,
@@ -17528,6 +16694,8 @@ declare namespace UI {
 		sides?: FrameTextureSides;
 	}
 
+    type UIFrameElement = UIFrameElementProps & { type: "frame" }
+
 	interface IFrameElement extends IElement {
 		onSetup<T = UIFrameElement>(desc: T): void;
 		onDraw(canvas: android.graphics.Canvas, scale: number): void;
@@ -17535,13 +16703,14 @@ declare namespace UI {
 		onRelease(): void;
 	}
 
-	interface UIImageElement extends UIElement {
-		type: "image",
+	interface UIImageElementProps extends UIElement {
 		width?: number, height?: number,
 		scale?: number,
 		bitmap?: BitmapTypes,
 		overlay?: BitmapTypes;
 	}
+
+    type UIImageElement = UIImageElementProps & { type: "image" }
 
 	interface IImageElement extends IElement {
 		height: number;
@@ -17556,8 +16725,7 @@ declare namespace UI {
 		onRelease(): void;
 	}
 
-	interface UIScaleElement extends UIElement {
-		type: "scale",
+	interface UIScaleElementProps extends UIElement {
 		scale?: number,
 		direction?: number,
 		invert?: boolean,
@@ -17578,6 +16746,8 @@ declare namespace UI {
 		value?: number;
 	}
 
+    type UIScaleElement = UIScaleElementProps & { type: "scale" };
+
 	interface IScaleElement extends IElement {
 		/* static */ readonly DIRECTION_DOWN: number;
 		/* static */ readonly DIRECTION_LEFT: number;
@@ -17589,8 +16759,7 @@ declare namespace UI {
 		onRelease(): void;
 	}
 
-	interface UIScrollElement extends UIElement {
-		type: "scroll",
+	interface UIScrollElementProps extends UIElement {
 		isInt?: boolean,
 		width?: number,
 		length?: number,
@@ -17608,6 +16777,8 @@ declare namespace UI {
 		onNewValue?: (result: number, container: UiAbstractContainer, element: UIScrollElement) => void;
 	}
 
+    type UIScrollElement = UIScrollElementProps & { type: "scroll" }
+
 	interface IScrollElement extends IElement {
 		onSetup<T = UIScrollElement>(desc: T): void;
 		onDraw(canvas: android.graphics.Canvas, scale: number): void;
@@ -17616,8 +16787,7 @@ declare namespace UI {
 		onTouchEvent(event: ITouchEvent): void;
 	}
 
-	interface UISlotElement extends UIElement {
-		type: "slot",
+	interface UISlotElementProps extends UIElement {
 		bitmap?: string,
 		/**
 		 * Since 2.4.0b122o1 can be float, before it was rounded up,
@@ -17655,6 +16825,8 @@ declare namespace UI {
 		isValid?: (id: number, count: number, data: number, container: Container, item: ItemInstance) => boolean;
 	}
 
+    type UISlotElement = UISlotElementProps & { type: "slot" }
+
 	interface ISlotElement extends IElement {
 		background: Texture;
 		curCount: number;
@@ -17681,10 +16853,11 @@ declare namespace UI {
 		onTouchEvent(event: ITouchEvent): void;
 	}
 
-	interface UIInvSlotElement extends Omit<UISlotElement, "type"> {
-		type: "invSlot" | "invslot",
+	interface UIInvSlotElementProps extends UISlotElementProps {
 		index?: number;
 	}
+
+    type UIInvSlotElement = UIInvSlotElementProps & { type: "invSlot" | "invslot" };
 
 	interface IInvSlotElement extends ISlotElement {
 		onSetup<T = UIInvSlotElement>(desc: T): void;
@@ -17693,8 +16866,7 @@ declare namespace UI {
 		setupInitialBindings(container: UiAbstractContainer, elementName: string): void;
 	}
 
-	interface UISwitchElement extends UIElement {
-		type: "switch",
+	interface UISwitchElementProps extends UIElement {
 		bindingObject?: any,
 		bindingProperty?: string,
 		configValue?: Config.ConfigValue,
@@ -17706,6 +16878,8 @@ declare namespace UI {
 		onNewState?: (val: boolean, container: UiAbstractContainer, element: UISwitchElement) => void;
 	}
 
+    type UISwitchElement = UISwitchElementProps & { type: "switch" };
+
 	interface ISwitchElement extends IElement {
 		onSetup<T = UISwitchElement>(desc: T): void;
 		onDraw(canvas: android.graphics.Canvas, scale: number): void;
@@ -17714,8 +16888,7 @@ declare namespace UI {
 		onRelease(): void;
 	}
 
-	interface UITabElement extends UIElement {
-		type: "tab",
+	interface UITabElementProps extends UIElement {
 		selectedColor?: number,
 		deselectedColor?: number,
 		tabIndex?: number,
@@ -17723,14 +16896,15 @@ declare namespace UI {
 		isSelected?: boolean;
 	}
 
+    type UITabElement = UITabElementProps & { type: "tab" };
+
 	interface ITabElement extends IFrameElement {
 		onSetup<T = UITabElement>(desc: T): void;
 		onTouchEvent(event: ITouchEvent): void;
 		onReset(): void;
 	}
 
-	interface UITextElement extends UIElement {
-		type: "text",
+	interface UITextElementProps extends UIElement {
 		font?: FontDescription,
 		multiline?: boolean,
 		format?: boolean,
@@ -17738,17 +16912,20 @@ declare namespace UI {
 		text?: string;
 	}
 
+    type UITextElement = UITextElementProps & { type: "text" };
+
 	interface ITextElement extends IElement {
 		onSetup<T = UITextElement>(desc: T): void;
 		onDraw(canvas: android.graphics.Canvas, scale: number): void;
 		onBindingUpdated<T>(name: string, val: T): void;
 	}
 
-	interface UIFPSTextElement extends Omit<UITextElement, "type"> {
-		type: "fps",
+	interface UIFPSTextElementProps extends UITextElementProps {
 		interpolate?: boolean,
 		period?: number;
 	}
+
+    type UIFPSTextElement = UIFPSTextElementProps & { type: "fps" };
 
 	interface IFPSTextElement extends ITextElement {
 		onSetup<T = UIFPSTextElement>(desc: T): void;
@@ -17774,6 +16951,7 @@ declare namespace UI {
 		| UIFPSTextElement
 		| UIInvSlotElement
 	);
+    
 	interface ElementSet {
 		[key: string]: Elements;
 	}
@@ -17877,6 +17055,12 @@ declare namespace UI {
 		 * @returns Object containing current style of the window.
 		 */
 		getStyle(): Style;
+		/**
+         * @since 3.1.0b126 (availabled for all windows, before it appears
+		 * to be only in {@link TabbedWindow} and {@link StandardWindow})
+		 */
+        getStyleSafe(): Style;
+        
 		/**
 		 * Forces ui drawables of the window to refresh.
 		 * @param onCurrentThread if `true`, the drawables will be refreshed 
@@ -18261,8 +17445,12 @@ declare namespace UI {
 		getDoubleProperty(name: string, fallback: number): number;
 		getStringProperty(name: string, fallback: string): string;
 		getBooleanProperty(name: string, fallback: boolean): boolean;
+		/**
+		 * @since 3.1.0b126
+		 */
+        getColorProperty(valueOrProperty: FontColor, defaultValue?: FontColor): number;
 		setProperty(name: string, value: any): void;
-		static getBitmapByDescription(style: Style, description: string): IBitmapWrap;
+        static getBitmapByDescription(style: Style, description: string): IBitmapWrap;
 	}
 }
 declare namespace UI {
@@ -18448,7 +17636,6 @@ declare namespace UI {
          */
         constructor();
 		getContent(): StandardWindowContent;
-		getStyleSafe(): Style;
 		setContent(content: StandardWindowContent): void;
 	}
 
@@ -18624,10 +17811,6 @@ declare namespace UI {
 		 */
 		setStyle(style: BindingSet): void;
 		getStyle(): Style;
-		/**
-		 * @deprecated Same as {@link getStyle}, meant to override
-		 * fallback default style, but never properly used.
-		 */
 		getStyleSafe(): Style;
 		setCloseOnBackPressed(cobp: boolean): void;
 		onBackPressed(): boolean;
@@ -19090,6 +18273,10 @@ declare namespace UI {
 		 */
 		getStyle(): Style;
 		/**
+         * @since 3.1.0b126
+		 */
+        getStyleSafe(): Style;
+		/**
 		 * Overrides style properties of the current style by the values
 		 * specified in the style parameter.
 		 * @param style js object where keys represent binding names and values
@@ -19317,6 +18504,10 @@ declare namespace UI {
 		 * @returns Object containing current style of the window.
 		 */
 		getStyle(): Style;
+		/**
+         * @since 3.1.0b126
+		 */
+        getStyleSafe(): Style;
 		setBlockingBackground(bb: boolean): void;
 		/**
 		 * Forces ui elements of the window to refresh.
@@ -19354,6 +18545,17 @@ declare namespace UI {
 	};
 
 	/**
+	 * @deprecated Alias of {@link BindingSet}, please use it instead.
+	 */
+	type BindingsSet = BindingSet;
+
+    /**
+     * Hex color like `#ffffff`or color names like a `red`, `pink` and another or `[r, g, b, a?]` array. 
+     * @since 3.1.0b126
+     */
+    type FontColor = string | [r: number, g: number, b: number, a?: number] | number;
+	
+    /**
 	 * Object containing font parameters. If no color, size and shadow are
 	 * specified, default values are ignored and white font with text size 20,
 	 * white color and 0.45 shadow is created.
@@ -19364,7 +18566,7 @@ declare namespace UI {
 		 * {@link android.graphics.Color}).
 		 * @default 0x000 // black
 		 */
-		color?: number,
+		color?: FontColor,
 		/**
 		 * Font size.
 		 * @default 20
@@ -19428,7 +18630,7 @@ declare namespace UI {
 		 */
 		static readonly ALIGN_CENTER_HORIZONTAL: number;
 		alignment: number;
-		color: number;
+		color: FontColor;
 		isBold: boolean;
 		isCursive: boolean;
 		isUnderlined: boolean;
@@ -19441,7 +18643,7 @@ declare namespace UI {
 		 * @param size font size
 		 * @param shadow shadow offset
 		 */
-		constructor(color: number, size: number, shadow: number);
+		constructor(color: FontColor, size: number, shadow: number);
 		/**
 		 * Constructs new instance of the font with specified parameters.
 		 * @param params parameters of the font
@@ -19515,12 +18717,31 @@ declare namespace UI {
 	 * a replacement in the presented Inner Core API.
 	 */
     function getContext(): android.app.Activity;
+
+    /**
+     * Plays client sound designed for interfaces, can be stopped
+	 * as ordinal client sound, will be played even in menu.
+     * @param sound resource pack sound name
+     * @param volume default `1.0`
+     * @param pitch default `1.0`
+     * @since 3.1.1b127
+     */
+    function playSound(sound: string, volume?: number, pitch?: number): void;
+
+    /**
+     * Method to unwrap complex color variants into number.
+     * @param value hex-string, rgba array or names of color in a string format.
+     * @param defaultValue returns if result is wrong, even if it fails,
+	 * transparent (`0`) is returned
+     * @since 3.1.0b126
+     */
+    function parseColor(value: FontColor, defaultValue?: FontColor): number;
 }
 /**
- * Module used to create and manage Updatables. Updatables provide the proper
- * way to manage objects that update their state every tick. Updatables may not 
- * be notified every tick, if there are too many, to avoid user interface 
- * freezes.
+ * Legacy module used to create and manage updatables.
+ * Updatables provide the proper way to manage objects that update their
+ * state every tick. Updatables may not  be notified every tick, if there are
+ * too many, to avoid user interface freezes.
  */
 declare namespace Updatable {
     /**
@@ -19571,25 +18792,173 @@ declare namespace Updatable {
 }
 
 /**
- * Updatable is an object that is notified every tick via it's 
- * {@link Updatable.update} method call.
+ * Common interface for all updatables, includes common function.
+ * @since 3.1.1b127
  */
-interface Updatable extends Scriptable {
+interface IUpdatableCommon {
+    update(...args: unknown[]): void;
+}
+
+/**
+ * Updatables provide the proper way to manage objects that update their
+ * state every tick. Updatables may not be notified every tick, if there are
+ * too many, to avoid user interface freezes.
+ * @since 3.1.1b127
+ */
+interface IUpdatable extends IUpdatableCommon {
     /**
-     * Called every tick.
+     * Passed only when instance is created with updatable overload.
+     * @since 3.1.1b127
      */
-    update: () => void;
+    _handle?: UpdatableHandle;
+    /**
+     * Called every tick to execute pending updates.
+     * @param deltaTicks delta time from latest schedule call
+     */
+    update(deltaTicks: number): void;
+}
+
+/**
+ * Updatables provide the proper way to manage objects that update their
+ * state every tick. Updatables may not be notified every tick, if there are
+ * too many, to avoid user interface freezes. Legacy variant of {@link IUpdatable}.
+ */
+interface Updatable extends IUpdatableCommon {
+    /**
+     * By default, recurring schedule is set to 1 and performs indefinitely.
+     * @since 3.1.1b127
+     */
+    _handle?: UpdatableHandle;
     /**
      * Once `true`, the object will be removed from updatables list and will no
      * longer receive update calls.
      */
     remove?: boolean;
+    /**
+     * Determines can updatable be updated by calling update, useful when
+     * is needed to temporary freeze ticking logic.
+     */
+    noupdate?: boolean;
+    /**
+     * Called every tick to execute pending updates.
+     */
+    update(): void;
 }
 
 /**
  * @deprecated Use {@link Updatable} instead.
  */
 declare const UpdatableAPI: typeof Updatable;
+
+/**
+ * Experimental module used to create and manage scoped updatables.
+ * Updatables provide the proper way to manage objects that update their
+ * state every tick. Updatables may not  be notified every tick, if there are
+ * too many, to avoid user interface freezes.
+ * @since 3.1.1b127
+ */
+declare namespace UpdatableScheduler {
+    function createNewScope(name: string): UpdatableSchedulerScope;
+    function getMainServerScope(): UpdatableSchedulerScope;
+    function getMainClientScope(): UpdatableSchedulerScope;
+    /**
+     * Creates updatable of given object on server, which will update every tick.
+     */
+    function createOnServer(updatable: IUpdatable): UpdatableHandle;
+    /**
+     * Provides a way to directly create server ticking function without linking to
+     * any object. See {@link Callback} if you want to call method every tick instead.
+     */
+    function createOnServer(func: () => void, thisObj?: Scriptable): UpdatableHandle;
+    /**
+     * Creates updatable of given object on client, which will update every local tick.
+     */
+    function createOnClient(updatable: IUpdatable): UpdatableHandle;
+    /**
+     * Provides a way to directly create server ticking function without linking to
+     * any object. See {@link Callback} if you want to call method every tick instead.
+     */
+    function createOnClient(func: () => void, thisObj?: Scriptable): UpdatableHandle;
+    function destroyRawHandle(handle: number): boolean;
+    function getByRawHandle(): IUpdatable;
+    function getScopeByRawHandle(): UpdatableSchedulerScope;
+    /**
+     * @param tickAt 
+     * @param tickUntil default `-1`
+     */
+    function setRecurringScheduleByRawHandle(handle: number, tickAt: number, tickUntil: number): void;
+    /**
+     * @param tickAt 
+     * @param tickUntil default `-1`
+     */
+    function scheduleByRawHandle(handle: number, tickAt: number, tickUntil: number): void;
+    function isHandleAlive(handle: number): boolean;
+}
+
+/**
+ * Allows to create scoped updatables, which should be updated manually by developer,
+ * e.g. when specific conditions met.
+ * @since 3.1.1b127
+ */
+declare class UpdatableSchedulerScope {
+    public setCurrentTick(tickNo: number): void;
+    /**
+     * Set to `0` when scope is created, increases every tick by `1` with {@link executeTickForScope}.
+     */
+    public getCurrentTick(): number;
+    public createRawHandle(func: () => void, object?: Scriptable): number;
+    /**
+     * Provides a way to directly create scoped ticking function without linking to
+     * any object, which will update when {@link executeTickForScope} is called by developer (excluding
+     * {@link UpdatableScheduler.getMainServerScope} and {@link UpdatableScheduler.getMainClientScope}
+     * scopes where updates called automatically).
+     */
+    public create(func: () => void, thisObj?: Scriptable): UpdatableHandle;
+    /**
+     * Creates updatable of given object in scope, which will update when
+     * {@link executeTickForScope} is called by developer (excluding
+     * {@link UpdatableScheduler.getMainServerScope} and {@link UpdatableScheduler.getMainClientScope}
+     * scopes where updates called automatically).
+     */
+    public create(updatable: IUpdatable): UpdatableHandle;
+    public clearAll(): void;
+    /**
+     * @param timeLimitUs default `-1`
+     */
+    public executeTickForScope(tickNo: number, timeLimitUs?: number): void;
+}
+
+/**
+ * @since 3.1.1b127
+ */
+declare class UpdatableHandle {
+    public constructor(handle: number);
+    /**
+     * Unique updatable handle identifier, cannot be reused between sessions.
+     */
+    public getHandle(): number;
+    public isAlive(): boolean;
+    /**
+     * By default, recurring schedule is set to 1 and performs indefinitely.
+     * @param tickIn minimum ticks after which update is executed
+     * @param tickUntil maximum ticks after which update is executed, determined
+     * randomly from minimum to maximum, if not set, always uses minimum, default `-1`
+     */
+    public schedule(tickIn: number, tickUntil?: number): this;
+    /**
+     * @param tickIn minimum ticks after which update is executed
+     * @param tickUntil maximum ticks after which update is executed, determined
+     * randomly from minimum to maximum, if not set, always uses minimum, default `-1`
+     */
+    public setRecurringSchedule(tickIn: number, tickUntil?: number): this;
+    /**
+     * Returns object that is being hold by this handle, can be both, script object in
+     * which updatable is located (or `thisObj`) and java interface with single method.
+     */
+    public getObject(): IUpdatable;
+    public getScope(): UpdatableSchedulerScope;
+    public destroy(): boolean;
+}
 /**
  * Numeric IDs of vanilla blocks in the inventory.
  */
@@ -21508,20 +20877,27 @@ declare namespace World {
     function canSeeSky(x: number, y: number, z: number): boolean;
 
     /**
-     * Plays standart Minecraft sound on the specified coordinates.
-     * @param name sound name
+     * Plays client sound on the specified coordinates.
+     * @param sound resource pack sound name
      * @param volume sound volume from 0 to 1
      * @param pitch sound pitch, from 0 to 1, 0.5 is default value
      */
-    function playSound(x: number, y: number, z: number, name: string, volume: number, pitch?: number): void;
+    function playSound(x: number, y: number, z: number, sound: string, volume: number, pitch?: number): void;
 
     /**
-     * Plays standart Minecraft sound from the specified entity.
-     * @param name sound name
+     * Plays client sound from the specified entity.
+     * @param sound resource pack sound name
      * @param volume sound volume from 0 to 1
      * @param pitch sound pitch, from 0 to 1, 0.5 is default value
      */
-    function playSoundAtEntity(entity: number, name: string, volume: number, pitch?: number): void;
+    function playSoundAtEntity(entityUid: number, sound: string, volume: number, pitch?: number): void;
+
+    /**
+     * Method to stop sound by name.
+     * @param sound resource pack sound name
+     * @since 3.1.1b127
+     */
+    function stopSound(sound: string): void;
 
     /**
      * @returns Loaded world directory full path.
@@ -22436,16 +21812,16 @@ declare function __debug_typecheck__(obj: any): string;
 declare function runCustomSource(name: string, scope?: object): void;
 
 /**
- * Object containing custom block string IDs  as keys and their numeric
+ * Object containing custom block string IDs as keys and their numeric
  * IDs as values.
  */
-declare const BlockID: { [key: string]: number };
+declare const BlockID: IDRegistry.BlockNamespace;
 
 /**
  * Object containing custom item string IDs as keys and their numeric
  * IDs as values.
  */
-declare const ItemID: { [key: string]: number };
+declare const ItemID: IDRegistry.ItemNamespace;
 
 /**
  * Module containing {@link ItemID} and {@link BlockID} values.
@@ -22456,13 +21832,13 @@ declare namespace IDData {
 	 * Object containing custom item string IDs as keys and their numeric
 	 * IDs as values.
 	 */
-	const item: { [key: string]: number };
+	const item: IDRegistry.ItemNamespace;
 
 	/**
 	 * Object containing custom block string IDs as keys and their numeric
 	 * IDs as values.
 	 */
-	const block: { [key: string]: number };
+	const block: IDRegistry.BlockNamespace;
 }
 
 /**
@@ -22638,6 +22014,100 @@ declare type ArmorType = "helmet" | "chestplate" | "leggings" | "boots";
  * currently there are only default armor models.
  */
 declare type DefaultRenderTemplate = ArmorType;
+
+/**
+ * @since 3.1.0b126
+ */
+declare function injectBindingsIntoScope(moduleName: string, obj: object, allowOverrides: boolean): void;
+/**
+ * @since 3.1.0b126
+ */
+declare function injectModuleIntoScope(moduleName: string, obj: object, allowOverrides: boolean): void;
+/**
+ * @since 3.1.0b126
+ */
+declare function injectModulesIntoScope(obj: object, allowOverrides: boolean): void;
+declare function getClass(property: string): any;
+
+declare abstract class java {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class javax {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class org {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class com {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class edu {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class net {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+declare abstract class android {
+	private constructor();
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+
+declare abstract class Packages {
+	private constructor();
+	static readonly java: typeof java;
+	static readonly javax: typeof javax;
+	static readonly org: typeof org;
+	static readonly com: typeof com;
+	static readonly edu: typeof edu;
+	static readonly net: typeof net;
+	static readonly android: typeof android;
+	/**
+	 * @deprecated Probably is not known package, please
+	 * ensure in availability before publishing.
+	 */
+	static readonly [pkg: string]: any;
+}
+
+declare class JavaImporter {
+	constructor(...packagesOrClasses: any);
+	importClass(clazz: any): void;
+	importPackage(package: any): void;
+	readonly [property: string]: any;
+}
 /**
  * Type used to mark Java bytes.
  */
@@ -22793,435 +22263,3 @@ declare var __packdir__: string;
  * @since 2.2.1b85
  */
 declare var __modpack__: ModPack.ModPackJsAdapter;
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                class NativeRenderer extends java.lang.Object {
-                    static class: java.lang.Class<NativeRenderer>;
-                    static createHumanoidRenderer(d: number): Render.Renderer;
-                    static createItemSpriteRenderer(id: number): Render.Renderer;
-                    static createRendererWithSkin(skin: string, d: number): Render.Renderer;
-                    static getRendererById(id: number): Nullable<Render.Renderer>;
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace recipes {
-                        namespace workbench {
-                            class InventoryPool extends java.lang.Object {
-                                static class: java.lang.Class<InventoryPool>;
-                                constructor(player: number);
-                                addRecipeEntry(entry: Recipes.RecipeEntry): void;
-                                addPoolEntry(entry: InventoryPool.PoolEntry): void;
-                                getPoolEntrySet(entry: Recipes.RecipeEntry): Nullable<InventoryPool.PoolEntrySet>;
-                                getPoolEntries(entry: Recipes.RecipeEntry): Nullable<java.util.ArrayList<InventoryPool.PoolEntry>>;
-                                pullFromInventory(): void;
-                            }
-                            namespace InventoryPool {
-                                interface PoolEntry {
-                                    count: number,
-                                    data: number,
-                                    extra: ItemExtraData,
-                                    id: number,
-                                    slot: number,
-                                    isMatchesWithExtra(other: PoolEntry): boolean;
-                                    isMatches(other: PoolEntry): boolean;
-                                    hasExtra(): boolean;
-                                    getAmountOfItem(amount: number): number;
-                                }
-                                class PoolEntrySet extends java.lang.Object {
-                                    static class: java.lang.Class<PoolEntrySet>;
-                                    constructor();
-                                    constructor(entries: java.util.ArrayList<PoolEntry>);
-                                    isEmpty(): boolean;
-                                    getEntries(): java.util.ArrayList<PoolEntry>;
-                                    getMajorEntrySet(): PoolEntrySet;
-                                    removeMatchingEntries(set: PoolEntrySet): void;
-                                    getFirstEntry(): PoolEntry;
-                                    getTotalCount(): number;
-                                    spreadItems(slots: java.util.ArrayList<UI.AbstractSlot>): void;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        class GuiBlockModel extends java.lang.Object {
-                            static class: java.lang.Class<GuiBlockModel>;
-                            setShadow(shadow: boolean): void;
-                            constructor(resolution: number);
-                            constructor();
-                            addBox(box: GuiBlockModel.Box): void;
-                            /**
-                             * @since 2.2.1b96
-                             */
-                            clear(): void;
-                            constructor(textures: string[], ids: number[], shape: unlimited.BlockShape);
-                            constructor(textures: string[], ids: number[]);
-                            updateShape(shape: unlimited.BlockShape): void;
-                            genTexture(): android.graphics.Bitmap;
-                            addToMesh(mesh: RenderMesh, x: number, y: number, z: number): void;
-                            /**
-                             * @since 2.2.0b75
-                             */
-                            addToRenderModelPart(modelPart: Render.ModelPart, x: number, y: number, z: number): void;
-                            static createModelForBlockVariant(variant: any): GuiBlockModel;
-                        }
-                        namespace GuiBlockModel {
-                            class Box extends java.lang.Object {
-                                static class: java.lang.Class<Box>;
-                                readonly enabledSides: [boolean, boolean, boolean, boolean, boolean, boolean];
-                                textureNames: java.util.ArrayList<android.util.Pair<string, number>>;
-                                readonly x1: number;
-                                readonly x2: number;
-                                readonly y1: number;
-                                readonly y2: number;
-                                readonly z1: number;
-                                readonly z2: number;
-                                setShadow(shadow: boolean): void;
-                                setRenderAllSides(renderAllSides: boolean): void;
-                                constructor(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number);
-                                getShape(): unlimited.BlockShape;
-                                constructor(shape: unlimited.BlockShape);
-                                constructor();
-                                constructor(name: string, id: number);
-                                constructor(box: Box, shape: unlimited.BlockShape);
-                                addTexturePath(tex: string): void;
-                                addTexture(name: string, id: number): void;
-                                addTexture(name: android.util.Pair<string, number>): void;
-                                genTexture(resolution: number): android.graphics.Bitmap;
-                                public addToMesh(mesh: RenderMesh, x: number, y: number, z: number): void;
-                            }
-                            class Builder extends java.lang.Object {
-                                static class: java.lang.Class<Builder>;
-                                build(resolveCollisionsAndSort: boolean): GuiBlockModel;
-                                add(box: Builder.PrecompiledBox): void;
-                                add(builder: Builder): void;
-                            }
-                            namespace Builder {
-                                class PrecompiledBox extends java.lang.Object {
-                                    static class: java.lang.Class<PrecompiledBox>;
-                                    blockData: number;
-                                    blockId: number;
-                                    readonly enabledSides: [boolean, boolean, boolean, boolean, boolean, boolean];
-                                    textureNames: java.util.ArrayList<android.util.Pair<string, number>>;
-                                    x1: number;
-                                    x2: number;
-                                    y1: number;
-                                    y2: number;
-                                    z1: number;
-                                    z2: number;
-                                    constructor(inherit: PrecompiledBox, x1: number, y1: number, z1: number, x2: number, y2: number, z2: number);
-                                    disableSide(side: number): PrecompiledBox;
-                                    addTexture(name: string, id: number): PrecompiledBox;
-                                    setBlock(id: number, data: number): PrecompiledBox;
-                                    inside(b: PrecompiledBox): boolean;
-                                    intersects(b: PrecompiledBox): boolean;
-                                    inFrontOf(b: PrecompiledBox): boolean;
-                                    compile(): Box;
-                                }
-                            }
-                            class VanillaRenderType extends java.lang.Object {
-                                static class: java.lang.Class<VanillaRenderType>;
-                                static getFor(id: number): VanillaRenderType;
-                                buildModelFor(textures: string[], textureIds: number[]): GuiBlockModel;
-                                buildModelFor(textures: java.util.List<android.util.Pair<string, number>>): GuiBlockModel;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        class ItemModelCacheManager extends java.lang.Object {
-                            static class: java.lang.Class<ItemModelCacheManager>;
-                            static getSingleton(): ItemModelCacheManager;
-                            getCacheGroupDirectory(group: string): java.io.File;
-                            getCachePath(group: string, name: string): java.io.File;
-                            getCurrentCacheGroup(): string;
-                            setCurrentCacheGroup(groupName: string, lock: string): void;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace icon {
-                            class ItemIconSource extends java.lang.Object {
-                                static class: java.lang.Class<ItemIconSource>;
-                                static readonly instance: ItemIconSource;
-                                private constructor();
-                                static init(): void;
-                                static isGlintAnimationEnabled(): boolean;
-                                registerIcon(id: number, name: string): void;
-                                registerIcon(id: number, data: number, name: string): void;
-                                registerIcon(id: number, bmp: android.graphics.Bitmap): void;
-                                registerIcon(id: number, data: number, bmp: android.graphics.Bitmap): void;
-                                checkoutIcon(_name: string): Nullable<android.graphics.Bitmap>;
-                                getIconName(id: number, data: number): string;
-                                getIconPath(id: number, data: number): string;
-                                getNullableIcon(id: number, data: number): Nullable<android.graphics.Bitmap>;
-                                getIcon(id: number, data: number, icon: android.graphics.Bitmap, enableCache: boolean): android.graphics.Bitmap;
-                                getScaledIcon(originIcon: android.graphics.Bitmap, id: number, data: number, size: number, glint: number): android.graphics.Bitmap;
-                                static generateAllModItemModels(): void;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace icon {
-                            class ItemModels extends java.lang.Object {
-                                static class: java.lang.Class<ItemModels>;
-                                static readonly ATLAS_NAME = "textures/entity/camera_tripod";
-                                static readonly ATLAS_PATH: string;
-                                static readonly CACHE_DIR: string;
-                                static prepareModelInfo(idKey: string): ItemModels.ModelInfo;
-                                static prepareModelInfo(idKey: string, spritePath: string): ItemModels.ModelInfo;
-                                static prepareModelInfo(idKey: string, model: GuiBlockModel): ItemModels.ModelInfo;
-                                static createAtlasLink(formattedName: string, bmp: android.graphics.Bitmap): number;
-                                static createAtlasLink(path: string): number;
-                                static createAtlas(): void;
-                                static getAtlasUnit(iconName: string): Nullable<ItemModels.AltasUnit>;
-                                static init(): void;
-                                static getAtlasWidth(): number;
-                                static getAtlasHeight(): number;
-                                static getModelInfo(idKey: string): ItemModels.ModelInfo;
-                                static getModelInfo(id: number, data: number): ItemModels.ModelInfo;
-                                static updateBlockShape(id: number, data: number, shape: unlimited.BlockShape): void;
-                                static setCustomUiModel(id: number, data: number, model: GuiBlockModel): void;
-                                static getItemOrBlockModel(id: number, count: number, data: number, scale: number, rX: number, rY: number, rZ: number, randomize: boolean): Render.Renderer;
-                            }
-                            namespace ItemModels {
-                                class ModelInfo extends java.lang.Object {
-                                    static class: java.lang.Class<ModelInfo>;
-                                    private constructor(idKey: string);
-                                    getModel(): GuiBlockModel;
-                                    isSprite(): boolean;
-                                    isCustomized(): boolean;
-                                    getSkinName(): string;
-                                    getCache(): android.graphics.Bitmap;
-                                    writeToCache(bmp: android.graphics.Bitmap): void;
-                                    setShape(shape: unlimited.BlockShape): void;
-                                }
-                                class AltasUnit extends java.lang.Object {
-                                    static class: java.lang.Class<AltasUnit>;
-                                    readonly bitmap: android.graphics.Bitmap;
-                                    readonly pos: number;
-                                    readonly size: number;
-                                    constructor(bmp: android.graphics.Bitmap, pos: number, size: number);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace window {
-                            class UIWindowBackgroundDrawable extends android.graphics.drawable.Drawable implements UI.IBackgroundProvider {
-                                static class: java.lang.Class<UIWindowBackgroundDrawable>;
-                                window: UI.Window;
-                                constructor(win: UI.Window);
-                                setBackgroundColor(color: number): void;
-                                addDrawing(drawing: UI.IDrawing): void;
-                                clearAll(): void;
-                                draw(canvas: NonNullable<android.graphics.Canvas>): void;
-                                prepareCache(): void;
-                                releaseCache(): void;
-                                setAlpha(alpha: number): void;
-                                /**
-                                 * Just for TS not to be angry.
-                                 */
-                                setColorFilter(par1: number, par2: android.graphics.PorterDuff.Mode): void;
-                                setColorFilter(filter: Nullable<android.graphics.ColorFilter>): void;
-                                /**
-                                 * @default -3
-                                 */
-                                getOpacity(): number;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace window {
-                            class UIWindowElementDrawable extends android.graphics.drawable.Drawable implements UI.IElementProvider {
-                                static class: java.lang.Class<UIWindowElementDrawable>;
-                                isDebugEnabled: boolean;
-                                window: UI.Window;
-                                windowElements: java.util.ArrayList<UI.IElement>;
-                                constructor(win: UI.Window);
-                                setBackgroundProvider(provider: UI.IBackgroundProvider): void;
-                                addOrRefreshElement(element: UI.IElement): void;
-                                removeElement(element: UI.IElement): void;
-                                releaseAll(): void;
-                                resetAll(): void;
-                                invalidateAll(): void;
-                                runCachePreparation(): void;
-                                getStyleFor(element: UI.IElement): UI.Style;
-                                setWindowStyle(style: UI.Style): void;
-                                draw(canvas: NonNullable<android.graphics.Canvas>): void;
-                                drawDirty(canvas: android.graphics.Canvas, scale: number): void;
-                                onTouchEvent(event: UI.ITouchEvent): void;
-                                setAlpha(alpha: number): void;
-                                /**
-                                 * Just for TS not to be angry.
-                                 */
-                                setColorFilter(par1: number, par2: android.graphics.PorterDuff.Mode): void;
-                                setColorFilter(filter: Nullable<android.graphics.ColorFilter>): void;
-                                /**
-                                 * @default -3
-                                 */
-                                getOpacity(): number;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace window {
-                            class WindowParent extends java.lang.Object {
-                                static class: java.lang.Class<WindowParent>;
-                                static openWindow(window: UI.Window): void;
-                                static closeWindow(window: UI.Window): void;
-                                static applyWindowInsets(window: UI.Window, insets: android.view.WindowInsets): void;
-                                static releaseWindowLayout(layout: android.view.View): void;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace mod {
-                    namespace ui {
-                        namespace window {
-                            class WindowProvider extends java.lang.Object {
-                                static class: java.lang.Class<WindowProvider>;
-                                static readonly instance: WindowProvider;
-                                static getFrame(): number;
-                                onWindowOpened(window: UI.IWindow): void;
-                                onWindowClosed(window: UI.IWindow): void;
-                                onBackPressed(): boolean;
-                                onActivityStopped(): void;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace api {
-                namespace unlimited {
-                    class BlockShape extends java.lang.Object {
-                        static class: java.lang.Class<BlockShape>;
-                        x1: number;
-                        x2: number;
-                        y1: number;
-                        y2: number;
-                        z1: number;
-                        z2: number;
-                        constructor(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number);
-                        constructor();
-                        set(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number): void;
-                        setToBlock(id: number, data: number): void;
-                    }
-                }
-            }
-        }
-    }
-}
-declare module com {
-    namespace zhekasmirnov {
-        namespace innercore {
-            namespace mod {
-                namespace resource {
-                    class ResourcePackManager extends java.lang.Object {
-                        static class: java.lang.Class<ResourcePackManager>;
-                        static readonly LOGGER_TAG = "INNERCORE-RESOURCES";
-                        static instance: ResourcePackManager;
-                        resourcePackDefinition: string;
-                        resourcePackList: string;
-                        constructor();
-                        static getBlockTextureName(texture: string, meta: number): Nullable<string>;
-                        static getItemTextureName(texture: string, meta: number): Nullable<string>;
-                        static getSourcePath(): string;
-                        static isValidBlockTexture(texture: string, meta: number): boolean;
-                        static isValidItemTexture(texture: string, meta: number): boolean;
-                    }
-                }
-            }
-        }
-    }
-}
