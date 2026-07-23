@@ -100,10 +100,10 @@ jobs:
       - name: Run dex2jar on innercore64.apk
         run: |
           cd $(ls -d dex2jar/* | head -n 1)
-          ./d2j-dex2jar.sh --force --no-code --output ../../innercore64/innercore64.jar ../../innercore64/innercore64.apk
-      - name: Run mv innercore64.jar to develop
+          ./d2j-dex2jar.sh --force --no-code --output ../../innercore64/innercore-test.jar ../../innercore64/innercore64.apk
+      - name: Run mv innercore-test.jar to develop
         run: |
-          mv innercore64/innercore64.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
+          mv innercore64/innercore-test.jar $BRANCH_DEVELOP/toolchain/toolchain/classpath
           echo ${{ steps.gitlab-commit-hash.outputs.result }} > $BRANCH_DEVELOP/toolchain/toolchain/classpath/.labcommit
       - name: Configure git
         run: |
