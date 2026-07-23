@@ -431,8 +431,9 @@ class WorkspaceBuildConfiguration:
 	def get_idea_shell_task(name: str, path: str, **kwargs):
 		from xml.dom import minidom
 		component = WorkspaceBuildConfiguration.get_idea_task(name, "ShConfigurationType")
-		configuration: minidom.Node = component.childNodes[0]
+		assert component.ownerDocument
 		document: minidom.Document = component.ownerDocument
+		configuration: minidom.Node = component.childNodes[0]
 		relative_path = GLOBALS.PREFERRED_CONFIG.get_relative_path(path)
 		relative_path = "$PROJECT_DIR$/" + relative_path.replace("\\", "/")
 
@@ -477,6 +478,7 @@ class WorkspaceBuildConfiguration:
 	def get_idea_compound_task(name: str, order: Collection[str]):
 		from xml.dom import minidom
 		component = WorkspaceBuildConfiguration.get_idea_task(name, "CompoundRunConfigurationType")
+		assert component.ownerDocument
 		document: minidom.Document = component.ownerDocument
 		configuration: minidom.Node = component.childNodes[0]
 
