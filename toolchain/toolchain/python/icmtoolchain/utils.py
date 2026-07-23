@@ -4,12 +4,14 @@ import re
 import shutil
 import subprocess
 from os.path import abspath, exists, isdir, isfile, islink, join
-from typing import Any, Callable, Dict, Iterable, List, Optional, TextIO, Union, overload
+from typing import (Any, Callable, Dict, Iterable, List, Optional, TextIO,
+                    Union, overload)
 from zipfile import ZipFile, ZipInfo
 
 from . import GLOBALS
 
 DEVNULL = open(os.devnull, "w")
+_checked_tsc_requirements = False
 
 
 class RuntimeCodeError(RuntimeError):
@@ -259,6 +261,21 @@ def request_tool(name: str) -> Optional[str]:
 		return None
 	return abspath(path)
 
+def check_tsc_requirements(tsc: str) -> bool:
+	global _checked_tsc_requirements
+	if _checked_tsc_requirements:
+		return True
+	from .shell import error
+	version = request_executable_version(tsc)
+	if version < 3.0:
+		error("TypeScript Compiler 3.0 or above required to transpile mods via Inner Core Mod Toolchain.")
+	elif version >= 7:
+		error("TypeScript Compiler >= 7.0 cannot be used to transpile mods via Inner Core Mod Toolchain.")
+	else:
+		_checked_tsc_requirements = True
+		return True
+	return False
+
 def request_typescript(only_check: bool = False) -> Optional[str]:
 	"""
 	Utility to check and install tsc with npm.
@@ -266,17 +283,34 @@ def request_typescript(only_check: bool = False) -> Optional[str]:
 	if GLOBALS.TOOLCHAIN_CONFIG.get_value("denyTypeScript"):
 		return None
 	from .shell import confirm, error, info
-	tsc = shutil.which("tsc") or request_tool("tsc")
-	if tsc or only_check:
+	tsc = request_tool("tsc") or shutil.which("tsc")
+	if only_check:
 		return tsc
-	if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project) [Y/n]?", True):
-		return None
-	info("Updating TypeScript globally via npm...")
-	subprocess.run("npm install -g typescript")
-	tsc = shutil.which("tsc") or request_tool("tsc")
-	if tsc:
+	elif tsc and check_tsc_requirements(tsc):
 		return tsc
-	error("Something went wrong when trying to install TypeScript Compiler, please check your Node.js and npm installation and try again.")
+
+	should_install_globally = not tsc
+	if should_install_globally:
+		if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)?", True):
+			return None
+		info(f"Installing TypeScript Compiler globally via npm...")
+		subprocess.run("npm install -g typescript@6")
+		tsc = request_tool("tsc") or shutil.which("tsc")
+		if tsc:
+			return tsc
+	else:
+		if not confirm("Do you want to locally reinstall desired TypeScript Compiler v6?", True):
+			return None
+		info(f"Installing TypeScript Compiler v6 locally via npm...")
+		subprocess.run("npm install typescript@6", shell=True)
+		local_bin_path = os.path.abspath(os.path.join("node_modules", ".bin"))
+		tsc = shutil.which("tsc", path=local_bin_path)
+		if tsc:
+			GLOBALS.TOOLCHAIN_CONFIG.set_value("tools.tsc", tsc)
+			GLOBALS.TOOLCHAIN_CONFIG.save()
+			return tsc
+
+	error("Something went wrong when trying to install TypeScript Compiler, please check your Node.js and npm installation and try again. You should reinstall it locally (e.g. `npm install typescript@6`) or set `tools.tsc` path in your 'toolchain.json'!")
 	return None
 
 def request_executable_version(executable: Union[str, List[str]]) -> float:

@@ -15,7 +15,7 @@
 To work correctly, this toolchain requires:
 
 - [Python](https://www.python.org/) 3.7 or higher (recommended 3.8 or higher)
-- [node.js](https://nodejs.org/en/) 10.15.1 or higher (for TypeScript modding), `tsc` version 3 or higher must also be installed (to do this, run `npm install -g tsc`)
+- [node.js](https://nodejs.org/en/) 10.15.1 or higher (for TypeScript modding), `tsc` version 3.0 or higher must also be installed (to do this, run `npm install -g typescript@6`); version SHOULD be lower than 7.0, which [removed ES5 as target platform](https://github.com/microsoft/TypeScript/issues/62196)
 - [Android NDK](https://github.com/android/ndk/wiki/Unsupported-Downloads#r16b) version r16b (for C++ modding), otherwise it can be installed by toolchain when needed
 - [Java Development Kit 1.8](https://adoptium.net/temurin/releases/?version=8) (for Java modding)
 
@@ -159,7 +159,7 @@ Slightly outdated, but no less useful information can be found at <https://wiki.
 
 ### Working with CLI
 
-There are several options for using toolchain through the console or terminal. The first, and easiest, is to open the *toolchain/toolchain/python* folder in the console, manually running scripts there. You can add the same folder to `PATH` environment variable, how to do it on your platform can be found [here](https://www.java.com/en/download/help/path.html).
+There are several options for using toolchain through the console or terminal. The first, and easiest, is to open the *toolchain/toolchain/python* folder in the console, manually running scripts there. You can add the same folder to `PATH` environment variable, here is how to do it [on your platform](https://www.java.com/en/download/help/path.html).
 
 If one of the tasks `python -m icmtoolchain --list` or `python3 -m icmtoolchain --list` is of interest to you, a great option is to integrate toolchain as a module for Python. Extend `PYTHONPATH` to use `icmtoolchain.*` imports or run commands with `python -m icmtoolchain.*` or `python3 -m icmtoolchain.*` regardless of the working directory.
 
