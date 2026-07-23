@@ -151,7 +151,6 @@ TSCONFIG_TOOLCHAIN: Dict[str, Any] = {
 	"module": "none",
 	"skipDefaultLibCheck": True,
 	"composite": True,
-	"downlevelIteration": True,
 	"experimentalDecorators": True,
 	"noEmitOnError": True,
 	"stripInternal": True,
