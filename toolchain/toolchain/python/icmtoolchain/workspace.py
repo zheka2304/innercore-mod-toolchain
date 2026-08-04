@@ -32,14 +32,14 @@ TSCONFIG: Dict[str, Any] = {
 	"baseUrl": None,
 	"module": None,
 	"moduleResolution": "classic",
-	"moduleSuffixes": list(),
+	"moduleSuffixes": [],
 	"noResolve": False,
-	"paths": list(),
+	"paths": [],
 	"resolveJsonModule": False,
-	"rootDir": list(),
-	"rootDirs": list(),
-	"typeRoots": list(),
-	"types": list(),
+	"rootDir": [],
+	"rootDirs": [],
+	"typeRoots": [],
+	"types": [],
 
 	# Type Checking
 	"allowUnreachableCode": None,
@@ -119,7 +119,7 @@ TSCONFIG: Dict[str, Any] = {
 
 	# Editor Support
 	"disableSizeLimit": False,
-	"plugins": list(),
+	"plugins": [],
 
 	# Language and Environment
 	"emitDecoratorMetadata": False,
@@ -127,7 +127,7 @@ TSCONFIG: Dict[str, Any] = {
 	"jsx": None,
 	"jsxFactory": "React.Fragment",
 	"jsxImportSource": "react",
-	"lib": list(),
+	"lib": [],
 	"moduleDetection": "auto",
 	"noLib": False,
 	"reactNamespace": "React",
@@ -232,37 +232,25 @@ class WorkspaceComposite:
 		})
 
 	def reset(self) -> None:
-		self.references = list()
-		self.sources = list()
+		self.references = []
+		self.sources = []
 
-	@staticmethod
-	def resolve_declarations() -> List[str]:
-		includes = GLOBALS.MAKE_CONFIG.get_value("declarations", [
-			"declarations"
-		])
-		declarations = list()
+	def resolve_declarations(self) -> List[str]:
+		includes = GLOBALS.MAKE_CONFIG.get_value("declarations", ["declarations"])
+		declarations = []
 		for filepath in [
 			GLOBALS.MAKE_CONFIG.get_absolute_path(include) for include in includes
 		]:
-			if exists(filepath):
-				if isdir(filepath):
-					filepath = f"{filepath}/**/*.d.ts"
-				declarations.extend(glob(filepath, recursive=True))
-		if exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-			declarations.extend(glob(
-				GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations/**/*.d.ts"),
-				recursive=True
-			))
-		if not PROPERTIES.get_value("release"):
-			for excluded in GLOBALS.MAKE_CONFIG.get_value("debugIncludesExclude", list()):
-				if exists(str(excluded).lstrip("/").partition("/")[0]):
-					for declaration in glob(excluded, recursive=True):
-						if declaration in declarations:
-							declarations.remove(declaration)
-				else:
-					for declaration in glob(GLOBALS.TOOLCHAIN_CONFIG.get_path(excluded), recursive=True):
-						if declaration in declarations:
-							declarations.remove(declaration)
+			if not exists(filepath):
+				continue
+			if isdir(filepath):
+				filepath = f"{filepath}/**/*.d.ts"
+			declarations.extend(glob(filepath, recursive=True))
+
+		system_declarations = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
+		if exists(system_declarations):
+			declarations.extend(glob(f"{system_declarations}/**/*.d.ts", recursive=True))
+
 		return list(set(declarations))
 
 	def flush(self, **kwargs: Any) -> None:
@@ -280,12 +268,12 @@ class WorkspaceComposite:
 				"webworker",
 				"webworker.importscripts",
 				"webworker.iterable"
-			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", list()),
-			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", list()),
+			] + GLOBALS.MAKE_CONFIG.get_value("development.exclude", []),
+			"include": self.sources + GLOBALS.MAKE_CONFIG.get_value("development.include", []),
 			**kwargs
 		}
 
-		declarations = WorkspaceComposite.resolve_declarations()
+		declarations = self.resolve_declarations()
 		if len(declarations) > 0:
 			template["files"] = declarations
 		if len(self.references) > 0:
@@ -300,7 +288,7 @@ class WorkspaceComposite:
 		return subprocess.call([
 			tsc,
 			"--build", self.get_tsconfig(),
-			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", list()),
+			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", []),
 			*args
 		], shell=platform.system() == "Windows")
 
@@ -312,7 +300,7 @@ class WorkspaceComposite:
 			return subprocess.call([
 				tsc,
 				"--watch",
-				*GLOBALS.MAKE_CONFIG.get_value("development.watch", list()),
+				*GLOBALS.MAKE_CONFIG.get_value("development.watch", []),
 				*args
 			], cwd=dirname(self.get_tsconfig()).replace("/", os.path.sep), shell=platform.system() == "Windows")
 		except KeyboardInterrupt:
@@ -340,7 +328,7 @@ class WorkspaceBuildConfiguration:
 				"kind": "build",
 				"isDefault": True
 			},
-			"problemMatcher": list()
+			"problemMatcher": []
 		})
 		if "globbing" in kwargs:
 			task["group"]["glob"] = kwargs["globbing"]
@@ -397,9 +385,9 @@ class WorkspaceBuildConfiguration:
 			definition = {}
 			definition["version"] = "2.0.0"
 		if "tasks" not in definition:
-			definition["tasks"] = list()
+			definition["tasks"] = []
 
-		duplicates = list()
+		duplicates = []
 		for task in definition["tasks"]:
 			if "label" in task and task["label"] == name:
 				duplicates.append(task)

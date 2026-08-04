@@ -15,10 +15,7 @@
 			"arm64-v8a": "21.4.7075529"
 		}
 	},
-	"debugIncludesExclude": [
-		"toolchain/declarations/android.d.ts"
-	],
-	"projectLocations": [
+		"projectLocations": [
 		"../"
 	],
 	"workspaceFile": "../toolchain.code-workspace"
