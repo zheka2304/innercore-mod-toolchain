@@ -10,5 +10,3 @@ output/
 *.log
 *.icmod
 .*commit
-
-!/toolchain/declarations/tsconfig.json
