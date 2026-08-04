@@ -197,10 +197,11 @@ class Includes:
 			overall_result = self.build_source(temporary_path, language)
 
 			startup_millis = time() - startup_millis
+			task_description = "transpiling" if language.lower() == "typescript" else "flushing"
 			if overall_result == 0:
-				print(f"Completed {basename(target_path)!r} flushing in {startup_millis:.2f}s!")
+				print(f"Completed {basename(target_path)!r} {task_description} in {startup_millis:.2f}s!")
 			else:
-				error(f"Failed {basename(target_path)!r} flushing in {startup_millis:.2f}s with result {overall_result}.")
+				error(f"Failed {basename(target_path)!r} {task_description} in {startup_millis:.2f}s with result {overall_result}.")
 				return overall_result
 
 			GLOBALS.BUILD_STORAGE.is_path_changed(self.directory, True)
