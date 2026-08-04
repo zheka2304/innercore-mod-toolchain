@@ -205,27 +205,36 @@ def build_composite_project() -> int:
 		GLOBALS.WORKSPACE_COMPOSITE.flush()
 
 	for included in includes:
-		if included[2] == "javascript":
+		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
 
-	if request_typescript(only_check=True):
-		ts_composite = [item for item in composite if item[2] == "typescript"]
-		ts_includes = [item for item in includes if item[2] == "typescript"]
+	if request_typescript(only_check=True) \
+		and (GLOBALS.MAKE_CONFIG.get_value("project.composite", True) \
+			or GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False)):
+
+		detected_changes = list()
+		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True):
+			detected_changes += list(filter(lambda included: included[2] == "typescript", composite))
+
+		no_composite_typescript = len(detected_changes) == 0
+		if GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False):
+			detected_changes += list(filter(lambda included: included[2] == "typescript", includes))
 
 		# Quick rebuild means running tsc only on changed directory, which is must be faster
-		# than default composite building; doing that only for includes, so no troubles should occur
-		if len(ts_composite) == 0 and len(ts_includes) == 1 and GLOBALS.MAKE_CONFIG.get_value("project.quickRebuild", True):
-			included = ts_includes[0]
+		# than default composite building; but in some cases it also may cause unexpected behavior
+		if no_composite_typescript and len(detected_changes) == 1 and GLOBALS.MAKE_CONFIG.get_value("project.quickRebuild", True):
+			included = detected_changes.pop()
 			overall_result += included[0].build(included[1], included[2])
 
 		# Recomputed changes doesn't really matter for tsc, since we'll just want to realize
 		# which files changed with hashing algorithm and composite building may rebuild everything
 		# when tsconfig changes or something unexpected happened, like removing temporary declarations
-		elif len(ts_composite) > 0 or len(ts_includes) > 0:
-			filenames = [basename(item[1]) for item in chain(ts_composite, ts_includes)]
-			debug("Rebuilding composite", ", ".join(filenames))
+		if len(detected_changes) > 0:
+			debug("Rebuilding composite", ", ".join([
+				basename(included[1]) for included in detected_changes
+			]))
 
 			from time import time
 			startup_millis = time()
