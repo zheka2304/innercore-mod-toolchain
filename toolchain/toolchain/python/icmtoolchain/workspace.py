@@ -154,7 +154,11 @@ TSCONFIG_TOOLCHAIN: Dict[str, Any] = {
 	"experimentalDecorators": True,
 	"noEmitOnError": True,
 	"stripInternal": True,
-	"allowJs": True
+	"allowJs": True,
+
+	# TypeScript Compiler 6+ defaults
+	"strict": False,
+	"ignoreDeprecations": "6.0"
 }
 
 
