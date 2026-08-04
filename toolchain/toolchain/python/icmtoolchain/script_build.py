@@ -23,12 +23,6 @@ def build_all_scripts(watch: bool = False) -> int:
 		system_declarations = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
 		if not exists(system_declarations):
 			warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
-		elif GLOBALS.TEMPORARY_STORAGE.is_path_changed(system_declarations):
-			print("Rebuilding system declaration typings")
-			overall_result += rebuild_system_declarations(system_declarations)
-			if overall_result != 0:
-				return overall_result
-			GLOBALS.TEMPORARY_STORAGE.save()
 
 	for source in GLOBALS.MAKE_CONFIG.get_value("sources", list()):
 		if "source" not in source or "type" not in source:
@@ -47,17 +41,6 @@ def build_all_scripts(watch: bool = False) -> int:
 
 	overall_result += build_composite_project() if not watch else watch_composite_project()
 	return overall_result
-
-def rebuild_system_declarations(tsconfig: str, *args: str) -> int:
-	tsc = request_typescript()
-	if not tsc:
-		raise RuntimeError("A tsc is required to build system declarations, make sure it is present before calling this function.")
-	return subprocess.call([
-		tsc,
-		"--build", tsconfig,
-		*GLOBALS.MAKE_CONFIG.get_value("development.tscSystem", list()),
-		*args
-	], shell=platform.system() == "Windows")
 
 def rebuild_build_target(source, target_path: str) -> str:
 	declare = {
