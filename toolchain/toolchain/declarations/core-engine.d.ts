@@ -22029,7 +22029,7 @@ declare function injectModuleIntoScope(moduleName: string, obj: object, allowOve
 declare function injectModulesIntoScope(obj: object, allowOverrides: boolean): void;
 declare function getClass(property: string): any;
 
-declare abstract class java {
+declare class java {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22037,7 +22037,7 @@ declare abstract class java {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class javax {
+declare class javax {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22045,7 +22045,7 @@ declare abstract class javax {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class org {
+declare class org {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22053,7 +22053,7 @@ declare abstract class org {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class com {
+declare class com {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22061,7 +22061,7 @@ declare abstract class com {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class edu {
+declare class edu {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22069,7 +22069,7 @@ declare abstract class edu {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class net {
+declare class net {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please
@@ -22077,7 +22077,7 @@ declare abstract class net {
 	 */
 	static readonly [pkg: string]: any;
 }
-declare abstract class android {
+declare class android {
 	private constructor();
 	/**
 	 * @deprecated Probably is not known package, please

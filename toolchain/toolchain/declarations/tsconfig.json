@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"lib": [
+			"es5",
+			"es2015.core",
+			"es2015.generator"
+		],
+		"composite": true,
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"tsBuildInfoFile": "./toolchain.tsbuildinfo",
+		"experimentalDecorators": true,
+		"strict": false,
+		"ignoreDeprecations": "6.0"
+	},
+	"compileOnSave": false,
+	"exclude": [
+		"dom",
+		"dom.iterable",
+		"es2015.iterable",
+		"scripthost",
+		"webworker",
+		"webworker.importscripts",
+		"webworker.iterable"
+	],
+	"include": ["**/*.d.ts"]
+}
