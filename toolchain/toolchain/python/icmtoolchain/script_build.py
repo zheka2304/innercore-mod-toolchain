@@ -1,4 +1,7 @@
+import platform
+import subprocess
 from functools import cmp_to_key
+from itertools import chain
 from os.path import basename, exists, isdir, isfile, join, relpath, splitext
 from typing import Any, Dict, List, Tuple
 
@@ -15,10 +18,18 @@ def build_all_scripts(watch: bool = False) -> int:
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_source")
 	GLOBALS.MOD_STRUCTURE.cleanup_build_target("script_library")
 
-	if request_typescript(only_check=True) and not exists(GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")):
-		warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
-
 	overall_result = 0
+	if request_typescript(only_check=True):
+		system_declarations = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/declarations")
+		if not exists(system_declarations):
+			warn("Not found 'toolchain/declarations', in most cases build will be failed, please install it via tasks.")
+		elif GLOBALS.TEMPORARY_STORAGE.is_path_changed(system_declarations):
+			print("Rebuilding system declaration typings")
+			overall_result += rebuild_system_declarations(system_declarations)
+			if overall_result != 0:
+				return overall_result
+			GLOBALS.TEMPORARY_STORAGE.save()
+
 	for source in GLOBALS.MAKE_CONFIG.get_value("sources", list()):
 		if "source" not in source or "type" not in source:
 			error(f"Invalid source json {source!r}, it might contain `source` and `type` properties!")
@@ -36,6 +47,17 @@ def build_all_scripts(watch: bool = False) -> int:
 
 	overall_result += build_composite_project() if not watch else watch_composite_project()
 	return overall_result
+
+def rebuild_system_declarations(tsconfig: str, *args: str) -> int:
+	tsc = request_typescript()
+	if not tsc:
+		raise RuntimeError("A tsc is required to build system declarations, make sure it is present before calling this function.")
+	return subprocess.call([
+		tsc,
+		"--build", tsconfig,
+		*GLOBALS.MAKE_CONFIG.get_value("development.tscSystem", list()),
+		*args
+	], shell=platform.system() == "Windows")
 
 def rebuild_build_target(source, target_path: str) -> str:
 	declare = {
@@ -198,37 +220,29 @@ def build_composite_project() -> int:
 
 	if request_typescript(only_check=True):
 		GLOBALS.WORKSPACE_COMPOSITE.flush()
+
 	for included in includes:
-		if not GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False) or included[2] == "javascript":
+		if included[2] == "javascript":
 			overall_result += included[0].build(included[1], included[2])
 	if overall_result != 0:
 		return overall_result
 
-	if request_typescript(only_check=True) \
-		and (GLOBALS.MAKE_CONFIG.get_value("project.composite", True) \
-			or GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False)):
-
-		which = list()
-		if GLOBALS.MAKE_CONFIG.get_value("project.composite", True):
-			which += list(filter(lambda included: included[2] == "typescript", composite))
-
-		no_composite_typescript = len(which) == 0
-		if GLOBALS.MAKE_CONFIG.get_value("project.useReferences", False):
-			which += list(filter(lambda included: included[2] == "typescript", includes))
+	if request_typescript(only_check=True):
+		ts_composite = [item for item in composite if item[2] == "typescript"]
+		ts_includes = [item for item in includes if item[2] == "typescript"]
 
 		# Quick rebuild means running tsc only on changed directory, which is must be faster
-		# than default composite building; but in some cases it also may cause unexpected behavior
-		if no_composite_typescript and len(which) == 1 and GLOBALS.MAKE_CONFIG.get_value("project.quickRebuild", True):
-			included = which.pop()
+		# than default composite building; doing that only for includes, so no troubles should occur
+		if len(ts_composite) == 0 and len(ts_includes) == 1 and GLOBALS.MAKE_CONFIG.get_value("project.quickRebuild", True):
+			included = ts_includes[0]
 			overall_result += included[0].build(included[1], included[2])
 
 		# Recomputed changes doesn't really matter for tsc, since we'll just want to realize
 		# which files changed with hashing algorithm and composite building may rebuild everything
 		# when tsconfig changes or something unexpected happened, like removing temporary declarations
-		if len(which) > 0:
-			debug("Rebuilding composite", ", ".join([
-				basename(included[1]) for included in which
-			]))
+		elif len(ts_composite) > 0 or len(ts_includes) > 0:
+			filenames = [basename(item[1]) for item in chain(ts_composite, ts_includes)]
+			debug("Rebuilding composite", ", ".join(filenames))
 
 			from time import time
 			startup_millis = time()

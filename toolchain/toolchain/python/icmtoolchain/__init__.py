@@ -35,6 +35,14 @@ class Globals:
 		return self.adb_command
 
 	@property
+	def TEMPORARY_STORAGE(self):
+		if not hasattr(self, "temporary_storage"):
+			from .hash_storage import HashStorage
+			self.temporary_storage = HashStorage(self.TOOLCHAIN_CONFIG.get_path("toolchain/temp/.temprc"), \
+				    self.TOOLCHAIN_CONFIG.get_value("development.comparingMode", "content"))
+		return self.temporary_storage
+
+	@property
 	def BUILD_STORAGE(self):
 		if not hasattr(self, "build_storage"):
 			from .hash_storage import HashStorage
@@ -165,6 +173,8 @@ class Globals:
 
 	def shutdown(self):
 		self.shutdown_project()
+		if hasattr(self, "temporary_storage"):
+			del self.temporary_storage
 		if hasattr(self, "code_settings"):
 			del self.code_settings
 		if hasattr(self, "code_workspace"):
