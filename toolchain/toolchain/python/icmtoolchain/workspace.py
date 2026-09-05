@@ -4,14 +4,14 @@ import platform
 import posixpath
 import subprocess
 from os.path import (abspath, basename, dirname, exists, isdir, isfile, join,
-                     relpath, splitext)
+                     relpath)
 from re import sub
-from typing import Any, Callable, Collection, Dict, List, Optional
+from typing import Any, Callable, Collection, Dict, List
 
-from . import GLOBALS, PROPERTIES
+from . import GLOBALS
 from .base_config import BaseConfig
 from .hglob import glob
-from .utils import ensure_directory, ensure_file_directory, request_typescript
+from .utils import ensure_directory, ensure_file_directory, request_typescript, request_typescript_flags
 
 # The TypeScript Compiler - Version 4.8.3
 TSCONFIG: Dict[str, Any] = {
@@ -148,17 +148,14 @@ TSCONFIG: Dict[str, Any] = {
 TSCONFIG_TOOLCHAIN: Dict[str, Any] = {
 	"target": "es5", # Most of ES6 is not realized in Rhino 1.7.7
 	"lib": ["es5", "es2015.core", "es2015.generator"],
+	"strict": False, # TypeScript Compiler (below 6+) defaults
 	"module": "none",
 	"skipDefaultLibCheck": True,
 	"composite": True,
 	"experimentalDecorators": True,
 	"noEmitOnError": True,
 	"stripInternal": True,
-	"allowJs": True,
-
-	# TypeScript Compiler 6+ defaults
-	"strict": False,
-	"ignoreDeprecations": "6.0"
+	"allowJs": True
 }
 
 
@@ -288,7 +285,7 @@ class WorkspaceComposite:
 		return subprocess.call([
 			tsc,
 			"--build", self.get_tsconfig(),
-			*GLOBALS.MAKE_CONFIG.get_value("development.tsc", []),
+			*(GLOBALS.MAKE_CONFIG.get_value("development.tsc") or request_typescript_flags(tsc)),
 			*args
 		], shell=platform.system() == "Windows")
 

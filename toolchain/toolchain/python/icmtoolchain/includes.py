@@ -9,7 +9,7 @@ from typing import Any, Dict, Final, List
 from . import GLOBALS, PROPERTIES
 from .hglob import glob
 from .shell import debug, error, info, warn
-from .utils import ensure_file_directory, request_typescript
+from .utils import ensure_file_directory, request_typescript, request_typescript_flags
 from .workspace import TSCONFIG
 
 # Will be excluded with toolchain overriden options
@@ -221,7 +221,7 @@ class Includes:
 			command = [
 				tsc,
 				"--project", self.get_tsconfig(),
-				*GLOBALS.PREFERRED_CONFIG.get_value("development.tsc", list())
+				*(GLOBALS.PREFERRED_CONFIG.get_value("development.tsc") or request_typescript_flags(tsc))
 			]
 			if not PROPERTIES.get_value("release"):
 				# Do NOT resolve down-level declaration, like 'android.d.ts' if it not included

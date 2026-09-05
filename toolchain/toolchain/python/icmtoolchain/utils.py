@@ -294,24 +294,31 @@ def request_typescript(only_check: bool = False) -> Optional[str]:
 		if not confirm("Do you want to enable TypeScript and ES6+ support (requires Node.js to build project)?", True):
 			return None
 		info(f"Installing TypeScript Compiler globally via npm...")
-		subprocess.run("npm install -g typescript@6")
+		subprocess.run("npm install -g typescript@5")
 		tsc = request_tool("tsc") or shutil.which("tsc")
 		if tsc:
 			return tsc
 	else:
-		if not confirm("Do you want to locally reinstall desired TypeScript Compiler v6?", True):
+		if not confirm("Do you want to locally reinstall desired TypeScript Compiler v5 (recommended)?", True):
 			return None
-		info(f"Installing TypeScript Compiler v6 locally via npm...")
-		subprocess.run("npm install typescript@6", shell=True)
-		local_bin_path = os.path.abspath(os.path.join("node_modules", ".bin"))
+		info(f"Installing TypeScript Compiler v5 locally via npm...")
+		installation_path = GLOBALS.TOOLCHAIN_CONFIG.get_path("toolchain/bin")
+		subprocess.run("npm install typescript@5", cwd=installation_path, shell=True)
+		local_bin_path = join(installation_path, "node_modules", ".bin")
 		tsc = shutil.which("tsc", path=local_bin_path)
 		if tsc:
 			GLOBALS.TOOLCHAIN_CONFIG.set_value("tools.tsc", tsc)
 			GLOBALS.TOOLCHAIN_CONFIG.save()
 			return tsc
 
-	error("Something went wrong when trying to install TypeScript Compiler, please check your Node.js and npm installation and try again. You should reinstall it locally (e.g. `npm install typescript@6`) or set `tools.tsc` path in your 'toolchain.json'!")
+	error("Something went wrong when trying to install TypeScript Compiler, please check your Node.js and npm installation and try again. You should reinstall it locally (e.g. `npm install typescript@5`) or set `tools.tsc` path in your 'toolchain.json'!")
 	return None
+
+def request_typescript_flags(tsc: str) -> List[str]:
+	tsc_version = request_executable_version(tsc)
+	if 6.0 <= tsc_version < 7.0:
+		return ["--ignoreDeprecations", "6.0"]
+	return []
 
 def request_executable_version(executable: Union[str, List[str]]) -> float:
 	pattern_version = re.compile(r"\d+\.\d+")
