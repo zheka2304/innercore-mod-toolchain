@@ -1,0 +1,472 @@
+{
+	"$schema": "https://json-schema.org/draft-07/schema#",
+	"$id": "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/develop/toolchain/schemas/make.schema.json",
+	"allOf": [
+		{
+			"$ref": "toolchain.schema.json#/definitions/sharedDefinition"
+		}
+	],
+	"properties": {
+		"info": {
+			"$ref": "#/definitions/info",
+			"description": "Main project information, set during its creation.",
+			"additionalProperties": false,
+			"default": {
+				"name": "",
+				"author": "",
+				"version": "1.0",
+				"description": "",
+				"clientOnly": false
+			}
+		},
+		"project": {
+			"description": "Other build settings for the whole project.",
+			"properties": {
+				"composite": {
+					"type": "boolean",
+					"default": true,
+					"description": "Compile individual files together, allowing declarations between files and speeding up their build; applicable for tsc."
+				},
+				"useReferences": {
+					"type": "boolean",
+					"default": false,
+					"description": "Combine folders along with separate files and also utilize common declarations; useful when the project has at least a couple of build directories, speeds up compilation using tsc."
+				},
+				"compiledLibraries": {
+					"type": "boolean",
+					"default": false,
+					"description": "Include JavaScript libraries as already pre-compiled, avoiding rebuilding them; use only if you don't need library minification or require constant updates."
+				},
+				"quickRebuild": {
+					"type": "boolean",
+					"default": true,
+					"description": "Quickly compile one folder if it was changed alone, otherwise everything compiles normally; relevant only when using 'useReferences'."
+				}
+			},
+			"additionalProperties": false
+		},
+		"outputDirectory": {
+			"type": "string",
+			"default": "output",
+			"description": "The output directory for building the project, containing identical content sent to the device (can be an absolute path to the launcher folder in emulators, eliminating the need to send data to the device)."
+		},
+		"api": {
+			"$ref": "#/definitions/api"
+		},
+		"optimizationLevel": {
+			"$ref": "#/definitions/optimizationLevel"
+		},
+		"setupScript": {
+			"type": "string",
+			"description": "Path to the script that runs upon extracting the archive into the mod browser."
+		},
+		"sources": {
+			"type": "array",
+			"description": "Directories for compiling scripts, such as the primary startup script (e.g., main.js), or individual scripts themselves.",
+			"items": {
+				"type": "object",
+				"properties": {
+					"type": {
+						"enum": [
+							"main",
+							"launcher",
+							"preloader",
+							"custom",
+							"library"
+						],
+						"default": "custom",
+						"description": "Type of script to be compiled."
+					},
+					"source": {
+						"type": "string",
+						"description": "Relative path to the script or folder. Supports '/*' format for including subfolders in the folder."
+					},
+					"language": {
+						"enum": ["javascript", "typescript"],
+						"description": "Language used by the scripts."
+					},
+					"target": {
+						"type": "string",
+						"description": "Output file name for compiling the script."
+					},
+					"sourceName": {
+						"type": "string",
+						"description": "Exclusive for custom types of build. The name of the script will also appear during errors."
+					},
+					"includes": {
+						"type": "string",
+						"default": ".includes",
+						"description": "File containing multiple scripts that should be built together within one folder. There can be several such files per folder."
+					},
+					"api": {
+						"$ref": "#/definitions/api"
+					},
+					"optimizationLevel": {
+						"$ref": "#/definitions/optimizationLevel"
+					},
+					"shared": {
+						"type": "boolean",
+						"default": false,
+						"description": "Declarations will be split among all project files. Relevant only for specific cases."
+					}
+				},
+				"required": ["type", "source"],
+				"additionalProperties": false,
+				"default": {
+					"type": "preloader",
+					"source": "preloader"
+				}
+			},
+			"uniqueItems": true,
+			"default": [
+				{
+					"type": "main",
+					"source": "dev",
+					"target": "main.js"
+				},
+				{
+					"type": "launcher",
+					"source": "launcher.js"
+				},
+				{
+					"type": "library",
+					"source": "library/*"
+				}
+			]
+		},
+		"compile": {
+			"type": "array",
+			"description": "Directories for compiling C++ and Java code. Note that it does not mean you can simply take the original source code from Forge, but it is still an interesting feature.",
+			"items": {
+				"properties": {
+					"type": {
+						"enum": ["native", "java"],
+						"description": "Type of code being compiled."
+					},
+					"source": {
+						"type": "string",
+						"description": "Relative path to the folder where the code resides. Supports '/*' format for including subfolders in the folder."
+					},
+					"rules": {
+						"type": "object",
+						"description": "Exclusive to Native modding.",
+						"properties": {
+							"keepSources": {
+								"type": "boolean",
+								"default": false,
+								"description": "Whether to retain the original source code in the project post-compilation."
+							},
+							"keepIncludes": {
+								"type": "boolean",
+								"default": false,
+								"description": "Whether to preserve header files (included, headers) in the project following compilation."
+							},
+							"link": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								},
+								"uniqueItems": true,
+								"description": "Additional linking specifically for this source code."
+							}
+						}
+					}
+				},
+				"required": ["type", "source"],
+				"additionalProperties": false
+			},
+			"uniqueItems": true,
+			"default": [
+				{
+					"type": "java",
+					"source": "java"
+				},
+				{
+					"type": "native",
+					"source": "native"
+				}
+			]
+		},
+		"resources": {
+			"type": "array",
+			"description": "Directories for building resources like item textures or interfaces.",
+			"items": {
+				"type": "object",
+				"properties": {
+					"type": {
+						"enum": [
+							"resource_directory",
+							"gui",
+							"minecraft_resource_pack",
+							"minecraft_behavior_pack"
+						],
+						"description": "Resource directory type."
+					},
+					"path": {
+						"type": "string",
+						"description": "Relative path to the resource directory."
+					},
+					"target": {
+						"type": "string",
+						"description": "Target path inside the project after building."
+					}
+				},
+				"required": ["type", "path"],
+				"additionalProperties": false,
+				"default": {
+					"type": "minecraft_resource_pack",
+					"path": "resource_packs"
+				}
+			},
+			"uniqueItems": true,
+			"default": [
+				{
+					"type": "resource_directory",
+					"path": "resource"
+				},
+				{
+					"type": "gui",
+					"path": "gui"
+				}
+			]
+		},
+		"additional": {
+			"type": "array",
+			"description": "Additional directories required to be included in the project post-build.",
+			"items": {
+				"type": "object",
+				"properties": {
+					"source": {
+						"type": "string",
+						"description": "Relative path to the additional directory."
+					},
+					"targetDir": {
+						"type": "string",
+						"description": "Target directory path inside the project after building."
+					},
+					"targetFile": {
+						"type": "string",
+						"description": "Target filename added at the end of the output path."
+					}
+				},
+				"required": ["source", "targetDir"],
+				"additionalProperties": false,
+				"default": {
+					"source": "config.info.json",
+					"targetDir": "."
+				}
+			},
+			"uniqueItems": true,
+			"default": [
+				{
+					"source": "config.json",
+					"targetDir": "."
+				}
+			]
+		},
+		"excludeFromRelease": {
+			"type": "array",
+			"description": "Relative paths to directories excluded from release build.",
+			"items": {
+				"type": "string"
+			},
+			"uniqueItems": true
+		},
+		"declarations": {
+			"type": "array",
+			"description": "Paths relative to the project root or absolute paths. All subdirectories will be included as declarations. Include existing library declarations here and consider other properties.",
+			"items": {
+				"type": "string"
+			},
+			"uniqueItems": true,
+			"default": ["declarations"]
+		},
+		"development": {
+			"description": "Settings relevant during development time to reduce build times.",
+			"properties": {
+				"comparingMode": {
+					"enum": ["size", "modify", "content"],
+					"description": "Strategy for checking changes in folders and files during development."
+				},
+				"clearOutput": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether to clean the output folder before every build during development. If set to 'false', it will only be cleaned when releasing the mod."
+				},
+				"include": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"uniqueItems": true,
+					"description": "Global list of files to include in all sources (e.g., tests). Only applicable for TypeScript compilation."
+				},
+				"exclude": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"uniqueItems": true,
+					"description": "Global list of files to exclude from all sources. Overridden if any file is explicitly included. Only applicable for TypeScript compilation."
+				},
+				"tsc": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Optional list of arguments for the TypeScript compiler (tsc) console command. Run 'tsc --all' for details."
+				},
+				"watch": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Optional list of arguments for the TypeScript watcher (tsc) console command. Run 'tsc --all' for details."
+				}
+			},
+			"additionalProperties": false
+		},
+		"tsconfig": {
+			"$ref": "https://json.schemastore.org/tsconfig.json#/definitions/compilerOptionsDefinition/properties/compilerOptions",
+			"description": "TypeScript configuration options. Use IntelliSense within this file or run 'tsc --all' for more information."
+		},
+		"java": {
+			"description": "Exclusive to Java modding.",
+			"properties": {
+				"configurable": {
+					"type": "boolean",
+					"default": false,
+					"description": "Allows to customize build.gradle to perform building, requires skilled hands!"
+				},
+				"keepLibraries": {
+					"type": "boolean",
+					"default": false,
+					"description": "Keep libraries in the project after compiling."
+				},
+				"keepSources": {
+					"type": "boolean",
+					"default": false,
+					"description": "Keep source code in the project after compiling."
+				},
+				"classpath": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"uniqueItems": true,
+					"description": "Additional paths to include as part of system libraries. They won't be added to the final archive."
+				},
+				"compiler": {
+					"enum": ["gradle", "javac", "ecj"],
+					"default": "gradle",
+					"description": "Determines how to compile java folders, ECJ requires 'ecj-version.jar' placement to 'toolchain/bin' directory."
+				}
+			},
+			"additionalProperties": false
+		},
+		"gradle": {
+			"$ref": "#/properties/java",
+			"deprecated": true
+		},
+		"linkNative": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"uniqueItems": true,
+			"description": "Paths that will be linked for all native sources.",
+			"default": ["minecraftpe", "innercore", "nativejs"]
+		},
+		"target": {
+			"description": "Default output paths for builds.",
+			"properties": {
+				"source": {
+					"type": "string",
+					"default": "source",
+					"description": "Default path for script outputs (excluding libraries)."
+				},
+				"library": {
+					"type": "string",
+					"default": "library",
+					"description": "Default path for library scripts outputs."
+				},
+				"native": {
+					"type": "string",
+					"default": "native",
+					"description": "Default path for native executables outputs."
+				},
+				"java": {
+					"type": "string",
+					"default": "java",
+					"description": "Default path for java executables outputs."
+				},
+				"resource_directory": {
+					"type": "string",
+					"default": "resources",
+					"description": "Default path for block textures, item textures, and various atlases resources."
+				},
+				"gui": {
+					"type": "string",
+					"default": "gui",
+					"description": "Default path of interface directory for Inner Core."
+				},
+				"minecraft_resource_pack": {
+					"type": "string",
+					"default": "minecraft_packs/resource",
+					"description": "Default path of resource packs included in the game upon entering the world."
+				},
+				"minecraft_behavior_pack": {
+					"type": "string",
+					"default": "minecraft_packs/behavior",
+					"description": "Default path of behavior packs (addons) included in the game upon entering the world."
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"definitions": {
+		"api": {
+			"enum": ["CoreEngine", "AdaptedScript", "Preloader", "PrefsWinAPI"],
+			"default": "CoreEngine",
+			"description": "The API used by the mod, some script types (e.g. preloader) uses owned one."
+		},
+		"optimizationLevel": {
+			"type": "integer",
+			"minimum": -1,
+			"maximum": 9,
+			"default": -1,
+			"description": "Optimization level value, serves for unloading scripts from memory."
+		},
+		"info": {
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "Project name, that is displayed in installed mods."
+				},
+				"version": {
+					"type": "string",
+					"default": "1.0",
+					"description": "Determinates version, which should be changed every release."
+				},
+				"author": {
+					"type": "string",
+					"description": "Author or authors of project."
+				},
+				"description": {
+					"type": "string",
+					"description": "A short description of what project does."
+				},
+				"clientOnly": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether project is intended to run only on client side, or required to be installed for other players."
+				},
+				"icon": {
+					"type": "string",
+					"default": "mod_icon.png",
+					"description": "Path to icon, that is displayed in installed mods. Recommended resolution is 192x192."
+				}
+			}
+		}
+	}
+}

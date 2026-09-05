@@ -1,0 +1,48 @@
+{
+	"$schema": "https://raw.githubusercontent.com/zheka2304/innercore-mod-toolchain/develop/toolchain/schemas/make.schema.json",
+	"info": {
+		"name": "Template Mod"
+	},
+	"resources": [
+		{
+			"path": "assets/res",
+			"type": "resource_directory"
+		},
+		{
+			"path": "assets/gui",
+			"type": "gui"
+		},
+		{
+			"path": "assets/resource_packs/*",
+			"type": "minecraft_resource_pack"
+		},
+		{
+			"path": "assets/behavior_packs/*",
+			"type": "minecraft_behavior_pack"
+		}
+	],
+	"sources": [
+		{
+			"source": "dev",
+			"target": "main.js",
+			"type": "main",
+			"language": "typescript"
+		},
+		{
+			"source": "launcher.js",
+			"type": "launcher",
+			"language": "javascript"
+		},
+		{
+			"source": "lib/*",
+			"type": "library",
+			"language": "javascript"
+		}
+	],
+	"additional": [
+		{
+			"source": "assets/root/*",
+			"targetDir": "."
+		}
+	]
+}

@@ -1,0 +1,14 @@
+/toolchain/bin/node_modules
+/toolchain/bin/package*.json
+/toolchain/build
+/toolchain/temp
+/toolchain/ndk
+
+output/
+**/tsconfig.json
+*.cache
+.gradle
+
+*.log
+*.icmod
+.*commit

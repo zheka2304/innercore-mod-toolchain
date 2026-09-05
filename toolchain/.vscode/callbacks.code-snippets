@@ -1,0 +1,380 @@
+{
+	"ContainerOpened": {
+		"scope": "javascript,typescript",
+		"prefix": "ContainerOpened",
+		"description": "Occurs when user opens some container.",
+		"body": "Callback.addCallback(\"ContainerOpened\", function(container, window) {\n\t$1\n});"
+	},
+	"ContainerClosed": {
+		"scope": "javascript,typescript",
+		"prefix": "ContainerClosed",
+		"description": "Occurs when some container is closed.",
+		"body": "Callback.addCallback(\"ContainerClosed\", function(container, window, byUser) {\n\t$1\n});"
+	},
+	"CustomWindowOpened": {
+		"scope": "javascript,typescript",
+		"prefix": "CustomWindowOpened",
+		"description": "Occurs when every single window is opened. Called for every window and subwindow. Examples of subwindows include standard inventory, window title, main window, etc.",
+		"body": "Callback.addCallback(\"CustomWindowOpened\", function(window) {\n\t$1\n});"
+	},
+	"CustomWindowClosed": {
+		"scope": "javascript,typescript",
+		"prefix": "CustomWindowClosed",
+		"description": "Occurs when every single window is closed.",
+		"body": "Callback.addCallback(\"CustomWindowClosed\", function(window) {\n\t$1\n});"
+	},
+	"CraftRecipePreProvided": {
+		"scope": "javascript,typescript",
+		"prefix": "CraftRecipePreProvided",
+		"description": "Occurs befor crafting is performed.",
+		"body": "Callback.addCallback(\"CraftRecipePreProvided\", function(recipe, field) {\n\t$1\n});"
+	},
+	"CraftRecipeProvided": {
+		"scope": "javascript,typescript",
+		"prefix": "CraftRecipeProvided",
+		"description": "Occurs afrer crafting recipe result is determined.",
+		"body": "Callback.addCallback(\"CraftRecipeProvided\", function(recipe, field, isPrevented) {\n\t$1\n});"
+	},
+	"VanillaWorkbenchCraft": {
+		"scope": "javascript,typescript",
+		"prefix": "VanillaWorkbenchCraft",
+		"description": "Occurs just before adding crafting recipe result to player's inventory.",
+		"body": "Callback.addCallback(\"VanillaWorkbenchCraft\", function(result, workbenchContainer) {\n\t$1\n});"
+	},
+	"VanillaWorkbenchPostCraft": {
+		"scope": "javascript,typescript",
+		"prefix": "VanillaWorkbenchPostCraft",
+		"description": "Occurs after adding crafting recipe result to player's inventory.",
+		"body": "Callback.addCallback(\"VanillaWorkbenchPostCraft\", function(result, workbenchContainer) {\n\t$1\n});"
+	},
+	"VanillaWorkbenchRecipeSelected": {
+		"scope": "javascript,typescript",
+		"prefix": "VanillaWorkbenchRecipeSelected",
+		"description": "Occurs when player selects recipe in the workbench.",
+		"body": "Callback.addCallback(\"VanillaWorkbenchRecipeSelected\", function(recipe, result, workbenchContainer) {\n\t$1\n});"
+	},
+	"CoreConfigured": {
+		"scope": "javascript,typescript",
+		"prefix": "CoreConfigured",
+		"description": "Occurs when Inner Core default configuration file is loaded.",
+		"body": "Callback.addCallback(\"CoreConfigured\", function(config) {\n\t$1\n});"
+	},
+	"PreLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "PreLoaded",
+		"description": "Occurs directly after \"CoreConfigured\" callback.",
+		"body": "Callback.addCallback(\"PreLoaded\", function() {\n\t$1\n});"
+	},
+	"APILoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "APILoaded",
+		"description": "Occurs directly after \"PreLoaded\" callback.",
+		"body": "Callback.addCallback(\"APILoaded\", function() {\n\t$1\n});"
+	},
+	"ModsLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "ModsLoaded",
+		"description": "Occurs directly after \"APILoaded\" callback.",
+		"body": "Callback.addCallback(\"ModsLoaded\", function() {\n\t$1\n});"
+	},
+	"PostLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "PostLoaded",
+		"description": "Occurs directly after \"ModsLoaded\" callback. Last of the loading callbacks.",
+		"body": "Callback.addCallback(\"PostLoaded\", function() {\n\t$1\n});"
+	},
+	"AppSuspended": {
+		"scope": "javascript,typescript",
+		"prefix": "AppSuspended",
+		"description": "Occurs when Minecraft application is paused.",
+		"body": "Callback.addCallback(\"AppSuspended\", function() {\n\t$1\n});"
+	},
+	"NativeGuiChanged": {
+		"scope": "javascript,typescript",
+		"prefix": "NativeGuiChanged",
+		"description": "Occurs when vanilla screen changes.",
+		"body": "Callback.addCallback(\"NativeGuiChanged\", function(name, lastName, isPushEvent) {\n\t$1\n});"
+	},
+	"ReadSaves": {
+		"scope": "javascript,typescript",
+		"prefix": "ReadSaves",
+		"description": "Occurs when reading saves from global scope.",
+		"body": "Callback.addCallback(\"ReadSaves\", function(globalScope) {\n\t$1\n});"
+	},
+	"WriteSaves": {
+		"scope": "javascript,typescript",
+		"prefix": "WriteSaves",
+		"description": "Occurs when writing saves to global scope.",
+		"body": "Callback.addCallback(\"WriteSaves\", function(globalScope) {\n\t$1\n});"
+	},
+	"tick": {
+		"scope": "javascript,typescript",
+		"prefix": "tick",
+		"description": "Is main game .",
+		"body": "Callback.addCallback(\"tick\", function() {\n\t$1\n});"
+	},
+	"LevelSelected": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelSelected",
+		"description": "Occurs when the level is selected and will be loaded.",
+		"body": "Callback.addCallback(\"LevelSelected\", function(worldName, worldDir) {\n\t$1\n});"
+	},
+	"LevelCreated": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelCreated",
+		"description": "Occurs when level is created in the memory of the device.",
+		"body": "Callback.addCallback(\"LevelCreated\", function() {\n\t$1\n});"
+	},
+	"LevelDisplayed": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelDisplayed",
+		"description": "Occurs when level is displayed to the player.",
+		"body": "Callback.addCallback(\"LevelDisplayed\", function() {\n\t$1\n});"
+	},
+	"LevelPreLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelPreLoaded",
+		"description": "Occurs before some level initialization.",
+		"body": "Callback.addCallback(\"LevelPreLoaded\", function() {\n\t$1\n});"
+	},
+	"LevelLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelLoaded",
+		"description": "Occurs when level is completely loaded and is ready to be displayed to the player.",
+		"body": "Callback.addCallback(\"LevelLoaded\", function() {\n\t$1\n});"
+	},
+	"DimensionLoaded": {
+		"scope": "javascript,typescript",
+		"prefix": "DimensionLoaded",
+		"description": "Occurs when vanilla or custom dimension is loaded.",
+		"body": "Callback.addCallback(\"DimensionLoaded\", function(dimension) {\n\t$1\n});"
+	},
+	"LevelPreLeft": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelPreLeft",
+		"description": "Occurs when player starts leaving world.",
+		"body": "Callback.addCallback(\"LevelPreLeft\", function() {\n\t$1\n});"
+	},
+	"LevelLeft": {
+		"scope": "javascript,typescript",
+		"prefix": "LevelLeft",
+		"description": "Occurs when player completes leaving world.",
+		"body": "Callback.addCallback(\"LevelLeft\", function() {\n\t$1\n});"
+	},
+	"PreBlocksDefined": {
+		"scope": "javascript,typescript",
+		"prefix": "PreBlocksDefined",
+		"description": "Occurs before saving block data while loading world.",
+		"body": "Callback.addCallback(\"PreBlocksDefined\", function() {\n\t$1\n});"
+	},
+	"BlocksDefined": {
+		"scope": "javascript,typescript",
+		"prefix": "BlocksDefined",
+		"description": "Occurs after saving block data while loading world.",
+		"body": "Callback.addCallback(\"BlocksDefined\", function() {\n\t$1\n});"
+	},
+	"DestroyBlock": {
+		"scope": "javascript,typescript",
+		"prefix": "DestroyBlock",
+		"description": "Occurs when player breaks block.",
+		"body": "Callback.addCallback(\"DestroyBlock\", function(coords, block, player) {\n\t$1\n});"
+	},
+	"DestroyBlockStart": {
+		"scope": "javascript,typescript",
+		"prefix": "DestroyBlockStart",
+		"description": "Occurs when player starts breaking block. Has the same parameters as \"DestroyBlock\" callback.",
+		"body": "Callback.addCallback(\"DestroyBlockStart\", function(coords, block, player) {\n\t$1\n});"
+	},
+	"DestroyBlockContinue": {
+		"scope": "javascript,typescript",
+		"prefix": "DestroyBlockContinue",
+		"description": "Occurs when player continues breaking block. Occurs several times during one block breaking.",
+		"body": "Callback.addCallback(\"DestroyBlockContinue\", function(coords, block, progress) {\n\t$1\n});"
+	},
+	"BuildBlock": {
+		"scope": "javascript,typescript",
+		"prefix": "BuildBlock",
+		"description": "Occurs when player places block somewhere in the world.",
+		"body": "Callback.addCallback(\"BuildBlock\", function(coords, block, player) {\n\t$1\n});"
+	},
+	"BlockChanged": {
+		"scope": "javascript,typescript",
+		"prefix": "BlockChanged",
+		"description": "Occurs when block changes in the world. To capture this event you should register blocks that you need to watch using World.setBlockChangeCallbackEnabled method. All block changes that are related to the registered blocks trigger this event.",
+		"body": "Callback.addCallback(\"BlockChanged\", function(coords, oldBlock, newBlock, region) {\n\t$1\n});"
+	},
+	"ItemUse": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemUse",
+		"description": "Occurs when player uses item on some block. Doesn't work if vanilla container is opened (e.g. chest, workbench, etc.). Use \".",
+		"body": "Callback.addCallback(\"ItemUse\", function(coords, item, block, player) {\n\t$1\n});"
+	},
+	"ItemUseLocalServer": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemUseLocalServer",
+		"description": "Occurs when player uses some item on the local server. Can be used to prevent vanilla container from opening.",
+		"body": "Callback.addCallback(\"ItemUseLocalServer\", function(coords, item, block, player) {\n\t$1\n});"
+	},
+	"FoodEaten": {
+		"scope": "javascript,typescript",
+		"prefix": "FoodEaten",
+		"description": "Occurs when player eats food.",
+		"body": "Callback.addCallback(\"FoodEaten\", function(food, ratio) {\n\t$1\n});"
+	},
+	"ExpAdd": {
+		"scope": "javascript,typescript",
+		"prefix": "ExpAdd",
+		"description": "Occurs when player gains some experience.",
+		"body": "Callback.addCallback(\"ExpAdd\", function(exp) {\n\t$1\n});"
+	},
+	"ExpLevelAdd": {
+		"scope": "javascript,typescript",
+		"prefix": "ExpLevelAdd",
+		"description": "Occurs when player gains some experience levels.",
+		"body": "Callback.addCallback(\"ExpLevelAdd\", function(level) {\n\t$1\n});"
+	},
+	"NativeCommand": {
+		"scope": "javascript,typescript",
+		"prefix": "NativeCommand",
+		"description": "Occurs when player enters some command.",
+		"body": "Callback.addCallback(\"NativeCommand\", function(command) {\n\t$1\n});"
+	},
+	"PlayerAttack": {
+		"scope": "javascript,typescript",
+		"prefix": "PlayerAttack",
+		"description": "Occurs when player attacks some entity.",
+		"body": "Callback.addCallback(\"PlayerAttack\", function(attacker, victim) {\n\t$1\n});"
+	},
+	"EntityInteract": {
+		"scope": "javascript,typescript",
+		"prefix": "EntityInteract",
+		"description": "Occurs when player longclick some entity (interacts with it).",
+		"body": "Callback.addCallback(\"EntityInteract\", function(entity, player) {\n\t$1\n});"
+	},
+	"ItemUseNoTarget": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemUseNoTarget",
+		"description": "Occurs when an item is used in the air.",
+		"body": "Callback.addCallback(\"ItemUseNoTarget\", function(item, player) {\n\t$1\n});"
+	},
+	"ItemUsingReleased": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemUsingReleased",
+		"description": "Occurs when player doesn't complete using item that has maximum use time set with Item.setMaxUseDuration function.",
+		"body": "Callback.addCallback(\"ItemUsingReleased\", function(item, ticks, player) {\n\t$1\n});"
+	},
+	"ItemUsingComplete": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemUsingComplete",
+		"description": "When player completes using item that has maximum use time set with Item.setMaxUseDuration function.",
+		"body": "Callback.addCallback(\"ItemUsingComplete\", function(item, player) {\n\t$1\n});"
+	},
+	"Explosion": {
+		"scope": "javascript,typescript",
+		"prefix": "Explosion",
+		"description": "Occurs when something is exploded in the world.",
+		"body": "Callback.addCallback(\"Explosion\", function(coords, params) {\n\t$1\n});"
+	},
+	"EntityAdded": {
+		"scope": "javascript,typescript",
+		"prefix": "EntityAdded",
+		"description": "Occurs when an entity is added in the world.",
+		"body": "Callback.addCallback(\"EntityAdded\", function(entity) {\n\t$1\n});"
+	},
+	"EntityRemoved": {
+		"scope": "javascript,typescript",
+		"prefix": "EntityRemoved",
+		"description": "Occurs when an entity is removed from the world.",
+		"body": "Callback.addCallback(\"EntityRemoved\", function(entity) {\n\t$1\n});"
+	},
+	"EntityDeath": {
+		"scope": "javascript,typescript",
+		"prefix": "EntityDeath",
+		"description": "Occurs when an entity dies.",
+		"body": "Callback.addCallback(\"EntityDeath\", function(entity, attacker, damageType) {\n\t$1\n});"
+	},
+	"EntityHurt": {
+		"scope": "javascript,typescript",
+		"prefix": "EntityHurt",
+		"description": "Occurs when an entity is hurt.",
+		"body": "Callback.addCallback(\"EntityHurt\", function(attacker, entity, damageValue, damageType, someBool1, someBool2) {\n\t$1\n});"
+	},
+	"ProjectileHit": {
+		"scope": "javascript,typescript",
+		"prefix": "ProjectileHit",
+		"description": "Occurs when a projectile entity hits entity or block.",
+		"body": "Callback.addCallback(\"ProjectileHit\", function(projectile, item, target) {\n\t$1\n});"
+	},
+	"RedstoneSignal": {
+		"scope": "javascript,typescript",
+		"prefix": "RedstoneSignal",
+		"description": "Occurs when redstone signal changes on the specified coordinates. To register block as redstone consumer, use Block.setRedstoneTile function.",
+		"body": "Callback.addCallback(\"RedstoneSignal\", function(coords, params, block) {\n\t$1\n});"
+	},
+	"PopBlockResources": {
+		"scope": "javascript,typescript",
+		"prefix": "PopBlockResources",
+		"description": "Occurs when block is desroyed somehow (not by player).",
+		"body": "Callback.addCallback(\"PopBlockResources\", function(coords, block, f, i) {\n\t$1\n});"
+	},
+	"CustomBlockTessellation": {
+		"scope": "javascript,typescript",
+		"prefix": "CustomBlockTessellation",
+		"description": "Occurs when custom block rendering needs to be performed.",
+		"body": "Callback.addCallback(\"CustomBlockTessellation\", function(api, coords, block, b) {\n\t$1\n});"
+	},
+	"ItemIconOverride": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemIconOverride",
+		"description": "Occurs when displaying item somewhere to override item's icon. You can use it to change item's icon depending on some item state.",
+		"body": "Callback.addCallback(\"ItemIconOverride\", function(item, isModUi) {\n\t$1\n});"
+	},
+	"ItemNameOverride": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemNameOverride",
+		"description": "Occurs when displaying item name to override it. You can use it to display item charge, status, etc.",
+		"body": "Callback.addCallback(\"ItemNameOverride\", function(item, translation, name) {\n\t$1\n});"
+	},
+	"ItemDispensed": {
+		"scope": "javascript,typescript",
+		"prefix": "ItemDispensed",
+		"description": "Occurs when an item is dispenced using dispenser.",
+		"body": "Callback.addCallback(\"ItemDispensed\", function(coords, item, player) {\n\t$1\n});"
+	},
+	"GenerateChunk": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateChunk",
+		"description": "Occurs when generating chunk in overworld. Shoud be used for all generation process.",
+		"body": "Callback.addCallback(\"GenerateChunk\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	},
+	"GenerateChunkUnderground": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateChunkUnderground",
+		"description": "Occurs when generating chunk's underground in overworld. Can be used for all underground generation process (though it is OK to use \"GenerateChunk\" for it as well).",
+		"body": "Callback.addCallback(\"GenerateChunkUnderground\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	},
+	"GenerateNetherChunk": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateNetherChunk",
+		"description": "Occurs when generating chunk in neather world.",
+		"body": "Callback.addCallback(\"GenerateNetherChunk\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	},
+	"GenerateEndChunk": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateEndChunk",
+		"description": "Occurs when generating chunk in end world.",
+		"body": "Callback.addCallback(\"GenerateEndChunk\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	},
+	"GenerateChunkUniversal": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateChunkUniversal",
+		"description": "Occurs when any chunk is generated.",
+		"body": "Callback.addCallback(\"GenerateChunkUniversal\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	},
+	"GenerateBiomeMap,": {
+		"scope": "javascript,typescript",
+		"prefix": "GenerateBiomeMap",
+		"description": "Occurs after generating vanilla biome map so that we can modify it before the covers generation.\n.",
+		"body": "Callback.addCallback(\"GenerateBiomeMap,\", function(chunkX, chunkZ, random, dimensionId, chunkSeed, worldSeed, dimensionSeed) {\n\t$1\n});"
+	}
+}
